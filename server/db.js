@@ -254,6 +254,9 @@ function seedInitialData() {
     '+506 8999-0011'
   );
 
+  // Asegurar que todos los estudiantes tengan el PIN 1234 estándar para el piloto
+  db.prepare("UPDATE estudiantes SET pin_seguridad = '1234' WHERE pin_seguridad IS NULL OR pin_seguridad != '1234'").run();
+
   console.log('✅ Base de datos inicializada con éxito.');
 }
 
