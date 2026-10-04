@@ -6,7 +6,20 @@
   <title>RecreoPay - Tu Soda Escolar Digital</title>
   <link rel="manifest" href="/manifest.json">
   <meta name="theme-color" content="#0284c7">
-  <link rel="stylesheet" href="/css/styles.css">
+  <link rel="stylesheet" href="/css/styles.css?v=5.0">
+  <script>
+    // Purgar y desactivar service workers y cachés obsoletas en móviles
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.getRegistrations().then(function(regs) {
+        for (var r of regs) { r.unregister(); }
+      });
+    }
+    if ('caches' in window) {
+      caches.keys().then(function(names) {
+        for (var n of names) { caches.delete(n); }
+      });
+    }
+  </script>
   <style>
     /* Transiciones suaves */
     .fade-enter { animation: fadeIn 0.2s ease-in-out; }
@@ -84,11 +97,12 @@
       </div>
     </section>
 
-    <!-- BANNER DE LÍMITE DIARIO Y SALUD -->
-    <div class="daily-limit-badge" id="dailyLimitBadge">
+    <!-- BANNER DE LÍMITE DIARIO Y SALUD (TOCABLE PARA EDITAR) -->
+    <div class="daily-limit-badge" id="dailyLimitBadge" onclick="openDailyLimitEditor()" style="cursor: pointer;" title="Toca aquí para escribir o ajustar el límite diario">
       <div>
         <span>Límite diario fijado: </span>
         <strong id="dailyLimitText">₡0</strong>
+        <span style="font-size: 0.72rem; color: #0284c7; background: #e0f2fe; padding: 2px 7px; border-radius: 6px; margin-left: 6px; font-weight: 800;">✏️ Cambiar</span>
       </div>
       <div style="font-size: 0.76rem; color: var(--text-muted);" id="dailyAvailableText">
         Disponible hoy: ₡0
@@ -240,40 +254,42 @@
       </div>
 
       <!-- CONFIGURACIÓN DE LÍMITE DIARIO (ESCRITO Y DESLIZABLE) -->
-      <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 14px; padding: 14px; margin-bottom: 16px;">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+      <div style="background: #f0f9ff; border: 2px solid #38bdf8; border-radius: 14px; padding: 14px; margin-bottom: 16px; box-shadow: 0 2px 8px rgba(56, 189, 248, 0.15);">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
           <div>
-            <strong style="font-size: 0.88rem; color: #0f172a; display: block;">🛡️ Límite de Gasto Máximo Diario</strong>
-            <span style="font-size: 0.72rem; color: #64748b;">Monto máximo que el alumno puede gastar por día</span>
+            <strong style="font-size: 0.92rem; color: #0369a1; display: block;">🛡️ Límite de Gasto Máximo Diario</strong>
+            <span style="font-size: 0.74rem; color: #64748b;">Monto máximo que el estudiante puede gastar por día</span>
           </div>
-          <span id="lblParentDailyLimit" style="font-size: 1rem; color: #0284c7; font-weight: 900; background: #e0f2fe; padding: 3px 8px; border-radius: 8px;">₡3.000</span>
+          <span id="lblParentDailyLimit" style="font-size: 1.05rem; color: #0284c7; font-weight: 900; background: white; border: 1.5px solid #bae6fd; padding: 3px 10px; border-radius: 8px;">₡3.000</span>
         </div>
 
-        <label style="display: block; font-size: 0.76rem; font-weight: 800; color: #334155; margin-bottom: 4px;">
-          Escribe el monto del límite diario:
+        <label for="inputCustomDailyLimit" style="display: block; font-size: 0.8rem; font-weight: 800; color: #0369a1; margin-bottom: 4px;">
+          ✍️ Digita o escribe el límite en colones:
         </label>
-        <div style="display: flex; gap: 6px; margin-bottom: 10px;">
+        <div style="display: flex; gap: 8px; margin-bottom: 8px;">
           <div style="position: relative; flex: 1;">
-            <span style="position: absolute; left: 10px; top: 50%; transform: translateY(-50%); font-weight: 900; color: #0284c7; font-size: 1rem;">₡</span>
-            <input type="tel" inputmode="numeric" pattern="[0-9]*" id="inputCustomDailyLimit" placeholder="Ej: 3000" oninput="onCustomDailyLimitInput(this.value)" style="width: 100%; padding: 9px 10px 9px 28px; border-radius: 8px; border: 1.5px solid #cbd5e1; font-size: 1rem; font-weight: 800; color: #0f172a; background: white;">
+            <span style="position: absolute; left: 10px; top: 50%; transform: translateY(-50%); font-weight: 900; color: #0284c7; font-size: 1.1rem;">₡</span>
+            <input type="tel" inputmode="numeric" pattern="[0-9]*" id="inputCustomDailyLimit" placeholder="Ej: 3000" oninput="onCustomDailyLimitInput(this.value)" style="width: 100%; padding: 10px 10px 10px 30px; border-radius: 10px; border: 2px solid #0284c7; font-size: 1.1rem; font-weight: 900; color: #0f172a; background: white; box-shadow: inset 0 1px 2px rgba(0,0,0,0.06);">
           </div>
-          <button type="button" onclick="saveCustomDailyLimit()" style="padding: 9px 14px; background: #0284c7; color: white; border: none; border-radius: 8px; font-weight: 800; font-size: 0.8rem; cursor: pointer; white-space: nowrap;">
+          <button type="button" onclick="saveCustomDailyLimit()" style="padding: 10px 16px; background: linear-gradient(135deg, #0284c7, #0369a1); color: white; border: none; border-radius: 10px; font-weight: 900; font-size: 0.85rem; cursor: pointer; white-space: nowrap; box-shadow: 0 2px 6px rgba(2, 132, 199, 0.35);">
             💾 Guardar
           </button>
         </div>
 
+        <div id="msgDailyLimitFeedback" style="display: none; font-size: 0.76rem; font-weight: 800; margin-bottom: 8px; padding: 4px 8px; border-radius: 6px; background: #dcfce7; color: #166534; text-align: center;"></div>
+
         <!-- ACCESOS RÁPIDOS DE LÍMITES COMUNES -->
-        <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; margin-bottom: 8px;">
-          <button type="button" onclick="setWrittenDailyLimit(1500)" style="padding: 5px 2px; background: white; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 0.72rem; font-weight: 700; color: #334155; cursor: pointer;">₡1.500</button>
-          <button type="button" onclick="setWrittenDailyLimit(2500)" style="padding: 5px 2px; background: white; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 0.72rem; font-weight: 700; color: #334155; cursor: pointer;">₡2.500</button>
-          <button type="button" onclick="setWrittenDailyLimit(3500)" style="padding: 5px 2px; background: white; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 0.72rem; font-weight: 700; color: #334155; cursor: pointer;">₡3.500</button>
-          <button type="button" onclick="setWrittenDailyLimit(5000)" style="padding: 5px 2px; background: white; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 0.72rem; font-weight: 700; color: #334155; cursor: pointer;">₡5.000</button>
+        <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 5px; margin-bottom: 10px;">
+          <button type="button" onclick="setWrittenDailyLimit(1500)" style="padding: 6px 2px; background: white; border: 1.5px solid #cbd5e1; border-radius: 8px; font-size: 0.74rem; font-weight: 800; color: #1e293b; cursor: pointer;">₡1.500</button>
+          <button type="button" onclick="setWrittenDailyLimit(2500)" style="padding: 6px 2px; background: white; border: 1.5px solid #cbd5e1; border-radius: 8px; font-size: 0.74rem; font-weight: 800; color: #1e293b; cursor: pointer;">₡2.500</button>
+          <button type="button" onclick="setWrittenDailyLimit(3500)" style="padding: 6px 2px; background: white; border: 1.5px solid #cbd5e1; border-radius: 8px; font-size: 0.74rem; font-weight: 800; color: #1e293b; cursor: pointer;">₡3.500</button>
+          <button type="button" onclick="setWrittenDailyLimit(5000)" style="padding: 6px 2px; background: white; border: 1.5px solid #cbd5e1; border-radius: 8px; font-size: 0.74rem; font-weight: 800; color: #1e293b; cursor: pointer;">₡5.000</button>
         </div>
 
+        <div style="font-size: 0.72rem; color: #64748b; margin-bottom: 2px;">O desliza para ajustar rápido:</div>
         <input type="range" id="rangeDailyLimit" min="1000" max="10000" step="500" value="3000" oninput="onDailyLimitSlider(this.value)" style="width: 100%;">
         <div style="display: flex; justify-content: space-between; font-size: 0.7rem; color: #64748b; margin-top: 2px;">
           <span>₡1.000 min</span>
-          <span>Deslizar para ajustar</span>
           <span>₡10.000 max</span>
         </div>
       </div>
@@ -416,8 +432,8 @@
     </div>
   </div>
 
-  <script src="/js/sounds.js"></script>
+  <script src="/js/sounds.js?v=5.0"></script>
   <script src="/js/jsQR.js"></script>
-  <script src="/js/app.js"></script>
+  <script src="/js/app.js?v=5.0"></script>
 </body>
 </html>

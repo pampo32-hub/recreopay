@@ -44,9 +44,11 @@ function checkHttpsEnvironment() {
 document.addEventListener('DOMContentLoaded', async () => {
   checkHttpsEnvironment();
 
-  // Registrar Service Worker para PWA si está soportado
+  // Registrar Service Worker para PWA con forzado de actualizacion
   if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('/sw.js').catch(err => console.log('SW error:', err));
+    navigator.serviceWorker.register('/sw.js?v=5.0').then(reg => {
+      reg.update();
+    }).catch(err => console.log('SW error:', err));
   }
 
   await loadInitialData();
@@ -416,6 +418,18 @@ function toggleParentPanel(show, e) {
   document.getElementById('modalPadres').style.display = show ? 'flex' : 'none';
 }
 
+function openDailyLimitEditor() {
+  toggleParentPanel(true);
+  setTimeout(() => {
+    const input = document.getElementById('inputCustomDailyLimit');
+    if (input) {
+      input.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      input.focus();
+      input.select();
+    }
+  }, 200);
+}
+
 function setWrittenRechargeAmount(monto) {
   const input = document.getElementById('inputCustomSinpe');
   if (input) {
@@ -519,8 +533,14 @@ async function saveCustomDailyLimit(customVal) {
       const input = document.getElementById('inputCustomDailyLimit');
       if (input) input.value = val;
 
+      const fb = document.getElementById('msgDailyLimitFeedback');
+      if (fb) {
+        fb.textContent = `✅ ¡Límite fijado en ₡${val.toLocaleString('es-CR')} con éxito!`;
+        fb.style.display = 'block';
+        setTimeout(() => { if (fb) fb.style.display = 'none'; }, 4000);
+      }
+
       if (window.sounds) window.sounds.playSuccess();
-      alert(`✅ Límite diario actualizado a ₡${val.toLocaleString('es-CR')} para ${currentStudent.nombre_completo.split(' ')[0]}`);
       await selectStudent(currentStudent.id);
     }
   } catch (e) {

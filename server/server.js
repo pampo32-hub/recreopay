@@ -12,7 +12,14 @@ initDatabase();
 
 app.use(cors());
 app.use(express.json());
-app.use(express.static(path.join(__dirname, '../public')));
+app.use(express.static(path.join(__dirname, '../public'), {
+  etag: false,
+  setHeaders: (res, filePath) => {
+    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+    res.setHeader('Pragma', 'no-cache');
+    res.setHeader('Expires', '0');
+  }
+}));
 
 // Simple in-memory SSE clients for real-time notifications
 const sseClients = new Set();

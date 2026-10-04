@@ -1,20 +1,5 @@
-const CACHE_NAME = 'recreopay-static-v1';
-const ASSETS_TO_CACHE = [
-  '/',
-  '/index.html',
-  '/pos.html',
-  '/carnet.html',
-  '/css/styles.css',
-  '/js/sounds.js',
-  '/manifest.json'
-];
-
+// RecreoPay PWA Service Worker (Auto-purge & Unregister para evitar caché vieja en móviles)
 self.addEventListener('install', (event) => {
-  event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => {
-      return cache.addAll(ASSETS_TO_CACHE).catch(err => console.log('Cache warn:', err));
-    })
-  );
   self.skipWaiting();
 });
 
@@ -22,26 +7,25 @@ self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches.keys().then((keys) => {
       return Promise.all(
-        keys.filter((key) => key !== CACHE_NAME).map((key) => caches.delete(key))
+        keys.map((key) => {
+          console.log('[SW] Purgando caché obsoleta:', key);
+          return caches.delete(key);
+        })
       );
-    })
+    }).then(() => self.registration.unregister())
+      .then(() => self.clients.claim())
+      .then(() => self.clients.matchAll())
+      .then((clients) => {
+        clients.forEach((client) => {
+          if (client.url && 'navigate' in client) {
+            client.navigate(client.url);
+          }
+        });
+      })
   );
-  self.clients.claim();
 });
 
+// Pass-through directo a la red (sin caché en desarrollo y pruebas)
 self.addEventListener('fetch', (event) => {
-  // Let API requests pass through to the network
-  if (event.request.url.includes('/api/')) {
-    return;
-  }
-
-  event.respondWith(
-    caches.match(event.request).then((cachedResponse) => {
-      return cachedResponse || fetch(event.request).catch(() => {
-        if (event.request.mode === 'navigate') {
-          return caches.match('/index.html');
-        }
-      });
-    })
-  );
+  // Sin intercepción: el navegador siempre pide al servidor
 });
