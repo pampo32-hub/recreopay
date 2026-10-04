@@ -554,7 +554,15 @@ function onTransferTargetIdentified(target) {
   setTransferAmount(500, document.getElementById('btnTransfer500'));
   document.getElementById('inputTransferCustomAmount').value = '';
   document.getElementById('inputTransferMotivo').value = '';
-  document.getElementById('inputTransferPin').value = '';
+  const pinInput = document.getElementById('inputTransferPin');
+  if (pinInput) {
+    pinInput.value = '';
+    pinInput.type = 'password';
+  }
+  const pinHint = document.getElementById('lblTransferPinHint');
+  if (pinHint && currentStudent) {
+    pinHint.textContent = `(PIN: ${currentStudent.pin_seguridad || '1234'})`;
+  }
 
   document.getElementById('transferStepScan').style.display = 'none';
   document.getElementById('transferStepConfirm').style.display = 'block';
@@ -573,6 +581,44 @@ function setTransferAmount(val, btn) {
   if (btn) btn.classList.add('active');
   document.getElementById('inputTransferCustomAmount').value = '';
   if (window.sounds) window.sounds.playCoin();
+}
+
+// Control del Teclado Numérico Táctil del PIN
+function appendPinDigit(digit) {
+  const pinInput = document.getElementById('inputTransferPin');
+  if (!pinInput) return;
+  if (pinInput.value.length < 4) {
+    pinInput.value += digit;
+    if (window.sounds) window.sounds.playCoin();
+  }
+}
+
+function backspacePinDigit() {
+  const pinInput = document.getElementById('inputTransferPin');
+  if (!pinInput) return;
+  pinInput.value = pinInput.value.slice(0, -1);
+  if (window.sounds) window.sounds.playCoin();
+}
+
+function fillQuickPin(val = '1234') {
+  const pinInput = document.getElementById('inputTransferPin');
+  if (!pinInput) return;
+  pinInput.value = val;
+  if (window.sounds) window.sounds.playCoin();
+}
+
+function togglePinVisibility() {
+  const pinInput = document.getElementById('inputTransferPin');
+  const btn = document.getElementById('btnTogglePin');
+  if (!pinInput) return;
+  if (pinInput.type === 'password') {
+    // Al pasar a type="tel", muestra los números y mantiene el teclado puramente numérico
+    pinInput.type = 'tel';
+    if (btn) btn.textContent = '🔒';
+  } else {
+    pinInput.type = 'password';
+    if (btn) btn.textContent = '👁️';
+  }
 }
 
 let transferFacingMode = 'environment';

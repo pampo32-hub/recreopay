@@ -222,7 +222,7 @@
         </div>
 
         <div style="display: flex; gap: 6px;">
-          <input type="number" id="inputCustomSinpe" placeholder="Otro monto (₡)" style="flex: 1; padding: 8px; border-radius: 8px; border: 1px solid #cbd5e1; font-weight: 600;">
+          <input type="tel" inputmode="numeric" pattern="[0-9]*" id="inputCustomSinpe" placeholder="Otro monto (₡)" style="flex: 1; padding: 8px; border-radius: 8px; border: 1px solid #cbd5e1; font-weight: 600;">
           <button onclick="customSinpeRecharge()" style="padding: 8px 14px; background: #166534; color: white; border: none; border-radius: 8px; font-weight: 700; cursor: pointer;">Recargar</button>
         </div>
       </div>
@@ -333,7 +333,7 @@
         </div>
 
         <div style="margin-bottom: 12px;">
-          <input type="number" id="inputTransferCustomAmount" placeholder="Otro monto (ej. 750)" style="width: 100%; padding: 10px; border-radius: 10px; border: 1px solid #cbd5e1; font-size: 1rem; font-weight: 800; color: #0284c7;">
+          <input type="tel" inputmode="numeric" pattern="[0-9]*" id="inputTransferCustomAmount" placeholder="Otro monto (ej. 750)" style="width: 100%; padding: 10px; border-radius: 10px; border: 1px solid #cbd5e1; font-size: 1rem; font-weight: 800; color: #0284c7;">
         </div>
 
         <!-- MOTIVO OPCIONAL -->
@@ -342,13 +342,33 @@
           <input type="text" id="inputTransferMotivo" placeholder="Ej: Mitad de la empanada, fresco..." style="width: 100%; padding: 8px 10px; border-radius: 8px; border: 1px solid #cbd5e1; font-size: 0.85rem;">
         </div>
 
-        <!-- PIN DE SEGURIDAD -->
-        <div style="background: #f8fafc; border: 1px dashed #cbd5e1; border-radius: 10px; padding: 10px 12px; margin-bottom: 14px;">
+        <!-- PIN DE SEGURIDAD (CON PANEL EXCLUSIVO DE NÚMEROS Y BOTONES TÁCTILES) -->
+        <div style="background: #f8fafc; border: 1.5px dashed #cbd5e1; border-radius: 12px; padding: 12px; margin-bottom: 14px;">
           <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
             <label style="font-size: 0.78rem; font-weight: 800; color: #0f172a;">🔐 Digita tu PIN de 4 dígitos:</label>
-            <span style="font-size: 0.7rem; color: #64748b;">(PIN por defecto: 1234)</span>
+            <span id="lblTransferPinHint" style="font-size: 0.72rem; color: #166534; font-weight: 800; background: #dcfce7; padding: 2px 8px; border-radius: 6px;">(PIN: 1234)</span>
           </div>
-          <input type="password" id="inputTransferPin" maxlength="4" placeholder="••••" style="width: 100%; text-align: center; font-size: 1.4rem; letter-spacing: 6px; padding: 8px; border-radius: 8px; border: 1px solid #cbd5e1; font-weight: 900;">
+
+          <div style="position: relative; margin-bottom: 8px;">
+            <input type="password" inputmode="numeric" pattern="[0-9]*" maxlength="4" autocomplete="one-time-code" id="inputTransferPin" placeholder="••••" style="width: 100%; text-align: center; font-size: 1.5rem; letter-spacing: 8px; padding: 10px 40px 10px 10px; border-radius: 10px; border: 2px solid #cbd5e1; font-weight: 900; background: white; color: #0f172a;">
+            <button type="button" id="btnTogglePin" onclick="togglePinVisibility()" style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); background: none; border: none; font-size: 1.15rem; cursor: pointer; color: #64748b; padding: 4px;" title="Ver/Ocultar PIN">👁️</button>
+          </div>
+
+          <!-- TECLADO NUMÉRICO TÁCTIL EN PANTALLA (FACILITA A LOS NIÑOS Y USUARIOS MÓVILES) -->
+          <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px;">
+            <button type="button" onclick="appendPinDigit('1')" style="padding: 10px; background: white; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 1.15rem; font-weight: 800; color: #1e293b; cursor: pointer; box-shadow: 0 1px 2px rgba(0,0,0,0.05);">1</button>
+            <button type="button" onclick="appendPinDigit('2')" style="padding: 10px; background: white; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 1.15rem; font-weight: 800; color: #1e293b; cursor: pointer; box-shadow: 0 1px 2px rgba(0,0,0,0.05);">2</button>
+            <button type="button" onclick="appendPinDigit('3')" style="padding: 10px; background: white; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 1.15rem; font-weight: 800; color: #1e293b; cursor: pointer; box-shadow: 0 1px 2px rgba(0,0,0,0.05);">3</button>
+            <button type="button" onclick="appendPinDigit('4')" style="padding: 10px; background: white; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 1.15rem; font-weight: 800; color: #1e293b; cursor: pointer; box-shadow: 0 1px 2px rgba(0,0,0,0.05);">4</button>
+            <button type="button" onclick="appendPinDigit('5')" style="padding: 10px; background: white; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 1.15rem; font-weight: 800; color: #1e293b; cursor: pointer; box-shadow: 0 1px 2px rgba(0,0,0,0.05);">5</button>
+            <button type="button" onclick="appendPinDigit('6')" style="padding: 10px; background: white; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 1.15rem; font-weight: 800; color: #1e293b; cursor: pointer; box-shadow: 0 1px 2px rgba(0,0,0,0.05);">6</button>
+            <button type="button" onclick="appendPinDigit('7')" style="padding: 10px; background: white; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 1.15rem; font-weight: 800; color: #1e293b; cursor: pointer; box-shadow: 0 1px 2px rgba(0,0,0,0.05);">7</button>
+            <button type="button" onclick="appendPinDigit('8')" style="padding: 10px; background: white; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 1.15rem; font-weight: 800; color: #1e293b; cursor: pointer; box-shadow: 0 1px 2px rgba(0,0,0,0.05);">8</button>
+            <button type="button" onclick="appendPinDigit('9')" style="padding: 10px; background: white; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 1.15rem; font-weight: 800; color: #1e293b; cursor: pointer; box-shadow: 0 1px 2px rgba(0,0,0,0.05);">9</button>
+            <button type="button" onclick="fillQuickPin('1234')" style="padding: 10px; background: #e0f2fe; color: #0284c7; border: 1px solid #bae6fd; border-radius: 8px; font-size: 0.74rem; font-weight: 900; cursor: pointer;">⚡ 1234</button>
+            <button type="button" onclick="appendPinDigit('0')" style="padding: 10px; background: white; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 1.15rem; font-weight: 800; color: #1e293b; cursor: pointer; box-shadow: 0 1px 2px rgba(0,0,0,0.05);">0</button>
+            <button type="button" onclick="backspacePinDigit()" style="padding: 10px; background: #fee2e2; color: #dc2626; border: 1px solid #fecaca; border-radius: 8px; font-size: 1.15rem; font-weight: 800; cursor: pointer;">⌫</button>
+          </div>
         </div>
 
         <button id="btnConfirmTransfer" onclick="executeP2PTransfer()" style="width: 100%; padding: 14px; background: linear-gradient(135deg, #10b981, #059669); color: white; border: none; border-radius: 14px; font-weight: 900; font-size: 1.05rem; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);">

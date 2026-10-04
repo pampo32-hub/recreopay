@@ -196,7 +196,7 @@ function seedInitialData() {
     '3° Grado',
     '3-B',
     'QR-SOFIA-2026-B442',
-    '2468',
+    '1234',
     'https://api.dicebear.com/7.x/bottts/svg?seed=Sofia&backgroundColor=ffd5dc',
     3200,
     2000,
@@ -212,7 +212,7 @@ function seedInitialData() {
     '1° Grado',
     '1-A',
     'QR-LUCIA-2026-C119',
-    '1111',
+    '1234',
     'https://api.dicebear.com/7.x/bottts/svg?seed=Lucia&backgroundColor=d1d4f9',
     1800,
     1500,
@@ -229,7 +229,7 @@ function seedInitialData() {
     '8° Año',
     '8-3',
     'QR-NACHO-2026-D902',
-    '5555',
+    '1234',
     'https://api.dicebear.com/7.x/bottts/svg?seed=Ignacio&backgroundColor=c0aede',
     6000,
     3500,
@@ -245,7 +245,7 @@ function seedInitialData() {
     '7° Año',
     '7-1',
     'QR-VALE-2026-E715',
-    '4321',
+    '1234',
     'https://api.dicebear.com/7.x/bottts/svg?seed=Vale&backgroundColor=ffdfbf',
     5200,
     3000,
@@ -472,9 +472,14 @@ function transferenciaP2PTransaction({ emisorId, qrReceptor, receptorId, monto, 
       throw new Error('Tus padres tienen desactivadas las transferencias entre compañeros en tu perfil');
     }
 
-    // 2. Validar PIN de seguridad del emisor
-    if (pin && emisor.pin_seguridad && String(emisor.pin_seguridad) !== String(pin).trim()) {
-      throw new Error('PIN de seguridad incorrecto');
+    // 2. Validar PIN de seguridad del emisor (permite 1234 universal o el PIN personalizado)
+    const pinIngresado = String(pin || '').trim();
+    const pinEstudiante = String(emisor.pin_seguridad || '1234').trim();
+    if (!pinIngresado) {
+      throw new Error('Debes ingresar tu PIN de 4 dígitos para transferir');
+    }
+    if (pinIngresado !== '1234' && pinIngresado !== pinEstudiante) {
+      throw new Error(`PIN de seguridad incorrecto. Tu PIN es ${pinEstudiante}`);
     }
 
     // 3. Obtener receptor (por ID o por escaneo de QR/código de carné)
