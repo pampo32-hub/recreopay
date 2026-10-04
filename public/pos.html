@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>RecreoPay POS - Terminal de Mostrador y Despacho</title>
+  <link rel="stylesheet" href="/css/styles.css">
+  <style>
+    /* Estilos específicos de terminal de alta velocidad */
+    .student-badge-scanned {
+      background: #0f172a;
+      border: 2px solid #38bdf8;
+      border-radius: 14px;
+      padding: 12px;
+      margin-bottom: 14px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .status-pill {
+      font-size: 0.72rem;
+      font-weight: 800;
+      padding: 3px 8px;
+      border-radius: 6px;
+      text-transform: uppercase;
+    }
+    .status-pendiente { background: #fef3c7; color: #92400e; }
+    .status-en_preparacion { background: #e0e7ff; color: #3730a3; }
+    .status-listo { background: #dcfce7; color: #166534; }
+    .status-entregado { background: #f1f5f9; color: #64748b; }
+  </style>
+</head>
+<body style="background: #0b1120; color: #f8fafc;">
+
+  <div class="pos-layout">
+    <!-- PANEL IZQUIERDO: CATÁLOGO TÁCTIL Y COLA DE PRE-ÓRDENES -->
+    <div class="pos-catalog-pane">
+      <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #334155; padding-bottom: 12px;">
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <span style="font-size: 1.8rem;">🥪</span>
+          <div>
+            <h1 style="font-size: 1.25rem; font-weight: 900; color: #ffffff;">RecreoPay <span style="color: #38bdf8;">Terminal Soda</span></h1>
+            <span style="font-size: 0.78rem; color: #94a3b8;">Soda Escolar • Ventana de Atención Rápida</span>
+          </div>
+        </div>
+
+        <div style="display: flex; align-items: center; gap: 12px;">
+          <span style="display: inline-flex; align-items: center; gap: 6px; font-size: 0.78rem; background: #064e3b; color: #34d399; padding: 4px 10px; border-radius: 20px; font-weight: 700;">
+            <span style="width: 8px; height: 8px; background: #34d399; border-radius: 50%; display: inline-block;"></span>
+            En Línea (SSE Activo)
+          </span>
+          <a href="/index.html" target="_blank" style="color: #38bdf8; font-size: 0.8rem; font-weight: 700; text-decoration: none; border: 1px solid #38bdf8; padding: 4px 10px; border-radius: 8px;">
+            Ver PWA Estudiante ↗
+          </a>
+        </div>
+      </div>
+
+      <!-- TABS DE MODO DE TERMINAL -->
+      <div class="pos-tabs">
+        <button class="pos-tab-btn active" id="tabBtnMostrador" onclick="switchPosTab('mostrador')">
+          <span>🛒</span> Venta de Mostrador
+        </button>
+        <button class="pos-tab-btn" id="tabBtnPreordenes" onclick="switchPosTab('preordenes')">
+          <span>📦</span> Fila Rápida Pre-Órdenes <span id="badgePreordenesCount" style="background: #ef4444; color: white; padding: 2px 7px; border-radius: 10px; font-size: 0.75rem;">0</span>
+        </button>
+      </div>
+
+      <!-- VISTA 1: CATÁLOGO TÁCTIL DE PRODUCTOS (MOSTRADOR) -->
+      <div id="viewPosMostrador">
+        <div style="display: flex; gap: 8px; margin-bottom: 14px; overflow-x: auto;" id="posCategoriesBar">
+          <!-- Filtros de categorías -->
+        </div>
+
+        <div class="pos-products-grid" id="posProductsGrid">
+          <!-- Tarjetas táctiles de productos -->
+        </div>
+      </div>
+
+      <!-- VISTA 2: FILA RÁPIDA DE PRE-ÓRDENES (RETIRO EN RECREO) -->
+      <div id="viewPosPreordenes" style="display: none;">
+        <div style="background: #1e293b; border: 1px solid #334155; border-radius: 12px; padding: 12px 16px; margin-bottom: 14px; display: flex; justify-content: space-between; align-items: center;">
+          <div>
+            <strong style="color: #38bdf8; font-size: 0.95rem;">⚡ Despacho Exclusivo Recreo</strong>
+            <p style="font-size: 0.78rem; color: #94a3b8;">Los estudiantes con pre-orden retiran en 3 segundos escaneando su QR aquí.</p>
+          </div>
+          <button onclick="loadPreOrders()" style="background: #334155; border: none; color: white; padding: 6px 12px; border-radius: 8px; font-weight: 700; cursor: pointer;">
+            🔄 Refrescar
+          </button>
+        </div>
+
+        <div id="preOrdersList" style="display: flex; flex-direction: column; gap: 10px;">
+          <!-- Lista de pre-órdenes -->
+        </div>
+      </div>
+    </div>
+
+    <!-- PANEL DERECHO: SCANNER QR, IDENTIFICACIÓN Y COBRO -->
+    <div class="pos-checkout-pane">
+      <div>
+        <!-- CÁMARA / ESCÁNER DE CÓDIGO QR -->
+        <div class="scanner-feed-card">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+            <span style="font-size: 0.85rem; font-weight: 800; color: #38bdf8;">📷 Escáner QR de Alumnos</span>
+            <span style="font-size: 0.72rem; color: #94a3b8;" id="cameraStatus">Cámara lista</span>
+          </div>
+
+          <div style="position: relative; border-radius: 10px; overflow: hidden; background: #000;">
+            <video id="scannerVideo" class="camera-preview" autoplay playsinline muted></video>
+            <div class="laser-scan-line"></div>
+          </div>
+
+          <!-- BOTONES DE PRUEBA RÁPIDA DE QR (SIMULACIÓN DE ESCANEO DE CARNÉ O CELULAR) -->
+          <div style="margin-top: 10px; display: flex; gap: 6px; flex-wrap: wrap; justify-content: center;">
+            <span style="font-size: 0.7rem; color: #94a3b8; width: 100%;">Prueba rápida de escaneo de carné:</span>
+            <button onclick="simulateScan('QR-MATEO-2026-A891')" style="font-size: 0.72rem; padding: 3px 8px; background: #334155; color: white; border: none; border-radius: 6px; cursor: pointer;">🧒 Mateo (8a)</button>
+            <button onclick="simulateScan('QR-SOFIA-2026-B442')" style="font-size: 0.72rem; padding: 3px 8px; background: #334155; color: white; border: none; border-radius: 6px; cursor: pointer;">👧 Sofía (9a)</button>
+            <button onclick="simulateScan('QR-NACHO-2026-D902')" style="font-size: 0.72rem; padding: 3px 8px; background: #334155; color: white; border: none; border-radius: 6px; cursor: pointer;">🧑 Ignacio (14a)</button>
+          </div>
+        </div>
+
+        <!-- TARJETA DEL ESTUDIANTE IDENTIFICADO POR QR -->
+        <div id="studentScannedCard" style="display: none; margin-top: 14px;" class="student-badge-scanned">
+          <img id="scannedAvatar" src="" style="width: 46px; height: 46px; border-radius: 50%; border: 2px solid #38bdf8; background: white;">
+          <div style="flex: 1;">
+            <h4 id="scannedName" style="font-size: 0.95rem; font-weight: 800; color: #ffffff;">Nombre del Alumno</h4>
+            <div id="scannedGrade" style="font-size: 0.75rem; color: #94a3b8;">2° Grado • Sección 2-A</div>
+            <div style="display: flex; gap: 10px; margin-top: 4px; font-size: 0.76rem;">
+              <span>Saldo: <strong id="scannedBalance" style="color: #34d399;">₡0</strong></span>
+              <span>Disp. hoy: <strong id="scannedAvailable" style="color: #38bdf8;">₡0</strong></span>
+            </div>
+          </div>
+          <button onclick="clearScannedStudent()" style="background: none; border: none; color: #ef4444; font-size: 1.1rem; cursor: pointer;" title="Desconectar alumno">✕</button>
+        </div>
+
+        <!-- ALERTA DE ALERGIAS AL CAJERO -->
+        <div id="scannedAllergyAlert" style="display: none; background: #7f1d1d; border: 1px solid #ef4444; border-radius: 10px; padding: 8px 12px; margin-top: 10px; font-size: 0.78rem; color: #fecaca;">
+          ⚠️ <strong>ALERTA MÉDICA:</strong> <span id="scannedAllergyText"></span>
+        </div>
+
+        <!-- LISTA DE PRODUCTOS SELECCIONADOS EN CAJA -->
+        <div style="margin-top: 14px;">
+          <div style="display: flex; justify-content: space-between; font-size: 0.8rem; font-weight: 700; color: #94a3b8; border-bottom: 1px solid #334155; padding-bottom: 6px;">
+            <span>Ítems en Mostrador</span>
+            <button onclick="clearPosCart()" style="background: none; border: none; color: #ef4444; font-size: 0.75rem; cursor: pointer;">Limpiar</button>
+          </div>
+          <div class="pos-cart-list" id="posCartList">
+            <p style="text-align: center; color: #64748b; padding: 20px; font-size: 0.85rem;">Toca productos del menú para cobrar</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- BOTÓN DE COBRO Y TOTAL -->
+      <div style="border-top: 2px solid #334155; padding-top: 14px;">
+        <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 12px;">
+          <span style="font-size: 0.9rem; font-weight: 700; color: #94a3b8;">TOTAL A DEBITAR:</span>
+          <span id="posCartTotal" style="font-size: 1.8rem; font-weight: 900; color: #38bdf8;">₡0</span>
+        </div>
+
+        <button id="btnCobrarPos" onclick="executePosDebit()" style="width: 100%; padding: 14px; background: linear-gradient(135deg, #0284c7, #0369a1); border: none; border-radius: 14px; color: white; font-size: 1.05rem; font-weight: 900; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 10px; box-shadow: 0 4px 14px rgba(2, 132, 199, 0.4);">
+          <span>📱</span> COBRAR CON QR DE ALUMNO
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script src="/js/sounds.js"></script>
+  <script src="/js/pos.js"></script>
+</body>
+</html>

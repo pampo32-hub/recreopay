@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>RecreoPay - Tu Soda Escolar Digital</title>
+  <link rel="manifest" href="/manifest.json">
+  <meta name="theme-color" content="#0284c7">
+  <link rel="stylesheet" href="/css/styles.css">
+  <style>
+    /* Transiciones suaves */
+    .fade-enter { animation: fadeIn 0.2s ease-in-out; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+  </style>
+</head>
+<body class="mode-kids">
+
+  <div class="app-container">
+    <!-- BARRA SUPERIOR -->
+    <header class="top-bar">
+      <a href="#" class="brand-badge">
+        <div class="logo-icon">🥪</div>
+        <div>
+          <span>Recreo<strong>Pay</strong></span>
+          <span style="font-size: 0.65rem; display: block; color: var(--text-muted); font-weight: 600;">SODA ESCOLAR CR 🇨🇷</span>
+        </div>
+      </a>
+
+      <!-- SWITCHER DE MODO (KIDS / TEENS / PADRES) -->
+      <div class="mode-toggle">
+        <button class="mode-btn active" id="btnModeKids" onclick="setAppMode('kids')">🧒 Kids</button>
+        <button class="mode-btn" id="btnModeTeens" onclick="setAppMode('teens')">⚡ Teens</button>
+        <button class="mode-btn" id="btnModePadres" onclick="toggleParentPanel(true)">👨‍👩‍👦 Padres</button>
+      </div>
+    </header>
+
+    <!-- SELECTOR RÁPIDO DE ALUMNO DE PRUEBA -->
+    <div style="padding: 10px 16px 0 16px; display: flex; align-items: center; justify-content: space-between; font-size: 0.8rem;">
+      <span style="color: var(--text-muted); font-weight: 700;">Estudiante Activo:</span>
+      <select id="studentSelector" onchange="onStudentChange(this.value)" style="padding: 4px 8px; border-radius: 8px; border: 1px solid var(--border); background: var(--card-bg); color: var(--text-main); font-weight: 700;">
+        <!-- Se llena dinámicamente -->
+      </select>
+    </div>
+
+    <!-- TARJETA DIGITAL DE MONEDERO Y SALDO -->
+    <section class="wallet-card">
+      <div class="student-info">
+        <img id="walletAvatar" class="student-avatar" src="" alt="Avatar">
+        <div class="student-meta">
+          <h2 id="walletName">Cargando...</h2>
+          <span id="walletGrade" class="student-grade">Grado y Sección</span>
+        </div>
+      </div>
+
+      <div class="balance-row">
+        <div class="balance-col">
+          <div class="label" id="balanceLabel">💰 Mis Colones Disponibles</div>
+          <div class="amount">
+            <span id="walletBalance">₡0</span>
+            <span class="kids-coin-icon" id="kidsCoinIcon">🪙</span>
+          </div>
+        </div>
+
+        <button class="qr-toggle-btn" onclick="openQrModal()">
+          <span>📱</span>
+          <span id="qrBtnText">Ver mi QR</span>
+        </button>
+      </div>
+    </section>
+
+    <!-- BANNER DE LÍMITE DIARIO Y SALUD -->
+    <div class="daily-limit-badge" id="dailyLimitBadge">
+      <div>
+        <span>Límite diario fijado: </span>
+        <strong id="dailyLimitText">₡0</strong>
+      </div>
+      <div style="font-size: 0.76rem; color: var(--text-muted);" id="dailyAvailableText">
+        Disponible hoy: ₡0
+      </div>
+    </div>
+
+    <!-- ALERGIAS (SI TIENE) -->
+    <div id="allergyWarning" style="display:none; margin: 0 16px 12px 16px; background: #fffbeb; border: 1px solid #fde68a; border-radius: 12px; padding: 8px 12px; font-size: 0.8rem; color: #92400e; align-items: center; gap: 6px;">
+      ⚠️ <strong>Atención médica:</strong> <span id="allergyText"></span>
+    </div>
+
+    <!-- BARRA DE CATEGORÍAS -->
+    <div class="category-scroll" id="categoriesBar">
+      <!-- Se llena dinámicamente -->
+    </div>
+
+    <!-- TÍTULO DE SECCIÓN Y FILTRO MEP -->
+    <div class="section-title">
+      <span id="catalogTitle">Menú del Recreo</span>
+      <label style="font-size: 0.75rem; font-weight: 600; color: #166534; display: flex; align-items: center; gap: 4px; cursor: pointer;">
+        <input type="checkbox" id="chkFilterMep" onchange="renderProducts()">
+        <span>Solo Saludables MEP 🌿</span>
+      </label>
+    </div>
+
+    <!-- GRILLA DE PRODUCTOS -->
+    <div class="products-grid" id="productsGrid">
+      <!-- Se llena con productos de la soda -->
+    </div>
+
+    <!-- BARRA FLOTANTE DE PRE-ORDEN / CARRITO -->
+    <div class="floating-cart-bar" id="floatingCart" style="display: none;" onclick="openCartModal()">
+      <div class="cart-summary">
+        <span class="cart-count-badge" id="cartCountBadge">0</span>
+        <div class="cart-total-text" id="cartTotalText">₡0</div>
+      </div>
+      <button class="cart-action-btn">Pedir para el Recreo 🛒</button>
+    </div>
+
+    <!-- ENLACES DE ACCESO RÁPIDO PARA DEMO Y REVISIÓN -->
+    <div style="margin: 30px 16px; padding: 14px; background: var(--card-bg); border: 1px solid var(--border); border-radius: 14px; font-size: 0.82rem; text-align: center;">
+      <p style="font-weight: 700; margin-bottom: 8px; color: var(--text-main);">Acceso Rápido del Sistema:</p>
+      <div style="display: flex; justify-content: center; gap: 10px; flex-wrap: wrap;">
+        <a href="/pos.html" target="_blank" style="color: #0284c7; font-weight: 700; text-decoration: none; padding: 4px 10px; background: #e0f2fe; border-radius: 8px;">📟 Terminal Soda (Caja & QR)</a>
+        <a href="/carnet.html" target="_blank" style="color: #10b981; font-weight: 700; text-decoration: none; padding: 4px 10px; background: #d1fae5; border-radius: 8px;">🖨️ Carnés Físicos para Imprimir</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: CÓDIGO QR PARA PRESENTAR EN LA SODA -->
+  <div class="modal-qr-backdrop" id="modalQr" style="display: none;" onclick="closeQrModal(event)">
+    <div class="modal-qr-card" onclick="event.stopPropagation()">
+      <h3 style="color: #0f172a; font-size: 1.2rem; font-weight: 800;">Mi Carné QR RecreoPay</h3>
+      <p style="font-size: 0.8rem; color: #64748b; margin-top: 4px;">Muéstralo en la ventanilla de la soda para pagar al instante</p>
+      
+      <img id="qrDisplayImg" class="qr-code-img" src="" alt="Código QR">
+      
+      <div style="background: #f1f5f9; padding: 8px 12px; border-radius: 8px; font-family: monospace; font-size: 0.9rem; font-weight: 800; color: #0284c7;" id="qrTokenDisplay">
+        CODIGO-QR
+      </div>
+
+      <p style="font-size: 0.75rem; color: #94a3b8; margin-top: 10px;">
+        💡 Si no tienes tu celular en la escuela, puedes usar tu carné físico impreso con este mismo código.
+      </p>
+
+      <button onclick="closeQrModal()" style="margin-top: 14px; width: 100%; padding: 10px; background: #0f172a; color: white; border: none; border-radius: 12px; font-weight: 700; cursor: pointer;">
+        Cerrar
+      </button>
+    </div>
+  </div>
+
+  <!-- MODAL: CARRITO Y PRE-ORDEN -->
+  <div class="modal-qr-backdrop" id="modalCart" style="display: none;" onclick="closeCartModal(event)">
+    <div class="modal-qr-card" onclick="event.stopPropagation()" style="max-width: 420px; text-align: left;">
+      <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #e2e8f0; padding-bottom: 10px; margin-bottom: 12px;">
+        <h3 style="color: #0f172a; font-size: 1.15rem; font-weight: 800;">Mi Pre-Orden Escolar</h3>
+        <button onclick="closeCartModal()" style="background: none; border: none; font-size: 1.2rem; cursor: pointer; color: #64748b;">✕</button>
+      </div>
+
+      <div style="margin-bottom: 14px;">
+        <label style="display: block; font-size: 0.8rem; font-weight: 700; color: #334155; margin-bottom: 4px;">
+          ¿Para cuál recreo deseas tu orden?
+        </label>
+        <select id="momentoEntregaSelect" style="width: 100%; padding: 8px 10px; border-radius: 8px; border: 1px solid #cbd5e1; font-weight: 600;">
+          <option value="recreo_1">🔔 1er Recreo de la Mañana (9:30 AM)</option>
+          <option value="almuerzo">🍲 Hora de Almuerzo (11:45 AM)</option>
+          <option value="recreo_2">🍎 2do Recreo de la Tarde (1:45 PM)</option>
+        </select>
+      </div>
+
+      <!-- LISTA DE PRODUCTOS EN EL CARRITO -->
+      <div id="cartItemsList" style="max-height: 220px; overflow-y: auto; margin-bottom: 14px;">
+        <!-- Se llena dinámicamente -->
+      </div>
+
+      <div style="border-top: 1px solid #e2e8f0; padding-top: 10px; margin-bottom: 14px; display: flex; justify-content: space-between; align-items: center;">
+        <span style="font-weight: 800; color: #334155;">Total a Rebajar de Saldo:</span>
+        <span id="modalCartTotal" style="font-size: 1.3rem; font-weight: 900; color: #0284c7;">₡0</span>
+      </div>
+
+      <button id="btnConfirmarOrden" onclick="submitPreOrder()" style="width: 100%; padding: 12px; background: #10b981; color: white; border: none; border-radius: 12px; font-weight: 800; font-size: 1rem; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px;">
+        <span>✅ Confirmar y Pagar Pre-Orden</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- MODAL: PANEL DE PADRES (RECARGA SINPE Y LÍMITES) -->
+  <div class="modal-qr-backdrop" id="modalPadres" style="display: none;" onclick="toggleParentPanel(false, event)">
+    <div class="modal-qr-card" onclick="event.stopPropagation()" style="max-width: 440px; text-align: left;">
+      <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #e2e8f0; padding-bottom: 10px; margin-bottom: 14px;">
+        <div>
+          <h3 style="color: #0f172a; font-size: 1.15rem; font-weight: 800;">Portal de Padres RecreoPay</h3>
+          <span style="font-size: 0.75rem; color: #64748b;">Control de meriendas, nutrición y recargas SINPE</span>
+        </div>
+        <button onclick="toggleParentPanel(false)" style="background: none; border: none; font-size: 1.2rem; cursor: pointer; color: #64748b;">✕</button>
+      </div>
+
+      <!-- RECARGA SINPE MÓVIL -->
+      <div style="background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 12px; padding: 14px; margin-bottom: 16px;">
+        <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+          <span style="font-size: 1.4rem;">📱</span>
+          <div>
+            <strong style="color: #166534; font-size: 0.95rem;">Recarga por SINPE Móvil</strong>
+            <p style="font-size: 0.75rem; color: #15803d;">Número de la Soda: <strong>8888-SODA (7632)</strong></p>
+          </div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 10px;">
+          <button onclick="quickSinpeRecharge(2000)" style="padding: 8px; background: white; border: 1px solid #86efac; border-radius: 8px; font-weight: 700; color: #166534; cursor: pointer;">+ ₡2.000</button>
+          <button onclick="quickSinpeRecharge(5000)" style="padding: 8px; background: white; border: 1px solid #86efac; border-radius: 8px; font-weight: 700; color: #166534; cursor: pointer;">+ ₡5.000</button>
+        </div>
+
+        <div style="display: flex; gap: 6px;">
+          <input type="number" id="inputCustomSinpe" placeholder="Otro monto (₡)" style="flex: 1; padding: 8px; border-radius: 8px; border: 1px solid #cbd5e1; font-weight: 600;">
+          <button onclick="customSinpeRecharge()" style="padding: 8px 14px; background: #166534; color: white; border: none; border-radius: 8px; font-weight: 700; cursor: pointer;">Recargar</button>
+        </div>
+      </div>
+
+      <!-- CONFIGURACIÓN DE LÍMITE DIARIO -->
+      <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 14px; margin-bottom: 16px;">
+        <label style="display: block; font-size: 0.85rem; font-weight: 800; color: #1e293b; margin-bottom: 6px;">
+          Límite de Gasto Máximo Diario: <span id="lblParentDailyLimit" style="color: #0284c7; font-weight: 900;">₡3.000</span>
+        </label>
+        <input type="range" id="rangeDailyLimit" min="1000" max="6000" step="500" value="3000" oninput="onDailyLimitSlider(this.value)" style="width: 100%;">
+        <div style="display: flex; justify-content: space-between; font-size: 0.72rem; color: #64748b; margin-top: 4px;">
+          <span>₡1.000 / día</span>
+          <span>₡3.500</span>
+          <span>₡6.000 / día</span>
+        </div>
+      </div>
+
+      <!-- HISTORIAL RECIENTE -->
+      <h4 style="font-size: 0.85rem; font-weight: 800; color: #1e293b; margin-bottom: 8px;">Consumos Recientes</h4>
+      <div id="parentHistoryList" style="max-height: 140px; overflow-y: auto; font-size: 0.78rem;">
+        <!-- Se llena dinámicamente -->
+      </div>
+    </div>
+  </div>
+
+  <script src="/js/sounds.js"></script>
+  <script src="/js/app.js"></script>
+</body>
+</html>

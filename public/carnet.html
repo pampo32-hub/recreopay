@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>RecreoPay - Carnés Escolares Físicos con Código QR</title>
+  <link rel="stylesheet" href="/css/styles.css">
+  <style>
+    @page {
+      size: letter portrait;
+      margin: 8mm 10mm;
+    }
+    body {
+      background: #f1f5f9;
+      color: #0f172a;
+    }
+    .print-bar {
+      background: #ffffff;
+      border-bottom: 2px solid #cbd5e1;
+      padding: 14px 24px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);
+    }
+    .carnet-grid-print {
+      display: grid;
+      grid-template-columns: repeat(2, 85.6mm);
+      gap: 8mm 12mm;
+      justify-content: center;
+      padding: 15px 0;
+    }
+    .cut-line-wrapper {
+      border: 1px dashed #94a3b8;
+      border-radius: 4mm;
+      padding: 1.5mm;
+      background: white;
+      page-break-inside: avoid;
+    }
+    @media print {
+      .print-bar {
+        display: none !important;
+      }
+      body {
+        background: white !important;
+      }
+      .carnet-grid-print {
+        padding: 0 !important;
+        gap: 6mm 10mm !important;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- BARRA DE ACCIÓN Y CONTROL (NO SE IMPRIME) -->
+  <div class="print-bar no-print">
+    <div style="display: flex; align-items: center; gap: 12px;">
+      <span style="font-size: 1.8rem;">🖨️</span>
+      <div>
+        <h2 style="font-size: 1.15rem; font-weight: 900; color: #0f172a;">Generador de Carnés Físicos RecreoPay</h2>
+        <p style="font-size: 0.78rem; color: #64748b;">Para estudiantes sin teléfono móvil • Tamaño credencial estándar (85.6 × 54 mm)</p>
+      </div>
+    </div>
+
+    <div style="display: flex; align-items: center; gap: 12px;">
+      <select id="gradeFilter" onchange="filterCards(this.value)" style="padding: 8px 12px; border-radius: 8px; border: 1px solid #cbd5e1; font-weight: 700;">
+        <option value="todos">Todos los Grados</option>
+        <option value="primaria">Solo Primaria (1° a 6°)</option>
+        <option value="secundaria">Solo Secundaria (7° a 11°)</option>
+      </select>
+
+      <button onclick="window.print()" style="padding: 10px 20px; background: #0284c7; color: white; border: none; border-radius: 10px; font-weight: 800; cursor: pointer; display: flex; align-items: center; gap: 8px; box-shadow: 0 4px 10px rgba(2, 132, 199, 0.3);">
+        <span>🖨️ Imprimir Hoja de Carnés (Ctrl + P)</span>
+      </button>
+
+      <a href="/index.html" style="padding: 10px 14px; background: #f1f5f9; color: #334155; text-decoration: none; border-radius: 10px; font-weight: 700;">
+        Volver a la App ↗
+      </a>
+    </div>
+  </div>
+
+  <!-- CONTENEDOR DE CARNÉS IMPRIMIBLES -->
+  <main style="max-width: 900px; margin: 0 auto;">
+    <div class="carnet-grid-print" id="carnetsGrid">
+      <!-- Se llena dinámicamente con los carnés de los estudiantes -->
+    </div>
+  </main>
+
+  <script>
+    let allStudents = [];
+
+    document.addEventListener('DOMContentLoaded', async () => {
+      try {
+        const res = await fetch('/api/estudiantes');
+        allStudents = await res.json();
+        renderCards(allStudents);
+      } catch (e) {
+        console.error('Error cargando estudiantes:', e);
+      }
+    });
+
+    function filterCards(val) {
+      if (val === 'todos') {
+        renderCards(allStudents);
+      } else if (val === 'primaria') {
+        renderCards(allStudents.filter(s => s.edad <= 11));
+      } else if (val === 'secundaria') {
+        renderCards(allStudents.filter(s => s.edad > 11));
+      }
+    }
+
+    function renderCards(studentsList) {
+      const grid = document.getElementById('carnetsGrid');
+      grid.innerHTML = studentsList.map(est => `
+        <div class="cut-line-wrapper">
+          <div class="carnet-card">
+            <!-- ENCABEZADO -->
+            <div class="carnet-header">
+              <span class="carnet-school-name">CENTRO EDUCATIVO • SODA ESCOLAR</span>
+              <span style="font-size: 6.5pt; font-weight: 800; color: #0284c7; background: #e0f2fe; padding: 1px 5px; border-radius: 3px;">
+                RECREOPAY 🇨🇷
+              </span>
+            </div>
+
+            <!-- CUERPO DEL CARNÉ -->
+            <div class="carnet-body">
+              <img class="carnet-photo" src="${est.foto_url}" alt="${est.nombre_completo}">
+
+              <div class="carnet-details">
+                <div class="carnet-name">${est.nombre_completo}</div>
+                <div class="carnet-meta-item"><strong>Cód:</strong> ${est.codigo_estudiante}</div>
+                <div class="carnet-meta-item"><strong>Grado:</strong> ${est.grado} - ${est.seccion}</div>
+                <div class="carnet-meta-item"><strong>Edad:</strong> ${est.edad} años</div>
+                ${est.alergias && est.alergias !== 'Ninguna' && est.alergias !== 'Ninguna conocida' ? `
+                  <div style="font-size: 6pt; color: #b91c1c; font-weight: 800; margin-top: 1mm;">
+                    ⚠️ ${est.alergias}
+                  </div>
+                ` : ''}
+              </div>
+
+              <!-- CÓDIGO QR EN ALTA DEFINICIÓN -->
+              <img class="carnet-qr" src="/api/qr-image/${encodeURIComponent(est.qr_token)}" alt="QR">
+            </div>
+
+            <!-- PIE DE CARNÉ -->
+            <div class="carnet-footer">
+              <span>PIN de Seguridad: <strong>${est.pin_seguridad || '1234'}</strong></span>
+              <span>Encargado: ${est.padre_telefono || 'Escuela'}</span>
+            </div>
+          </div>
+        </div>
+      `).join('');
+    }
+  </script>
+</body>
+</html>

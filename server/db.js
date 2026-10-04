@@ -1,0 +1,458 @@
+const Database = require('better-sqlite3');
+const path = require('path');
+const fs = require('fs');
+
+const dbPath = path.join(__dirname, 'recreopay.db');
+const db = new Database(dbPath);
+
+// Enable WAL mode for high concurrent read/write performance
+db.pragma('journal_mode = WAL');
+db.pragma('foreign_keys = ON');
+
+function initDatabase() {
+  const schema = `
+  -- 1. Usuarios del Sistema
+  CREATE TABLE IF NOT EXISTS usuarios (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      username TEXT UNIQUE NOT NULL,
+      password_hash TEXT NOT NULL,
+      rol TEXT NOT NULL, -- 'admin', 'cajero', 'padre', 'estudiante'
+      nombre TEXT NOT NULL,
+      telefono TEXT,
+      email TEXT,
+      creado_en DATETIME DEFAULT CURRENT_TIMESTAMP
+  );
+
+  -- 2. Estudiantes
+  CREATE TABLE IF NOT EXISTS estudiantes (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      usuario_id INTEGER REFERENCES usuarios(id),
+      codigo_estudiante TEXT UNIQUE NOT NULL,
+      nombre_completo TEXT NOT NULL,
+      edad INTEGER NOT NULL,
+      grado TEXT NOT NULL,           -- Ej: "2° Grado", "8° Año"
+      seccion TEXT NOT NULL,         -- Ej: "2-B", "8-1"
+      qr_token TEXT UNIQUE NOT NULL, -- Token único para el QR
+      pin_seguridad TEXT DEFAULT '1234',
+      foto_url TEXT,
+      saldo_colones INTEGER DEFAULT 0,
+      limite_diario_colones INTEGER DEFAULT 3000,
+      alergias TEXT,                 -- Ej: "Alérgico al maní, intolerante a lactosa"
+      bloquear_chucherias INTEGER DEFAULT 0,
+      padre_nombre TEXT,
+      padre_telefono TEXT,
+      activo INTEGER DEFAULT 1,
+      creado_en DATETIME DEFAULT CURRENT_TIMESTAMP
+  );
+
+  -- 3. Categorías de Alimentos
+  CREATE TABLE IF NOT EXISTS categorias (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      nombre TEXT NOT NULL,
+      icono TEXT NOT NULL,
+      orden INTEGER DEFAULT 0
+  );
+
+  -- 4. Productos
+  CREATE TABLE IF NOT EXISTS productos (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      categoria_id INTEGER REFERENCES categorias(id),
+      nombre TEXT NOT NULL,
+      descripcion TEXT,
+      precio_colones INTEGER NOT NULL,
+      imagen_url TEXT,
+      icono TEXT,
+      calorias INTEGER,
+      cumple_mep INTEGER DEFAULT 1,      -- 1: Saludable MEP, 0: Ocasional
+      alergenos TEXT,                   -- 'gluten, lactosa, maní'
+      disponible INTEGER DEFAULT 1,
+      permite_preorden INTEGER DEFAULT 1,
+      destacado INTEGER DEFAULT 0
+  );
+
+  -- 5. Órdenes (Mostrador y Pre-órdenes)
+  CREATE TABLE IF NOT EXISTS ordenes (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      codigo_orden TEXT UNIQUE NOT NULL, -- Ej: "ORD-1001"
+      estudiante_id INTEGER NOT NULL REFERENCES estudiantes(id),
+      tipo_orden TEXT NOT NULL,          -- 'mostrador' o 'preorden'
+      momento_entrega TEXT NOT NULL,     -- 'inmediato', 'recreo_1', 'almuerzo', 'recreo_2'
+      estado TEXT DEFAULT 'pendiente',    -- 'pendiente', 'en_preparacion', 'listo', 'entregado', 'cancelado'
+      total_colones INTEGER NOT NULL,
+      notas TEXT,
+      creado_en DATETIME DEFAULT CURRENT_TIMESTAMP,
+      entregado_en DATETIME
+  );
+
+  -- 6. Detalles de Orden
+  CREATE TABLE IF NOT EXISTS orden_detalles (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      orden_id INTEGER NOT NULL REFERENCES ordenes(id) ON DELETE CASCADE,
+      producto_id INTEGER NOT NULL REFERENCES productos(id),
+      cantidad INTEGER NOT NULL,
+      precio_unitario INTEGER NOT NULL,
+      subtotal INTEGER NOT NULL
+  );
+
+  -- 7. Historial y Auditoría de Saldos (SINPE y Compras)
+  CREATE TABLE IF NOT EXISTS transacciones_saldo (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      estudiante_id INTEGER NOT NULL REFERENCES estudiantes(id),
+      tipo TEXT NOT NULL,                -- 'recarga_sinpe', 'compra_mostrador', 'preorden', 'reembolso'
+      monto_colones INTEGER NOT NULL,    -- Positivo recarga, negativo compra
+      saldo_previo INTEGER NOT NULL,
+      saldo_posterior INTEGER NOT NULL,
+      comprobante_sinpe TEXT,
+      orden_id INTEGER REFERENCES ordenes(id),
+      descripcion TEXT,
+      fecha DATETIME DEFAULT CURRENT_TIMESTAMP
+  );
+  `;
+
+  db.exec(schema);
+  seedInitialData();
+}
+
+function seedInitialData() {
+  const existingProducts = db.prepare('SELECT COUNT(*) as count FROM productos').get();
+  if (existingProducts.count > 0) return;
+
+  console.log('🌱 Inicializando datos de prueba para RecreoPay...');
+
+  // 1. Categorías
+  const insertCat = db.prepare('INSERT INTO categorias (nombre, icono, orden) VALUES (?, ?, ?)');
+  insertCat.run('Meriendas Saludables', '🥪', 1);
+  insertCat.run('Platos Fuertes y Pintos', '🍛', 2);
+  insertCat.run('Bebidas y Frescos', '🧃', 3);
+  insertCat.run('Frutas y Snacks', '🍎', 4);
+
+  // 2. Productos Ticos para Soda Escolar
+  const insertProd = db.prepare(`
+    INSERT INTO productos 
+    (categoria_id, nombre, descripcion, precio_colones, icono, calorias, cumple_mep, alergenos, destacado)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+  `);
+
+  // Meriendas
+  insertProd.run(1, 'Empanada Arreglada de Carne', 'Empanada casera horneada con repollo fresco y carne mechada.', 1200, '🥟', 280, 1, 'gluten', 1);
+  insertProd.run(1, 'Empanada de Queso Tierno', 'Masa suave de maíz con queso blanco semiduro artesanal.', 1000, '🥟', 250, 1, 'lactosa', 0);
+  insertProd.run(1, 'Sandwich Escolar de Jamón y Queso', 'Pan integral, jamón de pavo, queso blanco, lechuga y tomate.', 1100, '🥪', 230, 1, 'gluten, lactosa', 1);
+  insertProd.run(1, 'Taco Tico Crujiente', 'Tortilla de maíz con carne mechada, repollo y salsas caseras.', 1300, '🌮', 310, 1, '', 0);
+
+  // Platos fuertes
+  insertProd.run(2, 'Gallo Pinto Escolar Completo', 'Pinto tradicional con huevo picado, queso fresco y natilla.', 1500, '🍳', 380, 1, 'lactosa', 1);
+  insertProd.run(2, 'Arroz con Pollo en Porción Escolar', 'Clásico arroz con pollo tico, frijoles molidos y ensalada rusa.', 1800, '🍗', 420, 1, '', 1);
+  insertProd.run(2, 'Casadito Infantil', 'Bistec en salsa suave, arroz blanco, frijoles tiernos y plátano maduro.', 2000, '🍛', 450, 1, '', 0);
+
+  // Bebidas
+  insertProd.run(3, 'Fresco Natural de Cas (350ml)', 'Fruta 100% natural endulzada con moderación según norma MEP.', 700, '🍹', 90, 1, '', 1);
+  insertProd.run(3, 'Fresco Natural de Mora (350ml)', 'Mora fresca de altura rica en antioxidantes.', 700, '🥤', 95, 1, '', 0);
+  insertProd.run(3, 'Té Frío Casero con Limón', 'Té negro natural infusionado con limón fresco.', 650, '🧃', 70, 1, '', 0);
+  insertProd.run(3, 'Leche con Chocolate Semidescremada', 'Caja de 250ml fortalecida con calcio y vitamina D.', 800, '🥛', 140, 1, 'lactosa', 0);
+
+  // Frutas y snacks
+  insertProd.run(4, 'Vaso de Fruta Picada Mixta', 'Sandía, piña y papaya dulce en cubos frescos.', 800, '🍉', 75, 1, '', 1);
+  insertProd.run(4, 'Yogurt Natural con Granola y Miel', 'Vaso de yogurt artesanal con avena crujiente.', 950, '🥣', 180, 1, 'lactosa, gluten', 1);
+  insertProd.run(4, 'Barra de Avena y Semillas', 'Horneada en la soda, libre de sellos de exceso de azúcar.', 550, '🌾', 120, 1, '', 0);
+  insertProd.run(4, 'Gelatina Tricolor con Leche', 'Postre ligero y divertido para el recreo.', 600, '🍮', 110, 1, 'lactosa', 0);
+
+  // 3. Estudiantes de Prueba (Primaria y Secundaria)
+  const insertEst = db.prepare(`
+    INSERT INTO estudiantes 
+    (codigo_estudiante, nombre_completo, edad, grado, seccion, qr_token, pin_seguridad, foto_url, saldo_colones, limite_diario_colones, alergias, padre_nombre, padre_telefono)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+  `);
+
+  // Niños de Primaria (7 a 10 años)
+  insertEst.run(
+    'EST-2026-001',
+    'Mateo Alvarado Castro',
+    8,
+    '2° Grado',
+    '2-A',
+    'QR-MATEO-2026-A891',
+    '1234',
+    'https://api.dicebear.com/7.x/bottts/svg?seed=Mateo&backgroundColor=b6e3f4',
+    4500,
+    2500,
+    'Ninguna conocida',
+    'Carlos Alvarado (Papá)',
+    '+506 8888-1122'
+  );
+
+  insertEst.run(
+    'EST-2026-002',
+    'Sofía Jiménez Morales',
+    9,
+    '3° Grado',
+    '3-B',
+    'QR-SOFIA-2026-B442',
+    '2468',
+    'https://api.dicebear.com/7.x/bottts/svg?seed=Sofia&backgroundColor=ffd5dc',
+    3200,
+    2000,
+    'Intolerancia leve a la lactosa',
+    'Mariana Morales (Mamá)',
+    '+506 8777-3344'
+  );
+
+  insertEst.run(
+    'EST-2026-003',
+    'Lucía Fernández Solís',
+    7,
+    '1° Grado',
+    '1-A',
+    'QR-LUCIA-2026-C119',
+    '1111',
+    'https://api.dicebear.com/7.x/bottts/svg?seed=Lucia&backgroundColor=d1d4f9',
+    1800,
+    1500,
+    'Alérgica al maní y frutos secos',
+    'Elena Solís (Mamá)',
+    '+506 8666-5566'
+  );
+
+  // Adolescentes de Secundaria (11 a 15 años)
+  insertEst.run(
+    'EST-2026-004',
+    'Ignacio Vargas Chaves',
+    14,
+    '8° Año',
+    '8-3',
+    'QR-NACHO-2026-D902',
+    '5555',
+    'https://api.dicebear.com/7.x/bottts/svg?seed=Ignacio&backgroundColor=c0aede',
+    6000,
+    3500,
+    'Ninguna',
+    'Roberto Vargas (Papá)',
+    '+506 8333-7788'
+  );
+
+  insertEst.run(
+    'EST-2026-005',
+    'Valentina Rojas Quesada',
+    13,
+    '7° Año',
+    '7-1',
+    'QR-VALE-2026-E715',
+    '4321',
+    'https://api.dicebear.com/7.x/bottts/svg?seed=Vale&backgroundColor=ffdfbf',
+    5200,
+    3000,
+    'Vegetariana',
+    'Patricia Quesada (Mamá)',
+    '+506 8999-0011'
+  );
+
+  console.log('✅ Base de datos inicializada con éxito.');
+}
+
+// ==========================================
+// TRANSACCIONES ATÓMICAS FINANCIERAS (ACID)
+// ==========================================
+
+/**
+ * Realiza el débito por compra (Mostrador o Preorden)
+ * Verifica saldo suficiente y límite diario establecido por el padre.
+ */
+function debitoCompraTransaction({ estudianteId, montoTotal, ordenId, descripcion, tipoOrden = 'compra_mostrador' }) {
+  const transaction = db.transaction(() => {
+    // 1. Obtener estudiante con bloqueo
+    const est = db.prepare('SELECT * FROM estudiantes WHERE id = ?').get(estudianteId);
+    if (!est) throw new Error('Estudiante no encontrado');
+    if (!est.activo) throw new Error('La cuenta del estudiante se encuentra inactiva');
+
+    // 2. Verificar saldo
+    if (est.saldo_colones < montoTotal) {
+      throw new Error(`Saldo insuficiente. Saldo actual: ₡${est.saldo_colones.toLocaleString('es-CR')}, Total: ₡${montoTotal.toLocaleString('es-CR')}`);
+    }
+
+    // 3. Verificar límite diario
+    const startOfDay = new Date();
+    startOfDay.setHours(0, 0, 0, 0);
+    const startOfDayISO = startOfDay.toISOString().replace('T', ' ').substring(0, 19);
+
+    const gastoHoyRow = db.prepare(`
+      SELECT COALESCE(SUM(ABS(monto_colones)), 0) as total_gastado_hoy
+      FROM transacciones_saldo
+      WHERE estudiante_id = ? AND monto_colones < 0 AND fecha >= ?
+    `).get(estudianteId, startOfDayISO);
+
+    const totalGastadoHoy = gastoHoyRow.total_gastado_hoy;
+    if (totalGastadoHoy + montoTotal > est.limite_diario_colones) {
+      const disponibleHoy = Math.max(0, est.limite_diario_colones - totalGastadoHoy);
+      throw new Error(`Límite diario superado. Su límite por día es ₡${est.limite_diario_colones.toLocaleString('es-CR')}. Disponible hoy: ₡${disponibleHoy.toLocaleString('es-CR')}`);
+    }
+
+    // 4. Actualizar saldo
+    const nuevoSaldo = est.saldo_colones - montoTotal;
+    db.prepare('UPDATE estudiantes SET saldo_colones = ? WHERE id = ?').run(nuevoSaldo, estudianteId);
+
+    // 5. Registrar auditoría financiera
+    db.prepare(`
+      INSERT INTO transacciones_saldo 
+      (estudiante_id, tipo, monto_colones, saldo_previo, saldo_posterior, orden_id, descripcion)
+      VALUES (?, ?, ?, ?, ?, ?, ?)
+    `).run(
+      estudianteId,
+      tipoOrden,
+      -montoTotal,
+      est.saldo_colones,
+      nuevoSaldo,
+      ordenId || null,
+      descripcion || 'Compra en soda escolar'
+    );
+
+    return {
+      exito: true,
+      estudiante: {
+        id: est.id,
+        nombre: est.nombre_completo,
+        grado: est.grado,
+        seccion: est.seccion,
+        foto_url: est.foto_url,
+        saldo_anterior: est.saldo_colones,
+        saldo_nuevo: nuevoSaldo,
+        limite_diario: est.limite_diario_colones,
+        gastado_hoy: totalGastadoHoy + montoTotal
+      }
+    };
+  });
+
+  return transaction();
+}
+
+/**
+ * Realiza una recarga de saldo (Ej. Vía SINPE Móvil)
+ */
+function recargaSaldoTransaction({ estudianteId, monto, comprobanteSinpe, descripcion }) {
+  const transaction = db.transaction(() => {
+    const est = db.prepare('SELECT * FROM estudiantes WHERE id = ?').get(estudianteId);
+    if (!est) throw new Error('Estudiante no encontrado');
+    if (monto <= 0) throw new Error('El monto de recarga debe ser mayor a ₡0');
+
+    const nuevoSaldo = est.saldo_colones + monto;
+    db.prepare('UPDATE estudiantes SET saldo_colones = ? WHERE id = ?').run(nuevoSaldo, estudianteId);
+
+    db.prepare(`
+      INSERT INTO transacciones_saldo 
+      (estudiante_id, tipo, monto_colones, saldo_previo, saldo_posterior, comprobante_sinpe, descripcion)
+      VALUES (?, 'recarga_sinpe', ?, ?, ?, ?, ?)
+    `).run(
+      estudianteId,
+      monto,
+      est.saldo_colones,
+      nuevoSaldo,
+      comprobanteSinpe || 'SINPE-APP',
+      descripcion || `Recarga SINPE Móvil por ₡${monto.toLocaleString('es-CR')}`
+    );
+
+    return {
+      exito: true,
+      estudiante_id: est.id,
+      nombre: est.nombre_completo,
+      saldo_anterior: est.saldo_colones,
+      saldo_nuevo: nuevoSaldo
+    };
+  });
+
+  return transaction();
+}
+
+/**
+ * Crea una orden completa (Mostrador o Preorden) con sus ítems
+ */
+function crearOrdenCompleta({ estudianteId, tipoOrden, momentoEntrega, notas, items }) {
+  const transaction = db.transaction(() => {
+    if (!items || items.length === 0) throw new Error('La orden no contiene productos');
+
+    // Calcular total y validar productos
+    let totalColones = 0;
+    const detallesParaInsertar = [];
+
+    for (const item of items) {
+      const prod = db.prepare('SELECT * FROM productos WHERE id = ?').get(item.producto_id);
+      if (!prod) throw new Error(`Producto #${item.producto_id} no existe`);
+      if (!prod.disponible) throw new Error(`El producto "${prod.nombre}" no está disponible en este momento`);
+
+      const cantidad = parseInt(item.cantidad, 10) || 1;
+      const subtotal = prod.precio_colones * cantidad;
+      totalColones += subtotal;
+
+      detallesParaInsertar.push({
+        producto_id: prod.id,
+        nombre: prod.nombre,
+        cantidad,
+        precio_unitario: prod.precio_colones,
+        subtotal
+      });
+    }
+
+    // Generar código de orden único
+    const countOrders = db.prepare('SELECT COUNT(*) as count FROM ordenes').get().count + 1001;
+    const codigoOrden = `ORD-${countOrders}`;
+
+    // Estado inicial: si es mostrador nace entregado; si es preorden nace pendiente
+    const estadoInicial = tipoOrden === 'mostrador' ? 'entregado' : 'pendiente';
+    const entregadoEn = tipoOrden === 'mostrador' ? new Date().toISOString() : null;
+
+    // Insertar orden cabecera
+    const resultOrden = db.prepare(`
+      INSERT INTO ordenes 
+      (codigo_orden, estudiante_id, tipo_orden, momento_entrega, estado, total_colones, notas, entregado_en)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    `).run(
+      codigoOrden,
+      estudianteId,
+      tipoOrden,
+      momentoEntrega || 'inmediato',
+      estadoInicial,
+      totalColones,
+      notas || '',
+      entregadoEn
+    );
+
+    const ordenId = resultOrden.lastInsertRowid;
+
+    // Insertar detalle de productos
+    const insertDetalle = db.prepare(`
+      INSERT INTO orden_detalles (orden_id, producto_id, cantidad, precio_unitario, subtotal)
+      VALUES (?, ?, ?, ?, ?)
+    `);
+
+    for (const det of detallesParaInsertar) {
+      insertDetalle.run(ordenId, det.producto_id, det.cantidad, det.precio_unitario, det.subtotal);
+    }
+
+    // Efectuar débito financiero
+    const resultadoDebito = debitoCompraTransaction({
+      estudianteId,
+      montoTotal: totalColones,
+      ordenId,
+      descripcion: `Orden ${codigoOrden} (${tipoOrden})`,
+      tipoOrden: tipoOrden === 'mostrador' ? 'compra_mostrador' : 'preorden'
+    });
+
+    return {
+      orden_id: ordenId,
+      codigo_orden: codigoOrden,
+      tipo_orden: tipoOrden,
+      momento_entrega: momentoEntrega,
+      estado: estadoInicial,
+      total_colones: totalColones,
+      detalles: detallesParaInsertar,
+      financiero: resultadoDebito
+    };
+  });
+
+  return transaction();
+}
+
+module.exports = {
+  db,
+  initDatabase,
+  debitoCompraTransaction,
+  recargaSaldoTransaction,
+  crearOrdenCompleta
+};
