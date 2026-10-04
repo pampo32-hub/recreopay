@@ -4,3 +4,7 @@ node_modules/
 *.db
 !schema.sql
 .env
+*.db-shm
+*.db-wal
+*.db
+cloudflared.exe

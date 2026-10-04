@@ -41,6 +41,7 @@ function initDatabase() {
       bloquear_chucherias INTEGER DEFAULT 0,
       padre_nombre TEXT,
       padre_telefono TEXT,
+      permitir_transferencias INTEGER DEFAULT 1,
       activo INTEGER DEFAULT 1,
       creado_en DATETIME DEFAULT CURRENT_TIMESTAMP
   );
@@ -110,6 +111,14 @@ function initDatabase() {
   `;
 
   db.exec(schema);
+
+  // Migración segura para permitir_transferencias en bases de datos existentes
+  try {
+    db.exec('ALTER TABLE estudiantes ADD COLUMN permitir_transferencias INTEGER DEFAULT 1');
+  } catch (e) {
+    // Ya existe la columna
+  }
+
   seedInitialData();
 }
 
@@ -449,10 +458,109 @@ function crearOrdenCompleta({ estudianteId, tipoOrden, momentoEntrega, notas, it
   return transaction();
 }
 
+/**
+ * Realiza una transferencia P2P directa entre estudiantes (Opción 2: Escaneando al compañero)
+ * Transacción atómica ACID que verifica saldo, permisos parentales y PIN.
+ */
+function transferenciaP2PTransaction({ emisorId, qrReceptor, receptorId, monto, pin, motivo }) {
+  const transaction = db.transaction(() => {
+    // 1. Obtener emisor
+    const emisor = db.prepare('SELECT * FROM estudiantes WHERE id = ?').get(emisorId);
+    if (!emisor) throw new Error('Estudiante emisor no encontrado');
+    if (!emisor.activo) throw new Error('Tu cuenta se encuentra inactiva');
+    if (emisor.permitir_transferencias === 0) {
+      throw new Error('Tus padres tienen desactivadas las transferencias entre compañeros en tu perfil');
+    }
+
+    // 2. Validar PIN de seguridad del emisor
+    if (pin && emisor.pin_seguridad && String(emisor.pin_seguridad) !== String(pin).trim()) {
+      throw new Error('PIN de seguridad incorrecto');
+    }
+
+    // 3. Obtener receptor (por ID o por escaneo de QR/código de carné)
+    let receptor = null;
+    if (receptorId) {
+      receptor = db.prepare('SELECT * FROM estudiantes WHERE id = ?').get(receptorId);
+    } else if (qrReceptor) {
+      receptor = db.prepare('SELECT * FROM estudiantes WHERE qr_token = ? OR codigo_estudiante = ?').get(qrReceptor, qrReceptor);
+    }
+
+    if (!receptor) {
+      throw new Error('Código QR no corresponde a ningún estudiante registrado');
+    }
+    if (!receptor.activo) {
+      throw new Error(`La cuenta de ${receptor.nombre_completo} se encuentra inactiva`);
+    }
+    if (emisor.id === receptor.id) {
+      throw new Error('No puedes transferirte saldo a ti mismo');
+    }
+
+    // 4. Validar monto
+    const montoColones = parseInt(monto, 10);
+    if (isNaN(montoColones) || montoColones <= 0) {
+      throw new Error('El monto a transferir debe ser mayor a ₡0');
+    }
+    if (montoColones > 3000) {
+      throw new Error('Por seguridad escolar, el tope máximo por transferencia es de ₡3.000');
+    }
+    if (emisor.saldo_colones < montoColones) {
+      throw new Error(`Saldo insuficiente. Tienes ₡${emisor.saldo_colones.toLocaleString('es-CR')} y deseas transferir ₡${montoColones.toLocaleString('es-CR')}`);
+    }
+
+    // 5. Actualizar saldos atómicamente
+    const nuevoSaldoEmisor = emisor.saldo_colones - montoColones;
+    const nuevoSaldoReceptor = receptor.saldo_colones + montoColones;
+
+    db.prepare('UPDATE estudiantes SET saldo_colones = ? WHERE id = ?').run(nuevoSaldoEmisor, emisor.id);
+    db.prepare('UPDATE estudiantes SET saldo_colones = ? WHERE id = ?').run(nuevoSaldoReceptor, receptor.id);
+
+    // 6. Registrar en el historial y auditoría de ambos
+    const motivoTexto = motivo && motivo.trim() ? ` (${motivo.trim()})` : '';
+    const descEmisor = `Pase a ${receptor.nombre_completo}${motivoTexto}`;
+    const descReceptor = `Pase de ${emisor.nombre_completo}${motivoTexto}`;
+
+    db.prepare(`
+      INSERT INTO transacciones_saldo 
+      (estudiante_id, tipo, monto_colones, saldo_previo, saldo_posterior, descripcion)
+      VALUES (?, 'transferencia_enviada', ?, ?, ?, ?)
+    `).run(emisor.id, -montoColones, emisor.saldo_colones, nuevoSaldoEmisor, descEmisor);
+
+    db.prepare(`
+      INSERT INTO transacciones_saldo 
+      (estudiante_id, tipo, monto_colones, saldo_previo, saldo_posterior, descripcion)
+      VALUES (?, 'transferencia_recibida', ?, ?, ?, ?)
+    `).run(receptor.id, montoColones, receptor.saldo_colones, nuevoSaldoReceptor, descReceptor);
+
+    return {
+      exito: true,
+      monto: montoColones,
+      motivo: motivo || 'Pase entre compas',
+      emisor: {
+        id: emisor.id,
+        nombre: emisor.nombre_completo,
+        saldo_anterior: emisor.saldo_colones,
+        saldo_nuevo: nuevoSaldoEmisor
+      },
+      receptor: {
+        id: receptor.id,
+        nombre: receptor.nombre_completo,
+        grado: receptor.grado,
+        seccion: receptor.seccion,
+        foto_url: receptor.foto_url,
+        saldo_anterior: receptor.saldo_colones,
+        saldo_nuevo: nuevoSaldoReceptor
+      }
+    };
+  });
+
+  return transaction();
+}
+
 module.exports = {
   db,
   initDatabase,
   debitoCompraTransaction,
   recargaSaldoTransaction,
-  crearOrdenCompleta
+  crearOrdenCompleta,
+  transferenciaP2PTransaction
 };

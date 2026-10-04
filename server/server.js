@@ -2,7 +2,7 @@ const express = require('express');
 const cors = require('cors');
 const path = require('path');
 const QRCode = require('qrcode');
-const { db, initDatabase, debitoCompraTransaction, recargaSaldoTransaction, crearOrdenCompleta } = require('./db');
+const { db, initDatabase, debitoCompraTransaction, recargaSaldoTransaction, crearOrdenCompleta, transferenciaP2PTransaction } = require('./db');
 
 const app = express();
 const PORT = process.env.PORT || 3030;
@@ -187,22 +187,47 @@ app.post('/api/estudiantes/:id/recarga', (req, res) => {
   }
 });
 
-// Actualizar configuración parental (Límite diario y restricciones)
+// Actualizar configuración parental (Límite diario, restricciones y transferencias P2P)
 app.put('/api/estudiantes/:id/limite', (req, res) => {
   try {
-    const { limite_diario_colones, alergias, bloquear_chucherias } = req.body;
+    const { limite_diario_colones, alergias, bloquear_chucherias, permitir_transferencias } = req.body;
     const estId = req.params.id;
 
     db.prepare(`
       UPDATE estudiantes 
       SET limite_diario_colones = COALESCE(?, limite_diario_colones),
           alergias = COALESCE(?, alergias),
-          bloquear_chucherias = COALESCE(?, bloquear_chucherias)
+          bloquear_chucherias = COALESCE(?, bloquear_chucherias),
+          permitir_transferencias = COALESCE(?, permitir_transferencias)
       WHERE id = ?
-    `).run(limite_diario_colones, alergias, bloquear_chucherias, estId);
+    `).run(limite_diario_colones, alergias, bloquear_chucherias, permitir_transferencias, estId);
 
     const actualizado = db.prepare('SELECT * FROM estudiantes WHERE id = ?').get(estId);
     res.json(actualizado);
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+});
+
+// Transferencia P2P entre estudiantes (Opción 2: Escaneo directo del compañero)
+app.post('/api/transferencias', (req, res) => {
+  try {
+    const { emisor_id, qr_receptor, receptor_id, monto, pin, motivo } = req.body;
+    if (!emisor_id) return res.status(400).json({ error: 'Emisor no especificado' });
+
+    const resultado = transferenciaP2PTransaction({
+      emisorId: parseInt(emisor_id, 10),
+      qrReceptor: qr_receptor,
+      receptorId: receptor_id ? parseInt(receptor_id, 10) : null,
+      monto: parseInt(monto, 10),
+      pin,
+      motivo
+    });
+
+    // Notificar en tiempo real por SSE
+    broadcastEvent('transferencia_realizada', resultado);
+
+    res.json(resultado);
   } catch (error) {
     res.status(400).json({ error: error.message });
   }

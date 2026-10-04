@@ -61,10 +61,16 @@
           </div>
         </div>
 
-        <button class="qr-toggle-btn" onclick="openQrModal()">
-          <span>📱</span>
-          <span id="qrBtnText">Ver mi QR</span>
-        </button>
+        <div style="display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end;">
+          <button class="qr-toggle-btn" onclick="openQrModal()">
+            <span>📱</span>
+            <span id="qrBtnText">Mi QR</span>
+          </button>
+          <button class="qr-toggle-btn" style="background: rgba(16, 185, 129, 0.25); border-color: rgba(52, 211, 153, 0.4);" onclick="openTransferModal()">
+            <span>🤝</span>
+            <span id="transferBtnText">Pasar Plata</span>
+          </button>
+        </div>
       </div>
     </section>
 
@@ -224,10 +230,97 @@
         </div>
       </div>
 
+      <!-- CONTROL PARENTAL: PERMITIR O BLOQUEAR TRANSFERENCIAS ENTRE COMPAÑEROS -->
+      <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 12px 14px; margin-bottom: 16px; display: flex; justify-content: space-between; align-items: center;">
+        <div>
+          <strong style="font-size: 0.85rem; color: #1e293b; display: block;">🤝 RecreoTransfer entre Compas</strong>
+          <span style="font-size: 0.72rem; color: #64748b;">Permitir transferir saldo a compañeros de clase</span>
+        </div>
+        <input type="checkbox" id="chkParentAllowTransfer" onchange="onToggleAllowTransfer(this.checked)" style="width: 22px; height: 22px; cursor: pointer; accent-color: #0284c7;" checked>
+      </div>
+
       <!-- HISTORIAL RECIENTE -->
       <h4 style="font-size: 0.85rem; font-weight: 800; color: #1e293b; margin-bottom: 8px;">Consumos Recientes</h4>
       <div id="parentHistoryList" style="max-height: 140px; overflow-y: auto; font-size: 0.78rem;">
         <!-- Se llena dinámicamente -->
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: RECREOTRANSFER (PASAR PLATA A UN COMPAÑERO ESCANEANDO SU QR O CARNÉ) -->
+  <div class="modal-qr-backdrop" id="modalTransfer" style="display: none;" onclick="closeTransferModal(event)">
+    <div class="modal-qr-card" onclick="event.stopPropagation()" style="max-width: 420px; text-align: left;">
+      <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #e2e8f0; padding-bottom: 10px; margin-bottom: 12px;">
+        <div>
+          <h3 style="color: #0f172a; font-size: 1.15rem; font-weight: 800;">🤝 Pasar Plata a un Compa</h3>
+          <span style="font-size: 0.75rem; color: #64748b;">Escanea el carné o celular de tu amigo</span>
+        </div>
+        <button onclick="closeTransferModal()" style="background: none; border: none; font-size: 1.2rem; cursor: pointer; color: #64748b;">✕</button>
+      </div>
+
+      <!-- PASO 1: ESCANEAR CÁMARA O ELEGIR COMPAÑERO DE PRUEBA -->
+      <div id="transferStepScan">
+        <div style="position: relative; border-radius: 12px; overflow: hidden; background: #000; height: 160px; margin-bottom: 12px;">
+          <video id="transferVideo" style="width: 100%; height: 100%; object-fit: cover;" autoplay playsinline muted></video>
+          <div class="laser-scan-line"></div>
+          <div style="position: absolute; bottom: 8px; left: 0; right: 0; text-align: center; color: white; font-size: 0.72rem; text-shadow: 0 1px 3px black;">
+            Apunta al QR del carné o celular de tu amigo
+          </div>
+        </div>
+
+        <div style="text-align: center; margin-bottom: 12px;">
+          <span style="font-size: 0.74rem; color: #64748b; font-weight: 700;">O selecciona a un compañero para transferirle:</span>
+          <div id="quickTransferFriends" style="display: flex; gap: 6px; flex-wrap: wrap; justify-content: center; margin-top: 8px;">
+            <!-- Se llena dinámicamente con los otros estudiantes -->
+          </div>
+        </div>
+      </div>
+
+      <!-- PASO 2: CONFIRMAR COMPAÑERO Y MONTO -->
+      <div id="transferStepConfirm" style="display: none;">
+        <!-- Tarjeta del receptor -->
+        <div style="background: #f0fdf4; border: 1.5px solid #86efac; border-radius: 14px; padding: 12px; display: flex; align-items: center; gap: 12px; margin-bottom: 14px;">
+          <img id="transferTargetAvatar" src="" style="width: 48px; height: 48px; border-radius: 50%; border: 2px solid #10b981; background: white;">
+          <div style="flex: 1;">
+            <div style="font-size: 0.7rem; color: #15803d; font-weight: 800; text-transform: uppercase;">Vas a transferir a:</div>
+            <h4 id="transferTargetName" style="font-size: 1rem; font-weight: 900; color: #0f172a; line-height: 1.2;">Nombre</h4>
+            <span id="transferTargetGrade" style="font-size: 0.75rem; color: #64748b;">Grado y Sección</span>
+          </div>
+          <button onclick="resetTransferScan()" style="background: #e2e8f0; border: none; padding: 4px 8px; border-radius: 6px; font-size: 0.75rem; font-weight: 700; cursor: pointer;">Cambiar</button>
+        </div>
+
+        <!-- MONTO A PASAR -->
+        <label style="display: block; font-size: 0.82rem; font-weight: 800; color: #1e293b; margin-bottom: 6px;">
+          ¿Cuánto le vas a pasar?
+        </label>
+        <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin-bottom: 10px;">
+          <button type="button" class="mode-btn active" id="btnTransfer500" onclick="setTransferAmount(500, this)" style="padding: 8px; text-align: center; justify-content: center; font-size: 0.85rem;">₡500</button>
+          <button type="button" class="mode-btn" id="btnTransfer1000" onclick="setTransferAmount(1000, this)" style="padding: 8px; text-align: center; justify-content: center; font-size: 0.85rem;">₡1.000</button>
+          <button type="button" class="mode-btn" id="btnTransfer1500" onclick="setTransferAmount(1500, this)" style="padding: 8px; text-align: center; justify-content: center; font-size: 0.85rem;">₡1.500</button>
+        </div>
+
+        <div style="margin-bottom: 12px;">
+          <input type="number" id="inputTransferCustomAmount" placeholder="Otro monto (ej. 750)" style="width: 100%; padding: 10px; border-radius: 10px; border: 1px solid #cbd5e1; font-size: 1rem; font-weight: 800; color: #0284c7;">
+        </div>
+
+        <!-- MOTIVO OPCIONAL -->
+        <div style="margin-bottom: 12px;">
+          <label style="display: block; font-size: 0.75rem; font-weight: 700; color: #64748b; margin-bottom: 4px;">Motivo (Opcional):</label>
+          <input type="text" id="inputTransferMotivo" placeholder="Ej: Mitad de la empanada, fresco..." style="width: 100%; padding: 8px 10px; border-radius: 8px; border: 1px solid #cbd5e1; font-size: 0.85rem;">
+        </div>
+
+        <!-- PIN DE SEGURIDAD -->
+        <div style="background: #f8fafc; border: 1px dashed #cbd5e1; border-radius: 10px; padding: 10px 12px; margin-bottom: 14px;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+            <label style="font-size: 0.78rem; font-weight: 800; color: #0f172a;">🔐 Digita tu PIN de 4 dígitos:</label>
+            <span style="font-size: 0.7rem; color: #64748b;">(PIN por defecto: 1234)</span>
+          </div>
+          <input type="password" id="inputTransferPin" maxlength="4" placeholder="••••" style="width: 100%; text-align: center; font-size: 1.4rem; letter-spacing: 6px; padding: 8px; border-radius: 8px; border: 1px solid #cbd5e1; font-weight: 900;">
+        </div>
+
+        <button id="btnConfirmTransfer" onclick="executeP2PTransfer()" style="width: 100%; padding: 14px; background: linear-gradient(135deg, #10b981, #059669); color: white; border: none; border-radius: 14px; font-weight: 900; font-size: 1.05rem; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);">
+          <span>💸</span> Enviar Dinero al Instante
+        </button>
       </div>
     </div>
   </div>

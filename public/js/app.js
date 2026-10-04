@@ -16,6 +16,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
 
   await loadInitialData();
+  initStudentSSE();
 });
 
 async function loadInitialData() {
@@ -106,6 +107,12 @@ function updateStudentUI() {
   // Panel de Padres sliders y valores
   document.getElementById('lblParentDailyLimit').textContent = `₡${currentStudent.limite_diario_colones.toLocaleString('es-CR')}`;
   document.getElementById('rangeDailyLimit').value = currentStudent.limite_diario_colones;
+  
+  const chkTransfer = document.getElementById('chkParentAllowTransfer');
+  if (chkTransfer) {
+    chkTransfer.checked = currentStudent.permitir_transferencias !== 0;
+  }
+
   renderParentHistory();
 }
 
@@ -116,18 +123,22 @@ function setAppMode(mode, playSound = true) {
   document.getElementById('btnModeKids').classList.remove('active');
   document.getElementById('btnModeTeens').classList.remove('active');
 
+  const transferBtnText = document.getElementById('transferBtnText');
+
   if (mode === 'kids') {
     document.body.classList.add('mode-kids');
     document.getElementById('btnModeKids').classList.add('active');
     document.getElementById('balanceLabel').textContent = '💰 Mis Colones para el Recreo';
     document.getElementById('kidsCoinIcon').style.display = 'inline-block';
-    document.getElementById('qrBtnText').textContent = 'Tocar para mi QR 📱';
+    document.getElementById('qrBtnText').textContent = 'Mi QR 📱';
+    if (transferBtnText) transferBtnText.textContent = 'Pasar Plata 🤝';
   } else {
     document.body.classList.add('mode-teens');
     document.getElementById('btnModeTeens').classList.add('active');
     document.getElementById('balanceLabel').textContent = 'SALDO DISPONIBLE';
     document.getElementById('kidsCoinIcon').style.display = 'none';
-    document.getElementById('qrBtnText').textContent = 'QR de Pago';
+    document.getElementById('qrBtnText').textContent = 'Mi QR';
+    if (transferBtnText) transferBtnText.textContent = 'Transferir ⚡';
   }
 
   if (playSound && window.sounds) {
@@ -446,4 +457,225 @@ function renderParentHistory() {
       </div>
     `;
   }).join('');
+}
+
+// ==========================================
+// RECREOTRANSFER: PASAR PLATA A UN COMPAÑERO (OPCIÓN 2: ESCANEAR AL AMIGO)
+// ==========================================
+
+let selectedTransferTarget = null;
+let currentTransferAmount = 500;
+let transferVideoStream = null;
+let isTransferScanning = false;
+
+function openTransferModal() {
+  if (!currentStudent) return;
+
+  if (currentStudent.permitir_transferencias === 0) {
+    if (window.sounds) window.sounds.playError();
+    return alert('⚠️ Tus padres tienen desactivadas las transferencias entre compañeros en tu perfil.');
+  }
+
+  if (window.sounds) window.sounds.playCoin();
+  document.getElementById('modalTransfer').style.display = 'flex';
+  resetTransferScan();
+  renderQuickTransferFriends();
+  startTransferCamera();
+}
+
+function closeTransferModal(e) {
+  if (e && e.target !== e.currentTarget) return;
+  stopTransferCamera();
+  document.getElementById('modalTransfer').style.display = 'none';
+}
+
+function renderQuickTransferFriends() {
+  const container = document.getElementById('quickTransferFriends');
+  const others = students.filter(s => s.id !== currentStudent.id);
+
+  container.innerHTML = others.map(s => `
+    <button type="button" onclick="selectTransferTargetById(${s.id})" style="display: flex; align-items: center; gap: 4px; padding: 4px 8px; background: #f1f5f9; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 0.72rem; font-weight: 700; cursor: pointer; color: #1e293b;">
+      <img src="${s.foto_url}" style="width: 20px; height: 20px; border-radius: 50%;">
+      <span>${s.nombre_completo.split(' ')[0]} (${s.grado.split(' ')[0]})</span>
+    </button>
+  `).join('');
+}
+
+function selectTransferTargetById(studentId) {
+  const target = students.find(s => s.id === studentId);
+  if (!target) return;
+  onTransferTargetIdentified(target);
+}
+
+function onTransferTargetIdentified(target) {
+  selectedTransferTarget = target;
+  stopTransferCamera();
+
+  if (window.sounds) window.sounds.playScanChirp();
+
+  document.getElementById('transferTargetAvatar').src = target.foto_url;
+  document.getElementById('transferTargetName').textContent = target.nombre_completo;
+  document.getElementById('transferTargetGrade').textContent = `${target.grado} • Sección ${target.seccion} • Cód: ${target.codigo_estudiante}`;
+
+  // Resetear montos y PIN
+  setTransferAmount(500, document.getElementById('btnTransfer500'));
+  document.getElementById('inputTransferCustomAmount').value = '';
+  document.getElementById('inputTransferMotivo').value = '';
+  document.getElementById('inputTransferPin').value = '';
+
+  document.getElementById('transferStepScan').style.display = 'none';
+  document.getElementById('transferStepConfirm').style.display = 'block';
+}
+
+function resetTransferScan() {
+  selectedTransferTarget = null;
+  document.getElementById('transferStepConfirm').style.display = 'none';
+  document.getElementById('transferStepScan').style.display = 'block';
+  startTransferCamera();
+}
+
+function setTransferAmount(val, btn) {
+  currentTransferAmount = val;
+  document.querySelectorAll('#transferStepConfirm .mode-btn').forEach(b => b.classList.remove('active'));
+  if (btn) btn.classList.add('active');
+  document.getElementById('inputTransferCustomAmount').value = '';
+  if (window.sounds) window.sounds.playCoin();
+}
+
+async function startTransferCamera() {
+  const video = document.getElementById('transferVideo');
+  if (!video) return;
+
+  if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+    try {
+      transferVideoStream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: 'environment', width: { ideal: 480 } }
+      });
+      video.srcObject = transferVideoStream;
+      isTransferScanning = true;
+      scanQrFromCamera(video);
+    } catch (err) {
+      console.log('Cámara de transferencia no disponible:', err);
+    }
+  }
+}
+
+function stopTransferCamera() {
+  isTransferScanning = false;
+  if (transferVideoStream) {
+    transferVideoStream.getTracks().forEach(t => t.stop());
+    transferVideoStream = null;
+  }
+}
+
+function scanQrFromCamera(video) {
+  if ('BarcodeDetector' in window) {
+    const detector = new window.BarcodeDetector({ formats: ['qr_code'] });
+    const interval = setInterval(async () => {
+      if (!isTransferScanning || selectedTransferTarget !== null) {
+        clearInterval(interval);
+        return;
+      }
+      try {
+        const barcodes = await detector.detect(video);
+        if (barcodes.length > 0) {
+          const rawValue = barcodes[0].rawValue;
+          const res = await fetch(`/api/estudiantes/qr/${encodeURIComponent(rawValue)}`);
+          if (res.ok) {
+            const found = await res.json();
+            if (found.id !== currentStudent.id) {
+              clearInterval(interval);
+              onTransferTargetIdentified(found);
+            }
+          }
+        }
+      } catch (e) {}
+    }, 400);
+  }
+}
+
+async function executeP2PTransfer() {
+  if (!currentStudent || !selectedTransferTarget) return;
+
+  let monto = currentTransferAmount;
+  const custom = parseInt(document.getElementById('inputTransferCustomAmount').value, 10);
+  if (custom && custom > 0) {
+    monto = custom;
+  }
+
+  const pin = document.getElementById('inputTransferPin').value.trim();
+  if (!pin) {
+    if (window.sounds) window.sounds.playError();
+    return alert('⚠️ Por favor ingresa tu PIN de seguridad (por defecto 1234).');
+  }
+
+  const motivo = document.getElementById('inputTransferMotivo').value.trim();
+
+  const btn = document.getElementById('btnConfirmTransfer');
+  btn.disabled = true;
+  btn.textContent = 'Transfiriendo saldo...';
+
+  try {
+    const res = await fetch('/api/transferencias', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        emisor_id: currentStudent.id,
+        receptor_id: selectedTransferTarget.id,
+        monto,
+        pin,
+        motivo
+      })
+    });
+
+    const data = await res.json();
+    if (!res.ok) {
+      if (window.sounds) window.sounds.playError();
+      throw new Error(data.error);
+    }
+
+    if (window.sounds) window.sounds.playSuccess();
+
+    alert(`🎉 ¡TRANSFERENCIA EXITOSA!\nLe pasaste ₡${data.monto.toLocaleString('es-CR')} a ${data.receptor.nombre}.\nTu nuevo saldo es ₡${data.emisor.saldo_nuevo.toLocaleString('es-CR')}.`);
+
+    closeTransferModal();
+    await selectStudent(currentStudent.id);
+  } catch (err) {
+    alert(`❌ Fallo en la transferencia: ${err.message}`);
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = '<span>💸</span> Enviar Dinero al Instante';
+  }
+}
+
+// Toggle Parental para permitir/bloquear transferencias
+async function onToggleAllowTransfer(checked) {
+  if (!currentStudent) return;
+  try {
+    await fetch(`/api/estudiantes/${currentStudent.id}/limite`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ permitir_transferencias: checked ? 1 : 0 })
+    });
+    currentStudent.permitir_transferencias = checked ? 1 : 0;
+    if (window.sounds) window.sounds.playCoin();
+  } catch (e) {
+    console.error('Error actualizando permiso de transferencias:', e);
+  }
+}
+
+// SSE en tiempo real para estudiantes (notificación si le pasan plata)
+function initStudentSSE() {
+  const sse = new EventSource('/api/events');
+
+  sse.addEventListener('transferencia_realizada', (e) => {
+    try {
+      const data = JSON.parse(e.data);
+      if (currentStudent && data.receptor.id === currentStudent.id) {
+        if (window.sounds) window.sounds.playCoin();
+        alert(`🔔 ¡Te pasaron plata!\n${data.emisor.nombre} te transfirió ₡${data.monto.toLocaleString('es-CR')}.\nMotivo: ${data.motivo}`);
+        selectStudent(currentStudent.id);
+      }
+    } catch (err) {}
+  });
 }
