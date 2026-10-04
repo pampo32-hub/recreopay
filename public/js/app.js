@@ -141,6 +141,10 @@ function updateStudentUI() {
   // Panel de Padres sliders y valores
   document.getElementById('lblParentDailyLimit').textContent = `₡${currentStudent.limite_diario_colones.toLocaleString('es-CR')}`;
   document.getElementById('rangeDailyLimit').value = currentStudent.limite_diario_colones;
+  const inputWrittenLimit = document.getElementById('inputCustomDailyLimit');
+  if (inputWrittenLimit) {
+    inputWrittenLimit.value = currentStudent.limite_diario_colones;
+  }
   
   const chkTransfer = document.getElementById('chkParentAllowTransfer');
   if (chkTransfer) {
@@ -412,15 +416,25 @@ function toggleParentPanel(show, e) {
   document.getElementById('modalPadres').style.display = show ? 'flex' : 'none';
 }
 
+function setWrittenRechargeAmount(monto) {
+  const input = document.getElementById('inputCustomSinpe');
+  if (input) {
+    input.value = monto;
+    input.focus();
+  }
+  if (window.sounds) window.sounds.playCoin();
+}
+
 async function quickSinpeRecharge(monto) {
   await doSinpeRecharge(monto);
 }
 
 async function customSinpeRecharge() {
-  const val = parseInt(document.getElementById('inputCustomSinpe').value, 10);
-  if (!val || val <= 0) return alert('Ingresa un monto válido en colones');
+  const input = document.getElementById('inputCustomSinpe');
+  const val = parseInt(input.value, 10);
+  if (!val || val <= 0) return alert('Por favor escribe un monto válido a recargar en colones.');
   await doSinpeRecharge(val);
-  document.getElementById('inputCustomSinpe').value = '';
+  input.value = '';
 }
 
 async function doSinpeRecharge(monto) {
@@ -450,18 +464,86 @@ async function doSinpeRecharge(monto) {
   }
 }
 
+// ==========================================
+// CONTROL DE LÍMITE DIARIO ESCRITO Y SLIDER
+// ==========================================
+
+function onCustomDailyLimitInput(val) {
+  const num = parseInt(val, 10);
+  if (!isNaN(num) && num >= 0) {
+    document.getElementById('lblParentDailyLimit').textContent = `₡${num.toLocaleString('es-CR')}`;
+    const slider = document.getElementById('rangeDailyLimit');
+    if (slider && num >= 1000 && num <= 10000) {
+      slider.value = num;
+    }
+  }
+}
+
+async function setWrittenDailyLimit(val) {
+  const input = document.getElementById('inputCustomDailyLimit');
+  if (input) input.value = val;
+  onCustomDailyLimitInput(val);
+  await saveCustomDailyLimit(val);
+}
+
+async function saveCustomDailyLimit(customVal) {
+  let val = customVal;
+  if (val === undefined) {
+    const input = document.getElementById('inputCustomDailyLimit');
+    val = parseInt(input.value, 10);
+  }
+
+  if (isNaN(val) || val < 0) {
+    return alert('Por favor escribe un monto válido para el límite diario.');
+  }
+
+  if (!currentStudent) return;
+
+  try {
+    const res = await fetch(`/api/estudiantes/${currentStudent.id}/limite`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ limite_diario_colones: val })
+    });
+
+    if (res.ok) {
+      currentStudent.limite_diario_colones = val;
+      document.getElementById('lblParentDailyLimit').textContent = `₡${val.toLocaleString('es-CR')}`;
+      document.getElementById('dailyLimitText').textContent = `₡${val.toLocaleString('es-CR')}`;
+
+      const slider = document.getElementById('rangeDailyLimit');
+      if (slider && val >= 1000 && val <= 10000) {
+        slider.value = val;
+      }
+
+      const input = document.getElementById('inputCustomDailyLimit');
+      if (input) input.value = val;
+
+      if (window.sounds) window.sounds.playSuccess();
+      alert(`✅ Límite diario actualizado a ₡${val.toLocaleString('es-CR')} para ${currentStudent.nombre_completo.split(' ')[0]}`);
+      await selectStudent(currentStudent.id);
+    }
+  } catch (e) {
+    alert('Error guardando el límite diario: ' + e.message);
+  }
+}
+
 async function onDailyLimitSlider(val) {
-  document.getElementById('lblParentDailyLimit').textContent = `₡${parseInt(val, 10).toLocaleString('es-CR')}`;
+  const num = parseInt(val, 10);
+  document.getElementById('lblParentDailyLimit').textContent = `₡${num.toLocaleString('es-CR')}`;
+  
+  const input = document.getElementById('inputCustomDailyLimit');
+  if (input) input.value = num;
+
   if (!currentStudent) return;
 
   try {
     await fetch(`/api/estudiantes/${currentStudent.id}/limite`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ limite_diario_colones: parseInt(val, 10) })
+      body: JSON.stringify({ limite_diario_colones: num })
     });
-    // Actualizar UI sutilmente
-    currentStudent.limite_diario_colones = parseInt(val, 10);
+    currentStudent.limite_diario_colones = num;
     document.getElementById('dailyLimitText').textContent = `₡${currentStudent.limite_diario_colones.toLocaleString('es-CR')}`;
   } catch (e) {}
 }
