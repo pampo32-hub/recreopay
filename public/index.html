@@ -16,6 +16,16 @@
 <body class="mode-kids">
 
   <div class="app-container">
+    <!-- BANNER DE ADVERTENCIA HTTPS PARA TELÉFONOS MÓVILES -->
+    <div id="bannerHttpsWarning" style="display: none; background: linear-gradient(135deg, #f59e0b, #d97706); color: white; padding: 10px 14px; font-size: 0.78rem; font-weight: 700; text-align: center; border-radius: 12px; margin: 10px 16px 0 16px; box-shadow: 0 2px 8px rgba(245, 158, 11, 0.3);">
+      🔒 Estás en HTTP. Para activar la cámara y pagos QR, tu celular requiere HTTPS:
+      <div style="margin-top: 6px;">
+        <a id="linkHttpsRedirect" href="https://somewhat-ships-looksmart-optical.trycloudflare.com" style="display: inline-block; padding: 5px 14px; background: white; color: #b45309; border-radius: 20px; font-weight: 900; text-decoration: none; font-size: 0.8rem; box-shadow: 0 2px 5px rgba(0,0,0,0.15);">
+          🚀 Toca aquí para abrir en HTTPS Seguro
+        </a>
+      </div>
+    </div>
+
     <!-- BARRA SUPERIOR -->
     <header class="top-bar">
       <a href="#" class="brand-badge">
@@ -268,17 +278,27 @@
           </div>
         </div>
 
-        <div style="position: relative; border-radius: 12px; overflow: hidden; background: #000; min-height: 160px; margin-bottom: 12px; display: flex; align-items: center; justify-content: center;">
-          <video id="transferVideo" style="width: 100%; height: 160px; object-fit: cover;" autoplay playsinline muted></video>
+        <div style="position: relative; border-radius: 12px; overflow: hidden; background: #000; min-height: 170px; margin-bottom: 10px; display: flex; align-items: center; justify-content: center;">
+          <video id="transferVideo" style="width: 100%; height: 170px; object-fit: cover;" autoplay playsinline webkit-playsinline muted></video>
           <div class="laser-scan-line"></div>
           
-          <div id="transferCameraHelp" style="display: none; position: absolute; inset: 0; background: rgba(15, 23, 42, 0.9); padding: 14px; text-align: center; flex-direction: column; justify-content: center; align-items: center; gap: 8px; z-index: 10;">
+          <div id="transferCameraHelp" style="display: none; position: absolute; inset: 0; background: rgba(15, 23, 42, 0.92); padding: 14px; text-align: center; flex-direction: column; justify-content: center; align-items: center; gap: 10px; z-index: 10;">
             <span style="font-size: 1.8rem;">📷</span>
-            <p id="transferCameraHelpText" style="font-size: 0.76rem; color: #f8fafc; line-height: 1.3;">Toca el botón para permitir la cámara</p>
-            <button type="button" onclick="startTransferCamera(true)" style="padding: 6px 14px; background: #0284c7; color: white; border: none; border-radius: 8px; font-weight: 800; font-size: 0.8rem; cursor: pointer;">
-              Permitir Cámara
-            </button>
+            <div id="transferCameraHelpText" style="font-size: 0.76rem; color: #f8fafc; line-height: 1.35;">Toca el botón para permitir la cámara</div>
+            <div id="transferCameraActionContainer" style="display: flex; flex-direction: column; gap: 8px; width: 100%; align-items: center;">
+              <button id="btnAllowTransferCamera" type="button" onclick="startTransferCamera(true)" style="padding: 8px 18px; background: #0284c7; color: white; border: none; border-radius: 8px; font-weight: 800; font-size: 0.82rem; cursor: pointer; box-shadow: 0 4px 10px rgba(2, 132, 199, 0.3);">
+                Permitir Cámara
+              </button>
+            </div>
           </div>
+        </div>
+
+        <!-- ACCESO DIRECTO PARA SUBIR O TOMAR FOTO DEL QR CON LA CÁMARA NATIVA -->
+        <div style="display: flex; justify-content: center; margin-bottom: 12px;">
+          <label style="cursor: pointer; display: inline-flex; align-items: center; gap: 6px; padding: 7px 14px; background: #f0fdf4; border: 1.5px dashed #86efac; border-radius: 10px; font-size: 0.78rem; font-weight: 800; color: #166534; box-shadow: 0 1px 3px rgba(0,0,0,0.04);">
+            <span>📸</span> Tomar foto del QR o carné
+            <input type="file" accept="image/*" capture="environment" style="display: none;" onchange="handleTransferQrPhoto(event)">
+          </label>
         </div>
 
         <div style="text-align: center; margin-bottom: 12px;">

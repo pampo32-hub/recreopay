@@ -404,6 +404,14 @@ app.post('/api/ordenes/despachar-qr', (req, res) => {
   }
 });
 
+// Información de conectividad y túnel HTTPS
+app.get('/api/server-info', (req, res) => {
+  res.json({
+    tunnelUrl: process.env.TUNNEL_URL || 'https://somewhat-ships-looksmart-optical.trycloudflare.com',
+    httpsAvailable: true
+  });
+});
+
 // Iniciar servidor
 app.listen(PORT, () => {
   console.log(`🚀 Servidor RecreoPay iniciado en http://localhost:${PORT}`);

@@ -8,8 +8,40 @@ let currentTab = 'mostrador';
 let sseSource = null;
 let videoStream = null;
 let isScanningActive = true;
+let CLOUDFLARE_TUNNEL_URL = 'https://somewhat-ships-looksmart-optical.trycloudflare.com';
+
+function checkPosHttpsEnvironment() {
+  const isHttp = window.location.protocol !== 'https:' && 
+                 window.location.hostname !== 'localhost' && 
+                 window.location.hostname !== '127.0.0.1';
+  
+  if (isHttp) {
+    const banner = document.getElementById('posBannerHttpsWarning');
+    if (banner) {
+      banner.style.display = 'block';
+      const link = document.getElementById('posLinkHttpsRedirect');
+      if (link) {
+        link.href = CLOUDFLARE_TUNNEL_URL + window.location.pathname;
+      }
+    }
+  }
+
+  fetch('/api/server-info')
+    .then(r => r.json())
+    .then(info => {
+      if (info && info.tunnelUrl) {
+        CLOUDFLARE_TUNNEL_URL = info.tunnelUrl;
+        const link = document.getElementById('posLinkHttpsRedirect');
+        if (link && isHttp) {
+          link.href = CLOUDFLARE_TUNNEL_URL + window.location.pathname;
+        }
+      }
+    })
+    .catch(() => {});
+}
 
 document.addEventListener('DOMContentLoaded', async () => {
+  checkPosHttpsEnvironment();
   await loadCatalog();
   await loadPreOrders();
   initCamera();
@@ -147,6 +179,8 @@ async function initCamera(isUserAction = false) {
   const video = document.getElementById('scannerVideo');
   const status = document.getElementById('cameraStatus');
   const overlay = document.getElementById('cameraHelpOverlay');
+  const helpText = document.getElementById('cameraHelpText');
+  const actionContainer = document.getElementById('posCameraActionContainer');
   const retryBtn = document.getElementById('btnRetryPosCamera');
   const flipBtn = document.getElementById('btnFlipPosCamera');
 
@@ -155,35 +189,83 @@ async function initCamera(isUserAction = false) {
     videoStream = null;
   }
 
-  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-    status.textContent = '⚠️ Requiere HTTPS';
+  const isHttp = window.location.protocol !== 'https:' && 
+                 window.location.hostname !== 'localhost' && 
+                 window.location.hostname !== '127.0.0.1';
+
+  if (isHttp || !navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+    if (status) status.textContent = '⚠️ Requiere HTTPS';
     if (overlay) {
       overlay.style.display = 'flex';
-      document.getElementById('cameraHelpText').textContent = '⚠️ Para usar la cámara en dispositivos remotos se requiere conexión segura HTTPS. Puedes usar los botones de prueba abajo.';
+      if (helpText) {
+        helpText.innerHTML = `
+          <div style="font-weight: 800; color: #fca5a5; font-size: 0.85rem; margin-bottom: 4px;">⚠️ Cámara requiere HTTPS</div>
+          <span style="font-size: 0.74rem; color: #cbd5e1;">Para acceder a la cámara en vivo en dispositivos remotos o celulares se requiere conexión segura HTTPS. Toca el botón para abrir la terminal segura:</span>
+        `;
+      }
+      if (actionContainer) {
+        actionContainer.innerHTML = `
+          <button type="button" onclick="window.location.href='${CLOUDFLARE_TUNNEL_URL}' + window.location.pathname" style="padding: 10px 16px; background: #10b981; color: white; border: none; border-radius: 10px; font-weight: 900; font-size: 0.84rem; cursor: pointer; box-shadow: 0 4px 12px rgba(16, 185, 129, 0.4);">
+            🚀 Cambiar a HTTPS Seguro
+          </button>
+        `;
+      }
     }
     return;
   }
 
   try {
-    status.textContent = 'Conectando lente...';
-    try {
-      videoStream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: { ideal: posFacingMode }, width: { ideal: 1280 } },
-        audio: false
-      });
-    } catch (err1) {
-      // Fallback a cualquier cámara disponible
-      videoStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+    if (status) status.textContent = 'Conectando cámara...';
+    if (overlay) overlay.style.display = 'none';
+
+    video.muted = true;
+    video.playsInline = true;
+    video.setAttribute('playsinline', 'true');
+    video.setAttribute('webkit-playsinline', 'true');
+    video.setAttribute('autoplay', 'true');
+
+    const constraintConfigs = [
+      { video: { facingMode: { ideal: posFacingMode }, width: { ideal: 1280 } }, audio: false },
+      { video: { facingMode: { ideal: posFacingMode } }, audio: false },
+      { video: { facingMode: posFacingMode }, audio: false },
+      { video: true, audio: false }
+    ];
+
+    let stream = null;
+    let lastError = null;
+
+    for (const c of constraintConfigs) {
+      try {
+        stream = await navigator.mediaDevices.getUserMedia(c);
+        if (stream) break;
+      } catch (errAttempt) {
+        lastError = errAttempt;
+      }
     }
 
-    video.setAttribute('playsinline', 'true');
-    video.setAttribute('autoplay', 'true');
-    video.muted = true;
-    video.srcObject = videoStream;
+    if (!stream) {
+      throw lastError || new Error('No se pudo acceder a la cámara');
+    }
 
-    await video.play();
+    videoStream = stream;
+    video.srcObject = stream;
 
-    status.textContent = '🟢 Escáner activo';
+    await new Promise((resolve) => {
+      if (video.readyState >= 1) {
+        resolve();
+      } else {
+        video.onloadedmetadata = () => resolve();
+        setTimeout(resolve, 800);
+      }
+    });
+
+    try {
+      await video.play();
+    } catch (playErr) {
+      console.warn('Reproducción diferida de cámara POS:', playErr);
+    }
+
+    if (status) status.textContent = '🟢 Escáner activo';
     if (overlay) overlay.style.display = 'none';
     if (retryBtn) retryBtn.style.display = 'none';
     if (flipBtn) flipBtn.style.display = 'inline-block';
@@ -191,13 +273,84 @@ async function initCamera(isUserAction = false) {
     startUniversalQrDetection(video);
   } catch (err) {
     console.warn('Error accediendo a cámara:', err);
-    status.textContent = '⚪ Cámara inactiva';
+    let userMsg = 'Toca el botón para permitir el uso de la cámara.';
+    const errName = err.name || '';
+
+    if (errName === 'NotAllowedError' || errName === 'PermissionDeniedError') {
+      userMsg = '🔒 Permiso denegado: El navegador bloqueó la cámara. Habilita el permiso de cámara en la barra de direcciones.';
+    } else if (errName === 'NotFoundError' || errName === 'DevicesNotFoundError') {
+      userMsg = '📷 No se detectó ninguna cámara disponible.';
+    } else if (errName === 'NotReadableError' || errName === 'TrackStartError') {
+      userMsg = '⚠️ La cámara está ocupada por otra app. Ciérrala e intenta de nuevo.';
+    }
+
+    if (status) status.textContent = '⚪ Cámara inactiva';
     if (overlay) {
       overlay.style.display = 'flex';
-      document.getElementById('cameraHelpText').textContent = 'Toca Permitir Cámara o habilita los permisos en la barra de direcciones.';
+      if (helpText) {
+        helpText.innerHTML = `
+          <div style="font-weight: 800; color: #fca5a5; font-size: 0.8rem; margin-bottom: 4px;">⚠️ Permiso Requerido</div>
+          <span style="font-size: 0.72rem; color: #f1f5f9;">${userMsg}</span>
+        `;
+      }
+      if (actionContainer) {
+        actionContainer.innerHTML = `
+          <button type="button" onclick="initCamera(true)" style="padding: 8px 16px; background: #0284c7; color: white; border: none; border-radius: 8px; font-weight: 800; font-size: 0.82rem; cursor: pointer; box-shadow: 0 4px 10px rgba(2, 132, 199, 0.4);">
+            📷 Tocar para Permitir Cámara
+          </button>
+        `;
+      }
     }
     if (retryBtn) retryBtn.style.display = 'inline-block';
   }
+}
+
+function handlePosQrPhoto(event) {
+  const file = event.target.files && event.target.files[0];
+  if (!file) return;
+
+  const status = document.getElementById('cameraStatus');
+  if (status) status.textContent = 'Analizando foto...';
+
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    const img = new Image();
+    img.onload = function() {
+      const canvas = document.createElement('canvas');
+      const maxDim = 1200;
+      let w = img.width;
+      let h = img.height;
+      if (w > maxDim || h > maxDim) {
+        if (w > h) {
+          h = Math.round((h * maxDim) / w);
+          w = maxDim;
+        } else {
+          w = Math.round((w * maxDim) / h);
+          h = maxDim;
+        }
+      }
+      canvas.width = w;
+      canvas.height = h;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(img, 0, 0, w, h);
+      const imgData = ctx.getImageData(0, 0, w, h);
+
+      if (window.jsQR) {
+        const code = window.jsQR(imgData.data, w, h, {
+          inversionAttempts: 'attemptBoth'
+        });
+        if (code && code.data) {
+          onQrCodeDetected(code.data);
+          if (status) status.textContent = '🟢 QR Reconocido';
+          return;
+        }
+      }
+      if (status) status.textContent = '❌ No detectado';
+      alert('⚠️ No se detectó un código QR válido en la foto tomada.');
+    };
+    img.src = e.target.result;
+  };
+  reader.readAsDataURL(file);
 }
 
 function flipPosCamera() {
