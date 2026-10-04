@@ -542,56 +542,131 @@ function setTransferAmount(val, btn) {
   if (window.sounds) window.sounds.playCoin();
 }
 
-async function startTransferCamera() {
+let transferFacingMode = 'environment';
+let transferScanAnimationId = null;
+let transferCanvas = null;
+let transferCanvasCtx = null;
+
+async function startTransferCamera(isUserAction = false) {
   const video = document.getElementById('transferVideo');
+  const status = document.getElementById('transferCameraStatus');
+  const helpOverlay = document.getElementById('transferCameraHelp');
+  const retryBtn = document.getElementById('btnRetryTransferCamera');
+  const flipBtn = document.getElementById('btnFlipTransferCamera');
+
   if (!video) return;
 
-  if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+  stopTransferCamera();
+
+  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+    if (status) status.textContent = '⚠️ Cámara requiere HTTPS';
+    if (helpOverlay) {
+      helpOverlay.style.display = 'flex';
+      document.getElementById('transferCameraHelpText').textContent = '⚠️ Los navegadores bloquean la cámara si no es HTTPS. Usa el enlace seguro o toca directamente a tu amigo abajo.';
+    }
+    return;
+  }
+
+  try {
+    if (status) status.textContent = 'Conectando cámara...';
+
     try {
       transferVideoStream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: 'environment', width: { ideal: 480 } }
+        video: { facingMode: { ideal: transferFacingMode }, width: { ideal: 720 } },
+        audio: false
       });
-      video.srcObject = transferVideoStream;
-      isTransferScanning = true;
-      scanQrFromCamera(video);
-    } catch (err) {
-      console.log('Cámara de transferencia no disponible:', err);
+    } catch (err1) {
+      // Fallback a cualquier lente disponible
+      transferVideoStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
     }
+
+    video.setAttribute('playsinline', 'true');
+    video.setAttribute('autoplay', 'true');
+    video.muted = true;
+    video.srcObject = transferVideoStream;
+
+    await video.play();
+
+    if (status) status.textContent = '🟢 Escaneando QR...';
+    if (helpOverlay) helpOverlay.style.display = 'none';
+    if (retryBtn) retryBtn.style.display = 'none';
+    if (flipBtn) flipBtn.style.display = 'inline-block';
+
+    isTransferScanning = true;
+    startTransferQrDetection(video);
+  } catch (err) {
+    console.warn('Error iniciando cámara de transferencia:', err);
+    if (status) status.textContent = '⚪ Cámara inactiva';
+    if (helpOverlay) {
+      helpOverlay.style.display = 'flex';
+      document.getElementById('transferCameraHelpText').textContent = 'Toca Permitir Cámara o activa los permisos en la barra del navegador.';
+    }
+    if (retryBtn) retryBtn.style.display = 'inline-block';
   }
+}
+
+function flipTransferCamera() {
+  transferFacingMode = transferFacingMode === 'environment' ? 'user' : 'environment';
+  startTransferCamera(true);
 }
 
 function stopTransferCamera() {
   isTransferScanning = false;
+  if (transferScanAnimationId) {
+    cancelAnimationFrame(transferScanAnimationId);
+    transferScanAnimationId = null;
+  }
   if (transferVideoStream) {
     transferVideoStream.getTracks().forEach(t => t.stop());
     transferVideoStream = null;
   }
 }
 
-function scanQrFromCamera(video) {
-  if ('BarcodeDetector' in window) {
-    const detector = new window.BarcodeDetector({ formats: ['qr_code'] });
-    const interval = setInterval(async () => {
-      if (!isTransferScanning || selectedTransferTarget !== null) {
-        clearInterval(interval);
-        return;
-      }
-      try {
-        const barcodes = await detector.detect(video);
-        if (barcodes.length > 0) {
-          const rawValue = barcodes[0].rawValue;
-          const res = await fetch(`/api/estudiantes/qr/${encodeURIComponent(rawValue)}`);
-          if (res.ok) {
-            const found = await res.json();
-            if (found.id !== currentStudent.id) {
-              clearInterval(interval);
-              onTransferTargetIdentified(found);
-            }
-          }
-        }
-      } catch (e) {}
-    }, 400);
+function startTransferQrDetection(video) {
+  if (!transferCanvas) {
+    transferCanvas = document.createElement('canvas');
+    transferCanvasCtx = transferCanvas.getContext('2d', { willReadFrequently: true });
   }
+
+  function scanFrame() {
+    if (isTransferScanning && selectedTransferTarget === null && video.readyState === video.HAVE_ENOUGH_DATA) {
+      transferCanvas.width = video.videoWidth;
+      transferCanvas.height = video.videoHeight;
+      transferCanvasCtx.drawImage(video, 0, 0, transferCanvas.width, transferCanvas.height);
+      const imageData = transferCanvasCtx.getImageData(0, 0, transferCanvas.width, transferCanvas.height);
+
+      if (window.jsQR) {
+        const code = window.jsQR(imageData.data, imageData.width, imageData.height, {
+          inversionAttempts: 'dontInvert'
+        });
+        if (code && code.data) {
+          fetchStudentByScannedQr(code.data);
+          return;
+        }
+      }
+    }
+
+    if (isTransferScanning && selectedTransferTarget === null) {
+      transferScanAnimationId = requestAnimationFrame(scanFrame);
+    }
+  }
+
+  transferScanAnimationId = requestAnimationFrame(scanFrame);
+}
+
+async function fetchStudentByScannedQr(rawValue) {
+  try {
+    const res = await fetch(`/api/estudiantes/qr/${encodeURIComponent(rawValue)}`);
+    if (res.ok) {
+      const found = await res.json();
+      if (found.id !== currentStudent.id) {
+        stopTransferCamera();
+        onTransferTargetIdentified(found);
+      } else {
+        alert('⚠️ Este es tu propio código QR. Escanea el carné o QR de tu compañero.');
+      }
+    }
+  } catch (e) {}
 }
 
 async function executeP2PTransfer() {

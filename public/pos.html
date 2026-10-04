@@ -101,12 +101,23 @@
         <div class="scanner-feed-card">
           <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
             <span style="font-size: 0.85rem; font-weight: 800; color: #38bdf8;">📷 Escáner QR de Alumnos</span>
-            <span style="font-size: 0.72rem; color: #94a3b8;" id="cameraStatus">Cámara lista</span>
+            <div style="display: flex; gap: 6px; align-items: center;">
+              <button id="btnFlipPosCamera" onclick="flipPosCamera()" style="display:none; padding: 3px 8px; background: #334155; color: white; border: none; border-radius: 6px; font-size: 0.72rem; font-weight: 700; cursor: pointer;">🔄 Girar</button>
+              <button id="btnRetryPosCamera" onclick="initCamera(true)" style="display:none; padding: 3px 8px; background: #0284c7; color: white; border: none; border-radius: 6px; font-size: 0.72rem; font-weight: 700; cursor: pointer;">📷 Activar</button>
+              <span style="font-size: 0.72rem; color: #94a3b8;" id="cameraStatus">Iniciando cámara...</span>
+            </div>
           </div>
 
-          <div style="position: relative; border-radius: 10px; overflow: hidden; background: #000;">
+          <div style="position: relative; border-radius: 10px; overflow: hidden; background: #000; min-height: 180px; display: flex; align-items: center; justify-content: center;">
             <video id="scannerVideo" class="camera-preview" autoplay playsinline muted></video>
             <div class="laser-scan-line"></div>
+            <div id="cameraHelpOverlay" style="display: none; position: absolute; inset: 0; background: rgba(15, 23, 42, 0.9); padding: 14px; text-align: center; flex-direction: column; justify-content: center; align-items: center; gap: 8px; z-index: 10;">
+              <span style="font-size: 1.8rem;">📷</span>
+              <p id="cameraHelpText" style="font-size: 0.78rem; color: #f8fafc; line-height: 1.3;">Haz clic en Activar Cámara para escanear</p>
+              <button onclick="initCamera(true)" style="padding: 6px 14px; background: #0284c7; color: white; border: none; border-radius: 8px; font-weight: 800; font-size: 0.8rem; cursor: pointer;">
+                Permitir Cámara
+              </button>
+            </div>
           </div>
 
           <!-- BOTONES DE PRUEBA RÁPIDA DE QR (SIMULACIÓN DE ESCANEO DE CARNÉ O CELULAR) -->
@@ -164,6 +175,7 @@
   </div>
 
   <script src="/js/sounds.js"></script>
+  <script src="/js/jsQR.js"></script>
   <script src="/js/pos.js"></script>
 </body>
 </html>
