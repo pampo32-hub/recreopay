@@ -170,7 +170,14 @@ async function fixAllNulls() {
     ON CONFLICT (padre_usuario_id, estudiante_id) DO NOTHING;
   `);
 
-  console.log('✅ Tabla "estudiantes" corregida.');
+  await client.query(`
+    UPDATE usuarios 
+    SET telefono = COALESCE(telefono, ''),
+        email = COALESCE(email, '')
+    WHERE telefono IS NULL OR email IS NULL;
+  `);
+
+  console.log('✅ Tabla "estudiantes" y "usuarios" corregidas.');
 
   // ==========================================
   // 4. CORREGIR TABLA "transacciones_saldo"
