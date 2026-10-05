@@ -975,6 +975,11 @@ async function loadPreOrders() {
     const res = await fetch('/api/ordenes?tipo=preorden');
     const orders = await res.json();
 
+    if (!Array.isArray(orders)) {
+      console.warn('Respuesta no válida al cargar pre-órdenes:', orders);
+      return;
+    }
+
     const pendingCount = orders.filter(o => o.estado !== 'entregado' && o.estado !== 'cancelado').length;
     document.getElementById('badgePreordenesCount').textContent = pendingCount;
 
@@ -986,7 +991,8 @@ async function loadPreOrders() {
 
     list.innerHTML = orders.map(ord => {
       const hora = new Date(ord.creado_en).toLocaleTimeString('es-CR', { hour: '2-digit', minute: '2-digit' });
-      const itemsList = ord.items.map(i => `${i.cantidad}x ${i.icono || '🥪'} ${i.nombre}`).join(', ');
+      const items = Array.isArray(ord.items) ? ord.items : [];
+      const itemsList = items.map(i => `${i.cantidad}x ${i.icono || '🥪'} ${i.nombre}`).join(', ');
 
       return `
         <div style="background: #1e293b; border: 1px solid #334155; border-radius: 12px; padding: 14px; display: flex; justify-content: space-between; align-items: center;">
@@ -1063,7 +1069,8 @@ async function dispatchPreOrderExpress(qrToken) {
 
     if (window.sounds) window.sounds.playSuccess();
 
-    alert(`🎉 ¡ENTREGA EXPRESS EXITOSA!\n${data.mensaje}\nAlumno: ${data.estudiante.nombre_completo}\nGrado: ${data.estudiante.grado}\nProductos a entregar:\n${data.orden.items.map(i => `• ${i.cantidad}x ${i.nombre}`).join('\n')}`);
+    const itemsList = (data.orden && Array.isArray(data.orden.items) ? data.orden.items : []).map(i => `• ${i.cantidad}x ${i.nombre}`).join('\n');
+    alert(`¡ENTREGA EXPRESS EXITOSA!\n${data.mensaje}\nAlumno: ${data.estudiante.nombre_completo}\nGrado: ${data.estudiante.grado}\nProductos a entregar:\n${itemsList}`);
 
     loadPreOrders();
   } catch (err) {

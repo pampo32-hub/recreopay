@@ -32,6 +32,10 @@ if (isPg) {
     s = s.replace(/date\s*\(\s*['"]now['"][^)]*\)/gi, 'CURRENT_DATE');
     s = s.replace(/date\s*\(\s*([^,)]+)(?:\s*,\s*['"]localtime['"])?\s*\)/gi, 'CAST($1 AS DATE)');
 
+    // Compatibilidad SQLite -> PostgreSQL para funciones JSON
+    s = s.replace(/json_group_array\s*\(/gi, 'json_agg(');
+    s = s.replace(/json_object\s*\(/gi, 'json_build_object(');
+
     return s;
   }
 

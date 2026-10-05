@@ -1397,7 +1397,9 @@ app.get('/api/estudiantes/qr/:token', (req, res) => {
 
     const preordenesFormateadas = preordenesPendientes.map(o => ({
       ...o,
-      items: JSON.parse(o.items_json || '[]')
+      items: Array.isArray(o.items_json)
+        ? o.items_json
+        : (typeof o.items_json === 'string' ? JSON.parse(o.items_json || '[]') : [])
     }));
 
     res.json({
@@ -1687,7 +1689,9 @@ app.get('/api/ordenes', (req, res) => {
     const ordenes = db.prepare(query).all(...params);
     const resultado = ordenes.map(o => ({
       ...o,
-      items: JSON.parse(o.items_json || '[]')
+      items: Array.isArray(o.items_json)
+        ? o.items_json
+        : (typeof o.items_json === 'string' ? JSON.parse(o.items_json || '[]') : [])
     }));
 
     res.json(resultado);
