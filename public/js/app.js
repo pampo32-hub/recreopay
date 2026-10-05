@@ -51,8 +51,8 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   // Registrar Service Worker para PWA
   if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('/sw.js?v=6.0').then(reg => {
-      reg.update();
+    navigator.serviceWorker.register('/sw.js?v=7.0').then(reg => {
+      // Registro limpio sin recargas forzadas
     }).catch(err => console.log('SW error:', err));
   }
 
@@ -84,10 +84,12 @@ function showLoginView() {
   const viewLogin = document.getElementById('viewLogin');
   const viewAdmin = document.getElementById('viewAdmin');
   const appContainer = document.getElementById('appContainer');
+  const bottomNav = document.getElementById('pwaBottomNav');
 
   if (viewLogin) viewLogin.style.display = 'flex';
   if (viewAdmin) viewAdmin.style.display = 'none';
   if (appContainer) appContainer.style.display = 'none';
+  if (bottomNav) bottomNav.style.display = 'none';
 
   // Cerrar cualquier modal que pudiera estar abierto
   toggleParentPanel(false);
@@ -160,18 +162,23 @@ async function applyUserRoleSession() {
   const viewLogin = document.getElementById('viewLogin');
   const viewAdmin = document.getElementById('viewAdmin');
   const appContainer = document.getElementById('appContainer');
+  const bottomNav = document.getElementById('pwaBottomNav');
+  const navPadres = document.getElementById('pwaNavPadres');
 
   if (viewLogin) viewLogin.style.display = 'none';
 
   if (currentUser.rol === 'admin') {
     if (viewAdmin) viewAdmin.style.display = 'block';
     if (appContainer) appContainer.style.display = 'none';
+    if (bottomNav) bottomNav.style.display = 'none';
     const adminNameEl = document.getElementById('adminLoggedName');
     if (adminNameEl) adminNameEl.textContent = `${currentUser.nombre} (Administrador)`;
     await loadAdminData();
   } else if (currentUser.rol === 'padre') {
     if (viewAdmin) viewAdmin.style.display = 'none';
     if (appContainer) appContainer.style.display = 'block';
+    if (bottomNav) bottomNav.style.display = 'flex';
+    if (navPadres) navPadres.style.display = 'flex';
     
     // Mostrar botón de acceso al portal de padres
     const btnPadres = document.getElementById('btnModePadres');
@@ -184,6 +191,8 @@ async function applyUserRoleSession() {
     // Estudiante: SEGURIDAD ESTRICTA - Ocultar botón de padres
     if (viewAdmin) viewAdmin.style.display = 'none';
     if (appContainer) appContainer.style.display = 'block';
+    if (bottomNav) bottomNav.style.display = 'flex';
+    if (navPadres) navPadres.style.display = 'none'; // Estudiantes no ven pestaña padres
 
     const btnPadres = document.getElementById('btnModePadres');
     if (btnPadres) btnPadres.style.display = 'none';
@@ -197,13 +206,46 @@ async function applyUserRoleSession() {
   }
 }
 
-function logout() {
-  if (confirm('¿Deseas cerrar la sesión en RecreoPay?')) {
+function logout(skipConfirm = false) {
+  if (skipConfirm || confirm('¿Deseas cerrar sesión para seleccionar otra cuenta?')) {
     localStorage.removeItem('recreopay_user');
     currentUser = null;
     currentStudent = null;
     showLoginView();
     if (window.sounds) window.sounds.playTap();
+  }
+}
+
+// Navegación PWA móvil con barra inferior
+function pwaNavigateTo(target) {
+  document.querySelectorAll('.pwa-nav-item').forEach(b => b.classList.remove('active'));
+
+  if (target === 'menu') {
+    const btn = document.getElementById('pwaNavMenu');
+    if (btn) btn.classList.add('active');
+    closeQrModal();
+    closeTransferModal();
+    toggleParentPanel(false);
+    closeCartModal();
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  } else if (target === 'qr') {
+    const btn = document.getElementById('pwaNavQr');
+    if (btn) btn.classList.add('active');
+    closeTransferModal();
+    toggleParentPanel(false);
+    openQrModal();
+  } else if (target === 'transfer') {
+    const btn = document.getElementById('pwaNavTransfer');
+    if (btn) btn.classList.add('active');
+    closeQrModal();
+    toggleParentPanel(false);
+    openTransferModal();
+  } else if (target === 'padres') {
+    const btn = document.getElementById('pwaNavPadres');
+    if (btn) btn.classList.add('active');
+    closeQrModal();
+    closeTransferModal();
+    toggleParentPanel(true);
   }
 }
 
@@ -597,9 +639,19 @@ function openQrModal() {
   document.getElementById('modalQr').style.display = 'flex';
 }
 
+function resetPwaNavActive() {
+  const menuBtn = document.getElementById('pwaNavMenu');
+  if (menuBtn) {
+    document.querySelectorAll('.pwa-nav-item').forEach(b => b.classList.remove('active'));
+    menuBtn.classList.add('active');
+  }
+}
+
 function closeQrModal(e) {
   if (e && e.target !== e.currentTarget) return;
-  document.getElementById('modalQr').style.display = 'none';
+  const modal = document.getElementById('modalQr');
+  if (modal) modal.style.display = 'none';
+  resetPwaNavActive();
 }
 
 // ==========================================
@@ -611,11 +663,13 @@ function toggleParentPanel(show, e) {
   if (currentUser && currentUser.rol === 'estudiante') {
     const modalPadres = document.getElementById('modalPadres');
     if (modalPadres) modalPadres.style.display = 'none';
+    resetPwaNavActive();
     return;
   }
   if (e && e.target !== e.currentTarget) return;
   const modalPadres = document.getElementById('modalPadres');
   if (modalPadres) modalPadres.style.display = show ? 'flex' : 'none';
+  if (!show) resetPwaNavActive();
 }
 
 function openDailyLimitEditor() {
@@ -825,7 +879,9 @@ function openTransferModal() {
 function closeTransferModal(e) {
   if (e && e.target !== e.currentTarget) return;
   stopTransferCamera();
-  document.getElementById('modalTransfer').style.display = 'none';
+  const modal = document.getElementById('modalTransfer');
+  if (modal) modal.style.display = 'none';
+  resetPwaNavActive();
 }
 
 function renderQuickTransferFriends() {
@@ -1462,29 +1518,33 @@ function renderAdminInventory(list) {
 
     return `
       <div class="inventory-item-row" style="${isOutOfStock ? 'background: #fff1f2;' : ''}">
-        <div style="font-size: 1.8rem; text-align: center;">${p.icono || '🥪'}</div>
-        <div>
-          <div style="display: flex; align-items: center; gap: 6px; flex-wrap: wrap;">
-            <strong style="font-size: 0.92rem; color: var(--text-main);">${p.nombre}</strong>
-            ${statusPill}
-          </div>
-          <div style="font-size: 0.74rem; color: var(--text-muted); margin-top: 2px;">
-            ${p.categoria_nombre || 'General'} • ₡${p.precio_colones.toLocaleString('es-CR')}
+        <div class="inventory-item-top">
+          <div style="font-size: 1.8rem; text-align: center; flex-shrink: 0; min-width: 40px;">${p.icono || '🥪'}</div>
+          <div style="flex: 1; min-width: 0;">
+            <div style="display: flex; align-items: center; gap: 6px; flex-wrap: wrap;">
+              <strong style="font-size: 0.92rem; color: var(--text-main); word-break: break-word;">${p.nombre}</strong>
+              ${statusPill}
+            </div>
+            <div style="font-size: 0.74rem; color: var(--text-muted); margin-top: 2px;">
+              ${p.categoria_nombre || 'General'} • ₡${p.precio_colones.toLocaleString('es-CR')}
+            </div>
           </div>
         </div>
 
         <!-- Controles rápidos de stock -->
-        <div class="inventory-stock-controls">
-          <button type="button" class="stock-btn-quick" onclick="quickAdjustStock(${p.id}, -1)" title="Restar 1">-1</button>
-          <input type="number" id="inputStock_${p.id}" value="${p.stock || 0}" min="0" style="width: 54px; text-align: center; padding: 5px; border-radius: 8px; border: 1.5px solid var(--border); font-weight: 900; font-size: 0.95rem; background: var(--card-bg); color: var(--text-main);">
-          <button type="button" class="stock-btn-quick" onclick="quickAdjustStock(${p.id}, 5)" title="Sumar 5">+5</button>
-          <button type="button" class="stock-btn-quick" onclick="quickAdjustStock(${p.id}, 10)" title="Sumar 10">+10</button>
-        </div>
+        <div class="inventory-item-bottom">
+          <div class="inventory-stock-controls">
+            <button type="button" class="stock-btn-quick" onclick="quickAdjustStock(${p.id}, -1)" title="Restar 1">-1</button>
+            <input type="number" id="inputStock_${p.id}" value="${p.stock || 0}" min="0" style="width: 50px; text-align: center; padding: 5px; border-radius: 8px; border: 1.5px solid var(--border); font-weight: 900; font-size: 0.95rem; background: var(--card-bg); color: var(--text-main);">
+            <button type="button" class="stock-btn-quick" onclick="quickAdjustStock(${p.id}, 5)" title="Sumar 5">+5</button>
+            <button type="button" class="stock-btn-quick" onclick="quickAdjustStock(${p.id}, 10)" title="Sumar 10">+10</button>
+          </div>
 
-        <div>
-          <button type="button" onclick="saveProductStock(${p.id})" style="padding: 7px 12px; background: #0284c7; color: white; border: none; border-radius: 8px; font-size: 0.78rem; font-weight: 800; cursor: pointer;">
-            💾 Guardar
-          </button>
+          <div>
+            <button type="button" onclick="saveProductStock(${p.id})" style="padding: 7px 14px; background: #0284c7; color: white; border: none; border-radius: 8px; font-size: 0.8rem; font-weight: 800; cursor: pointer; white-space: nowrap;">
+              💾 Guardar
+            </button>
+          </div>
         </div>
       </div>
     `;
@@ -1543,28 +1603,28 @@ function renderAdminStudents(list) {
       ${list.map(s => {
         const isBlocked = s.tarjeta_bloqueada === 1;
         return `
-          <div style="display: flex; align-items: center; justify-content: space-between; padding: 12px; border-radius: 12px; border: 1.5px solid ${isBlocked ? '#fca5a5' : 'var(--border)'}; background: ${isBlocked ? '#fff5f5' : 'var(--card-bg)'}; flex-wrap: wrap; gap: 10px;">
-            <div style="display: flex; align-items: center; gap: 12px;">
-              <img src="${s.foto_url || 'https://api.dicebear.com/7.x/bottts/svg?seed=est'}" style="width: 44px; height: 44px; border-radius: 50%; border: 2px solid ${isBlocked ? '#ef4444' : '#0284c7'}; background: white;">
-              <div>
-                <div style="display: flex; align-items: center; gap: 8px;">
+          <div class="admin-student-card" style="display: flex; flex-direction: column; gap: 10px; padding: 12px; border-radius: 12px; border: 1.5px solid ${isBlocked ? '#fca5a5' : 'var(--border)'}; background: ${isBlocked ? '#fff5f5' : 'var(--card-bg)'}; width: 100%; box-sizing: border-box;">
+            <div style="display: flex; align-items: center; gap: 10px; width: 100%;">
+              <img src="${s.foto_url || 'https://api.dicebear.com/7.x/bottts/svg?seed=est'}" style="width: 44px; height: 44px; border-radius: 50%; border: 2px solid ${isBlocked ? '#ef4444' : '#0284c7'}; background: white; flex-shrink: 0;">
+              <div style="flex: 1; min-width: 0; word-break: break-word;">
+                <div style="display: flex; align-items: center; gap: 6px; flex-wrap: wrap;">
                   <strong style="font-size: 0.95rem; color: var(--text-main);">${s.nombre_completo}</strong>
                   ${isBlocked ? '<span style="font-size: 0.68rem; font-weight: 900; background: #ef4444; color: white; padding: 2px 7px; border-radius: 5px;">⛔ SUSPENDIDA</span>' : '<span style="font-size: 0.68rem; font-weight: 800; background: #dcfce7; color: #166534; padding: 2px 7px; border-radius: 5px;">ACTIVA</span>'}
                 </div>
-                <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 2px;">
+                <div style="font-size: 0.74rem; color: var(--text-muted); margin-top: 2px;">
                   ${s.grado} • Sección ${s.seccion} • Cód: <strong>${s.codigo_estudiante}</strong> • PIN: <strong>${s.pin_seguridad || '1234'}</strong>
                 </div>
-                <div style="font-size: 0.78rem; font-weight: 800; color: #0284c7; margin-top: 3px;">
+                <div style="font-size: 0.76rem; font-weight: 800; color: #0284c7; margin-top: 3px;">
                   Saldo: ₡${s.saldo_colones.toLocaleString('es-CR')} | Límite: ₡${s.limite_diario_colones.toLocaleString('es-CR')}/día
                 </div>
               </div>
             </div>
 
-            <div style="display: flex; gap: 8px; align-items: center;">
-              <a href="/carnet.html" target="_blank" style="padding: 7px 10px; background: #e0f2fe; color: #0369a1; border-radius: 8px; font-size: 0.76rem; font-weight: 800; text-decoration: none;" title="Ver e Imprimir Carné Físico">
+            <div style="display: flex; gap: 8px; align-items: center; justify-content: flex-end; border-top: 1px dashed var(--border); padding-top: 8px; width: 100%;">
+              <a href="/carnet.html?id=${s.id}" target="_blank" style="padding: 7px 12px; background: #e0f2fe; color: #0369a1; border-radius: 8px; font-size: 0.76rem; font-weight: 800; text-decoration: none;" title="Ver e Imprimir Carné Físico">
                 🖨️ Carné
               </a>
-              <button type="button" onclick="toggleBlockCard(${s.id}, ${isBlocked ? 0 : 1})" style="padding: 7px 12px; background: ${isBlocked ? '#10b981' : '#ef4444'}; color: white; border: none; border-radius: 8px; font-size: 0.78rem; font-weight: 900; cursor: pointer;">
+              <button type="button" onclick="toggleBlockCard(${s.id}, ${isBlocked ? 0 : 1})" style="padding: 7px 14px; background: ${isBlocked ? '#10b981' : '#ef4444'}; color: white; border: none; border-radius: 8px; font-size: 0.78rem; font-weight: 900; cursor: pointer;">
                 ${isBlocked ? '✅ Desbloquear' : '⛔ Bloquear Tarjeta'}
               </button>
             </div>

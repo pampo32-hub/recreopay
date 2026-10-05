@@ -2,24 +2,15 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <title>RecreoPay - Tu Soda Escolar Digital</title>
   <link rel="manifest" href="/manifest.json">
   <meta name="theme-color" content="#0284c7">
-  <link rel="stylesheet" href="/css/styles.css?v=6.0">
-  <script>
-    // Purgar y desactivar service workers y cachés obsoletas en móviles
-    if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.getRegistrations().then(function(regs) {
-        for (var r of regs) { r.unregister(); }
-      });
-    }
-    if ('caches' in window) {
-      caches.keys().then(function(names) {
-        for (var n of names) { caches.delete(n); }
-      });
-    }
-  </script>
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="RecreoPay">
+  <meta name="mobile-web-app-capable" content="yes">
+  <link rel="stylesheet" href="/css/styles.css?v=7.0">
   <style>
     /* Transiciones suaves */
     .fade-enter { animation: fadeIn 0.2s ease-in-out; }
@@ -88,14 +79,14 @@
         </div>
       </div>
 
-      <div style="display: flex; gap: 8px; align-items: center;">
+      <div class="admin-header-actions">
         <button onclick="toggleTheme()" class="theme-toggle-btn" title="Alternar Modo Oscuro / Modo Claro">
           🌙
         </button>
-        <a href="/pos.html" target="_blank" style="padding: 7px 12px; background: #0284c7; color: white; border-radius: 10px; font-size: 0.78rem; font-weight: 800; text-decoration: none;" title="Abrir Caja / Terminal POS">
+        <a href="/pos.html" target="_blank" class="admin-action-btn-caja" title="Abrir Caja / Terminal POS">
           📟 Ir a Caja
         </a>
-        <button onclick="logout()" class="logout-btn" title="Cerrar sesión">
+        <button onclick="logout(true)" class="logout-btn" title="Cerrar sesión y cambiar de cuenta">
           <span>🚪</span>
           <span class="logout-text">Salir</span>
         </button>
@@ -259,7 +250,7 @@
         <button id="btnModePadres" onclick="toggleParentPanel(true)" class="mode-btn" style="background: var(--bg-main); border: 1.5px solid var(--border); font-size: 0.8rem; font-weight: 800; border-radius: 10px; padding: 7px 11px; cursor: pointer; color: var(--text-main);" title="Acceso al Portal de Padres">
           👨‍👩‍👦 Padres
         </button>
-        <button id="btnLogout" onclick="logout()" class="logout-btn" title="Cerrar sesión">
+        <button id="btnLogout" onclick="logout(true)" class="logout-btn" title="Cerrar sesión y cambiar de cuenta">
           <span>🚪</span>
           <span class="logout-text">Salir</span>
         </button>
@@ -273,9 +264,16 @@
     <section class="wallet-card">
       <div class="student-info">
         <img id="walletAvatar" class="student-avatar" src="" alt="Avatar">
-        <div class="student-meta">
-          <h2 id="walletName">Cargando...</h2>
-          <span id="walletGrade" class="student-grade">Grado y Sección</span>
+        <div class="student-meta" style="flex: 1; min-width: 0;">
+          <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 8px;">
+            <div style="min-width: 0;">
+              <h2 id="walletName" style="word-break: break-word; margin: 0; font-size: 1.15rem; font-weight: 800;">Cargando...</h2>
+              <span id="walletGrade" class="student-grade">Grado y Sección</span>
+            </div>
+            <button type="button" onclick="logout(true)" class="wallet-logout-pill" title="Cerrar sesión o cambiar de estudiante">
+              <span>🚪 Salir</span>
+            </button>
+          </div>
         </div>
       </div>
 
@@ -734,8 +732,32 @@
     </div>
   </div>
 
-  <script src="/js/sounds.js?v=6.0"></script>
+  <!-- BARRA DE NAVEGACIÓN INFERIOR PWA (MÓVILES) -->
+  <nav class="pwa-bottom-nav" id="pwaBottomNav" style="display: none;">
+    <button class="pwa-nav-item active" id="pwaNavMenu" onclick="pwaNavigateTo('menu')">
+      <span class="pwa-nav-icon">🥪</span>
+      <span class="pwa-nav-label">Menú</span>
+    </button>
+    <button class="pwa-nav-item" id="pwaNavQr" onclick="pwaNavigateTo('qr')">
+      <span class="pwa-nav-icon">📱</span>
+      <span class="pwa-nav-label">Mi QR</span>
+    </button>
+    <button class="pwa-nav-item" id="pwaNavTransfer" onclick="pwaNavigateTo('transfer')">
+      <span class="pwa-nav-icon">⚡</span>
+      <span class="pwa-nav-label">Transferir</span>
+    </button>
+    <button class="pwa-nav-item" id="pwaNavPadres" onclick="pwaNavigateTo('padres')">
+      <span class="pwa-nav-icon">👨‍👩‍👦</span>
+      <span class="pwa-nav-label">Padres</span>
+    </button>
+    <button class="pwa-nav-item pwa-nav-logout" onclick="logout(true)" title="Cerrar sesión y cambiar de cuenta">
+      <span class="pwa-nav-icon">🚪</span>
+      <span class="pwa-nav-label">Salir</span>
+    </button>
+  </nav>
+
+  <script src="/js/sounds.js?v=7.0"></script>
   <script src="/js/jsQR.js"></script>
-  <script src="/js/app.js?v=6.0"></script>
+  <script src="/js/app.js?v=7.0"></script>
 </body>
 </html>
