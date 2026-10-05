@@ -215,7 +215,7 @@ body.dark-mode .logout-btn {
   }
 }
 
-body.dark-mode .wallet-card {
+body.dark-mode .wallet-card:not([class*="theme-"]) {
   background: linear-gradient(135deg, #1e293b, #0f172a);
   border: 1px solid #334155;
   box-shadow: 0 10px 25px -4px rgba(0, 0, 0, 0.5);
@@ -2077,4 +2077,480 @@ body.dark-mode .admin-staff-card.blocked {
 .btn-action-delete:hover {
   background: #fee2e2;
 }
+
+/* ==========================================================================
+   CHIP Y ELEMENTOS INTELIGENTES DE LA TARJETA VIRTUAL
+   ========================================================================== */
+.card-chip-container {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+  position: relative;
+  z-index: 2;
+}
+
+.card-emv-chip {
+  width: 38px;
+  height: 28px;
+  background: linear-gradient(135deg, #fef08a 0%, #eab308 50%, #ca8a04 100%);
+  border: 1px solid rgba(161, 98, 7, 0.4);
+  border-radius: 6px;
+  position: relative;
+  overflow: hidden;
+  box-shadow: inset 0 1px 2px rgba(255,255,255,0.7), 0 2px 5px rgba(0,0,0,0.15);
+}
+
+.chip-inner-circuit {
+  width: 100%;
+  height: 100%;
+  position: relative;
+}
+
+.chip-inner-circuit::before {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: rgba(161, 98, 7, 0.45);
+}
+
+.chip-inner-circuit::after {
+  content: "";
+  position: absolute;
+  left: 45%;
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  background: rgba(161, 98, 7, 0.45);
+}
+
+.card-contactless-wave {
+  font-size: 1rem;
+  font-weight: 900;
+  letter-spacing: -2px;
+  opacity: 0.8;
+  transform: rotate(90deg);
+  display: flex;
+  user-select: none;
+}
+
+/* ==========================================================================
+   TEMAS PERSONALIZADOS PARA LA TARJETA VIRTUAL (15 DISEÑOS)
+   ========================================================================== */
+
+/* 1. Azul RecreoPay Clásico */
+.wallet-card.theme-classic-blue {
+  background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%) !important;
+  color: #ffffff !important;
+  border: 1px solid rgba(255, 255, 255, 0.25) !important;
+  box-shadow: 0 12px 25px -4px rgba(2, 132, 199, 0.35) !important;
+}
+
+/* 2. Classic Premium (Navy & Oro) */
+.wallet-card.theme-classic-premium {
+  background: linear-gradient(135deg, #090e1a 0%, #151e33 60%, #060913 100%) !important;
+  color: #ffffff !important;
+  border: 1.5px solid #f59e0b !important;
+  box-shadow: 0 12px 30px -4px rgba(245, 158, 11, 0.25), 0 0 15px rgba(245, 158, 11, 0.1) !important;
+}
+.wallet-card.theme-classic-premium .amount span,
+.wallet-card.theme-classic-premium #walletBalance {
+  color: #fbbf24 !important;
+  text-shadow: 0 2px 8px rgba(245, 158, 11, 0.4);
+}
+.wallet-card.theme-classic-premium .student-avatar {
+  border-color: #f59e0b !important;
+  box-shadow: 0 0 10px rgba(245, 158, 11, 0.3) !important;
+}
+.wallet-card.theme-classic-premium .student-grade,
+.wallet-card.theme-classic-premium .label {
+  color: #fef3c7 !important;
+  opacity: 0.9;
+}
+
+/* 3. Technological Metal (Titanio Negro Cepillado) */
+.wallet-card.theme-tech-metal {
+  background: linear-gradient(135deg, #18181b 0%, #27272a 50%, #09090b 100%) !important;
+  color: #f4f4f5 !important;
+  border: 1.5px solid #71717a !important;
+  box-shadow: 0 12px 25px -4px rgba(0, 0, 0, 0.6) !important;
+}
+.wallet-card.theme-tech-metal .card-emv-chip {
+  background: linear-gradient(135deg, #f4f4f5 0%, #d4d4d8 50%, #a1a1aa 100%) !important;
+  border-color: #71717a !important;
+}
+.wallet-card.theme-tech-metal .amount span,
+.wallet-card.theme-tech-metal #walletBalance {
+  color: #ffffff !important;
+  text-shadow: 0 0 10px rgba(255, 255, 255, 0.4);
+}
+
+/* 4. Eco-Aventura (Bosques y Montañas) */
+.wallet-card.theme-eco-aventura {
+  background: linear-gradient(180deg, #064e3b 0%, #065f46 45%, #047857 75%, #022c22 100%) !important;
+  color: #ecfdf5 !important;
+  border: 1.5px solid #10b981 !important;
+  box-shadow: 0 12px 25px -4px rgba(5, 150, 105, 0.35) !important;
+}
+.wallet-card.theme-eco-aventura .amount span,
+.wallet-card.theme-eco-aventura #walletBalance {
+  color: #a7f3d0 !important;
+  text-shadow: 0 2px 6px rgba(16, 185, 129, 0.3);
+}
+
+/* 5. Robo-Lab Cyber (Circuitos y Neón Cian) */
+.wallet-card.theme-robo-lab {
+  background: linear-gradient(135deg, #030712 0%, #082f49 50%, #0c4a6e 100%) !important;
+  color: #e0f2fe !important;
+  border: 1.5px solid #06b6d4 !important;
+  box-shadow: 0 12px 25px -4px rgba(6, 182, 212, 0.4) !important;
+}
+.wallet-card.theme-robo-lab .amount span,
+.wallet-card.theme-robo-lab #walletBalance {
+  color: #22d3ee !important;
+  text-shadow: 0 0 12px rgba(34, 211, 238, 0.6);
+}
+.wallet-card.theme-robo-lab .student-avatar {
+  border-color: #06b6d4 !important;
+  box-shadow: 0 0 10px rgba(6, 182, 212, 0.4) !important;
+}
+
+/* 6. Mundo de Arte (Acuarela Multicolor) */
+.wallet-card.theme-mundo-arte {
+  background: linear-gradient(135deg, #ffffff 0%, #fdf4ff 40%, #f0fdf4 70%, #eff6ff 100%) !important;
+  color: #0f172a !important;
+  border: 2px solid transparent !important;
+  border-image: linear-gradient(135deg, #ec4899, #8b5cf6, #06b6d4, #10b981, #f59e0b) 1 !important;
+  box-shadow: 0 12px 25px -4px rgba(236, 72, 153, 0.25) !important;
+}
+.wallet-card.theme-mundo-arte h2,
+.wallet-card.theme-mundo-arte #walletName {
+  color: #0f172a !important;
+}
+.wallet-card.theme-mundo-arte .student-grade,
+.wallet-card.theme-mundo-arte .label {
+  color: #475569 !important;
+}
+.wallet-card.theme-mundo-arte .amount span,
+.wallet-card.theme-mundo-arte #walletBalance {
+  color: #9333ea !important;
+  font-weight: 900 !important;
+}
+.wallet-card.theme-mundo-arte .student-avatar {
+  border-color: #ec4899 !important;
+}
+.wallet-card.theme-mundo-arte .qr-toggle-btn {
+  background: #f1f5f9 !important;
+  color: #1e293b !important;
+  border: 1px solid #cbd5e1 !important;
+}
+
+/* 7. Estrellas del Campo (Fútbol Verde) */
+.wallet-card.theme-futbol {
+  background: repeating-linear-gradient(90deg, #15803d, #15803d 45px, #166534 45px, #166534 90px) !important;
+  color: #ffffff !important;
+  border: 1.5px solid #86efac !important;
+  box-shadow: 0 12px 25px -4px rgba(22, 101, 52, 0.4) !important;
+}
+.wallet-card.theme-futbol .amount span,
+.wallet-card.theme-futbol #walletBalance {
+  color: #fef08a !important;
+  text-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
+}
+
+/* 8. Club de Mascotas (Golden Retriever y Ámbar Suave) */
+.wallet-card.theme-mascotas {
+  background: linear-gradient(135deg, #fef3c7 0%, #fde68a 60%, #f59e0b 100%) !important;
+  color: #78350f !important;
+  border: 1.5px solid #d97706 !important;
+  box-shadow: 0 12px 25px -4px rgba(217, 119, 6, 0.3) !important;
+}
+.wallet-card.theme-mascotas h2,
+.wallet-card.theme-mascotas #walletName {
+  color: #78350f !important;
+}
+.wallet-card.theme-mascotas .student-grade,
+.wallet-card.theme-mascotas .label {
+  color: #92400e !important;
+}
+.wallet-card.theme-mascotas .amount span,
+.wallet-card.theme-mascotas #walletBalance {
+  color: #b45309 !important;
+  font-weight: 900 !important;
+}
+.wallet-card.theme-mascotas .student-avatar {
+  border-color: #d97706 !important;
+}
+.wallet-card.theme-mascotas .qr-toggle-btn {
+  background: rgba(255, 255, 255, 0.7) !important;
+  color: #78350f !important;
+  border: 1px solid #fcd34d !important;
+}
+
+/* 9. Exploración Galáctica (Cosmos y Nebulosa) */
+.wallet-card.theme-galactica {
+  background: linear-gradient(135deg, #09090b 0%, #311042 45%, #1e1b4b 100%) !important;
+  color: #f5d0fe !important;
+  border: 1.5px solid #a855f7 !important;
+  box-shadow: 0 12px 25px -4px rgba(168, 85, 247, 0.4) !important;
+}
+.wallet-card.theme-galactica .amount span,
+.wallet-card.theme-galactica #walletBalance {
+  color: #f0abfc !important;
+  text-shadow: 0 0 12px rgba(240, 171, 252, 0.6);
+}
+.wallet-card.theme-galactica .student-avatar {
+  border-color: #c084fc !important;
+  box-shadow: 0 0 10px rgba(192, 132, 252, 0.4) !important;
+}
+
+/* 10. Pixel Quest (Videojuegos Retro 8-Bit) */
+.wallet-card.theme-pixel-quest {
+  background: linear-gradient(180deg, #38bdf8 0%, #60a5fa 62%, #15803d 62%, #166534 100%) !important;
+  color: #ffffff !important;
+  border: 2px solid #fbbf24 !important;
+  box-shadow: 0 12px 25px -4px rgba(56, 189, 248, 0.4) !important;
+}
+.wallet-card.theme-pixel-quest .amount span,
+.wallet-card.theme-pixel-quest #walletBalance {
+  color: #fef08a !important;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+  font-family: monospace, sans-serif !important;
+  letter-spacing: 1px;
+}
+
+/* 11. Ritmo y DJ Neón (Synthwave) */
+.wallet-card.theme-ritmo-dj {
+  background: linear-gradient(135deg, #09090b 0%, #1a0826 50%, #030712 100%) !important;
+  color: #fdf2f8 !important;
+  border: 1.5px solid #ec4899 !important;
+  box-shadow: 0 12px 25px -4px rgba(236, 72, 153, 0.4), 0 0 15px rgba(6, 182, 212, 0.2) !important;
+}
+.wallet-card.theme-ritmo-dj .amount span,
+.wallet-card.theme-ritmo-dj #walletBalance {
+  color: #06b6d4 !important;
+  text-shadow: 0 0 10px rgba(6, 182, 212, 0.7);
+}
+.wallet-card.theme-ritmo-dj .student-avatar {
+  border-color: #ec4899 !important;
+  box-shadow: 0 0 10px rgba(236, 72, 153, 0.5) !important;
+}
+
+/* 12. Skate Park (Street Art Graffiti) */
+.wallet-card.theme-skate-park {
+  background: linear-gradient(135deg, #78350f 0%, #c2410c 50%, #18181b 100%) !important;
+  color: #fff7ed !important;
+  border: 1.5px solid #ea580c !important;
+  box-shadow: 0 12px 25px -4px rgba(234, 88, 12, 0.35) !important;
+}
+.wallet-card.theme-skate-park .amount span,
+.wallet-card.theme-skate-park #walletBalance {
+  color: #fed7aa !important;
+  text-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
+}
+
+/* 13. Tecno Cómic (Superhéroe Pop-Art) */
+.wallet-card.theme-tecno-comic {
+  background: linear-gradient(125deg, #0284c7 0%, #0284c7 48%, #ea580c 52%, #ea580c 100%) !important;
+  color: #ffffff !important;
+  border: 2px solid #fde047 !important;
+  box-shadow: 0 12px 25px -4px rgba(2, 132, 199, 0.4) !important;
+}
+.wallet-card.theme-tecno-comic .amount span,
+.wallet-card.theme-tecno-comic #walletBalance {
+  color: #fef08a !important;
+  text-shadow: 2px 2px 0 #000000;
+}
+
+/* 14. Ecológica Kraft (Texturizada Sostenible) */
+.wallet-card.theme-ecologica {
+  background: linear-gradient(135deg, #b08968 0%, #7f5539 100%) !important;
+  color: #ffffff !important;
+  border: 1.5px solid #a3b18a !important;
+  box-shadow: 0 12px 25px -4px rgba(127, 85, 57, 0.35) !important;
+}
+.wallet-card.theme-ecologica .amount span,
+.wallet-card.theme-ecologica #walletBalance {
+  color: #fefae0 !important;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+/* 15. Lúdica Ilustrada (Fantasía Infantil) */
+.wallet-card.theme-ludica {
+  background: linear-gradient(180deg, #38bdf8 0%, #bae6fd 60%, #fed7aa 100%) !important;
+  color: #0369a1 !important;
+  border: 1.5px solid #38bdf8 !important;
+  box-shadow: 0 12px 25px -4px rgba(56, 189, 248, 0.35) !important;
+}
+.wallet-card.theme-ludica h2,
+.wallet-card.theme-ludica #walletName {
+  color: #0c4a6e !important;
+}
+.wallet-card.theme-ludica .student-grade,
+.wallet-card.theme-ludica .label {
+  color: #0369a1 !important;
+}
+.wallet-card.theme-ludica .amount span,
+.wallet-card.theme-ludica #walletBalance {
+  color: #0284c7 !important;
+  font-weight: 900 !important;
+}
+.wallet-card.theme-ludica .qr-toggle-btn {
+  background: rgba(255, 255, 255, 0.8) !important;
+  color: #0369a1 !important;
+  border: 1px solid #7dd3fc !important;
+}
+
+/* ==========================================================================
+   MODAL DE CARRUSEL DE DISEÑOS DE TARJETA
+   ========================================================================== */
+.card-carousel-wrapper {
+  position: relative;
+  width: 100%;
+  margin: 10px 0;
+}
+
+.card-carousel-container {
+  display: flex;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  scroll-behavior: smooth;
+  gap: 14px;
+  padding: 8px 4px;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  -webkit-overflow-scrolling: touch;
+}
+
+.card-carousel-container::-webkit-scrollbar {
+  display: none;
+}
+
+.card-carousel-slide {
+  flex: 0 0 100%;
+  max-width: 100%;
+  scroll-snap-align: center;
+  box-sizing: border-box;
+}
+
+.carousel-nav-btn {
+  position: absolute;
+  top: 40%;
+  transform: translateY(-50%);
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.9);
+  backdrop-filter: blur(8px);
+  border: 1.5px solid var(--border);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.18);
+  color: var(--text-main);
+  font-size: 1.4rem;
+  font-weight: 900;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  z-index: 10;
+  transition: all 0.2s ease;
+}
+
+body.dark-mode .carousel-nav-btn {
+  background: rgba(30, 41, 59, 0.9);
+  border-color: #334155;
+  color: #ffffff;
+}
+
+.carousel-nav-btn:hover {
+  background: var(--card-bg);
+  transform: translateY(-50%) scale(1.1);
+}
+
+.carousel-nav-btn.prev {
+  left: -10px;
+}
+
+.carousel-nav-btn.next {
+  right: -10px;
+}
+
+.carousel-dots {
+  display: flex;
+  justify-content: center;
+  gap: 5px;
+  margin: 10px 0 6px 0;
+  flex-wrap: wrap;
+}
+
+.carousel-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--border);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.carousel-dot.active {
+  width: 20px;
+  border-radius: 10px;
+  background: #0284c7;
+}
+
+.theme-quick-strip {
+  display: flex;
+  overflow-x: auto;
+  gap: 6px;
+  padding: 8px 2px;
+  margin-top: 6px;
+  border-top: 1px solid var(--border);
+  scrollbar-width: none;
+}
+
+.theme-quick-strip::-webkit-scrollbar {
+  display: none;
+}
+
+.theme-pill-btn {
+  padding: 5px 11px;
+  border-radius: 20px;
+  border: 1.5px solid var(--border);
+  background: var(--card-bg);
+  color: var(--text-main);
+  font-size: 0.74rem;
+  font-weight: 800;
+  white-space: nowrap;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  transition: all 0.15s ease;
+  flex-shrink: 0;
+}
+
+.theme-pill-btn:hover {
+  border-color: #0284c7;
+}
+
+.theme-pill-btn.active {
+  background: #0284c7;
+  color: white;
+  border-color: #0284c7;
+}
+
+.preview-card-badge {
+  font-size: 0.68rem;
+  font-weight: 800;
+  padding: 3px 8px;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.25);
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
 

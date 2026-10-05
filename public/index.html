@@ -10,7 +10,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="RecreoPay">
   <meta name="mobile-web-app-capable" content="yes">
-  <link rel="stylesheet" href="/css/styles.css?v=9.5">
+  <link rel="stylesheet" href="/css/styles.css?v=9.6">
   <style>
     /* Transiciones suaves */
     .fade-enter { animation: fadeIn 0.2s ease-in-out; }
@@ -625,6 +625,9 @@
 
       <!-- ACCIONES DE CABECERA (TEMA OSCURO/CLARO Y SALIR) -->
       <div class="top-actions">
+        <button id="btnCardDesigns" onclick="openCardDesignModal()" class="theme-toggle-btn card-design-toggle-btn" title="Personalizar diseño de mi tarjeta" style="font-size: 1.15rem; margin-right: 4px;">
+          🎨
+        </button>
         <button id="btnThemeToggle" onclick="toggleTheme()" class="theme-toggle-btn" title="Alternar Modo Oscuro / Modo Claro">
           🌙
         </button>
@@ -642,7 +645,17 @@
     <select id="studentSelector" onchange="onStudentChange(this.value)" style="display: none;"></select>
 
     <!-- TARJETA DIGITAL DE MONEDERO Y SALDO (ESTILO UNIFICADO TEENS) -->
-    <section class="wallet-card">
+    <section class="wallet-card" id="mainWalletCard">
+      <!-- ELEMENTOS DE TARJETA INTELIGENTE (CHIP Y PAGO SIN CONTACTO, SIN ASTERISCOS) -->
+      <div class="card-chip-container">
+        <div class="card-emv-chip" title="Monedero Electrónico Escolar">
+          <div class="chip-inner-circuit"></div>
+        </div>
+        <div class="card-contactless-wave" title="Tecnología QR / Sin Contacto">
+          <span>)</span><span>)</span><span>)</span>
+        </div>
+      </div>
+
       <div class="student-info">
         <img id="walletAvatar" class="student-avatar" src="" alt="Avatar">
         <div class="student-meta" style="flex: 1; min-width: 0;">
@@ -1392,6 +1405,57 @@
     </div>
   </div>
 
+  <!-- MODAL: CARRUSEL DE PERSONALIZACIÓN DE TARJETA VIRTUAL -->
+  <div class="modal-qr-backdrop" id="modalCardDesigns" style="display: none;" onclick="closeCardDesignModal(event)">
+    <div class="modal-qr-card card-design-modal-card" onclick="event.stopPropagation()" style="max-width: 480px; text-align: left; padding: 18px 16px;">
+      
+      <!-- CABECERA MODAL -->
+      <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border); padding-bottom: 10px; margin-bottom: 10px;">
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <span style="font-size: 1.4rem;">🎨</span>
+          <div>
+            <h3 style="margin: 0; font-size: 1.15rem; font-weight: 900; color: var(--text-main);">Diseños de Tarjeta</h3>
+            <span style="font-size: 0.74rem; color: var(--text-muted); font-weight: 600;">Desliza y elige tu estilo favorito</span>
+          </div>
+        </div>
+        <button type="button" onclick="closeCardDesignModal()" style="background: none; border: none; font-size: 1.3rem; cursor: pointer; color: var(--text-muted); padding: 4px;">✕</button>
+      </div>
+
+      <!-- CARRUSEL WRAPPER CON BOTONES PREV / NEXT -->
+      <div class="card-carousel-wrapper">
+        <button type="button" class="carousel-nav-btn prev" onclick="scrollCardCarousel(-1)" title="Diseño anterior">‹</button>
+        <button type="button" class="carousel-nav-btn next" onclick="scrollCardCarousel(1)" title="Siguiente diseño">›</button>
+
+        <div class="card-carousel-container" id="cardCarouselContainer">
+          <!-- Slides generados dinámicamente con JS -->
+        </div>
+      </div>
+
+      <!-- PUNTOS INDICADORES DE PAGINACIÓN -->
+      <div class="carousel-dots" id="carouselDots">
+        <!-- Generados dinámicamente -->
+      </div>
+
+      <!-- TIRA DE ACCESO RÁPIDO A TEMAS -->
+      <div style="margin-top: 8px;">
+        <div style="font-size: 0.72rem; font-weight: 800; color: var(--text-muted); margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.5px;">
+          Colección de Estilos:
+        </div>
+        <div class="theme-quick-strip" id="themeQuickStrip">
+          <!-- Generado dinámicamente -->
+        </div>
+      </div>
+
+      <!-- BOTÓN CERRAR / LISTO -->
+      <div style="margin-top: 14px; display: flex; justify-content: flex-end;">
+        <button type="button" onclick="closeCardDesignModal()" style="padding: 9px 18px; background: var(--bg-main); border: 1.5px solid var(--border); border-radius: 10px; font-weight: 800; font-size: 0.85rem; color: var(--text-main); cursor: pointer;">
+          Listo
+        </button>
+      </div>
+
+    </div>
+  </div>
+
   <!-- BARRA DE NAVEGACIÓN INFERIOR PWA (MÓVILES) -->
   <nav class="pwa-bottom-nav" id="pwaBottomNav" style="display: none;">
     <button class="pwa-nav-item active" id="pwaNavMenu" onclick="pwaNavigateTo('menu')">
@@ -1416,8 +1480,8 @@
     </button>
   </nav>
 
-  <script src="/js/sounds.js?v=9.5"></script>
+  <script src="/js/sounds.js?v=9.6"></script>
   <script src="/js/jsQR.js"></script>
-  <script src="/js/app.js?v=9.5"></script>
+  <script src="/js/app.js?v=9.6"></script>
 </body>
 </html>

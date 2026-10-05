@@ -48,6 +48,9 @@ function checkHttpsEnvironment() {
 // Inicialización al cargar la página
 document.addEventListener('DOMContentLoaded', async () => {
   initTheme();
+  if (typeof applyCardTheme === 'function' && typeof getSavedCardTheme === 'function') {
+    applyCardTheme(getSavedCardTheme());
+  }
   checkHttpsEnvironment();
 
   // Registrar Service Worker para PWA
@@ -421,6 +424,11 @@ function updateStudentUI() {
   document.getElementById('walletAvatar').src = currentStudent.foto_url || 'https://api.dicebear.com/7.x/bottts/svg?seed=est';
   document.getElementById('walletName').textContent = currentStudent.nombre_completo;
   document.getElementById('walletGrade').textContent = `${currentStudent.grado} • Sección ${currentStudent.seccion} • Cód: ${currentStudent.codigo_estudiante}`;
+  
+  // Aplicar tema personalizado de tarjeta
+  if (typeof applyCardTheme === 'function' && typeof getSavedCardTheme === 'function') {
+    applyCardTheme(getSavedCardTheme());
+  }
 
   // Saldo en colones
   document.getElementById('walletBalance').textContent = `₡${currentStudent.saldo_colones.toLocaleString('es-CR')}`;
@@ -4120,4 +4128,335 @@ async function deleteStaff(staffId, nombre) {
     alert(`Error: ${err.message}`);
   }
 }
+
+// ==========================================
+// COLECCIÓN Y PERSONALIZACIÓN DE DISEÑOS DE TARJETA VIRTUAL
+// ==========================================
+
+const CARD_THEMES = [
+  {
+    id: 'classic-blue',
+    name: 'Azul RecreoPay',
+    category: 'Oficial',
+    icon: '🥪',
+    desc: 'El diseño clásico oficial de RecreoPay con tonos azul celeste y acabado cristalino.'
+  },
+  {
+    id: 'classic-premium',
+    name: 'Classic Premium',
+    category: 'Elegante',
+    icon: '👑',
+    desc: 'Azul medianoche profundo con tipografía dorada metálica, acentos de lujo y chip dorado.'
+  },
+  {
+    id: 'tech-metal',
+    name: 'Technological Metal',
+    category: 'Titanio',
+    icon: '⚡',
+    desc: 'Titanio oscuro cepillado con líneas láser plateadas y chip de alta tecnología.'
+  },
+  {
+    id: 'eco-aventura',
+    name: 'Eco-Aventura',
+    category: 'Exploración',
+    icon: '🌲',
+    desc: 'Bosques de pino, cumbres montañosas y espíritu de explorador en la naturaleza.'
+  },
+  {
+    id: 'robo-lab',
+    name: 'Robo-Lab Cyber',
+    category: 'Robótica',
+    icon: '🤖',
+    desc: 'Circuitos cibernéticos de neón cian y el amigable robot del laboratorio del futuro.'
+  },
+  {
+    id: 'mundo-arte',
+    name: 'Mundo de Arte',
+    category: 'Creativo',
+    icon: '🎨',
+    desc: 'Lienzo blanco con salpicaduras vibrantes de acuarela multicolor y paleta de pintura.'
+  },
+  {
+    id: 'futbol',
+    name: 'Estrellas del Campo',
+    category: 'Deportes',
+    icon: '⚽',
+    desc: 'Cancha de césped de estadio con líneas reglamentarias y balón a máxima velocidad.'
+  },
+  {
+    id: 'mascotas',
+    name: 'Club de Mascotas',
+    category: 'Tierno',
+    icon: '🐶',
+    desc: 'Tonos cálidos miel y un adorable cachorrito golden retriever con tiernas huellas.'
+  },
+  {
+    id: 'galactica',
+    name: 'Exploración Galáctica',
+    category: 'Espacio',
+    icon: '🚀',
+    desc: 'Nebulosa cósmica en violeta y polvo estelar con luna y astronauta explorador.'
+  },
+  {
+    id: 'pixel-quest',
+    name: 'Pixel Quest',
+    category: 'Videojuegos',
+    icon: '👾',
+    desc: 'Aventura arcade de plataformas de 8 bits con bloques retro, nubes y caballero pixel.'
+  },
+  {
+    id: 'ritmo-dj',
+    name: 'Ritmo y DJ Neón',
+    category: 'Música',
+    icon: '🎧',
+    desc: 'Barras de espectro ecualizador en neón brillante, audífonos DJ y sintetizadores.'
+  },
+  {
+    id: 'skate-park',
+    name: 'Skate Park',
+    category: 'Urbano',
+    icon: '🛹',
+    desc: 'Estilo street art urbano con textura de tabla de skate y graffitis llenos de energía.'
+  },
+  {
+    id: 'tecno-comic',
+    name: 'Tecno Cómic',
+    category: 'Superhéroe',
+    icon: '🦸',
+    desc: 'Estilo cómic pop-art con rayos de acción, textura halftone y superhéroe escolar.'
+  },
+  {
+    id: 'ecologica',
+    name: 'Ecológica Texturizada',
+    category: 'Sostenible',
+    icon: '🌿',
+    desc: 'Textura natural tipo corcho y papel kraft reciclado con sello ambiental.'
+  },
+  {
+    id: 'ludica',
+    name: 'Lúdica Ilustrada',
+    category: 'Fantasía',
+    icon: '🏰',
+    desc: 'Horizonte ilustrado de fantasía infantil con cielo despejado y robot volador.'
+  }
+];
+
+function getSavedCardTheme() {
+  if (currentStudent && currentStudent.id) {
+    const studentTheme = localStorage.getItem(`recreopay_card_theme_${currentStudent.id}`);
+    if (studentTheme && CARD_THEMES.some(t => t.id === studentTheme)) {
+      return studentTheme;
+    }
+  }
+  const globalTheme = localStorage.getItem('recreopay_card_theme');
+  if (globalTheme && CARD_THEMES.some(t => t.id === globalTheme)) {
+    return globalTheme;
+  }
+  return 'classic-blue';
+}
+
+function applyCardTheme(themeId) {
+  const card = document.getElementById('mainWalletCard');
+  if (!card) return;
+
+  const validTheme = CARD_THEMES.some(t => t.id === themeId) ? themeId : 'classic-blue';
+
+  CARD_THEMES.forEach(t => {
+    card.classList.remove(`theme-${t.id}`);
+  });
+  card.classList.add(`theme-${validTheme}`);
+}
+
+function openCardDesignModal() {
+  const modal = document.getElementById('modalCardDesigns');
+  if (!modal) return;
+
+  renderCardDesignsCarousel();
+  setupCarouselScrollListener();
+  modal.style.display = 'flex';
+
+  const currentTheme = getSavedCardTheme();
+  const currentIdx = CARD_THEMES.findIndex(t => t.id === currentTheme);
+  if (currentIdx >= 0) {
+    setTimeout(() => {
+      jumpToCardSlide(currentIdx);
+    }, 60);
+  }
+
+  if (window.sounds) window.sounds.playTap();
+}
+
+function closeCardDesignModal(event) {
+  if (event && event.target !== event.currentTarget) return;
+  const modal = document.getElementById('modalCardDesigns');
+  if (modal) modal.style.display = 'none';
+}
+
+function renderCardDesignsCarousel() {
+  const container = document.getElementById('cardCarouselContainer');
+  const dotsContainer = document.getElementById('carouselDots');
+  const strip = document.getElementById('themeQuickStrip');
+  if (!container) return;
+
+  const currentTheme = getSavedCardTheme();
+  const avatarUrl = (currentStudent && currentStudent.foto_url) ? currentStudent.foto_url : 'https://api.dicebear.com/7.x/bottts/svg?seed=est';
+  const studentName = (currentStudent && currentStudent.nombre_completo) ? currentStudent.nombre_completo : 'Mateo Alvarado Castro';
+  const studentGrade = (currentStudent && currentStudent.grado) ? `${currentStudent.grado} • Sección ${currentStudent.seccion || 'A'} • Cód: ${currentStudent.codigo_estudiante || 'EST-001'}` : '2° Grado • Sección 2-A • Cód: EST-2026-001';
+  const studentBalance = (currentStudent && currentStudent.saldo_colones !== undefined) ? currentStudent.saldo_colones.toLocaleString('es-CR') : '5.300';
+
+  container.innerHTML = CARD_THEMES.map((t, idx) => {
+    const isSelected = (t.id === currentTheme);
+    return `
+      <div class="card-carousel-slide" data-index="${idx}" data-theme="${t.id}">
+        <!-- Vista previa de la tarjeta real (SIN ASTERISCOS) -->
+        <div class="wallet-card theme-${t.id}" style="margin: 0; cursor: pointer; transition: transform 0.2s;" onclick="selectCardTheme('${t.id}')">
+          <div class="card-chip-container">
+            <div class="card-emv-chip">
+              <div class="chip-inner-circuit"></div>
+            </div>
+            <div class="card-contactless-wave"><span>)</span><span>)</span><span>)</span></div>
+          </div>
+          <div class="student-info">
+            <img class="student-avatar" src="${avatarUrl}" alt="Avatar">
+            <div class="student-meta" style="flex: 1; min-width: 0;">
+              <h2 style="margin: 0; font-size: 1.05rem; font-weight: 800; word-break: break-word;">${studentName}</h2>
+              <span class="student-grade" style="font-size: 0.72rem;">${studentGrade}</span>
+            </div>
+          </div>
+          <div class="balance-row">
+            <div class="balance-col">
+              <div class="label" style="font-size: 0.68rem; font-weight: 800;">SALDO DISPONIBLE</div>
+              <div class="amount">
+                <span style="font-size: 1.35rem; font-weight: 900;">₡${studentBalance}</span>
+              </div>
+            </div>
+            <div style="display: flex; gap: 4px; align-items: center;">
+              <span class="preview-card-badge">📱 QR</span>
+              <span class="preview-card-badge">⚡ Pasar</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Info del tema y botón de selección -->
+        <div style="margin-top: 10px; display: flex; justify-content: space-between; align-items: center; gap: 8px;">
+          <div style="min-width: 0; flex: 1;">
+            <div style="display: flex; align-items: center; gap: 6px; flex-wrap: wrap;">
+              <strong style="font-size: 0.95rem; color: var(--text-main);">${t.icon} ${t.name}</strong>
+              <span style="font-size: 0.68rem; font-weight: 800; padding: 2px 7px; border-radius: 6px; background: rgba(2, 132, 199, 0.1); color: #0284c7;">${t.category}</span>
+            </div>
+            <p style="margin: 2px 0 0 0; font-size: 0.72rem; color: var(--text-muted); line-height: 1.25; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${t.desc}</p>
+          </div>
+          <div style="flex-shrink: 0;">
+            <button type="button" id="btnSelectTheme_${t.id}" onclick="selectCardTheme('${t.id}')" style="padding: 7px 15px; border-radius: 10px; font-weight: 900; font-size: 0.8rem; cursor: pointer; white-space: nowrap; border: none; ${isSelected ? 'background: #10b981; color: white;' : 'background: #0284c7; color: white;'}">
+              ${isSelected ? '✓ Activo' : 'Elegir'}
+            </button>
+          </div>
+        </div>
+      </div>
+    `;
+  }).join('');
+
+  if (dotsContainer) {
+    dotsContainer.innerHTML = CARD_THEMES.map((t, idx) => `
+      <div class="carousel-dot ${t.id === currentTheme ? 'active' : ''}" id="dotSlide_${idx}" onclick="jumpToCardSlide(${idx})" title="${t.name}"></div>
+    `).join('');
+  }
+
+  if (strip) {
+    strip.innerHTML = CARD_THEMES.map((t, idx) => `
+      <button type="button" class="theme-pill-btn ${t.id === currentTheme ? 'active' : ''}" id="pillTheme_${t.id}" onclick="jumpToCardSlide(${idx})">
+        <span>${t.icon}</span> <span>${t.name}</span>
+      </button>
+    `).join('');
+  }
+}
+
+function scrollCardCarousel(direction) {
+  const container = document.getElementById('cardCarouselContainer');
+  if (!container) return;
+  const slideWidth = container.clientWidth;
+  container.scrollBy({ left: direction * slideWidth, behavior: 'smooth' });
+}
+
+function jumpToCardSlide(index) {
+  const container = document.getElementById('cardCarouselContainer');
+  if (!container) return;
+  const slide = container.querySelector(`[data-index="${index}"]`);
+  if (slide) {
+    slide.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+  }
+
+  // Actualizar dots y pills
+  document.querySelectorAll('.carousel-dot').forEach((d, idx) => {
+    d.classList.toggle('active', idx === index);
+  });
+  if (CARD_THEMES[index]) {
+    const themeId = CARD_THEMES[index].id;
+    document.querySelectorAll('.theme-pill-btn').forEach(p => {
+      p.classList.toggle('active', p.id === `pillTheme_${themeId}`);
+    });
+  }
+}
+
+function setupCarouselScrollListener() {
+  const container = document.getElementById('cardCarouselContainer');
+  if (!container || container.dataset.hasListener) return;
+  container.dataset.hasListener = 'true';
+
+  let scrollTimeout = null;
+  container.addEventListener('scroll', () => {
+    clearTimeout(scrollTimeout);
+    scrollTimeout = setTimeout(() => {
+      const scrollLeft = container.scrollLeft;
+      const slideWidth = container.clientWidth;
+      if (slideWidth > 0) {
+        const activeIdx = Math.max(0, Math.min(CARD_THEMES.length - 1, Math.round(scrollLeft / slideWidth)));
+
+        document.querySelectorAll('.carousel-dot').forEach((d, idx) => {
+          d.classList.toggle('active', idx === activeIdx);
+        });
+
+        if (CARD_THEMES[activeIdx]) {
+          const themeId = CARD_THEMES[activeIdx].id;
+          document.querySelectorAll('.theme-pill-btn').forEach(p => {
+            p.classList.toggle('active', p.id === `pillTheme_${themeId}`);
+          });
+        }
+      }
+    }, 40);
+  }, { passive: true });
+}
+
+function selectCardTheme(themeId) {
+  if (!themeId) return;
+
+  localStorage.setItem('recreopay_card_theme', themeId);
+  if (currentStudent && currentStudent.id) {
+    localStorage.setItem(`recreopay_card_theme_${currentStudent.id}`, themeId);
+  }
+
+  applyCardTheme(themeId);
+
+  // Actualizar botones de selección
+  CARD_THEMES.forEach(t => {
+    const btn = document.getElementById(`btnSelectTheme_${t.id}`);
+    if (btn) {
+      if (t.id === themeId) {
+        btn.textContent = '✓ Activo';
+        btn.style.background = '#10b981';
+      } else {
+        btn.textContent = 'Elegir';
+        btn.style.background = '#0284c7';
+      }
+    }
+
+    const pill = document.getElementById(`pillTheme_${t.id}`);
+    if (pill) {
+      pill.classList.toggle('active', t.id === themeId);
+    }
+  });
+
+  if (window.sounds) window.sounds.playCoin();
+}
+
 
