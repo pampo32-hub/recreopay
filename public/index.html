@@ -10,7 +10,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="RecreoPay">
   <meta name="mobile-web-app-capable" content="yes">
-  <link rel="stylesheet" href="/css/styles.css?v=7.0">
+  <link rel="stylesheet" href="/css/styles.css?v=8.0">
   <style>
     /* Transiciones suaves */
     .fade-enter { animation: fadeIn 0.2s ease-in-out; }
@@ -28,6 +28,17 @@
         <p class="login-subtitle">Sistema Digital de Soda Escolar y Monedero Estudiantil</p>
       </div>
 
+      <!-- SELECTOR ENTRE INICIO DE SESIÓN Y REGISTRO -->
+      <div class="login-tabs">
+        <button type="button" class="login-tab-btn active" id="tabBtnLogin" onclick="switchLoginTab('login')">
+          🔑 Iniciar Sesión
+        </button>
+        <button type="button" class="login-tab-btn" id="tabBtnRegister" onclick="switchLoginTab('register')">
+          👨‍👩‍👦 Registro de Padres
+        </button>
+      </div>
+
+      <!-- FORMULARIO 1: INICIAR SESIÓN -->
       <form id="formLogin" onsubmit="handleLoginSubmit(event)">
         <div class="login-form-group">
           <label for="loginUsername">Usuario o Carné:</label>
@@ -43,6 +54,35 @@
 
         <button type="submit" id="btnLoginSubmit" class="login-submit-btn">
           🚀 Iniciar Sesión
+        </button>
+      </form>
+
+      <!-- FORMULARIO 2: REGISTRO DE NUEVOS PADRES -->
+      <form id="formRegisterPadre" onsubmit="handleRegisterPadreSubmit(event)" style="display: none;">
+        <div class="login-form-group">
+          <label for="regNombre">Nombre y Apellidos:</label>
+          <input type="text" id="regNombre" class="login-input" placeholder="Ej: Carlos Alvarado Castro" required autocomplete="name">
+        </div>
+
+        <div class="login-form-group">
+          <label for="regTelefono">Teléfono o Celular (para SINPE):</label>
+          <input type="tel" id="regTelefono" class="login-input" placeholder="Ej: 8888-1122" required autocomplete="tel">
+        </div>
+
+        <div class="login-form-group">
+          <label for="regUsername">Nombre de Usuario:</label>
+          <input type="text" id="regUsername" class="login-input" placeholder="Ej: carlos_papa" required autocomplete="username">
+        </div>
+
+        <div class="login-form-group">
+          <label for="regPassword">Contraseña:</label>
+          <input type="password" id="regPassword" class="login-input" placeholder="Mínimo 4 caracteres" required autocomplete="new-password">
+        </div>
+
+        <div id="registerErrorMsg" style="display: none; background: #fee2e2; border: 1px solid #fca5a5; color: #991b1b; padding: 8px 12px; border-radius: 10px; font-size: 0.8rem; font-weight: 700; margin-bottom: 12px; text-align: center;"></div>
+
+        <button type="submit" id="btnRegisterSubmit" class="login-submit-btn" style="background: linear-gradient(135deg, #10b981, #059669);">
+          ✨ Crear Cuenta y Entrar al Panel
         </button>
       </form>
 
@@ -176,14 +216,48 @@
         </p>
       </div>
 
+      <!-- BUSCADOR INTELIGENTE Y BOTÓN ESCANEAR QR -->
       <div style="margin-bottom: 14px;">
-        <label style="display: block; font-size: 0.8rem; font-weight: 800; color: var(--text-main); margin-bottom: 5px;">
-          Selecciona al Estudiante:
+        <label style="display: block; font-size: 0.8rem; font-weight: 800; color: var(--text-main); margin-bottom: 6px;">
+          Buscar Estudiante por Nombre, Apellidos o Carné:
         </label>
-        <select id="adminRecargaStudentSelect" style="width: 100%; padding: 10px; border-radius: 10px; border: 1.5px solid var(--border); font-size: 0.95rem; font-weight: 700; background: var(--card-bg); color: var(--text-main);">
-          <!-- Opciones de estudiantes -->
-        </select>
+        <div class="admin-search-container">
+          <div class="admin-search-input-wrap">
+            <div style="position: relative; flex: 1;">
+              <input type="text" id="inputAdminSearchStudent" class="admin-search-input" placeholder="🔍 Escribe para buscar (ej: Mateo, EST-2026, Alvarado)..." oninput="onAdminSearchStudent(this.value)" autocomplete="off">
+              <button type="button" id="btnClearAdminSearch" onclick="clearAdminSearchStudent()" style="display: none; position: absolute; right: 10px; top: 50%; transform: translateY(-50%); background: none; border: none; font-size: 1rem; color: #94a3b8; cursor: pointer;">✕</button>
+            </div>
+            <button type="button" onclick="openAdminScanQrModal()" class="admin-scan-btn" title="Escanear carné físico o código QR con la cámara">
+              <span>📷</span>
+              <span>Escanear QR</span>
+            </button>
+          </div>
+          <div id="adminSearchResultsDropdown" class="admin-search-dropdown" style="display: none;"></div>
+        </div>
       </div>
+
+      <!-- FICHA DEL ESTUDIANTE SELECCIONADO -->
+      <div id="adminSelectedStudentBanner" class="selected-student-banner" style="display: none;">
+        <div style="display: flex; align-items: center; gap: 10px; min-width: 0; flex: 1;">
+          <img id="adminSelectedAvatar" src="" style="width: 44px; height: 44px; border-radius: 50%; border: 2px solid #0284c7; background: white; flex-shrink: 0; object-fit: cover;">
+          <div style="min-width: 0;">
+            <div style="display: flex; align-items: center; gap: 6px; flex-wrap: wrap;">
+              <strong id="adminSelectedName" style="font-size: 0.95rem; color: var(--text-main); word-break: break-word;">Selecciona un alumno</strong>
+              <span id="adminSelectedStatusBadge" style="font-size: 0.65rem; font-weight: 800; background: #dcfce7; color: #166534; padding: 2px 6px; border-radius: 4px;">ACTIVA</span>
+            </div>
+            <div id="adminSelectedMeta" style="font-size: 0.74rem; color: var(--text-muted); margin-top: 2px;">
+              Grado y Sección • Cód: EST-2026-000
+            </div>
+          </div>
+        </div>
+        <div style="text-align: right; flex-shrink: 0;">
+          <div style="font-size: 0.68rem; font-weight: 800; color: var(--text-muted); text-transform: uppercase;">Saldo Actual</div>
+          <div id="adminSelectedBalance" style="font-size: 1.15rem; font-weight: 900; color: #10b981;">₡0</div>
+        </div>
+      </div>
+
+      <!-- SELECT OCULTO PARA COMPATIBILIDAD CON FUNCIONES JS -->
+      <select id="adminRecargaStudentSelect" style="display: none;" onchange="onAdminSelectChange(this.value)"></select>
 
       <div style="margin-bottom: 12px;">
         <label style="display: block; font-size: 0.8rem; font-weight: 800; color: var(--text-main); margin-bottom: 5px;">
@@ -212,6 +286,205 @@
       <button type="button" id="btnAdminSubmitRecarga" onclick="submitAdminManualRecharge()" style="width: 100%; padding: 13px; background: linear-gradient(135deg, #10b981, #059669); color: white; border: none; border-radius: 12px; font-size: 1rem; font-weight: 900; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; box-shadow: 0 4px 12px rgba(16, 185, 129, 0.35);">
         <span>💰</span> Aplicar Recarga Inmediata
       </button>
+    </div>
+  </div>
+
+  <!-- ========================================== -->
+  <!-- PORTAL COMPLETO DE PADRES (#viewPadres) -->
+  <!-- ========================================== -->
+  <div id="viewPadres" class="parent-container" style="display: none;">
+    <!-- CABECERA DE PADRES -->
+    <header class="parent-header">
+      <div class="parent-badge">
+        <div class="parent-icon">👨‍👩‍👦</div>
+        <div>
+          <h2 style="font-size: 1.15rem; font-weight: 900; margin: 0; color: var(--text-main);">Portal de Padres</h2>
+          <span id="parentLoggedName" style="font-size: 0.76rem; color: #10b981; font-weight: 700;">Familia RecreoPay</span>
+        </div>
+      </div>
+
+      <div class="parent-header-actions">
+        <button onclick="toggleTheme()" class="theme-toggle-btn" title="Alternar Modo Oscuro / Modo Claro">
+          🌙
+        </button>
+        <button type="button" onclick="switchToSodaMenuAsParent()" class="mode-btn" style="background: var(--bg-main); border: 1.5px solid var(--border); font-size: 0.78rem; font-weight: 800; border-radius: 10px; padding: 7px 11px; cursor: pointer; color: var(--text-main);" title="Ver menú y pre-ordenar para mi hijo">
+          🥪 Ver Menú
+        </button>
+        <button onclick="logout(true)" class="logout-btn" title="Cerrar sesión">
+          <span>🚪</span>
+          <span class="logout-text">Salir</span>
+        </button>
+      </div>
+    </header>
+
+    <!-- BANNER SI NO HAY HIJOS VINCULADOS -->
+    <div id="parentNoChildrenBanner" class="parent-card" style="display: none; text-align: center; border: 2px dashed #0284c7; background: #f0f9ff;">
+      <span style="font-size: 2.5rem;">🧒</span>
+      <h3 style="font-size: 1.15rem; font-weight: 900; color: #0369a1; margin: 8px 0 4px 0;">¡Bienvenido a RecreoPay!</h3>
+      <p style="font-size: 0.82rem; color: #64748b; margin-bottom: 14px;">
+        Aún no has vinculado ningún estudiante a tu cuenta de padre. Escanea el carné de tu hijo para monitorear su saldo y recargarle al instante.
+      </p>
+      <button type="button" onclick="openScanChildQrModal()" class="login-submit-btn" style="background: linear-gradient(135deg, #0284c7, #0369a1); display: inline-flex; align-items: center; justify-content: center; gap: 8px; width: auto; padding: 12px 24px;">
+        <span>📷</span> Escanear Carné QR de mi Hijo
+      </button>
+    </div>
+
+    <!-- SECCIÓN: MIS HIJOS (TARJETAS VISUALES) -->
+    <div id="parentChildrenSection" style="margin-bottom: 16px;">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+        <h3 style="font-size: 0.92rem; font-weight: 900; color: var(--text-main); text-transform: uppercase; letter-spacing: 0.5px;">
+          👨‍👩‍👦 Mis Hijos
+        </h3>
+        <button type="button" onclick="openScanChildQrModal()" style="background: none; border: none; color: #0284c7; font-size: 0.8rem; font-weight: 800; cursor: pointer; display: flex; align-items: center; gap: 4px;">
+          <span>➕</span> Vincular otro hijo con QR
+        </button>
+      </div>
+
+      <!-- Cuadrícula de tarjetas de hijos -->
+      <div id="parentChildrenGrid" class="parent-children-grid">
+        <!-- Renderizado dinámico de tarjetas de hijos -->
+      </div>
+    </div>
+
+    <!-- SECCIÓN DE GESTIÓN DEL HIJO SELECCIONADO -->
+    <div id="parentSelectedChildContainer" style="display: none;">
+      <!-- FICHA ACTIVA DEL HIJO SELECCIONADO -->
+      <div class="parent-card" style="border: 2px solid #0284c7; background: linear-gradient(135deg, rgba(2, 132, 199, 0.04), rgba(56, 189, 248, 0.08));">
+        <div style="display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 14px;">
+          <div style="display: flex; align-items: center; gap: 12px; min-width: 0;">
+            <img id="parentActiveChildAvatar" src="" style="width: 50px; height: 50px; border-radius: 50%; border: 3px solid #0284c7; background: white; object-fit: cover;">
+            <div style="min-width: 0;">
+              <h3 id="parentActiveChildName" style="font-size: 1.1rem; font-weight: 900; margin: 0; color: var(--text-main); word-break: break-word;">Cargando...</h3>
+              <span id="parentActiveChildMeta" style="font-size: 0.76rem; color: var(--text-muted); font-weight: 600;">Grado • Carné</span>
+            </div>
+          </div>
+          <div style="text-align: right;">
+            <span style="font-size: 0.7rem; font-weight: 800; color: var(--text-muted); text-transform: uppercase; display: block;">Saldo Disponible</span>
+            <span id="parentActiveChildBalance" style="font-size: 1.35rem; font-weight: 900; color: #0284c7;">₡0</span>
+          </div>
+        </div>
+
+        <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+          <button type="button" onclick="switchToSodaMenuAsParent()" style="flex: 1; padding: 9px; background: #0284c7; color: white; border: none; border-radius: 10px; font-weight: 800; font-size: 0.8rem; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px;">
+            <span>🥪</span> Pre-ordenar Merienda
+          </button>
+          <a id="btnParentViewCarnet" href="/carnet.html" target="_blank" style="padding: 9px 12px; background: #f1f5f9; color: #1e293b; border: 1px solid #cbd5e1; border-radius: 10px; font-weight: 800; font-size: 0.8rem; text-decoration: none; display: flex; align-items: center; gap: 4px;">
+            <span>🖨️</span> Ver Carné QR
+          </a>
+        </div>
+      </div>
+
+      <!-- RECARGA SINPE MÓVIL (DIRECTO EN PANTALLA, NO MODAL) -->
+      <div class="parent-card" style="background: #f0fdf4; border: 1.5px solid #86efac;">
+        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;">
+          <div style="display: flex; align-items: center; gap: 10px;">
+            <span style="font-size: 1.6rem;">📱</span>
+            <div>
+              <strong style="color: #166534; font-size: 1rem; display: block;">Recarga por SINPE Móvil</strong>
+              <p style="font-size: 0.74rem; color: #15803d; margin: 0;">Número Soda: <strong>8888-SODA (7632)</strong></p>
+            </div>
+          </div>
+          <span style="font-size: 0.7rem; color: #166534; background: #dcfce7; font-weight: 800; padding: 3px 8px; border-radius: 6px;">Inmediato</span>
+        </div>
+
+        <label style="display: block; font-size: 0.8rem; font-weight: 800; color: #166534; margin-bottom: 4px;">
+          Monto a recargar en colones:
+        </label>
+        <div style="position: relative; margin-bottom: 8px;">
+          <span style="position: absolute; left: 12px; top: 50%; transform: translateY(-50%); font-weight: 900; color: #166534; font-size: 1.15rem;">₡</span>
+          <input type="tel" inputmode="numeric" pattern="[0-9]*" id="inputParentSinpeMonto" placeholder="Ej: 3000" style="width: 100%; padding: 11px 12px 11px 32px; border-radius: 10px; border: 1.5px solid #86efac; font-size: 1.2rem; font-weight: 900; color: #166534; background: white; box-sizing: border-box;">
+        </div>
+
+        <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin-bottom: 12px;">
+          <button type="button" onclick="setParentSinpePreset(1000)" class="stock-btn-quick" style="border-color: #86efac; color: #166534;">₡1.000</button>
+          <button type="button" onclick="setParentSinpePreset(2000)" class="stock-btn-quick" style="border-color: #86efac; color: #166534;">₡2.000</button>
+          <button type="button" onclick="setParentSinpePreset(5000)" class="stock-btn-quick" style="border-color: #86efac; color: #166534;">₡5.000</button>
+          <button type="button" onclick="setParentSinpePreset(10000)" class="stock-btn-quick" style="border-color: #86efac; color: #166534;">₡10.000</button>
+        </div>
+
+        <button type="button" onclick="executeParentSinpeRecharge()" style="width: 100%; padding: 13px; background: linear-gradient(135deg, #16a34a, #15803d); color: white; border: none; border-radius: 12px; font-weight: 900; font-size: 0.95rem; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; box-shadow: 0 4px 10px rgba(22, 163, 74, 0.3);">
+          <span>📲</span> Aplicar Recarga de Saldo
+        </button>
+      </div>
+
+      <!-- CONFIGURACIÓN DE LÍMITE DIARIO -->
+      <div class="parent-card" style="background: #f0f9ff; border: 2px solid #38bdf8;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+          <div>
+            <strong style="font-size: 0.95rem; color: #0369a1; display: block;">🛡️ Límite de Gasto Máximo Diario</strong>
+            <span style="font-size: 0.74rem; color: #64748b;">Monto máximo que el estudiante puede gastar por día</span>
+          </div>
+          <span id="lblParentDailyLimitDisplay" style="font-size: 1.1rem; color: #0284c7; font-weight: 900; background: white; border: 1.5px solid #bae6fd; padding: 4px 12px; border-radius: 8px;">₡3.000</span>
+        </div>
+
+        <div style="display: flex; gap: 8px; margin-bottom: 10px;">
+          <div style="position: relative; flex: 1;">
+            <span style="position: absolute; left: 10px; top: 50%; transform: translateY(-50%); font-weight: 900; color: #0284c7; font-size: 1.1rem;">₡</span>
+            <input type="tel" inputmode="numeric" pattern="[0-9]*" id="inputParentCustomLimit" placeholder="Ej: 3000" style="width: 100%; padding: 10px 10px 10px 30px; border-radius: 10px; border: 2px solid #0284c7; font-size: 1.1rem; font-weight: 900; color: #0f172a; background: white; box-sizing: border-box;">
+          </div>
+          <button type="button" onclick="saveParentCustomLimit()" style="padding: 10px 16px; background: linear-gradient(135deg, #0284c7, #0369a1); color: white; border: none; border-radius: 10px; font-weight: 900; font-size: 0.85rem; cursor: pointer; white-space: nowrap; box-shadow: 0 2px 6px rgba(2, 132, 199, 0.35);">
+            💾 Guardar
+          </button>
+        </div>
+
+        <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 5px; margin-bottom: 10px;">
+          <button type="button" onclick="setParentLimitPreset(1500)" class="stock-btn-quick">₡1.500</button>
+          <button type="button" onclick="setParentLimitPreset(2500)" class="stock-btn-quick">₡2.500</button>
+          <button type="button" onclick="setParentLimitPreset(3500)" class="stock-btn-quick">₡3.500</button>
+          <button type="button" onclick="setParentLimitPreset(5000)" class="stock-btn-quick">₡5.000</button>
+        </div>
+
+        <input type="range" id="rangeParentLimit" min="1000" max="10000" step="500" value="3000" oninput="onParentLimitSliderChange(this.value)" style="width: 100%;">
+        <div style="display: flex; justify-content: space-between; font-size: 0.7rem; color: #64748b; margin-top: 2px;">
+          <span>₡1.000 min</span>
+          <span>₡10.000 max</span>
+        </div>
+      </div>
+
+      <!-- PERMISOS DE TRANSFERENCIA ENTRE COMPAÑEROS -->
+      <div class="parent-card" style="display: flex; justify-content: space-between; align-items: center;">
+        <div>
+          <strong style="font-size: 0.88rem; color: var(--text-main); display: block;">🤝 RecreoTransfer entre Compas</strong>
+          <span style="font-size: 0.74rem; color: var(--text-muted);">Permitir transferir saldo a compañeros de clase</span>
+        </div>
+        <input type="checkbox" id="chkParentAllowTransferDirect" onchange="onToggleParentTransfer(this.checked)" style="width: 24px; height: 24px; cursor: pointer; accent-color: #0284c7;" checked>
+      </div>
+
+      <!-- SEGURIDAD Y PIN ESCOLAR -->
+      <div class="parent-card" style="border: 1.5px dashed var(--border);">
+        <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 10px;">
+          <span style="font-size: 1.2rem;">🔐</span>
+          <div>
+            <strong style="font-size: 0.9rem; color: var(--text-main); display: block;">Credenciales del Estudiante</strong>
+            <span style="font-size: 0.74rem; color: var(--text-muted);">Restablece el PIN o la contraseña de acceso escolar</span>
+          </div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 10px;">
+          <div>
+            <label style="display: block; font-size: 0.74rem; font-weight: 800; color: var(--text-muted); margin-bottom: 3px;">Nuevo PIN (4 dígitos):</label>
+            <input type="password" inputmode="numeric" maxlength="4" id="inputParentStudentPin" placeholder="1234" style="width: 100%; padding: 9px; border-radius: 8px; border: 1.5px solid var(--border); font-weight: 900; letter-spacing: 2px; text-align: center; box-sizing: border-box; background: var(--card-bg); color: var(--text-main);">
+          </div>
+          <div>
+            <label style="display: block; font-size: 0.74rem; font-weight: 800; color: var(--text-muted); margin-bottom: 3px;">Nueva Contraseña:</label>
+            <input type="text" id="inputParentStudentPass" placeholder="Ej: 1234" style="width: 100%; padding: 9px; border-radius: 8px; border: 1.5px solid var(--border); font-weight: 800; box-sizing: border-box; background: var(--card-bg); color: var(--text-main);">
+          </div>
+        </div>
+
+        <button type="button" onclick="saveParentStudentCredentials()" style="width: 100%; padding: 10px; background: #334155; color: white; border: none; border-radius: 8px; font-weight: 800; font-size: 0.82rem; cursor: pointer;">
+          💾 Guardar Nuevas Credenciales
+        </button>
+      </div>
+
+      <!-- HISTORIAL DE COMPRAS RECIENTES -->
+      <div class="parent-card">
+        <h4 style="font-size: 0.9rem; font-weight: 900; color: var(--text-main); margin-bottom: 10px;">
+          📋 Historial de Compras en Soda
+        </h4>
+        <div id="parentStudentHistoryList" style="font-size: 0.8rem; color: var(--text-muted);">
+          Sin compras recientes registradas.
+        </div>
+      </div>
     </div>
   </div>
 
@@ -729,6 +1002,55 @@
           <span>💸</span> Enviar Dinero al Instante
         </button>
       </div>
+  <!-- MODAL: ESCANEAR QR PARA VINCULAR HIJO (PORTAL PADRES) -->
+  <div class="modal-qr-backdrop" id="modalScanChildQr" style="display: none;" onclick="closeScanChildQrModal(event)">
+    <div class="modal-qr-card" onclick="event.stopPropagation()" style="max-width: 400px; text-align: center;">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; border-bottom: 1px solid var(--border); padding-bottom: 8px;">
+        <strong style="font-size: 1rem; color: var(--text-main);">📷 Vincular Estudiante con QR</strong>
+        <button type="button" onclick="closeScanChildQrModal()" style="background: none; border: none; font-size: 1.2rem; cursor: pointer; color: var(--text-muted);">✕</button>
+      </div>
+
+      <div style="position: relative; width: 100%; height: 220px; background: #000; border-radius: 14px; overflow: hidden; margin-bottom: 10px;">
+        <video id="videoScanChild" playsinline autoplay muted style="width: 100%; height: 100%; object-fit: cover;"></video>
+        <canvas id="canvasScanChild" style="display: none;"></canvas>
+        <div style="position: absolute; inset: 16px; border: 2px dashed #38bdf8; border-radius: 12px; pointer-events: none;"></div>
+      </div>
+
+      <p style="font-size: 0.78rem; color: var(--text-muted); margin-bottom: 10px;">
+        Apunta la cámara al carné escolar del estudiante.
+      </p>
+
+      <div style="border-top: 1px dashed var(--border); padding-top: 10px; margin-top: 10px; text-align: left;">
+        <label for="inputManualStudentCode" style="display: block; font-size: 0.76rem; font-weight: 800; color: var(--text-main); margin-bottom: 4px;">
+          O escribe el código de carné manualmente:
+        </label>
+        <div style="display: flex; gap: 6px;">
+          <input type="text" id="inputManualStudentCode" placeholder="Ej: EST-2026-001 o QR Token" style="flex: 1; padding: 8px 10px; border-radius: 8px; border: 1.5px solid var(--border); font-size: 0.85rem; font-weight: 800; background: var(--card-bg); color: var(--text-main); box-sizing: border-box;">
+          <button type="button" onclick="submitManualStudentLink()" style="padding: 8px 14px; background: #0284c7; color: white; border: none; border-radius: 8px; font-weight: 800; font-size: 0.8rem; cursor: pointer; white-space: nowrap;">
+            Vincular
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: ESCANEAR QR PARA RECARGA EN SODA (ADMIN) -->
+  <div class="modal-qr-backdrop" id="modalAdminScanQr" style="display: none;" onclick="closeAdminScanQrModal(event)">
+    <div class="modal-qr-card" onclick="event.stopPropagation()" style="max-width: 400px; text-align: center;">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; border-bottom: 1px solid var(--border); padding-bottom: 8px;">
+        <strong style="font-size: 1rem; color: var(--text-main);">📷 Escanear Carné para Recarga</strong>
+        <button type="button" onclick="closeAdminScanQrModal()" style="background: none; border: none; font-size: 1.2rem; cursor: pointer; color: var(--text-muted);">✕</button>
+      </div>
+
+      <div style="position: relative; width: 100%; height: 220px; background: #000; border-radius: 14px; overflow: hidden; margin-bottom: 10px;">
+        <video id="videoAdminScan" playsinline autoplay muted style="width: 100%; height: 100%; object-fit: cover;"></video>
+        <canvas id="canvasAdminScan" style="display: none;"></canvas>
+        <div style="position: absolute; inset: 16px; border: 2px dashed #10b981; border-radius: 12px; pointer-events: none;"></div>
+      </div>
+
+      <p style="font-size: 0.78rem; color: var(--text-muted); margin-bottom: 6px;">
+        Escanea el QR del carné del alumno para seleccionarlo al instante.
+      </p>
     </div>
   </div>
 
@@ -756,8 +1078,8 @@
     </button>
   </nav>
 
-  <script src="/js/sounds.js?v=7.0"></script>
+  <script src="/js/sounds.js?v=8.0"></script>
   <script src="/js/jsQR.js"></script>
-  <script src="/js/app.js?v=7.0"></script>
+  <script src="/js/app.js?v=8.0"></script>
 </body>
 </html>

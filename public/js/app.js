@@ -51,7 +51,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   // Registrar Service Worker para PWA
   if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('/sw.js?v=7.0').then(reg => {
+    navigator.serviceWorker.register('/sw.js?v=8.0').then(reg => {
       // Registro limpio sin recargas forzadas
     }).catch(err => console.log('SW error:', err));
   }
@@ -80,22 +80,98 @@ document.addEventListener('DOMContentLoaded', async () => {
 // VISTA Y MANEJO DE AUTENTICACIÓN / SESIÓN
 // ==========================================
 
+let currentParentChild = null; // Estudiante activo en el portal de padres
+let adminSelectedStudent = null; // Estudiante seleccionado para recarga en admin
+let scanChildStream = null;
+let scanChildAnimId = null;
+let scanAdminStream = null;
+let scanAdminAnimId = null;
+
 function showLoginView() {
   const viewLogin = document.getElementById('viewLogin');
   const viewAdmin = document.getElementById('viewAdmin');
+  const viewPadres = document.getElementById('viewPadres');
   const appContainer = document.getElementById('appContainer');
   const bottomNav = document.getElementById('pwaBottomNav');
 
   if (viewLogin) viewLogin.style.display = 'flex';
   if (viewAdmin) viewAdmin.style.display = 'none';
+  if (viewPadres) viewPadres.style.display = 'none';
   if (appContainer) appContainer.style.display = 'none';
   if (bottomNav) bottomNav.style.display = 'none';
 
-  // Cerrar cualquier modal que pudiera estar abierto
+  switchLoginTab('login');
+  closeScanChildQrModal();
+  closeAdminScanQrModal();
   toggleParentPanel(false);
   closeCartModal();
   closeQrModal();
   closeTransferModal();
+}
+
+function switchLoginTab(tab) {
+  const formLogin = document.getElementById('formLogin');
+  const formRegister = document.getElementById('formRegisterPadre');
+  const tabLogin = document.getElementById('tabBtnLogin');
+  const tabReg = document.getElementById('tabBtnRegister');
+  const demoBox = document.querySelector('.login-demo-box');
+
+  if (tab === 'login') {
+    if (formLogin) formLogin.style.display = 'block';
+    if (formRegister) formRegister.style.display = 'none';
+    if (tabLogin) tabLogin.classList.add('active');
+    if (tabReg) tabReg.classList.remove('active');
+    if (demoBox) demoBox.style.display = 'block';
+  } else {
+    if (formLogin) formLogin.style.display = 'none';
+    if (formRegister) formRegister.style.display = 'block';
+    if (tabLogin) tabLogin.classList.remove('active');
+    if (tabReg) tabReg.classList.add('active');
+    if (demoBox) demoBox.style.display = 'none';
+  }
+}
+
+async function handleRegisterPadreSubmit(event) {
+  if (event) event.preventDefault();
+  const nombre = document.getElementById('regNombre').value.trim();
+  const telefono = document.getElementById('regTelefono').value.trim();
+  const username = document.getElementById('regUsername').value.trim();
+  const password = document.getElementById('regPassword').value.trim();
+  const errorMsg = document.getElementById('registerErrorMsg');
+  const btnSubmit = document.getElementById('btnRegisterSubmit');
+
+  if (errorMsg) errorMsg.style.display = 'none';
+  btnSubmit.disabled = true;
+  btnSubmit.textContent = 'Creando cuenta de padre...';
+
+  try {
+    const res = await fetch('/api/auth/register-padre', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ nombre, telefono, username, password })
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Error al registrar la cuenta');
+
+    currentUser = {
+      ...data.user,
+      hijos: []
+    };
+    localStorage.setItem('recreopay_user', JSON.stringify(currentUser));
+
+    if (window.sounds) window.sounds.playSuccess();
+    alert(`🎉 ¡Bienvenido(a) a RecreoPay, ${data.user.nombre}! Tu cuenta de padre fue creada exitosamente.`);
+    await applyUserRoleSession();
+  } catch (err) {
+    if (errorMsg) {
+      errorMsg.textContent = `❌ ${err.message}`;
+      errorMsg.style.display = 'block';
+    }
+    if (window.sounds) window.sounds.playError();
+  } finally {
+    btnSubmit.disabled = false;
+    btnSubmit.innerHTML = '✨ Crear Cuenta y Entrar al Panel';
+  }
 }
 
 function quickFillLogin(username, password) {
@@ -161,6 +237,7 @@ async function applyUserRoleSession() {
 
   const viewLogin = document.getElementById('viewLogin');
   const viewAdmin = document.getElementById('viewAdmin');
+  const viewPadres = document.getElementById('viewPadres');
   const appContainer = document.getElementById('appContainer');
   const bottomNav = document.getElementById('pwaBottomNav');
   const navPadres = document.getElementById('pwaNavPadres');
@@ -169,27 +246,25 @@ async function applyUserRoleSession() {
 
   if (currentUser.rol === 'admin') {
     if (viewAdmin) viewAdmin.style.display = 'block';
+    if (viewPadres) viewPadres.style.display = 'none';
     if (appContainer) appContainer.style.display = 'none';
     if (bottomNav) bottomNav.style.display = 'none';
     const adminNameEl = document.getElementById('adminLoggedName');
     if (adminNameEl) adminNameEl.textContent = `${currentUser.nombre} (Administrador)`;
     await loadAdminData();
+    setupAdminSmartSearch();
   } else if (currentUser.rol === 'padre') {
     if (viewAdmin) viewAdmin.style.display = 'none';
-    if (appContainer) appContainer.style.display = 'block';
-    if (bottomNav) bottomNav.style.display = 'flex';
-    if (navPadres) navPadres.style.display = 'flex';
+    if (viewPadres) viewPadres.style.display = 'block'; // PANEL DEDICADO COMPLETO (NO MODAL)
+    if (appContainer) appContainer.style.display = 'none';
+    if (bottomNav) bottomNav.style.display = 'none';
     
-    // Mostrar botón de acceso al portal de padres
-    const btnPadres = document.getElementById('btnModePadres');
-    if (btnPadres) btnPadres.style.display = 'inline-block';
-
     await loadInitialData();
-    setupParentPortalChildren();
-    toggleParentPanel(true);
+    await loadParentDashboard();
   } else {
     // Estudiante: SEGURIDAD ESTRICTA - Ocultar botón de padres
     if (viewAdmin) viewAdmin.style.display = 'none';
+    if (viewPadres) viewPadres.style.display = 'none';
     if (appContainer) appContainer.style.display = 'block';
     if (bottomNav) bottomNav.style.display = 'flex';
     if (navPadres) navPadres.style.display = 'none'; // Estudiantes no ven pestaña padres
@@ -211,6 +286,8 @@ function logout(skipConfirm = false) {
     localStorage.removeItem('recreopay_user');
     currentUser = null;
     currentStudent = null;
+    currentParentChild = null;
+    adminSelectedStudent = null;
     showLoginView();
     if (window.sounds) window.sounds.playTap();
   }
@@ -659,17 +736,19 @@ function closeQrModal(e) {
 // ==========================================
 
 function toggleParentPanel(show, e) {
-  // SEGURIDAD: Un estudiante no tiene acceso al portal de padres
-  if (currentUser && currentUser.rol === 'estudiante') {
-    const modalPadres = document.getElementById('modalPadres');
-    if (modalPadres) modalPadres.style.display = 'none';
-    resetPwaNavActive();
+  if (e && e.target !== e.currentTarget) return;
+  if (currentUser && currentUser.rol === 'padre') {
+    if (show) {
+      returnToParentDashboard();
+    } else {
+      switchToSodaMenuAsParent();
+    }
     return;
   }
-  if (e && e.target !== e.currentTarget) return;
+  // SEGURIDAD: Un estudiante no tiene acceso al portal de padres
   const modalPadres = document.getElementById('modalPadres');
-  if (modalPadres) modalPadres.style.display = show ? 'flex' : 'none';
-  if (!show) resetPwaNavActive();
+  if (modalPadres) modalPadres.style.display = 'none';
+  resetPwaNavActive();
 }
 
 function openDailyLimitEditor() {
@@ -1369,41 +1448,280 @@ function initStudentSSE() {
 }
 
 // ==========================================
-// FUNCIONES DEL PORTAL DE PADRES (HIJOS Y CREDENCIALES)
+// FUNCIONES DEL PORTAL DEDICADO DE PADRES
 // ==========================================
 
-function setupParentPortalChildren() {
-  const box = document.getElementById('parentChildSelectorBox');
-  const sel = document.getElementById('parentChildSelect');
-  if (!box || !sel) return;
+async function loadParentDashboard() {
+  if (!currentUser || currentUser.rol !== 'padre') return;
 
-  if (currentUser && currentUser.hijos && currentUser.hijos.length > 0) {
-    box.style.display = 'block';
-    sel.innerHTML = currentUser.hijos.map(h => `
-      <option value="${h.id}">${h.nombre_completo} (${h.grado} - Sección ${h.seccion})</option>
-    `).join('');
+  const parentLoggedName = document.getElementById('parentLoggedName');
+  if (parentLoggedName) {
+    parentLoggedName.textContent = currentUser.nombre ? `${currentUser.nombre} (Padre/Madre)` : 'Familia RecreoPay';
+  }
 
-    onParentChildSelect(currentUser.hijos[0].id);
-  } else if (students.length > 0) {
-    box.style.display = 'block';
-    sel.innerHTML = students.slice(0, 2).map(h => `
-      <option value="${h.id}">${h.nombre_completo} (${h.grado} - Sección ${h.seccion})</option>
-    `).join('');
-    onParentChildSelect(students[0].id);
+  try {
+    const res = await fetch(`/api/padres/mis-hijos?padre_usuario_id=${currentUser.id}`);
+    const data = await res.json();
+    if (res.ok && data.hijos) {
+      currentUser.hijos = data.hijos;
+      localStorage.setItem('recreopay_user', JSON.stringify(currentUser));
+    }
+  } catch (err) {
+    console.warn('Error al cargar hijos del padre:', err);
+  }
+
+  renderParentDashboardView();
+}
+
+function renderParentDashboardView() {
+  const bannerNoHijos = document.getElementById('parentNoChildrenBanner');
+  const sectionHijos = document.getElementById('parentChildrenSection');
+  const containerActive = document.getElementById('parentSelectedChildContainer');
+  const grid = document.getElementById('parentChildrenGrid');
+
+  const hijos = (currentUser && currentUser.hijos) ? currentUser.hijos : [];
+
+  if (hijos.length === 0) {
+    if (bannerNoHijos) bannerNoHijos.style.display = 'block';
+    if (containerActive) containerActive.style.display = 'none';
+    if (grid) grid.innerHTML = '';
+    return;
+  }
+
+  if (bannerNoHijos) bannerNoHijos.style.display = 'none';
+  if (containerActive) containerActive.style.display = 'block';
+
+  // Si no hay hijo seleccionado o el seleccionado ya no existe en la lista, seleccionar el primero
+  if (!currentParentChild || !hijos.some(h => h.id === currentParentChild.id)) {
+    currentParentChild = hijos[0];
+  } else {
+    // Actualizar datos del hijo seleccionado desde la lista actualizada
+    currentParentChild = hijos.find(h => h.id === currentParentChild.id) || hijos[0];
+  }
+
+  // Renderizar tarjetas de hijos en la cuadrícula
+  if (grid) {
+    grid.innerHTML = hijos.map(h => {
+      const isSelected = currentParentChild && currentParentChild.id === h.id;
+      const isBlocked = !!h.tarjeta_bloqueada;
+      return `
+        <div class="parent-child-card ${isSelected ? 'active' : ''}" onclick="selectParentChild(${h.id})">
+          <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 8px;">
+            <img src="${h.foto_url || '/img/avatar_default.png'}" style="width: 42px; height: 42px; border-radius: 50%; border: 2px solid ${isSelected ? '#0284c7' : 'var(--border)'}; object-fit: cover;">
+            <div style="min-width: 0; flex: 1;">
+              <strong style="font-size: 0.9rem; color: var(--text-main); display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                ${h.nombre_completo}
+              </strong>
+              <span style="font-size: 0.72rem; color: var(--text-muted); font-weight: 600;">
+                ${h.grado} - Sec. ${h.seccion}
+              </span>
+            </div>
+            ${isBlocked ? '<span style="font-size: 0.65rem; background: #fee2e2; color: #dc2626; padding: 2px 6px; border-radius: 4px; font-weight: 800;">BLOQUEADO</span>' : ''}
+          </div>
+          <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1px solid var(--border); padding-top: 6px; margin-top: 4px;">
+            <span style="font-size: 0.72rem; color: var(--text-muted); font-weight: 700;">Saldo:</span>
+            <strong style="font-size: 1.05rem; color: #0284c7; font-weight: 900;">
+              ₡${(h.saldo_colones || 0).toLocaleString('es-CR')}
+            </strong>
+          </div>
+        </div>
+      `;
+    }).join('');
+  }
+
+  renderActiveChildDetails(currentParentChild);
+}
+
+function selectParentChild(childId) {
+  const hijos = (currentUser && currentUser.hijos) ? currentUser.hijos : [];
+  const found = hijos.find(h => h.id === childId);
+  if (found) {
+    currentParentChild = found;
+    renderParentDashboardView();
+    if (window.sounds) window.sounds.playTap();
   }
 }
 
-async function onParentChildSelect(studentId) {
-  await selectStudent(studentId);
+function renderActiveChildDetails(child) {
+  if (!child) return;
+
+  const avatar = document.getElementById('parentActiveChildAvatar');
+  const name = document.getElementById('parentActiveChildName');
+  const meta = document.getElementById('parentActiveChildMeta');
+  const balance = document.getElementById('parentActiveChildBalance');
+  const linkCarnet = document.getElementById('btnParentViewCarnet');
+  const lblLimit = document.getElementById('lblParentDailyLimitDisplay');
+  const inputCustomLimit = document.getElementById('inputParentCustomLimit');
+  const rangeLimit = document.getElementById('rangeParentLimit');
+  const chkTransfer = document.getElementById('chkParentAllowTransferDirect');
+
+  if (avatar) avatar.src = child.foto_url || '/img/avatar_default.png';
+  if (name) name.textContent = child.nombre_completo;
+  if (meta) meta.textContent = `${child.grado} - Sección ${child.seccion} • Cód: ${child.codigo_estudiante}`;
+  if (balance) balance.textContent = `₡${(child.saldo_colones || 0).toLocaleString('es-CR')}`;
+  if (linkCarnet) linkCarnet.href = `/carnet.html?token=${child.qr_token || ''}&id=${child.id}`;
+
+  const currentLimit = child.limite_diario_colones || 3000;
+  if (lblLimit) lblLimit.textContent = `₡${currentLimit.toLocaleString('es-CR')}`;
+  if (inputCustomLimit) inputCustomLimit.value = currentLimit;
+  if (rangeLimit) rangeLimit.value = currentLimit;
+  if (chkTransfer) chkTransfer.checked = child.permitir_transferencias !== 0;
+
+  loadActiveChildHistory(child.id);
 }
 
-async function saveParentChildAccess() {
-  if (!currentStudent) return;
-  const pin = document.getElementById('inputParentNewPin').value.trim();
-  const pass = document.getElementById('inputParentNewPass').value.trim();
+async function loadActiveChildHistory(studentId) {
+  const container = document.getElementById('parentStudentHistoryList');
+  if (!container) return;
+
+  container.innerHTML = '<span style="color: var(--text-muted);">Cargando historial de compras...</span>';
+
+  try {
+    const res = await fetch(`/api/ordenes?estudiante_id=${studentId}`);
+    const ordenes = await res.json();
+
+    if (!Array.isArray(ordenes) || ordenes.length === 0) {
+      container.innerHTML = '<span style="color: var(--text-muted); font-size: 0.8rem;">Sin compras recientes registradas en la soda.</span>';
+      return;
+    }
+
+    container.innerHTML = ordenes.slice(0, 10).map(o => {
+      const itemsStr = (o.items && o.items.length > 0)
+        ? o.items.map(it => `${it.cantidad}x ${it.nombre}`).join(', ')
+        : 'Compra en mostrador';
+      const fecha = o.creado_en ? new Date(o.creado_en).toLocaleDateString('es-CR', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : '';
+      return `
+        <div style="display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px dashed var(--border);">
+          <div style="min-width: 0; flex: 1; padding-right: 8px;">
+            <div style="font-weight: 800; color: var(--text-main); font-size: 0.82rem; word-break: break-word;">${itemsStr}</div>
+            <div style="font-size: 0.72rem; color: var(--text-muted); margin-top: 1px;">${fecha} • Estado: <span style="color: #10b981; font-weight: 700;">${o.estado}</span></div>
+          </div>
+          <strong style="color: #0284c7; font-size: 0.88rem; flex-shrink: 0;">-₡${(o.total_colones || 0).toLocaleString('es-CR')}</strong>
+        </div>
+      `;
+    }).join('');
+  } catch (err) {
+    container.innerHTML = '<span style="color: #ef4444; font-size: 0.78rem;">No se pudo cargar el historial.</span>';
+  }
+}
+
+function setParentSinpePreset(amt) {
+  const input = document.getElementById('inputParentSinpeMonto');
+  if (input) input.value = amt;
+  if (window.sounds) window.sounds.playTap();
+}
+
+async function executeParentSinpeRecharge() {
+  if (!currentParentChild) {
+    alert('Selecciona primero al estudiante a quien deseas recargarle.');
+    return;
+  }
+  const input = document.getElementById('inputParentSinpeMonto');
+  const monto = parseInt(input ? input.value : 0, 10);
+
+  if (isNaN(monto) || monto <= 0) {
+    alert('Ingresa un monto válido mayor a ₡0 para recargar.');
+    return;
+  }
+
+  try {
+    const res = await fetch(`/api/estudiantes/${currentParentChild.id}/recarga`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        monto,
+        comprobante: 'SINPE-PADRE',
+        descripcion: `Recarga SINPE Móvil por Padre/Madre para ${currentParentChild.nombre_completo}`
+      })
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error);
+
+    if (window.sounds) window.sounds.playCoin();
+    alert(`🎉 ¡Recarga Exitosa!\nSe agregaron ₡${monto.toLocaleString('es-CR')} al monedero de ${currentParentChild.nombre_completo}.\nNuevo Saldo: ₡${data.saldo_nuevo.toLocaleString('es-CR')}`);
+
+    if (input) input.value = '';
+    await loadParentDashboard();
+  } catch (err) {
+    if (window.sounds) window.sounds.playError();
+    alert(`❌ Error al procesar recarga SINPE: ${err.message}`);
+  }
+}
+
+function setParentLimitPreset(amt) {
+  const input = document.getElementById('inputParentCustomLimit');
+  const range = document.getElementById('rangeParentLimit');
+  const lbl = document.getElementById('lblParentDailyLimitDisplay');
+  if (input) input.value = amt;
+  if (range) range.value = amt;
+  if (lbl) lbl.textContent = `₡${parseInt(amt, 10).toLocaleString('es-CR')}`;
+  if (window.sounds) window.sounds.playTap();
+}
+
+function onParentLimitSliderChange(val) {
+  const input = document.getElementById('inputParentCustomLimit');
+  const lbl = document.getElementById('lblParentDailyLimitDisplay');
+  if (input) input.value = val;
+  if (lbl) lbl.textContent = `₡${parseInt(val, 10).toLocaleString('es-CR')}`;
+}
+
+async function saveParentCustomLimit() {
+  if (!currentParentChild) return;
+  const input = document.getElementById('inputParentCustomLimit');
+  const val = parseInt(input ? input.value : 0, 10);
+
+  if (isNaN(val) || val < 500) {
+    alert('El límite diario debe ser de al menos ₡500.');
+    return;
+  }
+
+  try {
+    const res = await fetch(`/api/estudiantes/${currentParentChild.id}/limite`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ limite_diario_colones: val })
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error);
+
+    currentParentChild.limite_diario_colones = val;
+    if (window.sounds) window.sounds.playSuccess();
+    alert(`🛡️ Límite diario actualizado a ₡${val.toLocaleString('es-CR')} para ${currentParentChild.nombre_completo}.`);
+    await loadParentDashboard();
+  } catch (err) {
+    if (window.sounds) window.sounds.playError();
+    alert(`❌ Error al guardar límite: ${err.message}`);
+  }
+}
+
+async function onToggleParentTransfer(checked) {
+  if (!currentParentChild) return;
+
+  try {
+    const res = await fetch(`/api/estudiantes/${currentParentChild.id}/limite`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ permitir_transferencias: checked ? 1 : 0 })
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error);
+
+    currentParentChild.permitir_transferencias = checked ? 1 : 0;
+    if (window.sounds) window.sounds.playTap();
+  } catch (err) {
+    alert(`❌ No se pudo actualizar permiso de transferencia: ${err.message}`);
+  }
+}
+
+async function saveParentStudentCredentials() {
+  if (!currentParentChild) return;
+  const pinInput = document.getElementById('inputParentStudentPin');
+  const passInput = document.getElementById('inputParentStudentPass');
+  const pin = pinInput ? pinInput.value.trim() : '';
+  const pass = passInput ? passInput.value.trim() : '';
 
   if (!pin && !pass) {
-    alert('Ingresa al menos un nuevo PIN o una nueva contraseña para actualizar.');
+    alert('Ingresa al menos un nuevo PIN o una nueva contraseña.');
     return;
   }
 
@@ -1417,22 +1735,178 @@ async function saveParentChildAccess() {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        estudiante_id: currentStudent.id,
+        estudiante_id: currentParentChild.id,
         nuevo_pin: pin || undefined,
         nuevo_password: pass || undefined
       })
     });
-
     const data = await res.json();
     if (!res.ok) throw new Error(data.error);
 
     if (window.sounds) window.sounds.playSuccess();
-    alert(`✅ ¡Credenciales actualizadas!\n${data.mensaje}`);
-    document.getElementById('inputParentNewPin').value = '';
-    document.getElementById('inputParentNewPass').value = '';
+    alert(`✅ ¡Credenciales de acceso escolar actualizadas!\n${data.mensaje}`);
+    if (pinInput) pinInput.value = '';
+    if (passInput) passInput.value = '';
   } catch (err) {
     if (window.sounds) window.sounds.playError();
-    alert(`❌ Error actualizando credenciales: ${err.message}`);
+    alert(`❌ Error al actualizar credenciales: ${err.message}`);
+  }
+}
+
+function switchToSodaMenuAsParent() {
+  if (!currentParentChild && currentUser.hijos && currentUser.hijos.length > 0) {
+    currentParentChild = currentUser.hijos[0];
+  }
+  if (currentParentChild) {
+    selectStudent(currentParentChild.id);
+  }
+  const viewPadres = document.getElementById('viewPadres');
+  const appContainer = document.getElementById('appContainer');
+  const bottomNav = document.getElementById('pwaBottomNav');
+  const btnPadres = document.getElementById('btnModePadres');
+  if (viewPadres) viewPadres.style.display = 'none';
+  if (appContainer) appContainer.style.display = 'block';
+  if (bottomNav) bottomNav.style.display = 'flex';
+  if (btnPadres) {
+    btnPadres.style.display = 'inline-block';
+    btnPadres.innerHTML = '⬅ Portal Padres';
+    btnPadres.onclick = () => returnToParentDashboard();
+  }
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function returnToParentDashboard() {
+  const viewPadres = document.getElementById('viewPadres');
+  const appContainer = document.getElementById('appContainer');
+  const bottomNav = document.getElementById('pwaBottomNav');
+  if (viewPadres) viewPadres.style.display = 'block';
+  if (appContainer) appContainer.style.display = 'none';
+  if (bottomNav) bottomNav.style.display = 'none';
+  loadParentDashboard();
+}
+
+// ==========================================
+// ESCANEO QR Y VINCULACIÓN DE ESTUDIANTES PARA PADRES
+// ==========================================
+
+function openScanChildQrModal() {
+  const modal = document.getElementById('modalScanChildQr');
+  if (modal) modal.style.display = 'flex';
+  const input = document.getElementById('inputManualStudentCode');
+  if (input) input.value = '';
+  startScanChildCamera();
+}
+
+function closeScanChildQrModal(event) {
+  if (event && event.target && event.target.id !== 'modalScanChildQr') {
+    return;
+  }
+  stopScanChildCamera();
+  const modal = document.getElementById('modalScanChildQr');
+  if (modal) modal.style.display = 'none';
+}
+
+async function startScanChildCamera() {
+  stopScanChildCamera();
+  const video = document.getElementById('videoScanChild');
+  const canvas = document.getElementById('canvasScanChild');
+  if (!video || !canvas) return;
+
+  try {
+    scanChildStream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode: 'environment', width: { ideal: 640 }, height: { ideal: 480 } }
+    });
+    video.srcObject = scanChildStream;
+    video.setAttribute('playsinline', true);
+    await video.play();
+
+    const ctx = canvas.getContext('2d', { willReadFrequently: true });
+
+    function scanFrame() {
+      if (video.readyState === video.HAVE_ENOUGH_DATA) {
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+        const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+        if (window.jsQR) {
+          const code = window.jsQR(imageData.data, imageData.width, imageData.height, {
+            inversionAttempts: 'dontInvert'
+          });
+          if (code && code.data) {
+            handleChildQrDetected(code.data);
+            return;
+          }
+        }
+      }
+      scanChildAnimId = requestAnimationFrame(scanFrame);
+    }
+    scanChildAnimId = requestAnimationFrame(scanFrame);
+  } catch (err) {
+    console.warn('Cámara no disponible para escaneo de carné:', err);
+  }
+}
+
+function stopScanChildCamera() {
+  if (scanChildAnimId) {
+    cancelAnimationFrame(scanChildAnimId);
+    scanChildAnimId = null;
+  }
+  if (scanChildStream) {
+    scanChildStream.getTracks().forEach(t => t.stop());
+    scanChildStream = null;
+  }
+}
+
+async function handleChildQrDetected(token) {
+  stopScanChildCamera();
+  if (window.sounds) window.sounds.playBeep();
+  await linkStudentToParentAccount(token);
+}
+
+function submitManualStudentLink() {
+  const input = document.getElementById('inputManualStudentCode');
+  const val = input ? input.value.trim() : '';
+  if (!val) {
+    alert('Por favor ingresa el carné o token del estudiante.');
+    return;
+  }
+  linkStudentToParentAccount(val);
+}
+
+async function linkStudentToParentAccount(tokenOrCode) {
+  if (!currentUser || !currentUser.id) {
+    alert('Debes iniciar sesión como padre para vincular un estudiante.');
+    return;
+  }
+
+  try {
+    const res = await fetch('/api/padres/vincular-hijo', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        padre_usuario_id: currentUser.id,
+        qr_token_o_codigo: tokenOrCode
+      })
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error);
+
+    currentUser.hijos = data.hijos;
+    localStorage.setItem('recreopay_user', JSON.stringify(currentUser));
+    currentParentChild = data.estudiante;
+
+    closeScanChildQrModal();
+    if (window.sounds) window.sounds.playSuccess();
+    alert(`🎉 ¡Éxito!\n${data.mensaje}`);
+    renderParentDashboardView();
+  } catch (err) {
+    if (window.sounds) window.sounds.playError();
+    alert(`❌ ${err.message}`);
+    // Reiniciar cámara si el modal sigue abierto
+    const modal = document.getElementById('modalScanChildQr');
+    if (modal && modal.style.display !== 'none') {
+      startScanChildCamera();
+    }
   }
 }
 
@@ -1717,17 +2191,246 @@ async function submitNewStudent(event) {
   }
 }
 
+// ==========================================
+// BUSCADOR INTELIGENTE Y RECARGA EN CAJA (ADMIN)
+// ==========================================
+
+function setupAdminSmartSearch() {
+  if (students && students.length > 0) {
+    populateAdminRecargaStudents(students);
+    if (!adminSelectedStudent) {
+      selectAdminStudent(students[0].id);
+    }
+  }
+}
+
 function populateAdminRecargaStudents(list) {
   const sel = document.getElementById('adminRecargaStudentSelect');
   if (!sel) return;
-  sel.innerHTML = list.map(s => `
-    <option value="${s.id}">${s.nombre_completo} (Saldo actual: ₡${s.saldo_colones.toLocaleString('es-CR')})</option>
+  sel.innerHTML = (list || []).map(s => `
+    <option value="${s.id}">${s.nombre_completo} (Saldo actual: ₡${(s.saldo_colones || 0).toLocaleString('es-CR')})</option>
   `).join('');
+
+  if (list && list.length > 0 && !adminSelectedStudent) {
+    selectAdminStudent(list[0].id);
+  }
+}
+
+function onAdminSearchStudent(query) {
+  const q = (query || '').trim().toLowerCase();
+  const dropdown = document.getElementById('adminSearchResultsDropdown');
+  const btnClear = document.getElementById('btnClearAdminSearch');
+
+  if (btnClear) btnClear.style.display = q.length > 0 ? 'block' : 'none';
+  if (!dropdown) return;
+
+  if (q.length === 0) {
+    dropdown.style.display = 'none';
+    dropdown.innerHTML = '';
+    return;
+  }
+
+  const results = (students || []).filter(s => {
+    const nombre = (s.nombre_completo || '').toLowerCase();
+    const codigo = (s.codigo_estudiante || '').toLowerCase();
+    const grado = `${s.grado || ''} ${s.seccion || ''}`.toLowerCase();
+    return nombre.includes(q) || codigo.includes(q) || grado.includes(q);
+  });
+
+  if (results.length === 0) {
+    dropdown.innerHTML = `
+      <div style="padding: 12px; text-align: center; color: var(--text-muted); font-size: 0.8rem;">
+        No se encontró ningún estudiante con "<strong>${query}</strong>"
+      </div>
+    `;
+    dropdown.style.display = 'block';
+    return;
+  }
+
+  dropdown.innerHTML = results.map(s => `
+    <div class="admin-search-item" onclick="selectAdminStudent(${s.id})">
+      <img src="${s.foto_url || '/img/avatar_default.png'}" style="width: 36px; height: 36px; border-radius: 50%; object-fit: cover; border: 1.5px solid #0284c7; flex-shrink: 0;">
+      <div style="min-width: 0; flex: 1;">
+        <strong style="font-size: 0.88rem; color: var(--text-main); display: block; word-break: break-word;">${s.nombre_completo}</strong>
+        <span style="font-size: 0.72rem; color: var(--text-muted);">${s.grado} - Sec. ${s.seccion} • Cód: ${s.codigo_estudiante}</span>
+      </div>
+      <div style="text-align: right; flex-shrink: 0;">
+        <span style="font-size: 0.65rem; color: var(--text-muted); display: block; text-transform: uppercase;">Saldo</span>
+        <strong style="font-size: 0.95rem; color: #10b981;">₡${(s.saldo_colones || 0).toLocaleString('es-CR')}</strong>
+      </div>
+    </div>
+  `).join('');
+  dropdown.style.display = 'block';
+}
+
+function clearAdminSearchStudent() {
+  const input = document.getElementById('inputAdminSearchStudent');
+  const btnClear = document.getElementById('btnClearAdminSearch');
+  const dropdown = document.getElementById('adminSearchResultsDropdown');
+  if (input) input.value = '';
+  if (btnClear) btnClear.style.display = 'none';
+  if (dropdown) {
+    dropdown.style.display = 'none';
+    dropdown.innerHTML = '';
+  }
+}
+
+function onAdminSelectChange(studentId) {
+  selectAdminStudent(parseInt(studentId, 10));
+}
+
+function selectAdminStudent(studentId) {
+  const id = parseInt(studentId, 10);
+  const student = (students || []).find(s => s.id === id);
+  if (!student) return;
+
+  adminSelectedStudent = student;
+
+  const sel = document.getElementById('adminRecargaStudentSelect');
+  if (sel) sel.value = String(student.id);
+
+  const banner = document.getElementById('adminSelectedStudentBanner');
+  const avatar = document.getElementById('adminSelectedAvatar');
+  const name = document.getElementById('adminSelectedName');
+  const statusBadge = document.getElementById('adminSelectedStatusBadge');
+  const meta = document.getElementById('adminSelectedMeta');
+  const balance = document.getElementById('adminSelectedBalance');
+  const searchInput = document.getElementById('inputAdminSearchStudent');
+  const dropdown = document.getElementById('adminSearchResultsDropdown');
+
+  if (banner) banner.style.display = 'flex';
+  if (avatar) avatar.src = student.foto_url || '/img/avatar_default.png';
+  if (name) name.textContent = student.nombre_completo;
+  if (statusBadge) {
+    if (student.tarjeta_bloqueada) {
+      statusBadge.textContent = 'BLOQUEADA';
+      statusBadge.style.background = '#fee2e2';
+      statusBadge.style.color = '#dc2626';
+    } else {
+      statusBadge.textContent = 'ACTIVA';
+      statusBadge.style.background = '#dcfce7';
+      statusBadge.style.color = '#166534';
+    }
+  }
+  if (meta) meta.textContent = `${student.grado} - Sección ${student.seccion} • Cód: ${student.codigo_estudiante}`;
+  if (balance) balance.textContent = `₡${(student.saldo_colones || 0).toLocaleString('es-CR')}`;
+
+  if (searchInput) searchInput.value = student.nombre_completo;
+  if (dropdown) dropdown.style.display = 'none';
+
+  const montoInput = document.getElementById('adminRecargaMonto');
+  if (montoInput) montoInput.focus();
+}
+
+// ESCANEO QR CON CÁMARA EN MOSTRADOR DE SODA (ADMIN)
+function openAdminScanQrModal() {
+  const modal = document.getElementById('modalAdminScanQr');
+  if (modal) modal.style.display = 'flex';
+  startScanAdminCamera();
+}
+
+function closeAdminScanQrModal(event) {
+  if (event && event.target && event.target.id !== 'modalAdminScanQr') {
+    return;
+  }
+  stopScanAdminCamera();
+  const modal = document.getElementById('modalAdminScanQr');
+  if (modal) modal.style.display = 'none';
+}
+
+async function startScanAdminCamera() {
+  stopScanAdminCamera();
+  const video = document.getElementById('videoAdminScan');
+  const canvas = document.getElementById('canvasAdminScan');
+  if (!video || !canvas) return;
+
+  try {
+    scanAdminStream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode: 'environment', width: { ideal: 640 }, height: { ideal: 480 } }
+    });
+    video.srcObject = scanAdminStream;
+    video.setAttribute('playsinline', true);
+    await video.play();
+
+    const ctx = canvas.getContext('2d', { willReadFrequently: true });
+
+    function scanFrame() {
+      if (video.readyState === video.HAVE_ENOUGH_DATA) {
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+        const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+        if (window.jsQR) {
+          const code = window.jsQR(imageData.data, imageData.width, imageData.height, {
+            inversionAttempts: 'dontInvert'
+          });
+          if (code && code.data) {
+            handleAdminQrDetected(code.data);
+            return;
+          }
+        }
+      }
+      scanAdminAnimId = requestAnimationFrame(scanFrame);
+    }
+    scanAdminAnimId = requestAnimationFrame(scanFrame);
+  } catch (err) {
+    console.warn('Cámara de mostrador no disponible:', err);
+  }
+}
+
+function stopScanAdminCamera() {
+  if (scanAdminAnimId) {
+    cancelAnimationFrame(scanAdminAnimId);
+    scanAdminAnimId = null;
+  }
+  if (scanAdminStream) {
+    scanAdminStream.getTracks().forEach(t => t.stop());
+    scanAdminStream = null;
+  }
+}
+
+async function handleAdminQrDetected(token) {
+  stopScanAdminCamera();
+  const modal = document.getElementById('modalAdminScanQr');
+  if (modal) modal.style.display = 'none';
+  if (window.sounds) window.sounds.playBeep();
+
+  const clean = String(token).trim().toLowerCase();
+  let student = (students || []).find(s => 
+    (s.qr_token && s.qr_token.toLowerCase() === clean) ||
+    (s.codigo_estudiante && s.codigo_estudiante.toLowerCase() === clean)
+  );
+
+  if (student) {
+    selectAdminStudent(student.id);
+    if (window.sounds) window.sounds.playSuccess();
+    return;
+  }
+
+  // Si no está en cache local, buscarlo en el servidor
+  try {
+    const res = await fetch(`/api/estudiantes/qr/${encodeURIComponent(token)}`);
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error);
+
+    student = data;
+    const idx = (students || []).findIndex(s => s.id === student.id);
+    if (idx >= 0) students[idx] = student;
+    else students.push(student);
+
+    populateAdminRecargaStudents(students);
+    selectAdminStudent(student.id);
+    if (window.sounds) window.sounds.playSuccess();
+  } catch (err) {
+    if (window.sounds) window.sounds.playError();
+    alert(`❌ Estudiante no encontrado por QR: ${err.message}`);
+  }
 }
 
 function setAdminRecargaPreset(amt) {
   const input = document.getElementById('adminRecargaMonto');
   if (input) input.value = amt;
+  if (window.sounds) window.sounds.playTap();
 }
 
 async function submitAdminManualRecharge() {
@@ -1736,11 +2439,14 @@ async function submitAdminManualRecharge() {
   const inputDesc = document.getElementById('adminRecargaDescripcion');
   const btn = document.getElementById('btnAdminSubmitRecarga');
 
-  if (!sel || !inputMonto) return;
-
-  const studentId = parseInt(sel.value, 10);
-  const monto = parseInt(inputMonto.value, 10);
+  let studentId = adminSelectedStudent ? adminSelectedStudent.id : (sel ? parseInt(sel.value, 10) : null);
+  const monto = parseInt(inputMonto ? inputMonto.value : 0, 10);
   const descripcion = inputDesc ? inputDesc.value.trim() : '';
+
+  if (!studentId) {
+    alert('Por favor selecciona un estudiante antes de aplicar la recarga.');
+    return;
+  }
 
   if (isNaN(monto) || monto <= 0) {
     alert('Ingresa un monto válido mayor a ₡0 para recargar.');
@@ -1756,7 +2462,7 @@ async function submitAdminManualRecharge() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         monto,
-        descripcion,
+        descripcion: descripcion || 'Pago en efectivo en mostrador de soda',
         metodo: 'Efectivo en mostrador'
       })
     });
@@ -1769,7 +2475,16 @@ async function submitAdminManualRecharge() {
 
     inputMonto.value = '';
     if (inputDesc) inputDesc.value = '';
+
+    // Actualizar datos del estudiante en cache y banner
+    if (adminSelectedStudent && adminSelectedStudent.id === studentId) {
+      adminSelectedStudent.saldo_colones = data.saldo_nuevo;
+      const balanceEl = document.getElementById('adminSelectedBalance');
+      if (balanceEl) balanceEl.textContent = `₡${data.saldo_nuevo.toLocaleString('es-CR')}`;
+    }
+
     await loadAdminData();
+    populateAdminRecargaStudents(students);
   } catch (err) {
     if (window.sounds) window.sounds.playError();
     alert(`❌ Error al recargar: ${err.message}`);

@@ -121,6 +121,23 @@ function initDatabase() {
   try { db.exec('UPDATE productos SET control_stock = 1 WHERE control_stock IS NULL OR control_stock = 0'); } catch (e) {}
   try { db.exec('UPDATE productos SET stock = 10 WHERE stock IS NULL'); } catch (e) {}
 
+  // 8. Relación N:M Padres - Estudiantes
+  try {
+    db.exec(`
+      CREATE TABLE IF NOT EXISTS padres_estudiantes (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        padre_usuario_id INTEGER NOT NULL REFERENCES usuarios(id) ON DELETE CASCADE,
+        estudiante_id INTEGER NOT NULL REFERENCES estudiantes(id) ON DELETE CASCADE,
+        creado_en DATETIME DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE(padre_usuario_id, estudiante_id)
+      );
+    `);
+    db.exec(`
+      INSERT OR IGNORE INTO padres_estudiantes (padre_usuario_id, estudiante_id)
+      SELECT padre_usuario_id, id FROM estudiantes WHERE padre_usuario_id IS NOT NULL;
+    `);
+  } catch (e) {}
+
   seedInitialData();
   seedUsuarios();
 }

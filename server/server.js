@@ -77,9 +77,15 @@ app.post('/api/auth/login', (req, res) => {
         estudiante = db.prepare('SELECT * FROM estudiantes ORDER BY id ASC LIMIT 1').get();
       }
     } else if (user.rol === 'padre') {
-      hijos = db.prepare('SELECT * FROM estudiantes WHERE padre_usuario_id = ?').all(user.id);
+      hijos = db.prepare(`
+        SELECT e.* 
+        FROM estudiantes e
+        JOIN padres_estudiantes pe ON e.id = pe.estudiante_id
+        WHERE pe.padre_usuario_id = ?
+        ORDER BY e.nombre_completo ASC
+      `).all(user.id);
       if (hijos.length === 0) {
-        hijos = db.prepare('SELECT * FROM estudiantes WHERE id IN (1, 2)').all();
+        hijos = db.prepare('SELECT * FROM estudiantes WHERE padre_usuario_id = ?').all(user.id);
       }
     }
 
@@ -96,6 +102,135 @@ app.post('/api/auth/login', (req, res) => {
       estudiante,
       hijos
     });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Registro de nuevos padres desde la pantalla de bienvenida
+app.post('/api/auth/register-padre', (req, res) => {
+  try {
+    const { nombre, telefono, email, username, password } = req.body;
+    if (!nombre || !username || !password) {
+      return res.status(400).json({ error: 'Nombre completo, usuario y contraseña son requeridos' });
+    }
+
+    const cleanUser = String(username).trim().toLowerCase();
+    const cleanPass = String(password).trim();
+    const cleanNombre = String(nombre).trim();
+    const cleanTel = telefono ? String(telefono).trim() : '';
+    const cleanEmail = email ? String(email).trim().toLowerCase() : '';
+
+    if (cleanUser.length < 3) {
+      return res.status(400).json({ error: 'El nombre de usuario debe tener al menos 3 caracteres' });
+    }
+    if (cleanPass.length < 4) {
+      return res.status(400).json({ error: 'La contraseña debe tener al menos 4 caracteres' });
+    }
+
+    // Comprobar si el usuario ya existe
+    const exists = db.prepare('SELECT id FROM usuarios WHERE LOWER(username) = ?').get(cleanUser);
+    if (exists) {
+      return res.status(400).json({ error: 'Ese nombre de usuario ya está en uso. Por favor elige otro.' });
+    }
+
+    const insert = db.prepare(`
+      INSERT INTO usuarios (username, password_hash, rol, nombre, telefono, email)
+      VALUES (?, ?, 'padre', ?, ?, ?)
+    `);
+    const result = insert.run(cleanUser, cleanPass, cleanNombre, cleanTel, cleanEmail);
+
+    const newUser = {
+      id: result.lastInsertRowid,
+      username: cleanUser,
+      rol: 'padre',
+      nombre: cleanNombre,
+      telefono: cleanTel,
+      email: cleanEmail
+    };
+
+    res.json({
+      success: true,
+      user: newUser,
+      hijos: []
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Vincular estudiante a la cuenta de padre mediante QR o código de carné
+app.post('/api/padres/vincular-hijo', (req, res) => {
+  try {
+    const { padre_usuario_id, qr_token_o_codigo } = req.body;
+    if (!padre_usuario_id || !qr_token_o_codigo) {
+      return res.status(400).json({ error: 'Faltan datos de vinculación (ID de padre o código)' });
+    }
+
+    const cleanQuery = String(qr_token_o_codigo).trim();
+
+    // Buscar al estudiante por qr_token o codigo_estudiante o id
+    const est = db.prepare(`
+      SELECT * FROM estudiantes 
+      WHERE qr_token = ? OR codigo_estudiante = ? OR LOWER(codigo_estudiante) = LOWER(?)
+    `).get(cleanQuery, cleanQuery, cleanQuery);
+
+    if (!est) {
+      return res.status(404).json({ error: 'No se encontró ningún estudiante con ese código QR o número de carné. Verifica que el código sea correcto.' });
+    }
+
+    // Insertar en tabla padres_estudiantes (permite vinculación múltiple para ambos padres)
+    db.prepare(`
+      INSERT OR IGNORE INTO padres_estudiantes (padre_usuario_id, estudiante_id)
+      VALUES (?, ?)
+    `).run(padre_usuario_id, est.id);
+
+    // Actualizar también campo legacy en caso de ser el primer padre
+    if (!est.padre_usuario_id) {
+      db.prepare('UPDATE estudiantes SET padre_usuario_id = ? WHERE id = ?').run(padre_usuario_id, est.id);
+    }
+
+    // Devolver lista completa actualizada de hijos del padre
+    const hijos = db.prepare(`
+      SELECT e.* 
+      FROM estudiantes e
+      JOIN padres_estudiantes pe ON e.id = pe.estudiante_id
+      WHERE pe.padre_usuario_id = ?
+      ORDER BY e.nombre_completo ASC
+    `).all(padre_usuario_id);
+
+    res.json({
+      success: true,
+      mensaje: `¡Estudiante ${est.nombre_completo} vinculado con éxito!`,
+      estudiante: est,
+      hijos
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Consultar lista en tiempo real de hijos vinculados
+app.get('/api/padres/mis-hijos', (req, res) => {
+  try {
+    const { padre_usuario_id } = req.query;
+    if (!padre_usuario_id) {
+      return res.status(400).json({ error: 'Falta padre_usuario_id' });
+    }
+
+    let hijos = db.prepare(`
+      SELECT e.* 
+      FROM estudiantes e
+      JOIN padres_estudiantes pe ON e.id = pe.estudiante_id
+      WHERE pe.padre_usuario_id = ?
+      ORDER BY e.nombre_completo ASC
+    `).all(padre_usuario_id);
+
+    if (hijos.length === 0) {
+      hijos = db.prepare('SELECT * FROM estudiantes WHERE padre_usuario_id = ?').all(padre_usuario_id);
+    }
+
+    res.json({ success: true, hijos });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -452,7 +587,8 @@ app.get('/api/estudiantes/:id', (req, res) => {
 app.get('/api/estudiantes/qr/:token', (req, res) => {
   try {
     const { token } = req.params;
-    const est = db.prepare('SELECT * FROM estudiantes WHERE qr_token = ? OR codigo_estudiante = ?').get(token, token);
+    const cleanToken = String(token).trim();
+    const est = db.prepare('SELECT * FROM estudiantes WHERE qr_token = ? OR codigo_estudiante = ? OR LOWER(codigo_estudiante) = LOWER(?)').get(cleanToken, cleanToken, cleanToken);
     if (!est) {
       return res.status(404).json({ error: 'Código QR no reconocido en la base de datos de la escuela' });
     }
@@ -638,7 +774,7 @@ app.post('/api/ordenes', (req, res) => {
 // Listar órdenes (con filtro por estado o tipo)
 app.get('/api/ordenes', (req, res) => {
   try {
-    const { estado, tipo } = req.query;
+    const { estado, tipo, estudiante_id } = req.query;
     let query = `
       SELECT o.*, e.nombre_completo as estudiante_nombre, e.grado, e.seccion, e.foto_url,
         (SELECT json_group_array(json_object('producto_id', p.id, 'nombre', p.nombre, 'icono', p.icono, 'cantidad', d.cantidad, 'precio_unitario', d.precio_unitario, 'subtotal', d.subtotal))
@@ -649,6 +785,10 @@ app.get('/api/ordenes', (req, res) => {
     `;
     const params = [];
 
+    if (estudiante_id) {
+      query += ' AND o.estudiante_id = ?';
+      params.push(estudiante_id);
+    }
     if (estado) {
       query += ' AND o.estado = ?';
       params.push(estado);
