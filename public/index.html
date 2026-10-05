@@ -23,18 +23,22 @@
   <div id="viewLogin" class="login-overlay" style="display: none;">
     <div class="login-card">
       <div class="login-brand">
-        <div class="login-logo">🥪</div>
+        <div class="login-logo">
+          <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="#0284c7" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="14" x="2" y="5" rx="2"/><line x1="2" x2="22" y1="10" y2="10"/><circle cx="7" cy="15" r="1"/></svg>
+        </div>
         <h1 class="login-title">Recreo<strong>Pay</strong></h1>
         <p class="login-subtitle">Sistema Digital de Soda Escolar y Monedero Estudiantil</p>
       </div>
 
       <!-- SELECTOR ENTRE INICIO DE SESIÓN Y REGISTRO -->
       <div class="login-tabs">
-        <button type="button" class="login-tab-btn active" id="tabBtnLogin" onclick="switchLoginTab('login')">
-          🔑 Iniciar Sesión
+        <button type="button" class="login-tab-btn active" id="tabBtnLogin" onclick="switchLoginTab('login')" style="display: inline-flex; align-items: center; justify-content: center; gap: 8px;">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" x2="3" y1="12" y2="12"/></svg>
+          <span>Iniciar Sesión</span>
         </button>
-        <button type="button" class="login-tab-btn" id="tabBtnRegister" onclick="switchLoginTab('register')">
-          👨‍👩‍👦 Registro de Padres
+        <button type="button" class="login-tab-btn" id="tabBtnRegister" onclick="switchLoginTab('register')" style="display: inline-flex; align-items: center; justify-content: center; gap: 8px;">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" x2="19" y1="8" y2="14"/><line x1="22" x2="16" y1="11" y2="11"/></svg>
+          <span>Registro de Padres</span>
         </button>
       </div>
 
@@ -52,8 +56,9 @@
 
         <div id="loginErrorMsg" style="display: none; background: #fee2e2; border: 1px solid #fca5a5; color: #991b1b; padding: 8px 12px; border-radius: 10px; font-size: 0.8rem; font-weight: 700; margin-bottom: 12px; text-align: center;"></div>
 
-        <button type="submit" id="btnLoginSubmit" class="login-submit-btn">
-          🚀 Iniciar Sesión
+        <button type="submit" id="btnLoginSubmit" class="login-submit-btn" style="display: flex; align-items: center; justify-content: center; gap: 8px;">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" x2="3" y1="12" y2="12"/></svg>
+          <span>Iniciar Sesión</span>
         </button>
       </form>
 
@@ -81,8 +86,9 @@
 
         <div id="registerErrorMsg" style="display: none; background: #fee2e2; border: 1px solid #fca5a5; color: #991b1b; padding: 8px 12px; border-radius: 10px; font-size: 0.8rem; font-weight: 700; margin-bottom: 12px; text-align: center;"></div>
 
-        <button type="submit" id="btnRegisterSubmit" class="login-submit-btn" style="background: linear-gradient(135deg, #10b981, #059669);">
-          ✨ Crear Cuenta y Entrar al Panel
+        <button type="submit" id="btnRegisterSubmit" class="login-submit-btn" style="background: linear-gradient(135deg, #10b981, #059669); display: flex; align-items: center; justify-content: center; gap: 8px;">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M19 11v6"/><path d="M22 14h-6"/></svg>
+          <span>Crear Cuenta y Entrar al Panel</span>
         </button>
       </form>
 
@@ -91,27 +97,27 @@
         <div class="login-demo-title">Accesos Rápidos de Prueba:</div>
         <div class="login-demo-btns">
           <button type="button" class="login-demo-btn" onclick="quickFillLogin('dev', 'dev123')" style="border: 1.5px solid #8b5cf6; background: rgba(139, 92, 246, 0.08);">
-            <span style="font-size: 1.3rem;">🛠️</span>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#8b5cf6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
             <span style="color: #8b5cf6; font-weight: 800;">Developer</span>
           </button>
           <button type="button" class="login-demo-btn" onclick="quickFillLogin('admin', 'admin123')">
-            <span style="font-size: 1.3rem;">👨‍🍳</span>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
             <span>Admin Soda</span>
           </button>
           <button type="button" class="login-demo-btn" onclick="quickFillLogin('cajero', 'cajero123')">
-            <span style="font-size: 1.3rem;">🪙</span>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="14" x="2" y="5" rx="2"/><line x1="2" x2="22" y1="10" y2="10"/></svg>
             <span>Cajero</span>
           </button>
           <button type="button" class="login-demo-btn" onclick="quickFillLogin('padre', 'padre123')">
-            <span style="font-size: 1.3rem;">👨‍👩‍👦</span>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
             <span>Padre</span>
           </button>
           <button type="button" class="login-demo-btn" onclick="quickFillLogin('mateo', '1234')">
-            <span style="font-size: 1.3rem;">🎒</span>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
             <span>Mateo (2°)</span>
           </button>
           <button type="button" class="login-demo-btn" onclick="quickFillLogin('sofia', '1234')">
-            <span style="font-size: 1.3rem;">👧</span>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
             <span>Sofía (3°)</span>
           </button>
         </div>
@@ -124,7 +130,9 @@
     <!-- CABECERA DE DEVELOPER -->
     <header class="dev-header">
       <div class="dev-badge">
-        <div class="dev-icon">🛠️</div>
+        <div class="dev-icon">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+        </div>
         <div>
           <div style="display: flex; align-items: center; gap: 8px;">
             <h2 style="font-size: 1.18rem; font-weight: 900; margin: 0; color: var(--text-main);">Developer Master Suite</h2>
@@ -135,34 +143,41 @@
       </div>
 
       <div class="dev-header-actions">
-        <button onclick="toggleTheme()" class="theme-toggle-btn" title="Alternar Modo Oscuro / Claro">
-          🌙
+        <button onclick="toggleTheme()" class="theme-toggle-btn" title="Alternar Modo Oscuro / Claro" style="display: inline-flex; align-items: center; justify-content: center;">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>
         </button>
-        <button onclick="switchDevToView('admin')" class="dev-action-btn" title="Ir al Panel de Soda">
-          <span>👨‍🍳</span> <span>Soda Admin</span>
+        <button onclick="switchDevToView('admin')" class="dev-action-btn" title="Ir al Panel de Soda" style="display: inline-flex; align-items: center; gap: 6px;">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+          <span>Soda Admin</span>
         </button>
-        <a href="/pos.html" target="_blank" class="dev-action-btn" title="Ir al Terminal de Caja POS">
-          <span>📟</span> <span>Caja POS</span>
+        <a href="/pos.html" target="_blank" class="dev-action-btn" title="Ir al Terminal de Caja POS" style="display: inline-flex; align-items: center; gap: 6px;">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="14" x="2" y="3" rx="2"/><line x1="8" x2="16" y1="21" y2="21"/><line x1="12" x2="12" y1="17" y2="21"/></svg>
+          <span>Caja POS</span>
         </a>
-        <button onclick="switchDevToView('student')" class="dev-action-btn" title="Probar Vista de Alumno">
-          <span>🎒</span> <span>App Alumno</span>
+        <button onclick="switchDevToView('student')" class="dev-action-btn" title="Probar Vista de Alumno" style="display: inline-flex; align-items: center; gap: 6px;">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="14" x="2" y="5" rx="2"/><line x1="2" x2="22" y1="10" y2="10"/></svg>
+          <span>App Alumno</span>
         </button>
-        <button onclick="logout(true)" class="dev-action-btn" style="color: #ef4444; border-color: rgba(239, 68, 68, 0.3);" title="Cerrar Sesión">
-          <span>🚪</span> <span>Salir</span>
+        <button onclick="logout(true)" class="dev-action-btn" style="color: #ef4444; border-color: rgba(239, 68, 68, 0.3); display: inline-flex; align-items: center; gap: 6px;" title="Cerrar Sesión">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" x2="9" y1="12" y2="12"/></svg>
+          <span>Salir</span>
         </button>
       </div>
     </header>
 
     <!-- NAVEGACIÓN DE PESTAÑAS DEVELOPER -->
     <nav class="dev-tabs-nav">
-      <button class="dev-tab-btn active" id="btnDevTabUsuarios" onclick="switchDevTab('usuarios')">
-        <span>👥</span> <span>Usuarios & Administradores</span>
+      <button class="dev-tab-btn active" id="btnDevTabUsuarios" onclick="switchDevTab('usuarios')" style="display: inline-flex; align-items: center; gap: 8px;">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+        <span>Usuarios & Administradores</span>
       </button>
-      <button class="dev-tab-btn" id="btnDevTabDisenos" onclick="switchDevTab('disenos')">
-        <span>🎨</span> <span>Diseños de Tarjetas (Subir & Gestionar)</span>
+      <button class="dev-tab-btn" id="btnDevTabDisenos" onclick="switchDevTab('disenos')" style="display: inline-flex; align-items: center; gap: 8px;">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="13.5" cy="6.5" r=".5" fill="currentColor"/><circle cx="17.5" cy="10.5" r=".5" fill="currentColor"/><circle cx="8.5" cy="7.5" r=".5" fill="currentColor"/><circle cx="6.5" cy="12.5" r=".5" fill="currentColor"/><path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.926 0 1.648-.746 1.648-1.688 0-.437-.18-.835-.437-1.125-.29-.289-.438-.652-.438-1.125a1.64 1.64 0 0 1 1.668-1.668h1.996c3.051 0 5.555-2.503 5.555-5.554C21.965 6.012 17.461 2 12 2z"/></svg>
+        <span>Diseños de Tarjetas (Subir & Gestionar)</span>
       </button>
-      <button class="dev-tab-btn" id="btnDevTabDiagnostico" onclick="switchDevTab('diagnostico')">
-        <span>📊</span> <span>Diagnóstico del Sistema & BD</span>
+      <button class="dev-tab-btn" id="btnDevTabDiagnostico" onclick="switchDevTab('diagnostico')" style="display: inline-flex; align-items: center; gap: 8px;">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+        <span>Diagnóstico del Sistema & BD</span>
       </button>
     </nav>
 
@@ -170,7 +185,7 @@
     <div id="devTabContentUsuarios" class="dev-tab-content">
       <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; flex-wrap: wrap; gap: 12px;">
         <div style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center;">
-          <input type="text" id="devUserSearchInput" placeholder="🔍 Buscar por nombre, usuario, rol..." oninput="filterDevUsuarios()" style="padding: 9px 14px; border-radius: 10px; border: 1.5px solid var(--border); background: var(--card-bg); color: var(--text-main); font-size: 0.85rem; width: 260px; max-width: 100%;">
+          <input type="text" id="devUserSearchInput" placeholder="Buscar por nombre, usuario, rol..." oninput="filterDevUsuarios()" style="padding: 9px 14px; border-radius: 10px; border: 1.5px solid var(--border); background: var(--card-bg); color: var(--text-main); font-size: 0.85rem; width: 260px; max-width: 100%;">
           <select id="devUserRoleFilter" onchange="filterDevUsuarios()" style="padding: 9px 12px; border-radius: 10px; border: 1.5px solid var(--border); background: var(--card-bg); color: var(--text-main); font-size: 0.85rem; font-weight: 700;">
             <option value="all">Todos los Roles</option>
             <option value="admin">Administradores</option>
@@ -181,8 +196,9 @@
             <option value="estudiante">Estudiantes</option>
           </select>
         </div>
-        <button onclick="openModalDevUser()" class="dev-action-btn dev-action-btn-primary" style="padding: 10px 18px; font-size: 0.88rem;">
-          <span>➕</span> <span>Crear Nuevo Usuario / Admin</span>
+        <button onclick="openModalDevUser()" class="dev-action-btn dev-action-btn-primary" style="padding: 10px 18px; font-size: 0.88rem; display: inline-flex; align-items: center; gap: 6px;">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" x2="19" y1="8" y2="14"/><line x1="22" x2="16" y1="11" y2="11"/></svg>
+          <span>Crear Nuevo Usuario / Admin</span>
         </button>
       </div>
 
@@ -220,7 +236,10 @@
       <div style="background: var(--card-bg); border: 1.5px solid var(--border); border-radius: 18px; padding: 22px; margin-bottom: 30px; box-shadow: 0 6px 20px rgba(0,0,0,0.05);">
         <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; flex-wrap: wrap; gap: 8px;">
           <div>
-            <h3 style="font-size: 1.15rem; font-weight: 900; margin: 0; color: var(--text-main);">➕ Subir Nuevo Diseño de Tarjeta</h3>
+            <h3 style="font-size: 1.15rem; font-weight: 900; margin: 0; color: var(--text-main); display: flex; align-items: center; gap: 8px;">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14"/><path d="M5 12h14"/></svg>
+              <span>Subir Nuevo Diseño de Tarjeta</span>
+            </h3>
             <p style="font-size: 0.84rem; color: var(--text-muted); margin: 3px 0 0;">Sube una imagen personalizada. Quedará disponible inmediatamente para que los estudiantes la elijan.</p>
           </div>
           <span style="font-size: 0.78rem; font-weight: 800; background: rgba(139, 92, 246, 0.15); color: #8b5cf6; padding: 4px 10px; border-radius: 8px;">Recomendado: 1200x756 (3:2)</span>
@@ -233,12 +252,14 @@
             <label for="devCardFileInput" class="dev-card-uploader-box" id="devUploadDropZone" style="display: block;">
               <input type="file" id="devCardFileInput" accept="image/*" style="display: none;" onchange="handleDevCardFileSelect(event)">
               <div id="devUploadPrompt">
-                <div style="font-size: 2.4rem; margin-bottom: 8px;">🖼️</div>
+                <div style="margin-bottom: 8px;">
+                  <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/></svg>
+                </div>
                 <div style="font-weight: 800; font-size: 0.95rem; color: var(--text-main); margin-bottom: 4px;">Toca o arrastra una imagen de tarjeta aquí</div>
                 <div style="font-size: 0.78rem; color: var(--text-muted);">Soporta JPG, PNG, WEBP o SVG (hasta 20MB)</div>
               </div>
               <div id="devUploadSuccess" style="display: none; color: #10b981; font-weight: 800; font-size: 0.88rem;">
-                <span>✅ Imagen seleccionada con éxito</span>
+                <span style="display: inline-flex; align-items: center; gap: 6px;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg> Imagen seleccionada con éxito</span>
                 <div id="devUploadFileName" style="font-size: 0.75rem; color: var(--text-muted); margin-top: 4px;"></div>
               </div>
             </label>
@@ -252,9 +273,9 @@
               <div>
                 <label style="font-size: 0.82rem; font-weight: 800; color: var(--text-main); display: block; margin-bottom: 5px;">Categoría:</label>
                 <select id="devCardCategory" style="width: 100%; padding: 10px 12px; border-radius: 10px; border: 1.5px solid var(--border); background: var(--bg-main); color: var(--text-main); font-weight: 700; box-sizing: border-box;" onchange="updateDevCardLivePreview()">
-                  <option value="uni">🌐 Unisex / Universal</option>
-                  <option value="fem">🌸 Femenino</option>
-                  <option value="masc">🚀 Masculino</option>
+                  <option value="uni">Unisex / Universal</option>
+                  <option value="fem">Femenino</option>
+                  <option value="masc">Masculino</option>
                 </select>
               </div>
 
@@ -267,15 +288,19 @@
               </div>
             </div>
 
-            <button type="submit" id="btnDevSubmitCard" class="dev-action-btn dev-action-btn-primary" style="width: 100%; padding: 12px; justify-content: center; font-size: 0.95rem; border-radius: 12px;">
-              <span>🚀</span> <span>Guardar y Publicar Diseño</span>
+            <button type="submit" id="btnDevSubmitCard" class="dev-action-btn dev-action-btn-primary" style="width: 100%; padding: 12px; justify-content: center; font-size: 0.95rem; border-radius: 12px; display: inline-flex; align-items: center; gap: 8px;">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" x2="12" y1="3" y2="15"/></svg>
+              <span>Guardar y Publicar Diseño</span>
             </button>
           </div>
 
           <!-- Columna Derecha: Previsualizador en vivo con datos reales de estudiante -->
           <div>
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-              <span style="font-size: 0.82rem; font-weight: 800; color: var(--text-main);">👁️ Previsualización en Vivo de la Tarjeta</span>
+              <span style="font-size: 0.82rem; font-weight: 800; color: var(--text-main); display: inline-flex; align-items: center; gap: 6px;">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
+                <span>Previsualización en Vivo de la Tarjeta</span>
+              </span>
               <span style="font-size: 0.72rem; color: #10b981; font-weight: 800;">✓ Sin asteriscos</span>
             </div>
 
@@ -312,14 +337,17 @@
       <!-- GALERÍA DE DISEÑOS DISPONIBLES EN EL SISTEMA -->
       <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; flex-wrap: wrap; gap: 10px;">
         <div>
-          <h3 style="font-size: 1.15rem; font-weight: 900; margin: 0; color: var(--text-main);">🖼️ Catálogo de Diseños Publicados (<span id="devDisenosCount">0</span>)</h3>
+          <h3 style="font-size: 1.15rem; font-weight: 900; margin: 0; color: var(--text-main); display: flex; align-items: center; gap: 8px;">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><line x1="3" x2="21" y1="9" y2="9"/><line x1="9" x2="9" y1="21" y2="9"/></svg>
+            <span>Catálogo de Diseños Publicados (<span id="devDisenosCount">0</span>)</span>
+          </h3>
           <p style="font-size: 0.82rem; color: var(--text-muted); margin: 3px 0 0;">Estos son los diseños que pueden elegir los estudiantes en su carrusel.</p>
         </div>
         <div style="display: flex; gap: 6px;">
           <button class="dev-action-btn" onclick="filterDevDisenosGrid('all', this)">Todos</button>
-          <button class="dev-action-btn" onclick="filterDevDisenosGrid('fem', this)">🌸 Femenino</button>
-          <button class="dev-action-btn" onclick="filterDevDisenosGrid('masc', this)">🚀 Masculino</button>
-          <button class="dev-action-btn" onclick="filterDevDisenosGrid('uni', this)">🌐 Unisex</button>
+          <button class="dev-action-btn" onclick="filterDevDisenosGrid('fem', this)">Femenino</button>
+          <button class="dev-action-btn" onclick="filterDevDisenosGrid('masc', this)">Masculino</button>
+          <button class="dev-action-btn" onclick="filterDevDisenosGrid('uni', this)">Unisex</button>
         </div>
       </div>
 
@@ -341,7 +369,9 @@
     <!-- CABECERA DE ADMINISTRADOR -->
     <header class="admin-header">
       <div class="admin-badge">
-        <div class="admin-icon">👨‍🍳</div>
+        <div class="admin-icon">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+        </div>
         <div>
           <h2 style="font-size: 1.15rem; font-weight: 900; margin: 0; color: var(--text-main);">Administración de la Soda</h2>
           <span id="adminLoggedName" style="font-size: 0.76rem; color: #0284c7; font-weight: 700;">Soda Escolar Central</span>
@@ -350,7 +380,7 @@
 
       <div class="admin-header-actions" style="display: flex; align-items: center; gap: 8px;">
         <button onclick="toggleTheme()" class="btn-saas btn-saas-outline" style="width: 34px; height: 34px; padding: 0;" title="Alternar Modo Oscuro / Modo Claro">
-          🌙
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>
         </button>
         <button id="btnAdminDevPanel" onclick="switchAdminToDev()" class="btn-saas btn-saas-outline" style="display: none; border-color: #8b5cf6; color: #8b5cf6; height: 34px;" title="Volver al Panel Developer Master">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m18 16 4-4-4-4"/><path d="m6 8-4 4 4 4"/><path d="m14.5 4-5 16"/></svg>
@@ -429,7 +459,7 @@
           </p>
         </div>
         <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
-          <input type="text" id="adminSearchProduct" placeholder="🔍 Buscar alimento o bebida..." oninput="filterAdminProducts(this.value)" style="padding: 8px 12px; border-radius: 8px; border: 1px solid var(--border); font-size: 0.85rem; width: 190px; background: var(--card-bg); color: var(--text-main); outline: none;">
+          <input type="text" id="adminSearchProduct" placeholder="Buscar alimento o bebida..." oninput="filterAdminProducts(this.value)" style="padding: 8px 12px; border-radius: 8px; border: 1px solid var(--border); font-size: 0.85rem; width: 190px; background: var(--card-bg); color: var(--text-main); outline: none;">
           <button type="button" onclick="openCreateProductModal()" class="btn-saas btn-saas-primary" style="height: 36px; padding: 0 14px; font-size: 0.84rem;">
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="M12 5v14"/></svg>
             <span>Nuevo Producto</span>
@@ -452,7 +482,7 @@
           </p>
         </div>
         <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
-          <input type="text" id="adminSearchStudentsTab2" placeholder="🔍 Filtrar alumnos..." oninput="filterAdminStudentsTab2(this.value)" style="padding: 8px 12px; border-radius: 8px; border: 1px solid var(--border); font-size: 0.85rem; width: 190px; background: var(--card-bg); color: var(--text-main); outline: none;">
+          <input type="text" id="adminSearchStudentsTab2" placeholder="Filtrar alumnos..." oninput="filterAdminStudentsTab2(this.value)" style="padding: 8px 12px; border-radius: 8px; border: 1px solid var(--border); font-size: 0.85rem; width: 190px; background: var(--card-bg); color: var(--text-main); outline: none;">
           <button onclick="openNewStudentModal()" class="btn-saas btn-saas-primary" style="height: 36px; padding: 0 14px; font-size: 0.84rem;">
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="M12 5v14"/></svg>
             <span>Nuevo Estudiante</span>
@@ -468,7 +498,9 @@
     <!-- TAB 3: CARGA MANUAL DE DINERO -->
     <div id="adminTabContentRecarga" class="admin-card" style="display: none; max-width: 550px; margin: 0 auto;">
       <div style="text-align: center; margin-bottom: 18px;">
-        <span style="font-size: 2.2rem;">💵</span>
+        <div style="width: 48px; height: 48px; border-radius: 12px; background: rgba(2, 132, 199, 0.1); color: #0284c7; display: flex; align-items: center; justify-content: center; margin: 0 auto 8px;">
+          <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="14" x="2" y="5" rx="2"/><line x1="2" x2="22" y1="10" y2="10"/></svg>
+        </div>
         <h3 style="margin: 6px 0 2px 0; font-size: 1.25rem; font-weight: 900; color: var(--text-main);">Carga Manual de Dinero</h3>
         <p style="margin: 0; font-size: 0.78rem; color: var(--text-muted);">
           Recarga de monedero estudiantil por pago en efectivo en la soda o ajuste escolar
@@ -479,7 +511,7 @@
       <div style="background: rgba(2, 132, 199, 0.05); border: 2px solid #0284c7; border-radius: 16px; padding: 14px; margin-bottom: 16px; box-shadow: 0 3px 12px rgba(2, 132, 199, 0.08);">
         <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; flex-wrap: wrap; gap: 6px;">
           <label for="inputAdminSearchStudent" style="font-size: 0.88rem; font-weight: 900; color: var(--text-main); display: flex; align-items: center; gap: 6px; margin: 0;">
-            <span style="font-size: 1.1rem;">🔍</span>
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#0284c7" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
             <span>Buscador Inteligente de Estudiante:</span>
           </label>
           <span style="font-size: 0.68rem; font-weight: 800; background: #0284c7; color: white; padding: 2px 8px; border-radius: 6px;">
@@ -490,7 +522,7 @@
         <div class="admin-search-container" style="position: relative;">
           <div class="admin-search-input-wrap" style="display: flex; gap: 8px; align-items: center;">
             <div style="position: relative; flex: 1; width: 100%;">
-              <input type="text" id="inputAdminSearchStudent" class="admin-search-input" placeholder="🔍 Escribe para buscar (ej: Mateo, EST-2026, Alvarado)..." oninput="onAdminSearchStudent(this.value)" onfocus="onAdminSearchFocus()" autocomplete="off" style="width: 100%; box-sizing: border-box; padding: 11px 36px 11px 14px; font-size: 0.95rem; font-weight: 700; border-radius: 12px; border: 2px solid #cbd5e1; outline: none; background: var(--card-bg, #ffffff); color: var(--text-main);">
+              <input type="text" id="inputAdminSearchStudent" class="admin-search-input" placeholder="Escribe para buscar (ej: Mateo, EST-2026, Alvarado)..." oninput="onAdminSearchStudent(this.value)" onfocus="onAdminSearchFocus()" autocomplete="off" style="width: 100%; box-sizing: border-box; padding: 11px 36px 11px 14px; font-size: 0.95rem; font-weight: 700; border-radius: 12px; border: 2px solid #cbd5e1; outline: none; background: var(--card-bg, #ffffff); color: var(--text-main);">
               <button type="button" id="btnClearAdminSearch" onclick="clearAdminSearchStudent()" style="display: none; position: absolute; right: 10px; top: 50%; transform: translateY(-50%); background: #e2e8f0; border: none; border-radius: 50%; width: 22px; height: 22px; font-size: 0.75rem; font-weight: 900; color: #475569; cursor: pointer; align-items: center; justify-content: center;" title="Borrar búsqueda">✕</button>
             </div>
             <button type="button" onclick="openAdminScanQrModal()" class="btn-saas btn-saas-primary" title="Escanear carné físico o código QR con la cámara" style="flex-shrink: 0; height: 42px; padding: 0 14px; font-size: 0.85rem; border-radius: 10px;">
@@ -501,7 +533,10 @@
           <div id="adminSearchResultsDropdown" class="admin-search-dropdown" style="display: none;"></div>
         </div>
         <div style="font-size: 0.72rem; color: var(--text-muted); margin-top: 6px;">
-          💡 <em>Toca el buscador para ver alumnos o escribe nombre, apellidos o carné para filtrar al instante.</em>
+          <span style="display: inline-flex; align-items: center; gap: 4px;">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" x2="12" y1="16" y2="12"/><line x1="12" x2="12.01" y1="8" y2="8"/></svg>
+            <em>Toca el buscador para ver alumnos o escribe nombre, apellidos o carné para filtrar al instante.</em>
+          </span>
         </div>
       </div>
 
@@ -510,7 +545,8 @@
       <div id="adminSelectedStudentWrap" style="display: none; margin-bottom: 16px;">
         <div style="margin-bottom: 6px; display: flex; justify-content: space-between; align-items: center;">
           <span style="font-size: 0.75rem; font-weight: 800; color: #166534; text-transform: uppercase; letter-spacing: 0.5px; display: flex; align-items: center; gap: 4px;">
-            <span>✅</span> Estudiante Seleccionado:
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#16a34a" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+            <span>Estudiante Seleccionado:</span>
           </span>
           <button type="button" onclick="clearAdminSelectedStudent()" style="background: none; border: none; color: #ef4444; font-size: 0.74rem; font-weight: 800; cursor: pointer; display: flex; align-items: center; gap: 3px;">
             ✕ Cambiar / Quitar
@@ -603,7 +639,7 @@
             Cobros
           </button>
         </div>
-        <input type="text" id="inputSearchMovimientos" placeholder="🔍 Buscar por alumno, carné o detalle..." oninput="filterMovimientosUI(this.value)" style="flex: 1; min-width: 180px; padding: 8px 12px; border-radius: 8px; border: 1px solid var(--border); font-size: 0.85rem; box-sizing: border-box; background: var(--card-bg); color: var(--text-main); outline: none;">
+        <input type="text" id="inputSearchMovimientos" placeholder="Buscar por alumno, carné o detalle..." oninput="filterMovimientosUI(this.value)" style="flex: 1; min-width: 180px; padding: 8px 12px; border-radius: 8px; border: 1px solid var(--border); font-size: 0.85rem; box-sizing: border-box; background: var(--card-bg); color: var(--text-main); outline: none;">
       </div>
 
       <!-- LISTA DE MOVIMIENTOS -->
@@ -647,7 +683,9 @@
     <!-- CABECERA DE PADRES -->
     <header class="parent-header">
       <div class="parent-badge">
-        <div class="parent-icon">👨‍👩‍👦</div>
+        <div class="parent-icon">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+        </div>
         <div>
           <h2 style="font-size: 1.15rem; font-weight: 900; margin: 0; color: var(--text-main);">Portal de Padres</h2>
           <span id="parentLoggedName" style="font-size: 0.76rem; color: #10b981; font-weight: 700;">Familia RecreoPay</span>
@@ -655,14 +693,15 @@
       </div>
 
       <div class="parent-header-actions">
-        <button onclick="toggleTheme()" class="theme-toggle-btn" title="Alternar Modo Oscuro / Modo Claro">
-          🌙
+        <button onclick="toggleTheme()" class="theme-toggle-btn" title="Alternar Modo Oscuro / Modo Claro" style="display: inline-flex; align-items: center; justify-content: center;">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>
         </button>
-        <button type="button" onclick="switchToSodaMenuAsParent()" class="mode-btn" style="background: var(--bg-main); border: 1.5px solid var(--border); font-size: 0.78rem; font-weight: 800; border-radius: 10px; padding: 7px 11px; cursor: pointer; color: var(--text-main);" title="Ver menú y pre-ordenar para mi hijo">
-          🥪 Ver Menú
+        <button type="button" onclick="switchToSodaMenuAsParent()" class="mode-btn" style="background: var(--bg-main); border: 1.5px solid var(--border); font-size: 0.78rem; font-weight: 800; border-radius: 10px; padding: 7px 11px; cursor: pointer; color: var(--text-main); display: inline-flex; align-items: center; gap: 6px;" title="Ver menú y pre-ordenar para mi hijo">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1-2.5-2.5Z"/></svg>
+          <span>Ver Menú</span>
         </button>
-        <button onclick="logout(true)" class="logout-btn" title="Cerrar sesión">
-          <span>🚪</span>
+        <button onclick="logout(true)" class="logout-btn" title="Cerrar sesión" style="display: inline-flex; align-items: center; gap: 6px;">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" x2="9" y1="12" y2="12"/></svg>
           <span class="logout-text">Salir</span>
         </button>
       </div>
@@ -670,24 +709,29 @@
 
     <!-- BANNER SI NO HAY HIJOS VINCULADOS -->
     <div id="parentNoChildrenBanner" class="parent-card" style="display: none; text-align: center; border: 2px dashed #0284c7; background: #f0f9ff;">
-      <span style="font-size: 2.5rem;">🧒</span>
+      <div style="width: 52px; height: 52px; border-radius: 50%; background: #e0f2fe; color: #0284c7; display: flex; align-items: center; justify-content: center; margin: 0 auto 10px;">
+        <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+      </div>
       <h3 style="font-size: 1.15rem; font-weight: 900; color: #0369a1; margin: 8px 0 4px 0;">¡Bienvenido a RecreoPay!</h3>
       <p style="font-size: 0.82rem; color: #64748b; margin-bottom: 14px;">
         Aún no has vinculado ningún estudiante a tu cuenta de padre. Escanea el carné de tu hijo para monitorear su saldo y recargarle al instante.
       </p>
       <button type="button" onclick="openScanChildQrModal()" class="login-submit-btn" style="background: linear-gradient(135deg, #0284c7, #0369a1); display: inline-flex; align-items: center; justify-content: center; gap: 8px; width: auto; padding: 12px 24px;">
-        <span>📷</span> Escanear Carné QR de mi Hijo
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="3" rx="2"/><path d="M7 7h.01"/><path d="M17 7h.01"/><path d="M7 17h.01"/><path d="M17 17h.01"/></svg>
+        <span>Escanear Carné QR de mi Hijo</span>
       </button>
     </div>
 
     <!-- SECCIÓN: MIS HIJOS (TARJETAS VISUALES) -->
     <div id="parentChildrenSection" style="margin-bottom: 16px;">
       <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-        <h3 style="font-size: 0.92rem; font-weight: 900; color: var(--text-main); text-transform: uppercase; letter-spacing: 0.5px;">
-          👨‍👩‍👦 Mis Hijos
+        <h3 style="font-size: 0.92rem; font-weight: 900; color: var(--text-main); text-transform: uppercase; letter-spacing: 0.5px; display: inline-flex; align-items: center; gap: 6px;">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+          <span>Mis Hijos</span>
         </h3>
         <button type="button" onclick="openScanChildQrModal()" style="background: none; border: none; color: #0284c7; font-size: 0.8rem; font-weight: 800; cursor: pointer; display: flex; align-items: center; gap: 4px;">
-          <span>➕</span> Vincular otro hijo con QR
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14"/><path d="M5 12h14"/></svg>
+          <span>Vincular otro hijo con QR</span>
         </button>
       </div>
 
@@ -717,7 +761,8 @@
 
         <div style="display: flex; gap: 8px;">
           <button type="button" onclick="switchToSodaMenuAsParent()" style="width: 100%; padding: 11px; background: #0284c7; color: white; border: none; border-radius: 10px; font-weight: 800; font-size: 0.85rem; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px;">
-            <span>🥪</span> Pre-ordenar Merienda / Ver Menú
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z"/><path d="M3 6h18"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>
+            <span>Pre-ordenar Merienda / Ver Menú</span>
           </button>
         </div>
       </div>
@@ -726,7 +771,9 @@
       <div class="parent-card" style="background: #f0fdf4; border: 1.5px solid #86efac;">
         <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;">
           <div style="display: flex; align-items: center; gap: 10px;">
-            <span style="font-size: 1.6rem;">📱</span>
+            <div style="width: 36px; height: 36px; border-radius: 10px; background: #dcfce7; color: #166534; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="20" x="5" y="2" rx="2" ry="2"/><line x1="12" x2="12.01" y1="18" y2="18"/></svg>
+            </div>
             <div>
               <strong style="color: #166534; font-size: 1rem; display: block;">Recarga por SINPE Móvil</strong>
               <p style="font-size: 0.74rem; color: #15803d; margin: 0;">Número Soda: <strong>8888-SODA (7632)</strong></p>
@@ -751,7 +798,8 @@
         </div>
 
         <button type="button" onclick="executeParentSinpeRecharge()" style="width: 100%; padding: 13px; background: linear-gradient(135deg, #16a34a, #15803d); color: white; border: none; border-radius: 12px; font-weight: 900; font-size: 0.95rem; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; box-shadow: 0 4px 10px rgba(22, 163, 74, 0.3);">
-          <span>📲</span> Aplicar Recarga de Saldo
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="14" x="2" y="5" rx="2"/><line x1="2" x2="22" y1="10" y2="10"/></svg>
+          <span>Aplicar Recarga de Saldo</span>
         </button>
       </div>
 
@@ -759,8 +807,11 @@
       <div class="parent-card" style="background: #f0f9ff; border: 2px solid #38bdf8;">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
           <div>
-            <strong style="font-size: 0.95rem; color: #0369a1; display: block;">🛡️ Límite de Gasto Máximo Diario</strong>
-            <span style="font-size: 0.74rem; color: #64748b;">Monto máximo que el estudiante puede gastar por día</span>
+            <strong style="font-size: 0.95rem; color: #0369a1; display: inline-flex; align-items: center; gap: 6px;">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+              <span>Límite de Gasto Máximo Diario</span>
+            </strong>
+            <span style="font-size: 0.74rem; color: #64748b; display: block; margin-top: 2px;">Monto máximo que el estudiante puede gastar por día</span>
           </div>
           <span id="lblParentDailyLimitDisplay" style="font-size: 1.1rem; color: #0284c7; font-weight: 900; background: white; border: 1.5px solid #bae6fd; padding: 4px 12px; border-radius: 8px;">₡3.000</span>
         </div>
@@ -770,8 +821,9 @@
             <span style="position: absolute; left: 10px; top: 50%; transform: translateY(-50%); font-weight: 900; color: #0284c7; font-size: 1.1rem;">₡</span>
             <input type="tel" inputmode="numeric" pattern="[0-9]*" id="inputParentCustomLimit" placeholder="Ej: 3000" style="width: 100%; padding: 10px 10px 10px 30px; border-radius: 10px; border: 2px solid #0284c7; font-size: 1.1rem; font-weight: 900; color: #0f172a; background: white; box-sizing: border-box;">
           </div>
-          <button type="button" onclick="saveParentCustomLimit()" style="padding: 10px 16px; background: linear-gradient(135deg, #0284c7, #0369a1); color: white; border: none; border-radius: 10px; font-weight: 900; font-size: 0.85rem; cursor: pointer; white-space: nowrap; box-shadow: 0 2px 6px rgba(2, 132, 199, 0.35);">
-            💾 Guardar
+          <button type="button" onclick="saveParentCustomLimit()" style="padding: 10px 16px; background: linear-gradient(135deg, #0284c7, #0369a1); color: white; border: none; border-radius: 10px; font-weight: 900; font-size: 0.85rem; cursor: pointer; white-space: nowrap; box-shadow: 0 2px 6px rgba(2, 132, 199, 0.35); display: inline-flex; align-items: center; gap: 6px;">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+            <span>Guardar</span>
           </button>
         </div>
 
@@ -792,8 +844,11 @@
       <!-- PERMISOS DE TRANSFERENCIA ENTRE COMPAÑEROS -->
       <div class="parent-card" style="display: flex; justify-content: space-between; align-items: center;">
         <div>
-          <strong style="font-size: 0.88rem; color: var(--text-main); display: block;">🤝 RecreoTransfer entre Compas</strong>
-          <span style="font-size: 0.74rem; color: var(--text-muted);">Permitir transferir saldo a compañeros de clase</span>
+          <strong style="font-size: 0.88rem; color: var(--text-main); display: inline-flex; align-items: center; gap: 6px;">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg>
+            <span>Transferencias entre Compañeros</span>
+          </strong>
+          <span style="font-size: 0.74rem; color: var(--text-muted); display: block; margin-top: 2px;">Permitir transferir saldo a compañeros de clase</span>
         </div>
         <input type="checkbox" id="chkParentAllowTransferDirect" onchange="onToggleParentTransfer(this.checked)" style="width: 24px; height: 24px; cursor: pointer; accent-color: #0284c7;" checked>
       </div>
@@ -801,7 +856,9 @@
       <!-- SEGURIDAD Y PIN ESCOLAR -->
       <div class="parent-card" style="border: 1.5px dashed var(--border);">
         <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 10px;">
-          <span style="font-size: 1.2rem;">🔐</span>
+          <div style="width: 32px; height: 32px; border-radius: 8px; background: rgba(51, 65, 85, 0.1); color: #334155; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+          </div>
           <div>
             <strong style="font-size: 0.9rem; color: var(--text-main); display: block;">Credenciales del Estudiante</strong>
             <span style="font-size: 0.74rem; color: var(--text-muted);">Restablece el PIN o la contraseña de acceso escolar</span>
@@ -819,15 +876,17 @@
           </div>
         </div>
 
-        <button type="button" onclick="saveParentStudentCredentials()" style="width: 100%; padding: 10px; background: #334155; color: white; border: none; border-radius: 8px; font-weight: 800; font-size: 0.82rem; cursor: pointer;">
-          💾 Guardar Nuevas Credenciales
+        <button type="button" onclick="saveParentStudentCredentials()" style="width: 100%; padding: 10px; background: #334155; color: white; border: none; border-radius: 8px; font-weight: 800; font-size: 0.82rem; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px;">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+          <span>Guardar Nuevas Credenciales</span>
         </button>
       </div>
 
       <!-- HISTORIAL DE COMPRAS RECIENTES -->
       <div class="parent-card">
-        <h4 style="font-size: 0.9rem; font-weight: 900; color: var(--text-main); margin-bottom: 10px;">
-          📋 Historial de Compras en Soda
+        <h4 style="font-size: 0.9rem; font-weight: 900; color: var(--text-main); margin-bottom: 10px; display: flex; align-items: center; gap: 6px;">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" x2="8" y1="13" y2="13"/><line x1="16" x2="8" y1="17" y2="17"/></svg>
+          <span>Historial de Compras en Soda</span>
         </h4>
         <div id="parentStudentHistoryList" style="font-size: 0.8rem; color: var(--text-muted);">
           Sin compras recientes registradas.
@@ -839,16 +898,20 @@
   <div class="app-container" id="appContainer" style="display: none;">
     <!-- BANNER DE TARJETA SUSPENDIDA / BLOQUEADA -->
     <div id="bannerCardBlocked" class="banner-card-blocked" style="display: none;">
-      <span>⛔</span>
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="4.93" x2="19.07" y1="4.93" y2="19.07"/></svg>
       <span><strong>TARJETA SUSPENDIDA POR LA SODA.</strong> Acércate al mostrador de la soda para reactivar tu cuenta.</span>
     </div>
 
     <!-- BANNER DE ADVERTENCIA HTTPS PARA TELÉFONOS MÓVILES -->
     <div id="bannerHttpsWarning" style="display: none; background: linear-gradient(135deg, #f59e0b, #d97706); color: white; padding: 10px 14px; font-size: 0.78rem; font-weight: 700; text-align: center; border-radius: 12px; margin: 10px 16px 0 16px; box-shadow: 0 2px 8px rgba(245, 158, 11, 0.3);">
-      🔒 Estás en HTTP. Para activar la cámara y pagos QR, tu celular requiere HTTPS:
+      <span style="display: inline-flex; align-items: center; gap: 6px;">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+        <span>Estás en HTTP. Para activar la cámara y pagos QR, tu celular requiere HTTPS:</span>
+      </span>
       <div style="margin-top: 6px;">
-        <a id="linkHttpsRedirect" href="https://recreopay.gammapos.app" style="display: inline-block; padding: 5px 14px; background: white; color: #b45309; border-radius: 20px; font-weight: 900; text-decoration: none; font-size: 0.8rem; box-shadow: 0 2px 5px rgba(0,0,0,0.15);">
-          🚀 Toca aquí para abrir en HTTPS Seguro
+        <a id="linkHttpsRedirect" href="https://recreopay.gammapos.app" style="display: inline-flex; align-items: center; gap: 6px; padding: 5px 14px; background: white; color: #b45309; border-radius: 20px; font-weight: 900; text-decoration: none; font-size: 0.8rem; box-shadow: 0 2px 5px rgba(0,0,0,0.15);">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" x2="21" y1="14" y2="3"/></svg>
+          <span>Abrir en HTTPS Seguro</span>
         </a>
       </div>
     </div>
@@ -856,26 +919,29 @@
     <!-- BARRA SUPERIOR UNIFICADA -->
     <header class="top-bar">
       <a href="#" class="brand-badge">
-        <div class="logo-icon">🥪</div>
+        <div class="logo-icon">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#0284c7" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="14" x="2" y="5" rx="2"/><line x1="2" x2="22" y1="10" y2="10"/><circle cx="7" cy="15" r="1"/></svg>
+        </div>
         <div>
           <span>Recreo<strong>Pay</strong></span>
-          <span style="font-size: 0.65rem; display: block; color: var(--text-muted); font-weight: 600;">SODA ESCOLAR CR 🇨🇷</span>
+          <span style="font-size: 0.65rem; display: block; color: var(--text-muted); font-weight: 600;">SODA ESCOLAR CR</span>
         </div>
       </a>
 
       <!-- ACCIONES DE CABECERA (TEMA OSCURO/CLARO Y SALIR) -->
       <div class="top-actions">
-        <button id="btnCardDesigns" onclick="openCardDesignModal()" class="theme-toggle-btn card-design-toggle-btn" title="Personalizar diseño de mi tarjeta" style="font-size: 1.15rem; margin-right: 4px;">
-          🎨
+        <button id="btnCardDesigns" onclick="openCardDesignModal()" class="theme-toggle-btn card-design-toggle-btn" title="Personalizar diseño de mi tarjeta" style="display: inline-flex; align-items: center; justify-content: center; margin-right: 4px;">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="13.5" cy="6.5" r=".5" fill="currentColor"/><circle cx="17.5" cy="10.5" r=".5" fill="currentColor"/><circle cx="8.5" cy="7.5" r=".5" fill="currentColor"/><circle cx="6.5" cy="12.5" r=".5" fill="currentColor"/><path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.926 0 1.648-.746 1.648-1.688 0-.437-.18-.835-.437-1.125-.29-.289-.438-.652-.438-1.125a1.64 1.64 0 0 1 1.668-1.668h1.996c3.051 0 5.555-2.503 5.555-5.554C21.965 6.012 17.461 2 12 2z"/></svg>
         </button>
-        <button id="btnThemeToggle" onclick="toggleTheme()" class="theme-toggle-btn" title="Alternar Modo Oscuro / Modo Claro">
-          🌙
+        <button id="btnThemeToggle" onclick="toggleTheme()" class="theme-toggle-btn" title="Alternar Modo Oscuro / Modo Claro" style="display: inline-flex; align-items: center; justify-content: center;">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>
         </button>
-        <button id="btnModePadres" onclick="toggleParentPanel(true)" class="mode-btn" style="background: var(--bg-main); border: 1.5px solid var(--border); font-size: 0.8rem; font-weight: 800; border-radius: 10px; padding: 7px 11px; cursor: pointer; color: var(--text-main);" title="Acceso al Portal de Padres">
-          👨‍👩‍👦 Padres
+        <button id="btnModePadres" onclick="toggleParentPanel(true)" class="mode-btn" style="background: var(--bg-main); border: 1.5px solid var(--border); font-size: 0.8rem; font-weight: 800; border-radius: 10px; padding: 7px 11px; cursor: pointer; color: var(--text-main); display: inline-flex; align-items: center; gap: 6px;" title="Acceso al Portal de Padres">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+          <span>Padres</span>
         </button>
-        <button id="btnLogout" onclick="logout(true)" class="logout-btn" title="Cerrar sesión y cambiar de cuenta">
-          <span>🚪</span>
+        <button id="btnLogout" onclick="logout(true)" class="logout-btn" title="Cerrar sesión y cambiar de cuenta" style="display: inline-flex; align-items: center; gap: 6px;">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" x2="9" y1="12" y2="12"/></svg>
           <span class="logout-text">Salir</span>
         </button>
       </div>
@@ -911,18 +977,18 @@
           <div class="label" id="balanceLabel">SALDO DISPONIBLE</div>
           <div class="amount">
             <span id="walletBalance">₡0</span>
-            <span class="kids-coin-icon" id="kidsCoinIcon" style="display: none;">🪙</span>
+            <span class="kids-coin-icon" id="kidsCoinIcon" style="display: none;"></span>
           </div>
         </div>
 
         <div style="display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end;">
           <button class="qr-toggle-btn" onclick="openQrModal()">
-            <span>📱</span>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="3" rx="2"/><path d="M7 7h.01"/><path d="M17 7h.01"/><path d="M7 17h.01"/><path d="M17 17h.01"/></svg>
             <span id="qrBtnText">Mi QR</span>
           </button>
           <button class="qr-toggle-btn" style="background: rgba(16, 185, 129, 0.25); border-color: rgba(52, 211, 153, 0.4);" onclick="openTransferModal()">
-            <span>⚡</span>
-            <span id="transferBtnText">Transferir ⚡</span>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg>
+            <span id="transferBtnText">Transferir</span>
           </button>
         </div>
       </div>
@@ -941,7 +1007,8 @@
 
     <!-- ALERGIAS (SI TIENE) -->
     <div id="allergyWarning" style="display:none; margin: 0 16px 12px 16px; background: #fffbeb; border: 1px solid #fde68a; border-radius: 12px; padding: 8px 12px; font-size: 0.8rem; color: #92400e; align-items: center; gap: 6px;">
-      ⚠️ <strong>Atención médica:</strong> <span id="allergyText"></span>
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#b45309" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" x2="12" y1="9" y2="13"/><line x1="12" x2="12.01" y1="17" y2="17"/></svg>
+      <strong>Atención médica:</strong> <span id="allergyText"></span>
     </div>
 
     <!-- BARRA DE CATEGORÍAS -->
@@ -954,7 +1021,7 @@
       <span id="catalogTitle">Menú del Recreo</span>
       <label style="font-size: 0.75rem; font-weight: 600; color: #166534; display: flex; align-items: center; gap: 4px; cursor: pointer;">
         <input type="checkbox" id="chkFilterMep" onchange="renderProducts()">
-        <span>Solo Saludables MEP 🌿</span>
+        <span>Solo Saludables MEP</span>
       </label>
     </div>
 
@@ -969,15 +1036,17 @@
         <span class="cart-count-badge" id="cartCountBadge">0</span>
         <div class="cart-total-text" id="cartTotalText">₡0</div>
       </div>
-      <button class="cart-action-btn">Pedir para el Recreo 🛒</button>
+      <button class="cart-action-btn" style="display: flex; align-items: center; justify-content: center; gap: 6px;">
+        <span>Pedir para el Recreo</span> <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="21" r="1"/><circle cx="19" cy="21" r="1"/><path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12"/></svg>
+      </button>
     </div>
 
     <!-- ENLACES DE ACCESO RÁPIDO PARA DEMO Y REVISIÓN -->
     <div style="margin: 30px 16px; padding: 14px; background: var(--card-bg); border: 1px solid var(--border); border-radius: 14px; font-size: 0.82rem; text-align: center;">
       <p style="font-weight: 700; margin-bottom: 8px; color: var(--text-main);">Acceso Rápido del Sistema:</p>
       <div style="display: flex; justify-content: center; gap: 10px; flex-wrap: wrap;">
-        <a href="/pos.html" target="_blank" style="color: #0284c7; font-weight: 700; text-decoration: none; padding: 4px 10px; background: #e0f2fe; border-radius: 8px;">📟 Terminal Soda (Caja & QR)</a>
-        <a href="/carnet.html" target="_blank" style="color: #10b981; font-weight: 700; text-decoration: none; padding: 4px 10px; background: #d1fae5; border-radius: 8px;">🖨️ Carnés Físicos para Imprimir</a>
+        <a href="/pos.html" target="_blank" style="color: #0284c7; font-weight: 700; text-decoration: none; padding: 4px 10px; background: #e0f2fe; border-radius: 8px; display: inline-flex; align-items: center; gap: 6px;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="14" x="2" y="5" rx="2"/><line x1="2" x2="22" y1="10" y2="10"/></svg> Terminal Soda (Caja & QR)</a>
+        <a href="/carnet.html" target="_blank" style="color: #10b981; font-weight: 700; text-decoration: none; padding: 4px 10px; background: #d1fae5; border-radius: 8px; display: inline-flex; align-items: center; gap: 6px;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect width="12" height="8" x="6" y="14"/></svg> Carnés Físicos para Imprimir</a>
       </div>
     </div>
   </div>
@@ -995,7 +1064,7 @@
       </div>
 
       <p style="font-size: 0.75rem; color: #94a3b8; margin-top: 10px;">
-        💡 Si no tienes tu celular en la escuela, puedes usar tu carné físico impreso con este mismo código.
+        Si no tienes tu celular en la escuela, puedes usar tu carné físico impreso con este mismo código.
       </p>
 
       <button onclick="closeQrModal()" style="margin-top: 14px; width: 100%; padding: 10px; background: #0f172a; color: white; border: none; border-radius: 12px; font-weight: 700; cursor: pointer;">
@@ -1017,9 +1086,9 @@
           ¿Para cuál recreo deseas tu orden?
         </label>
         <select id="momentoEntregaSelect" style="width: 100%; padding: 8px 10px; border-radius: 8px; border: 1px solid #cbd5e1; font-weight: 600;">
-          <option value="recreo_1">🔔 1er Recreo de la Mañana (9:30 AM)</option>
-          <option value="almuerzo">🍲 Hora de Almuerzo (11:45 AM)</option>
-          <option value="recreo_2">🍎 2do Recreo de la Tarde (1:45 PM)</option>
+          <option value="recreo_1">1er Recreo de la Mañana (9:30 AM)</option>
+          <option value="almuerzo">Hora de Almuerzo (11:45 AM)</option>
+          <option value="recreo_2">2do Recreo de la Tarde (1:45 PM)</option>
         </select>
       </div>
 
@@ -1034,7 +1103,7 @@
       </div>
 
       <button id="btnConfirmarOrden" onclick="submitPreOrder()" style="width: 100%; padding: 12px; background: #10b981; color: white; border: none; border-radius: 12px; font-weight: 800; font-size: 1rem; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px;">
-        <span>✅ Confirmar y Pagar Pre-Orden</span>
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg> <span>Confirmar y Pagar Pre-Orden</span>
       </button>
     </div>
   </div>
@@ -1052,7 +1121,7 @@
 
       <!-- SELECTOR DE HIJO PARA PADRES -->
       <div id="parentChildSelectorBox" style="display: none; margin-bottom: 14px; background: #e0f2fe; padding: 10px 12px; border-radius: 12px; border: 1.5px solid #bae6fd;">
-        <label for="parentChildSelect" style="display: block; font-size: 0.76rem; font-weight: 800; color: #0369a1; margin-bottom: 4px;">🧒 Viendo información de:</label>
+        <label for="parentChildSelect" style="display: block; font-size: 0.76rem; font-weight: 800; color: #0369a1; margin-bottom: 4px;">Viendo información de:</label>
         <select id="parentChildSelect" onchange="onParentChildSelect(this.value)" style="width: 100%; padding: 8px 10px; border-radius: 8px; border: 1px solid #7dd3fc; font-weight: 800; color: #0c4a6e; background: white; font-size: 0.9rem;">
         </select>
       </div>
@@ -1061,7 +1130,7 @@
       <div style="background: #f0fdf4; border: 1.5px solid #86efac; border-radius: 14px; padding: 14px; margin-bottom: 16px;">
         <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px;">
           <div style="display: flex; align-items: center; gap: 8px;">
-            <span style="font-size: 1.4rem;">📱</span>
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#16a34a" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="20" x="5" y="2" rx="2" ry="2"/><path d="M12 18h.01"/></svg>
             <div>
               <strong style="color: #166534; font-size: 0.95rem;">Recarga por SINPE Móvil</strong>
               <p style="font-size: 0.74rem; color: #15803d;">Número de la Soda: <strong>8888-SODA (7632)</strong></p>
@@ -1086,7 +1155,7 @@
         </div>
 
         <button type="button" onclick="customSinpeRecharge()" style="width: 100%; padding: 12px; background: linear-gradient(135deg, #16a34a, #15803d); color: white; border: none; border-radius: 10px; font-weight: 900; font-size: 0.95rem; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; box-shadow: 0 4px 10px rgba(22, 163, 74, 0.3);">
-          <span>📲</span> Aplicar Recarga de Saldo
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="20" x="5" y="2" rx="2" ry="2"/><path d="M12 18h.01"/></svg> Aplicar Recarga de Saldo
         </button>
       </div>
 
@@ -1094,22 +1163,22 @@
       <div style="background: #f0f9ff; border: 2px solid #38bdf8; border-radius: 14px; padding: 14px; margin-bottom: 16px; box-shadow: 0 2px 8px rgba(56, 189, 248, 0.15);">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
           <div>
-            <strong style="font-size: 0.92rem; color: #0369a1; display: block;">🛡️ Límite de Gasto Máximo Diario</strong>
+            <strong style="font-size: 0.92rem; color: #0369a1; display: flex; align-items: center; gap: 6px;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#0284c7" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg> Límite de Gasto Máximo Diario</strong>
             <span style="font-size: 0.74rem; color: #64748b;">Monto máximo que el estudiante puede gastar por día</span>
           </div>
           <span id="lblParentDailyLimit" style="font-size: 1.05rem; color: #0284c7; font-weight: 900; background: white; border: 1.5px solid #bae6fd; padding: 3px 10px; border-radius: 8px;">₡3.000</span>
         </div>
 
         <label for="inputCustomDailyLimit" style="display: block; font-size: 0.8rem; font-weight: 800; color: #0369a1; margin-bottom: 4px;">
-          ✍️ Digita o escribe el límite en colones:
+          Digita o escribe el límite en colones:
         </label>
         <div style="display: flex; gap: 8px; margin-bottom: 8px;">
           <div style="position: relative; flex: 1;">
             <span style="position: absolute; left: 10px; top: 50%; transform: translateY(-50%); font-weight: 900; color: #0284c7; font-size: 1.1rem;">₡</span>
             <input type="tel" inputmode="numeric" pattern="[0-9]*" id="inputCustomDailyLimit" placeholder="Ej: 3000" oninput="onCustomDailyLimitInput(this.value)" style="width: 100%; padding: 10px 10px 10px 30px; border-radius: 10px; border: 2px solid #0284c7; font-size: 1.1rem; font-weight: 900; color: #0f172a; background: white; box-shadow: inset 0 1px 2px rgba(0,0,0,0.06);">
           </div>
-          <button type="button" onclick="saveCustomDailyLimit()" style="padding: 10px 16px; background: linear-gradient(135deg, #0284c7, #0369a1); color: white; border: none; border-radius: 10px; font-weight: 900; font-size: 0.85rem; cursor: pointer; white-space: nowrap; box-shadow: 0 2px 6px rgba(2, 132, 199, 0.35);">
-            💾 Guardar
+          <button type="button" onclick="saveCustomDailyLimit()" style="padding: 10px 16px; background: linear-gradient(135deg, #0284c7, #0369a1); color: white; border: none; border-radius: 10px; font-weight: 900; font-size: 0.85rem; cursor: pointer; white-space: nowrap; box-shadow: 0 2px 6px rgba(2, 132, 199, 0.35); display: inline-flex; align-items: center; gap: 6px;">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg> Guardar
           </button>
         </div>
 
@@ -1134,7 +1203,7 @@
       <!-- CONTROL PARENTAL: PERMITIR O BLOQUEAR TRANSFERENCIAS ENTRE COMPAÑEROS -->
       <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 12px 14px; margin-bottom: 16px; display: flex; justify-content: space-between; align-items: center;">
         <div>
-          <strong style="font-size: 0.85rem; color: #1e293b; display: block;">🤝 RecreoTransfer entre Compas</strong>
+          <strong style="font-size: 0.85rem; color: #1e293b; display: flex; align-items: center; gap: 6px;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#0284c7" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m16 3 4 4-4 4"/><path d="M20 7H4"/><path d="m8 21-4-4 4-4"/><path d="M4 17h16"/></svg> RecreoTransfer entre Compas</strong>
           <span style="font-size: 0.72rem; color: #64748b;">Permitir transferir saldo a compañeros de clase</span>
         </div>
         <input type="checkbox" id="chkParentAllowTransfer" onchange="onToggleAllowTransfer(this.checked)" style="width: 22px; height: 22px; cursor: pointer; accent-color: #0284c7;" checked>
@@ -1143,7 +1212,7 @@
       <!-- RESTABLECER PIN Y CONTRASEÑA ESCOLAR DEL ALUMNO -->
       <div style="background: #f8fafc; border: 1.5px dashed #cbd5e1; border-radius: 14px; padding: 14px; margin-bottom: 16px;">
         <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
-          <span style="font-size: 1.2rem;">🔐</span>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#475569" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
           <div>
             <strong style="font-size: 0.88rem; color: #1e293b; display: block;">Seguridad y Contraseña del Alumno</strong>
             <span style="font-size: 0.72rem; color: #64748b;">Cambia el PIN de transferencias o la contraseña de acceso</span>
@@ -1161,9 +1230,10 @@
           </div>
         </div>
 
-        <button type="button" onclick="saveParentChildAccess()" style="width: 100%; padding: 10px; background: #334155; color: white; border: none; border-radius: 8px; font-weight: 800; font-size: 0.82rem; cursor: pointer;">
-          💾 Guardar Nuevas Credenciales
+        <button type="button" onclick="saveParentChildAccess()" style="width: 100%; padding: 10px; background: #334155; color: white; border: none; border-radius: 8px; font-weight: 800; font-size: 0.82rem; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px;">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg> Guardar Nuevas Credenciales
         </button>
+      </div>
       </div>
 
       <!-- HISTORIAL RECIENTE -->
@@ -1189,10 +1259,10 @@
         <div style="margin-bottom: 10px;">
           <label style="display: block; font-size: 0.78rem; font-weight: 800; color: var(--text-main); margin-bottom: 3px;">Tipo de Perfil / Negocio:</label>
           <select id="newEstTipo" style="width: 100%; padding: 8px 10px; border-radius: 8px; border: 1.5px solid var(--border); font-weight: 800; box-sizing: border-box; background: var(--card-bg); color: var(--text-main);">
-            <option value="EST">🎒 Estudiante / Alumno (Escuela o Colegio)</option>
-            <option value="EMP">💼 Colaborador / Empleado (Empresa o Comedor)</option>
-            <option value="EVT">🎟️ Asistente / Pulsera (Evento o Feria)</option>
-            <option value="SOC">🏅 Socio / Miembro (Club o Gimnasio)</option>
+            <option value="EST">Estudiante / Alumno (Escuela o Colegio)</option>
+            <option value="EMP">Colaborador / Empleado (Empresa o Comedor)</option>
+            <option value="EVT">Asistente / Pulsera (Evento o Feria)</option>
+            <option value="SOC">Socio / Miembro (Club o Gimnasio)</option>
           </select>
         </div>
 
@@ -1243,8 +1313,8 @@
           </div>
         </div>
 
-        <button type="submit" id="btnSubmitNewStudent" style="width: 100%; padding: 12px; background: linear-gradient(135deg, #0284c7, #0369a1); color: white; border: none; border-radius: 12px; font-weight: 900; font-size: 0.95rem; cursor: pointer;">
-          ✅ Guardar y Generar Carné
+        <button type="submit" id="btnSubmitNewStudent" style="width: 100%; padding: 12px; background: linear-gradient(135deg, #0284c7, #0369a1); color: white; border: none; border-radius: 12px; font-weight: 900; font-size: 0.95rem; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px;">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg> Guardar y Generar Carné
         </button>
       </form>
     </div>
@@ -1255,7 +1325,7 @@
     <div class="modal-qr-card" onclick="event.stopPropagation()" style="max-width: 480px; text-align: left; max-height: 90vh; overflow-y: auto;">
       <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border); padding-bottom: 10px; margin-bottom: 14px;">
         <div>
-          <h3 id="modalProductTitle" style="color: var(--text-main); font-size: 1.15rem; font-weight: 800; margin: 0;">➕ Crear Nuevo Producto</h3>
+          <h3 id="modalProductTitle" style="color: var(--text-main); font-size: 1.15rem; font-weight: 800; margin: 0; display: flex; align-items: center; gap: 6px;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> <span>Crear Nuevo Producto</span></h3>
           <span style="font-size: 0.75rem; color: var(--text-muted);">Alimentos, bebidas y meriendas escolares</span>
         </div>
         <button type="button" onclick="closeAdminProductModal()" style="background: none; border: none; font-size: 1.25rem; cursor: pointer; color: var(--text-muted); padding: 4px;">✕</button>
@@ -1322,22 +1392,22 @@
             <div>
               <label style="display: block; font-size: 0.75rem; font-weight: 800; color: var(--text-main); margin-bottom: 4px;">Sello Nutricional MEP:</label>
               <select id="adminProdMep" style="width: 100%; padding: 7px; border-radius: 6px; border: 1px solid var(--border); font-weight: 700; font-size: 0.8rem; background: var(--card-bg); color: var(--text-main); box-sizing: border-box;">
-                <option value="1">🟢 Saludable MEP (Permitido)</option>
-                <option value="0">🟠 Consumo Ocasional</option>
+                <option value="1">Saludable MEP (Permitido)</option>
+                <option value="0">Consumo Ocasional</option>
               </select>
             </div>
           </div>
         </div>
 
         <div style="display: flex; gap: 8px; justify-content: flex-end; margin-top: 14px;">
-          <button type="button" id="btnDeleteProduct" onclick="handleDeleteProduct()" style="display: none; padding: 10px 14px; background: #fee2e2; color: #dc2626; border: 1px solid #fecaca; border-radius: 10px; font-weight: 800; font-size: 0.84rem; cursor: pointer;">
-            🗑️ Eliminar
+          <button type="button" id="btnDeleteProduct" onclick="handleDeleteProduct()" style="display: none; padding: 10px 14px; background: #fee2e2; color: #dc2626; border: 1px solid #fecaca; border-radius: 10px; font-weight: 800; font-size: 0.84rem; cursor: pointer; display: inline-flex; align-items: center; gap: 6px;">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg> Eliminar
           </button>
           <button type="button" onclick="closeAdminProductModal()" style="padding: 10px 14px; background: #f1f5f9; color: #475569; border: 1px solid #cbd5e1; border-radius: 10px; font-weight: 800; font-size: 0.84rem; cursor: pointer;">
             Cancelar
           </button>
           <button type="submit" id="btnSaveProductSubmit" style="padding: 10px 18px; background: linear-gradient(135deg, #0284c7, #0369a1); color: white; border: none; border-radius: 10px; font-weight: 900; font-size: 0.88rem; cursor: pointer; display: flex; align-items: center; gap: 6px; box-shadow: 0 2px 6px rgba(2, 132, 199, 0.3);">
-            <span>💾</span> <span>Guardar Producto</span>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg> <span>Guardar Producto</span>
           </button>
         </div>
       </form>
@@ -1349,7 +1419,7 @@
     <div class="modal-qr-card" onclick="event.stopPropagation()" style="max-width: 460px; text-align: left;">
       <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border); padding-bottom: 10px; margin-bottom: 14px;">
         <div>
-          <h3 id="modalStaffTitle" style="color: var(--text-main); font-size: 1.15rem; font-weight: 800; margin: 0;">👥 Nuevo Empleado / Cajero</h3>
+          <h3 id="modalStaffTitle" style="color: var(--text-main); font-size: 1.15rem; font-weight: 800; margin: 0; display: flex; align-items: center; gap: 6px;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg> <span>Nuevo Empleado / Cajero</span></h3>
           <span style="font-size: 0.75rem; color: var(--text-muted);">Crea credenciales de acceso para la soda</span>
         </div>
         <button type="button" onclick="closeAdminStaffModal()" style="background: none; border: none; font-size: 1.25rem; cursor: pointer; color: var(--text-muted); padding: 4px;">✕</button>
@@ -1371,9 +1441,9 @@
           <div>
             <label style="display: block; font-size: 0.78rem; font-weight: 800; color: var(--text-main); margin-bottom: 3px;">Rol en el Sistema *:</label>
             <select id="adminStaffRol" required style="width: 100%; padding: 9px; border-radius: 8px; border: 1.5px solid var(--border); font-weight: 800; box-sizing: border-box; background: var(--card-bg); color: var(--text-main);">
-              <option value="cajero">📟 Cajero (Terminal POS)</option>
-              <option value="vendedor">🥪 Vendedor / Despacho</option>
-              <option value="admin">👨‍🍳 Administrador</option>
+              <option value="cajero">Cajero (Terminal POS)</option>
+              <option value="vendedor">Vendedor / Despacho</option>
+              <option value="admin">Administrador</option>
             </select>
           </div>
         </div>
@@ -1400,7 +1470,7 @@
             Cancelar
           </button>
           <button type="submit" id="btnSaveStaffSubmit" style="padding: 10px 18px; background: linear-gradient(135deg, #10b981, #059669); color: white; border: none; border-radius: 10px; font-weight: 900; font-size: 0.88rem; cursor: pointer; display: flex; align-items: center; gap: 6px; box-shadow: 0 2px 6px rgba(16, 185, 129, 0.3);">
-            <span>💾</span> <span>Guardar Empleado</span>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg> <span>Guardar Empleado</span>
           </button>
         </div>
       </form>
@@ -1412,7 +1482,7 @@
     <div class="modal-qr-card" onclick="event.stopPropagation()" style="max-width: 420px; text-align: left;">
       <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #e2e8f0; padding-bottom: 10px; margin-bottom: 12px;">
         <div>
-          <h3 style="color: #0f172a; font-size: 1.15rem; font-weight: 800;">🤝 Pasar Plata a un Compa</h3>
+          <h3 style="color: #0f172a; font-size: 1.15rem; font-weight: 800; display: flex; align-items: center; gap: 6px;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#0284c7" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m16 3 4 4-4 4"/><path d="M20 7H4"/><path d="m8 21-4-4 4-4"/><path d="M4 17h16"/></svg> Pasar Plata a un Compa</h3>
           <span style="font-size: 0.75rem; color: #64748b;">Escanea el carné o celular de tu amigo</span>
         </div>
         <button onclick="closeTransferModal()" style="background: none; border: none; font-size: 1.2rem; cursor: pointer; color: #64748b;">✕</button>
@@ -1423,8 +1493,8 @@
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
           <span style="font-size: 0.75rem; color: #64748b; font-weight: 700;" id="transferCameraStatus">Iniciando cámara...</span>
           <div style="display: flex; gap: 6px;">
-            <button id="btnFlipTransferCamera" type="button" onclick="flipTransferCamera()" style="display:none; padding: 3px 8px; background: #334155; color: white; border: none; border-radius: 6px; font-size: 0.72rem; font-weight: 700; cursor: pointer;">🔄 Girar</button>
-            <button id="btnRetryTransferCamera" type="button" onclick="startTransferCamera(true)" style="display:none; padding: 3px 8px; background: #0284c7; color: white; border: none; border-radius: 6px; font-size: 0.72rem; font-weight: 700; cursor: pointer;">📷 Activar</button>
+            <button id="btnFlipTransferCamera" type="button" onclick="flipTransferCamera()" style="display:none; padding: 3px 8px; background: #334155; color: white; border: none; border-radius: 6px; font-size: 0.72rem; font-weight: 700; cursor: pointer; align-items: center; gap: 4px;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/></svg> Girar</button>
+            <button id="btnRetryTransferCamera" type="button" onclick="startTransferCamera(true)" style="display:none; padding: 3px 8px; background: #0284c7; color: white; border: none; border-radius: 6px; font-size: 0.72rem; font-weight: 700; cursor: pointer; align-items: center; gap: 4px;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/></svg> Activar</button>
           </div>
         </div>
 
@@ -1433,7 +1503,7 @@
           <div class="laser-scan-line"></div>
           
           <div id="transferCameraHelp" style="display: none; position: absolute; inset: 0; background: rgba(15, 23, 42, 0.92); padding: 14px; text-align: center; flex-direction: column; justify-content: center; align-items: center; gap: 10px; z-index: 10;">
-            <span style="font-size: 1.8rem;">📷</span>
+            <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#38bdf8" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/></svg>
             <div id="transferCameraHelpText" style="font-size: 0.76rem; color: #f8fafc; line-height: 1.35;">Toca el botón para permitir la cámara</div>
             <div id="transferCameraActionContainer" style="display: flex; flex-direction: column; gap: 8px; width: 100%; align-items: center;">
               <button id="btnAllowTransferCamera" type="button" onclick="startTransferCamera(true)" style="padding: 8px 18px; background: #0284c7; color: white; border: none; border-radius: 8px; font-weight: 800; font-size: 0.82rem; cursor: pointer; box-shadow: 0 4px 10px rgba(2, 132, 199, 0.3);">
@@ -1446,7 +1516,7 @@
         <!-- ACCESO DIRECTO PARA SUBIR O TOMAR FOTO DEL QR CON LA CÁMARA NATIVA -->
         <div style="display: flex; justify-content: center; margin-bottom: 12px;">
           <label style="cursor: pointer; display: inline-flex; align-items: center; gap: 6px; padding: 7px 14px; background: #f0fdf4; border: 1.5px dashed #86efac; border-radius: 10px; font-size: 0.78rem; font-weight: 800; color: #166534; box-shadow: 0 1px 3px rgba(0,0,0,0.04);">
-            <span>📸</span> Tomar foto del QR o carné
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/></svg> Tomar foto del QR o carné
             <input type="file" accept="image/*" capture="environment" style="display: none;" onchange="handleTransferQrPhoto(event)">
           </label>
         </div>
@@ -1495,19 +1565,19 @@
         <!-- PIN DE SEGURIDAD (TECLADO NATIVO DEL TELÉFONO) -->
         <div style="background: #f8fafc; border: 1.5px dashed #cbd5e1; border-radius: 14px; padding: 14px; margin-bottom: 14px; text-align: center;">
           <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-            <label for="inputTransferPin" style="font-size: 0.8rem; font-weight: 800; color: #0f172a;">🔐 Digita tu PIN de seguridad:</label>
+            <label for="inputTransferPin" style="font-size: 0.8rem; font-weight: 800; color: #0f172a; display: flex; align-items: center; gap: 5px;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#475569" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg> Digita tu PIN de seguridad:</label>
             <span id="lblTransferPinHint" style="font-size: 0.72rem; color: #166534; font-weight: 800; background: #dcfce7; padding: 2px 8px; border-radius: 6px;">(PIN: 1234)</span>
           </div>
 
           <div style="position: relative; max-width: 240px; margin: 0 auto;">
             <input type="password" inputmode="numeric" pattern="[0-9]*" maxlength="4" autocomplete="one-time-code" id="inputTransferPin" placeholder="••••" style="width: 100%; text-align: center; font-size: 1.8rem; letter-spacing: 10px; padding: 10px 42px 10px 18px; border-radius: 12px; border: 2px solid #cbd5e1; font-weight: 900; background: white; color: #0f172a; box-sizing: border-box; outline: none; transition: border-color 0.2s;" onfocus="this.style.borderColor='#0284c7'" onblur="this.style.borderColor='#cbd5e1'">
-            <button type="button" id="btnTogglePin" onclick="togglePinVisibility()" style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); background: none; border: none; font-size: 1.25rem; cursor: pointer; color: #64748b; padding: 4px;" title="Ver/Ocultar PIN">👁️</button>
+            <button type="button" id="btnTogglePin" onclick="togglePinVisibility()" style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); background: none; border: none; font-size: 1.1rem; cursor: pointer; color: #64748b; padding: 4px; display: flex; align-items: center;" title="Ver/Ocultar PIN"><svg id="iconTogglePin" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg></button>
           </div>
           <div style="font-size: 0.72rem; color: #64748b; margin-top: 6px; font-weight: 600;">Se abrirá automáticamente el teclado numérico de tu teléfono</div>
         </div>
 
         <button id="btnConfirmTransfer" onclick="executeP2PTransfer()" style="width: 100%; padding: 14px; background: linear-gradient(135deg, #10b981, #059669); color: white; border: none; border-radius: 14px; font-weight: 900; font-size: 1.05rem; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);">
-          <span>💸</span> <span id="lblBtnConfirmTransferText">Enviar ₡500 al Instante</span>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg> <span id="lblBtnConfirmTransferText">Enviar ₡500 al Instante</span>
         </button>
       </div>
     </div>
@@ -1520,7 +1590,7 @@
       <!-- CABECERA -->
       <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; border-bottom: 1px solid var(--border); padding-bottom: 10px;">
         <div style="display: flex; align-items: center; gap: 8px;">
-          <span style="font-size: 1.3rem;">🎒</span>
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#0284c7" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
           <strong style="font-size: 1.05rem; color: var(--text-main);">Vincular Estudiante</strong>
         </div>
         <button type="button" onclick="closeScanChildQrModal()" style="background: none; border: none; font-size: 1.3rem; cursor: pointer; color: var(--text-muted); padding: 4px;">✕</button>
@@ -1530,10 +1600,10 @@
       <div id="linkChildViewTabs">
         <div style="display: flex; gap: 6px; background: #f1f5f9; padding: 4px; border-radius: 12px; margin-bottom: 14px;">
           <button type="button" id="tabBtnLinkCamera" onclick="switchLinkChildTab('camera')" style="flex: 1; padding: 9px 8px; border: none; border-radius: 8px; font-weight: 800; font-size: 0.82rem; cursor: pointer; transition: all 0.2s; background: #ffffff; color: #0284c7; box-shadow: 0 2px 4px rgba(0,0,0,0.06);">
-            📷 Escanear con Cámara
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block; vertical-align:middle; margin-right:4px;"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/></svg> Escanear con Cámara
           </button>
           <button type="button" id="tabBtnLinkCode" onclick="switchLinkChildTab('code')" style="flex: 1; padding: 9px 8px; border: none; border-radius: 8px; font-weight: 700; font-size: 0.82rem; cursor: pointer; transition: all 0.2s; background: transparent; color: #64748b;">
-            ⌨️ Digitar Código
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block; vertical-align:middle; margin-right:4px;"><rect width="20" height="16" x="2" y="4" rx="2"/><path d="M6 8h.01"/><path d="M10 8h.01"/><path d="M14 8h.01"/><path d="M18 8h.01"/><path d="M8 12h.01"/><path d="M12 12h.01"/><path d="M16 12h.01"/><path d="M7 16h10"/></svg> Digitar Código
           </button>
         </div>
 
@@ -1543,8 +1613,8 @@
             <video id="videoScanChild" playsinline webkit-playsinline autoplay muted style="width: 100%; height: 100%; object-fit: cover;"></video>
             <canvas id="canvasScanChild" style="display: none;"></canvas>
             <div class="laser-scan-line"></div>
-            <div id="badgeCameraChildStatus" style="position: absolute; bottom: 8px; left: 50%; transform: translateX(-50%); background: rgba(15, 23, 42, 0.9); color: #38bdf8; padding: 3px 12px; border-radius: 20px; font-size: 0.72rem; font-weight: 800; border: 1px solid #0284c7; white-space: nowrap;">
-              📷 Apunta al código QR del carné
+            <div id="badgeCameraChildStatus" style="position: absolute; bottom: 8px; left: 50%; transform: translateX(-50%); background: rgba(15, 23, 42, 0.9); color: #38bdf8; padding: 3px 12px; border-radius: 20px; font-size: 0.72rem; font-weight: 800; border: 1px solid #0284c7; white-space: nowrap; display: flex; align-items: center; gap: 4px;">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/></svg> Apunta al código QR del carné
             </div>
           </div>
           <p style="font-size: 0.78rem; color: var(--text-muted); margin: 0 0 10px 0;">
@@ -1559,12 +1629,12 @@
           </label>
           <div style="display: flex; gap: 8px; margin-bottom: 6px;">
             <input type="text" id="inputManualStudentCode" placeholder="Ej: EST-2026-001" onkeydown="if(event.key==='Enter'){event.preventDefault();validateStudentCodeForLink();}" style="flex: 1; padding: 11px 12px; border-radius: 10px; border: 2px solid var(--border); font-size: 0.95rem; font-weight: 800; background: var(--card-bg); color: var(--text-main); box-sizing: border-box; text-transform: uppercase;">
-            <button type="button" id="btnValidateStudentCode" onclick="validateStudentCodeForLink()" style="padding: 10px 16px; background: #0284c7; color: white; border: none; border-radius: 10px; font-weight: 800; font-size: 0.85rem; cursor: pointer; white-space: nowrap; display: flex; align-items: center; gap: 4px; box-shadow: 0 2px 6px rgba(2, 132, 199, 0.3);">
-              <span>🔍</span> Validar
+            <button type="button" id="btnValidateStudentCode" onclick="validateStudentCodeForLink()" style="padding: 10px 16px; background: #0284c7; color: white; border: none; border-radius: 10px; font-weight: 800; font-size: 0.85rem; cursor: pointer; white-space: nowrap; display: flex; align-items: center; gap: 6px; box-shadow: 0 2px 6px rgba(2, 132, 199, 0.3);">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg> Validar
             </button>
           </div>
           <p style="font-size: 0.75rem; color: var(--text-muted); margin: 0 0 10px 0;">
-            💡 Digita el código que aparece en el carné escolar (ej: EST-2026-001).
+            Digita el código oficial que aparece en el carné escolar (ej: EST-2026-001).
           </p>
         </div>
 
@@ -1575,7 +1645,7 @@
       <!-- VISTA 2: TARJETA DE VERIFICACIÓN / CONFIRMACIÓN -->
       <div id="linkChildViewConfirm" style="display: none; text-align: left;">
         <div style="background: #f0fdf4; border: 1.5px solid #86efac; border-radius: 14px; padding: 10px 12px; margin-bottom: 12px; display: flex; align-items: center; gap: 8px;">
-          <span style="font-size: 1.2rem;">✅</span>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#16a34a" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
           <span style="font-size: 0.82rem; font-weight: 800; color: #166534;">Estudiante Identificado Correctamente</span>
         </div>
 
@@ -1600,8 +1670,9 @@
             ← Cambiar
           </button>
           <button type="button" id="btnConfirmLinkChild" onclick="confirmLinkValidatedChild()" style="flex: 2; padding: 11px; background: linear-gradient(135deg, #10b981, #059669); color: white; border: none; border-radius: 10px; font-weight: 900; font-size: 0.88rem; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);">
-            <span>✅</span> Confirmar y Vincular
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg> Confirmar y Vincular
           </button>
+        </div>
         </div>
       </div>
 
@@ -1613,7 +1684,7 @@
     <div class="modal-qr-card" onclick="event.stopPropagation()" style="max-width: 420px; text-align: center;">
       <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; border-bottom: 1px solid var(--border); padding-bottom: 8px;">
         <strong style="font-size: 1rem; color: var(--text-main); display: flex; align-items: center; gap: 6px;">
-          <span>📷</span> Escanear Carné para Recarga
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/></svg> Escanear Carné para Recarga
         </strong>
         <button type="button" onclick="closeAdminScanQrModal()" style="background: none; border: none; font-size: 1.2rem; cursor: pointer; color: var(--text-muted);">✕</button>
       </div>
@@ -1625,7 +1696,7 @@
           <div style="position: absolute; left: 0; right: 0; height: 3px; background: #10b981; box-shadow: 0 0 10px #10b981, 0 0 20px #34d399; animation: adminScanLaser 2s ease-in-out infinite;"></div>
         </div>
         <button type="button" onclick="toggleAdminCameraFacing()" style="position: absolute; right: 10px; bottom: 10px; background: rgba(15, 23, 42, 0.75); color: white; border: 1px solid rgba(255,255,255,0.25); border-radius: 8px; padding: 5px 9px; font-size: 0.72rem; font-weight: 800; cursor: pointer; backdrop-filter: blur(4px); display: flex; align-items: center; gap: 4px;">
-          🔄 Voltear
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/></svg> Voltear
         </button>
       </div>
 
@@ -1637,15 +1708,15 @@
         }
       </style>
 
-      <div id="adminScanModalStatus" style="font-size: 0.8rem; font-weight: 800; color: #0284c7; min-height: 22px; margin-bottom: 6px; padding: 6px 10px; border-radius: 8px; background: #e0f2fe; transition: all 0.2s ease;">
-        📷 Enfoca el código QR del carné
+      <div id="adminScanModalStatus" style="font-size: 0.8rem; font-weight: 800; color: #0284c7; min-height: 22px; margin-bottom: 6px; padding: 6px 10px; border-radius: 8px; background: #e0f2fe; transition: all 0.2s ease; display: flex; align-items: center; justify-content: center; gap: 6px;">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/></svg> Enfoca el código QR del carné
       </div>
 
       <!-- ALTERNATIVA: DIGITAR CÓDIGO O CARNÉ MANUALMENTE -->
       <div style="margin: 8px 0 10px 0; display: flex; gap: 6px;">
         <input type="text" id="inputAdminScanManualCode" placeholder="O digita carné (ej: EST-2026-001)" onkeydown="if(event.key==='Enter')submitAdminScanManualCode()" style="flex: 1; padding: 9px 12px; border-radius: 10px; border: 1.5px solid #cbd5e1; font-size: 0.85rem; font-weight: 700; outline: none; background: var(--card-bg, #ffffff); color: var(--text-main);">
-        <button type="button" onclick="submitAdminScanManualCode()" style="padding: 9px 14px; background: #0284c7; color: white; border: none; border-radius: 10px; font-weight: 800; font-size: 0.8rem; cursor: pointer; white-space: nowrap;">
-          🔍 Validar
+        <button type="button" onclick="submitAdminScanManualCode()" style="padding: 9px 14px; background: #0284c7; color: white; border: none; border-radius: 10px; font-weight: 800; font-size: 0.8rem; cursor: pointer; white-space: nowrap; display: flex; align-items: center; gap: 4px;">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg> Validar
         </button>
       </div>
 
@@ -1662,7 +1733,7 @@
       <!-- CABECERA MODAL -->
       <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border); padding-bottom: 10px; margin-bottom: 10px;">
         <div style="display: flex; align-items: center; gap: 8px;">
-          <span style="font-size: 1.4rem;">🎨</span>
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#ec4899" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="13.5" cy="6.5" r=".5" fill="currentColor"/><circle cx="17.5" cy="10.5" r=".5" fill="currentColor"/><circle cx="8.5" cy="7.5" r=".5" fill="currentColor"/><circle cx="6.5" cy="12.5" r=".5" fill="currentColor"/><path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.926 0 1.648-.746 1.648-1.688 0-.437-.18-.835-.437-1.125-.29-.289-.438-.652-.438-1.125a1.64 1.64 0 0 1 1.668-1.668h1.996c3.051 0 5.563-2.512 5.563-5.563C22 6.5 17.5 2 12 2Z"/></svg>
           <div>
             <h3 style="margin: 0; font-size: 1.15rem; font-weight: 900; color: var(--text-main);">Diseños de Tarjeta</h3>
             <span style="font-size: 0.74rem; color: var(--text-muted); font-weight: 600;">Desliza y elige tu estilo favorito</span>
@@ -1711,7 +1782,7 @@
     <div class="modal-qr-card" onclick="event.stopPropagation()" style="max-width: 500px; text-align: left; padding: 22px;">
       <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1.5px solid var(--border); padding-bottom: 12px; margin-bottom: 16px;">
         <div style="display: flex; align-items: center; gap: 8px;">
-          <span style="font-size: 1.4rem;">👤</span>
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#8b5cf6" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
           <div>
             <h3 id="modalDevUserTitle" style="margin: 0; font-size: 1.15rem; font-weight: 900; color: var(--text-main);">Crear Nuevo Usuario</h3>
             <span style="font-size: 0.76rem; color: var(--text-muted); font-weight: 600;">Control total de cuentas y permisos</span>
@@ -1767,8 +1838,8 @@
           <button type="button" onclick="closeModalDevUser()" style="padding: 10px 18px; border-radius: 10px; border: 1.5px solid var(--border); background: var(--bg-main); color: var(--text-main); font-weight: 800; font-size: 0.85rem; cursor: pointer;">
             Cancelar
           </button>
-          <button type="submit" class="dev-action-btn dev-action-btn-primary" style="padding: 10px 22px; font-size: 0.9rem;">
-            💾 Guardar Usuario
+          <button type="submit" class="dev-action-btn dev-action-btn-primary" style="padding: 10px 22px; font-size: 0.9rem; display: flex; align-items: center; gap: 6px;">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg> Guardar Usuario
           </button>
         </div>
       </form>
@@ -1780,7 +1851,7 @@
     <div class="modal-qr-card" onclick="event.stopPropagation()" style="max-width: 420px; text-align: left; padding: 22px;">
       <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1.5px solid var(--border); padding-bottom: 12px; margin-bottom: 16px;">
         <div style="display: flex; align-items: center; gap: 8px;">
-          <span style="font-size: 1.4rem;">🔑</span>
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#8b5cf6" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="7.5" cy="15.5" r="5.5"/><path d="m21 2-9.6 9.6"/><path d="m15.5 7.5 3 3L22 7l-3-3"/></svg>
           <div>
             <h3 style="margin: 0; font-size: 1.15rem; font-weight: 900; color: var(--text-main);">Cambiar Contraseña</h3>
             <span id="devPwdTargetUser" style="font-size: 0.78rem; color: #8b5cf6; font-weight: 700;">Usuario</span>
@@ -1801,8 +1872,8 @@
           <button type="button" onclick="closeModalDevPassword()" style="padding: 10px 18px; border-radius: 10px; border: 1.5px solid var(--border); background: var(--bg-main); color: var(--text-main); font-weight: 800; font-size: 0.85rem; cursor: pointer;">
             Cancelar
           </button>
-          <button type="submit" class="dev-action-btn dev-action-btn-primary" style="padding: 10px 22px; font-size: 0.9rem;">
-            🔒 Actualizar Contraseña
+          <button type="submit" class="dev-action-btn dev-action-btn-primary" style="padding: 10px 22px; font-size: 0.9rem; display: flex; align-items: center; gap: 6px;">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg> Actualizar Contraseña
           </button>
         </div>
       </form>
@@ -1812,23 +1883,23 @@
   <!-- BARRA DE NAVEGACIÓN INFERIOR PWA (MÓVILES) -->
   <nav class="pwa-bottom-nav" id="pwaBottomNav" style="display: none;">
     <button class="pwa-nav-item active" id="pwaNavMenu" onclick="pwaNavigateTo('menu')">
-      <span class="pwa-nav-icon">🥪</span>
+      <span class="pwa-nav-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 2v7c0 1.1.9 2 2 2h4a2 2 0 0 0 2-2V2"/><path d="M7 2v20"/><path d="M21 15V2v0a5 5 0 0 0-5 5v6c0 1.1.9 2 2 2h3Zm0 0v7"/></svg></span>
       <span class="pwa-nav-label">Menú</span>
     </button>
     <button class="pwa-nav-item" id="pwaNavQr" onclick="pwaNavigateTo('qr')">
-      <span class="pwa-nav-icon">📱</span>
+      <span class="pwa-nav-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="5" height="5" x="3" y="3" rx="1"/><rect width="5" height="5" x="16" y="3" rx="1"/><rect width="5" height="5" x="3" y="16" rx="1"/><path d="M21 16h-3a2 2 0 0 0-2 2v3"/><path d="M21 21v.01"/><path d="M12 7v3a2 2 0 0 1-2 2H7"/><path d="M3 12h.01"/><path d="M12 3h.01"/><path d="M12 16v.01"/><path d="M16 12h1"/><path d="M21 12v.01"/><path d="M12 21v-1"/></svg></span>
       <span class="pwa-nav-label">Mi QR</span>
     </button>
     <button class="pwa-nav-item" id="pwaNavTransfer" onclick="pwaNavigateTo('transfer')">
-      <span class="pwa-nav-icon">⚡</span>
+      <span class="pwa-nav-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m16 3 4 4-4 4"/><path d="M20 7H4"/><path d="m8 21-4-4 4-4"/><path d="M4 17h16"/></svg></span>
       <span class="pwa-nav-label">Transferir</span>
     </button>
     <button class="pwa-nav-item" id="pwaNavPadres" onclick="pwaNavigateTo('padres')">
-      <span class="pwa-nav-icon">👨‍👩‍👦</span>
+      <span class="pwa-nav-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></span>
       <span class="pwa-nav-label">Padres</span>
     </button>
     <button class="pwa-nav-item pwa-nav-logout" onclick="logout(true)" title="Cerrar sesión y cambiar de cuenta">
-      <span class="pwa-nav-icon">🚪</span>
+      <span class="pwa-nav-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" x2="9" y1="12" y2="12"/></svg></span>
       <span class="pwa-nav-label">Salir</span>
     </button>
   </nav>

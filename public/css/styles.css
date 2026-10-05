@@ -1656,7 +1656,9 @@ body.dark-mode .pwa-bottom-nav {
 .pwa-nav-icon {
   font-size: 1.35rem;
   line-height: 1;
-  display: block;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .pwa-nav-label {
@@ -1987,55 +1989,109 @@ body.dark-mode .transfer-amount-btn {
 .admin-staff-card {
   background: var(--card-bg, #ffffff);
   border: 1px solid var(--border, #e2e8f0);
-  border-radius: 14px;
-  padding: 14px;
+  border-radius: 12px;
+  padding: 12px 16px;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
-  flex-wrap: wrap;
+  gap: 16px;
   transition: all 0.2s ease;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
 }
 
 .admin-staff-card:hover {
   border-color: #cbd5e1;
-  box-shadow: 0 3px 8px rgba(0,0,0,0.06);
+  box-shadow: 0 4px 12px -2px rgba(15, 23, 42, 0.06);
+}
+
+body.dark-mode .admin-staff-card:hover {
+  border-color: #475569;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
 }
 
 .admin-staff-card.blocked {
-  background: #fef2f2;
-  border-color: #fca5a5;
-  opacity: 0.85;
+  background: #fffafa;
+  border-color: #fecaca;
+  opacity: 0.9;
 }
 
 body.dark-mode .admin-staff-card.blocked {
-  background: rgba(239, 68, 68, 0.1);
-  border-color: rgba(239, 68, 68, 0.3);
+  background: rgba(239, 68, 68, 0.05);
+  border-color: rgba(239, 68, 68, 0.25);
+}
+
+.staff-initials-avatar {
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  background: #0f172a;
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+  font-size: 0.92rem;
+  letter-spacing: 0.5px;
+  flex-shrink: 0;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.15);
+}
+body.dark-mode .staff-initials-avatar {
+  background: #0284c7;
+  color: #ffffff;
 }
 
 .staff-role-badge {
-  font-size: 0.72rem;
-  font-weight: 800;
+  font-size: 0.7rem;
+  font-weight: 700;
   padding: 2px 8px;
   border-radius: 6px;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  line-height: 1.2;
 }
 
-.staff-role-admin { background: #fef3c7; color: #b45309; }
-.staff-role-cajero { background: #e0f2fe; color: #0369a1; }
-.staff-role-vendedor { background: #dcfce7; color: #15803d; }
-
-.staff-status-badge {
-  font-size: 0.72rem;
-  font-weight: 800;
-  padding: 2px 8px;
-  border-radius: 6px;
+.staff-role-admin {
+  background: rgba(14, 165, 233, 0.1);
+  color: #0369a1;
+  border: 1px solid rgba(14, 165, 233, 0.25);
+}
+body.dark-mode .staff-role-admin {
+  background: rgba(14, 165, 233, 0.15);
+  color: #38bdf8;
+  border-color: rgba(14, 165, 233, 0.3);
 }
 
-.staff-status-active { background: #dcfce7; color: #166534; }
-.staff-status-blocked { background: #fee2e2; color: #991b1b; }
+.staff-role-cajero {
+  background: rgba(16, 185, 129, 0.1);
+  color: #047857;
+  border: 1px solid rgba(16, 185, 129, 0.25);
+}
+body.dark-mode .staff-role-cajero {
+  background: rgba(16, 185, 129, 0.15);
+  color: #34d399;
+  border-color: rgba(16, 185, 129, 0.3);
+}
+
+.staff-role-vendedor {
+  background: rgba(245, 158, 11, 0.1);
+  color: #b45309;
+  border: 1px solid rgba(245, 158, 11, 0.25);
+}
+body.dark-mode .staff-role-vendedor {
+  background: rgba(245, 158, 11, 0.15);
+  color: #fbbf24;
+  border-color: rgba(245, 158, 11, 0.3);
+}
+
+@media (max-width: 768px) {
+  .admin-staff-card {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+    padding: 14px;
+  }
+}
 
 /* Botones de acción de inventario y personal */
 .btn-action-edit {

@@ -198,17 +198,17 @@ async function handleRegisterPadreSubmit(event) {
     localStorage.setItem('recreopay_user', JSON.stringify(currentUser));
 
     if (window.sounds) window.sounds.playSuccess();
-    alert(`🎉 ¡Bienvenido(a) a RecreoPay, ${data.user.nombre}! Tu cuenta de padre fue creada exitosamente.`);
+    alert(`¡Bienvenido(a) a RecreoPay, ${data.user.nombre}! Tu cuenta de padre fue creada exitosamente.`);
     await applyUserRoleSession();
   } catch (err) {
     if (errorMsg) {
-      errorMsg.textContent = `❌ ${err.message}`;
+      errorMsg.textContent = `${err.message}`;
       errorMsg.style.display = 'block';
     }
     if (window.sounds) window.sounds.playError();
   } finally {
     btnSubmit.disabled = false;
-    btnSubmit.innerHTML = '✨ Crear Cuenta y Entrar al Panel';
+    btnSubmit.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:6px;"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M19 11v6"/><path d="M22 14h-6"/></svg> Crear Cuenta y Entrar al Panel';
   }
 }
 
@@ -260,13 +260,13 @@ async function handleLoginSubmit(event) {
     await applyUserRoleSession();
   } catch (err) {
     if (errorMsg) {
-      errorMsg.textContent = `❌ ${err.message}`;
+      errorMsg.textContent = `${err.message}`;
       errorMsg.style.display = 'block';
     }
     if (window.sounds) window.sounds.playError();
   } finally {
     submitBtn.disabled = false;
-    submitBtn.innerHTML = '🚀 Iniciar Sesión';
+    submitBtn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:6px;"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" x2="3" y1="12" y2="12"/></svg> Iniciar Sesión';
   }
 }
 
@@ -526,7 +526,7 @@ function updateStudentUI() {
   const qrBtn = document.getElementById('qrBtnText');
   if (qrBtn) qrBtn.textContent = 'Mi QR';
   const transferBtn = document.getElementById('transferBtnText');
-  if (transferBtn) transferBtn.textContent = 'Transferir ⚡';
+  if (transferBtn) transferBtn.textContent = 'Transferir';
 
   // Límite diario y disponible hoy
   const limiteDiario = currentStudent.limite_diario_colones || 0;
@@ -589,23 +589,27 @@ function setAppMode(mode, playSound = false) {
 function initTheme() {
   const saved = localStorage.getItem('recreopay_theme') || 'light';
   const btn = document.getElementById('btnThemeToggle');
+  const svgSun = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/></svg>';
+  const svgMoon = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>';
   if (saved === 'dark') {
     document.body.classList.add('dark-mode');
-    if (btn) btn.textContent = '☀️';
+    if (btn) btn.innerHTML = svgSun;
   } else {
     document.body.classList.remove('dark-mode');
-    if (btn) btn.textContent = '🌙';
+    if (btn) btn.innerHTML = svgMoon;
   }
 }
 
 function toggleTheme() {
   const isDark = document.body.classList.toggle('dark-mode');
   const btn = document.getElementById('btnThemeToggle');
+  const svgSun = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/></svg>';
+  const svgMoon = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>';
   if (isDark) {
-    if (btn) btn.textContent = '☀️';
+    if (btn) btn.innerHTML = svgSun;
     localStorage.setItem('recreopay_theme', 'dark');
   } else {
-    if (btn) btn.textContent = '🌙';
+    if (btn) btn.innerHTML = svgMoon;
     localStorage.setItem('recreopay_theme', 'light');
   }
   if (window.sounds) window.sounds.playTap();
@@ -617,7 +621,7 @@ function renderCategories() {
   if (!bar) return;
   let html = `
     <button class="cat-pill ${activeCategoryId === null ? 'active' : ''}" onclick="selectCategory(null)">
-      <span>✨</span> Todos
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block; vertical-align:middle; margin-right:4px;"><rect width="7" height="7" x="3" y="3" rx="1"/><rect width="7" height="7" x="14" y="3" rx="1"/><rect width="7" height="7" x="14" y="14" rx="1"/><rect width="7" height="7" x="3" y="14" rx="1"/></svg> Todos
     </button>
   `;
 
@@ -656,7 +660,7 @@ function renderProducts() {
   if (filtered.length === 0) {
     grid.innerHTML = `
       <div style="grid-column: 1 / -1; text-align: center; padding: 30px; color: var(--text-muted);">
-        <p style="font-size: 2rem;">🥪</p>
+        <div style="display: flex; justify-content: center; margin-bottom: 8px;"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="opacity: 0.4;"><path d="M18 8h1a4 4 0 0 1 0 8h-1"/><path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"/><line x1="6" y1="1" x2="6" y2="4"/><line x1="10" y1="1" x2="10" y2="4"/><line x1="14" y1="1" x2="14" y2="4"/></svg></div>
         <p>No hay productos en esta categoría por ahora.</p>
       </div>
     `;
@@ -666,7 +670,7 @@ function renderProducts() {
   grid.innerHTML = filtered.map(prod => {
     const isOutOfStock = prod.control_stock === 1 && (prod.stock <= 0 || prod.disponible === 0);
     const stockBadge = (prod.control_stock === 1 && isOutOfStock)
-      ? '<span class="badge-out-of-stock">🚫 AGOTADO</span>'
+      ? '<span class="badge-out-of-stock">AGOTADO</span>'
       : '';
 
     return `
@@ -674,18 +678,18 @@ function renderProducts() {
         <div class="product-icon-wrap">${prod.icono || '🥪'}</div>
         <div>
           <div style="display: flex; gap: 4px; flex-wrap: wrap; margin-bottom: 4px;">
-            ${prod.cumple_mep ? '<span class="badge-mep">🌿 MEP Saludable</span>' : ''}
+            ${prod.cumple_mep ? '<span class="badge-mep">MEP Saludable</span>' : ''}
             ${stockBadge}
           </div>
           <h4 class="product-name">${prod.nombre}</h4>
           <p class="product-desc">${prod.descripcion || ''}</p>
-          ${prod.alergenos ? `<div style="font-size: 0.68rem; color: #dc2626; margin-bottom: 4px;">⚠️ Contiene: ${prod.alergenos}</div>` : ''}
+          ${prod.alergenos ? `<div style="font-size: 0.68rem; color: #dc2626; margin-bottom: 4px; display: flex; align-items: center; gap: 4px;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg> Contiene: ${prod.alergenos}</div>` : ''}
         </div>
         <div class="product-footer">
           <span class="product-price">₡${prod.precio_colones.toLocaleString('es-CR')}</span>
           ${isOutOfStock ? `
             <button class="add-btn" disabled style="opacity: 0.5; background: #94a3b8; cursor: not-allowed;" title="Producto Agotado">
-              🚫
+              ✕
             </button>
           ` : `
             <button class="add-btn" onclick="addToCart(${prod.id})" title="Agregar a mi pre-orden">
@@ -707,14 +711,14 @@ function addToCart(productId) {
   if (!prod) return;
 
   if (prod.control_stock === 1 && (prod.stock <= 0 || prod.disponible === 0)) {
-    alert(`⚠️ El producto "${prod.nombre}" se encuentra agotado en la soda.`);
+    alert(`El producto "${prod.nombre}" se encuentra agotado en la soda.`);
     return;
   }
 
   const existing = cart.find(item => item.product.id === productId);
   const currentInCart = existing ? existing.cantidad : 0;
   if (prod.control_stock === 1 && (currentInCart + 1) > prod.stock) {
-    alert(`⚠️ Solo quedan ${prod.stock} unidad(es) de "${prod.nombre}" en inventario.`);
+    alert(`Solo quedan ${prod.stock} unidad(es) de "${prod.nombre}" en inventario.`);
     return;
   }
 
@@ -834,7 +838,7 @@ async function submitPreOrder() {
 
     if (window.sounds) window.sounds.playSuccess();
 
-    alert(`🎉 ¡Pre-Orden confirmada con éxito!\nCódigo de entrega: ${data.codigo_orden}\nRebajada de tu monedero: ₡${data.total_colones.toLocaleString('es-CR')}\n\nPodrás retirarla en la fila rápida de la soda durante el recreo presentando tu QR.`);
+    alert(`¡Pre-Orden confirmada con éxito!\nCódigo de entrega: ${data.codigo_orden}\nRebajada de tu monedero: ₡${data.total_colones.toLocaleString('es-CR')}\n\nPodrás retirarla en la fila rápida de la soda durante el recreo presentando tu QR.`);
 
     // Limpiar carrito y recargar datos del estudiante
     cart = [];
@@ -842,10 +846,10 @@ async function submitPreOrder() {
     closeCartModal();
     await selectStudent(currentStudent.id);
   } catch (err) {
-    alert(`❌ No se pudo procesar: ${err.message}`);
+    alert(`No se pudo procesar: ${err.message}`);
   } finally {
     btn.disabled = false;
-    btn.textContent = '✅ Confirmar y Pagar Pre-Orden';
+    btn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg> <span>Confirmar y Pagar Pre-Orden</span>';
   }
 }
 
@@ -949,7 +953,7 @@ async function doSinpeRecharge(monto) {
     if (!res.ok) throw new Error(data.error);
 
     if (window.sounds) window.sounds.playSuccess();
-    alert(`✅ ¡Recarga SINPE exitosa!\nSe acreditaron ₡${monto.toLocaleString('es-CR')} al monedero de ${currentStudent.nombre_completo}.\nComprobante: ${comprobante}`);
+    alert(`¡Recarga SINPE exitosa!\nSe acreditaron ₡${monto.toLocaleString('es-CR')} al monedero de ${currentStudent.nombre_completo}.\nComprobante: ${comprobante}`);
 
     await selectStudent(currentStudent.id);
   } catch (err) {
@@ -1014,7 +1018,7 @@ async function saveCustomDailyLimit(customVal) {
 
       const fb = document.getElementById('msgDailyLimitFeedback');
       if (fb) {
-        fb.textContent = `✅ ¡Límite fijado en ₡${val.toLocaleString('es-CR')} con éxito!`;
+        fb.textContent = `Límite fijado en ₡${val.toLocaleString('es-CR')} con éxito`;
         fb.style.display = 'block';
         setTimeout(() => { if (fb) fb.style.display = 'none'; }, 4000);
       }
@@ -1088,7 +1092,7 @@ function openTransferModal() {
 
   if (currentStudent.permitir_transferencias === 0) {
     if (window.sounds) window.sounds.playError();
-    return alert('⚠️ Tus padres tienen desactivadas las transferencias entre compañeros en tu perfil.');
+    return alert('Tus padres tienen desactivadas las transferencias entre compañeros en tu perfil.');
   }
 
   if (window.sounds) window.sounds.playCoin();
@@ -1213,12 +1217,11 @@ function togglePinVisibility() {
   const btn = document.getElementById('btnTogglePin');
   if (!pinInput) return;
   if (pinInput.type === 'password') {
-    // Al pasar a type="tel", muestra los números y mantiene el teclado puramente numérico
     pinInput.type = 'tel';
-    if (btn) btn.textContent = '🔒';
+    if (btn) btn.innerHTML = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9.88 9.88a3 3 0 1 0 4.24 4.24"/><path d="M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68"/><path d="M6.61 6.61A13.526 13.526 0 0 0 2 12s3 7 10 7a9.74 9.74 0 0 0 5.39-1.61"/><line x1="2" x2="22" y1="2" y2="22"/></svg>';
   } else {
     pinInput.type = 'password';
-    if (btn) btn.textContent = '👁️';
+    if (btn) btn.innerHTML = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>';
   }
 }
 
@@ -1246,19 +1249,19 @@ async function startTransferCamera(isUserAction = false) {
 
   // Si no hay soporte de getUserMedia o estamos en HTTP inseguro
   if (isHttp || !navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-    if (status) status.textContent = '⚠️ Requiere HTTPS';
+    if (status) status.textContent = 'Requiere HTTPS';
     if (helpOverlay) {
       helpOverlay.style.display = 'flex';
       if (helpText) {
         helpText.innerHTML = `
-          <div style="font-weight: 800; color: #fca5a5; font-size: 0.85rem; margin-bottom: 4px;">⚠️ Cámara requiere HTTPS</div>
+          <div style="font-weight: 800; color: #fca5a5; font-size: 0.85rem; margin-bottom: 4px;">Cámara requiere HTTPS</div>
           <span style="font-size: 0.72rem; color: #cbd5e1;">Por seguridad, los navegadores en celulares bloquean la cámara si la conexión no es HTTPS. Toca el botón para abrir la app segura:</span>
         `;
       }
       if (actionContainer) {
         actionContainer.innerHTML = `
-          <button type="button" onclick="window.location.href='${CLOUDFLARE_TUNNEL_URL}' + window.location.pathname" style="padding: 10px 16px; background: #10b981; color: white; border: none; border-radius: 10px; font-weight: 900; font-size: 0.84rem; cursor: pointer; box-shadow: 0 4px 12px rgba(16, 185, 129, 0.4);">
-            🚀 Cambiar a HTTPS Seguro
+          <button type="button" onclick="window.location.href='${CLOUDFLARE_TUNNEL_URL}' + window.location.pathname" style="padding: 10px 16px; background: #10b981; color: white; border: none; border-radius: 10px; font-weight: 900; font-size: 0.84rem; cursor: pointer; box-shadow: 0 4px 12px rgba(16, 185, 129, 0.4); display: inline-flex; align-items: center; gap: 6px;">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg> Cambiar a HTTPS Seguro
           </button>
         `;
       }
@@ -1321,7 +1324,7 @@ async function startTransferCamera(isUserAction = false) {
       console.warn('Reproducción diferida:', playErr);
     }
 
-    if (status) status.textContent = '🟢 Escaneando QR...';
+    if (status) status.innerHTML = '<span style="display:inline-block; width:8px; height:8px; border-radius:50%; background:#22c55e; margin-right:6px;"></span> Escaneando QR...';
     if (helpOverlay) helpOverlay.style.display = 'none';
     if (retryBtn) retryBtn.style.display = 'none';
     if (flipBtn) flipBtn.style.display = 'inline-block';
@@ -1335,28 +1338,28 @@ async function startTransferCamera(isUserAction = false) {
     const errName = err.name || '';
 
     if (errName === 'NotAllowedError' || errName === 'PermissionDeniedError') {
-      userMsg = '🔒 Permiso denegado: El navegador bloqueó la cámara. Toca el candado o configuración junto a la barra de dirección y habilita la Cámara.';
+      userMsg = 'Permiso denegado: El navegador bloqueó la cámara. Habilita el acceso en los ajustes de tu navegador.';
     } else if (errName === 'NotFoundError' || errName === 'DevicesNotFoundError') {
-      userMsg = '📷 No se detectó ninguna cámara física en este dispositivo.';
+      userMsg = 'No se detectó ninguna cámara física en este dispositivo.';
     } else if (errName === 'NotReadableError' || errName === 'TrackStartError') {
-      userMsg = '⚠️ La cámara está ocupada por otra app (WhatsApp, etc). Ciérrala e intenta de nuevo.';
+      userMsg = 'La cámara está ocupada por otra app. Ciérrala e intenta de nuevo.';
     } else if (errName === 'OverconstrainedError') {
-      userMsg = '⚠️ Tu cámara no admite la resolución solicitada.';
+      userMsg = 'Tu cámara no admite la resolución solicitada.';
     }
 
-    if (status) status.textContent = '⚠️ Cámara bloqueada';
+    if (status) status.textContent = 'Cámara bloqueada o no disponible';
     if (helpOverlay) {
       helpOverlay.style.display = 'flex';
       if (helpText) {
         helpText.innerHTML = `
-          <div style="font-weight: 800; color: #fca5a5; font-size: 0.8rem; margin-bottom: 4px;">⚠️ Permiso Requerido</div>
+          <div style="font-weight: 800; color: #fca5a5; font-size: 0.8rem; margin-bottom: 4px;">Permiso Requerido</div>
           <span style="font-size: 0.72rem; color: #f1f5f9;">${userMsg}</span>
         `;
       }
       if (actionContainer) {
         actionContainer.innerHTML = `
-          <button type="button" onclick="startTransferCamera(true)" style="padding: 8px 16px; background: #0284c7; color: white; border: none; border-radius: 8px; font-weight: 800; font-size: 0.82rem; cursor: pointer; box-shadow: 0 4px 10px rgba(2, 132, 199, 0.4);">
-            📷 Tocar para Permitir Cámara
+          <button type="button" onclick="startTransferCamera(true)" style="padding: 8px 16px; background: #0284c7; color: white; border: none; border-radius: 8px; font-weight: 800; font-size: 0.82rem; cursor: pointer; box-shadow: 0 4px 10px rgba(2, 132, 199, 0.4); display: inline-flex; align-items: center; gap: 6px;">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/></svg> Permitir Cámara
           </button>
         `;
       }
@@ -1404,8 +1407,8 @@ function handleTransferQrPhoto(event) {
           return;
         }
       }
-      if (status) status.textContent = '❌ No se detectó QR';
-      alert('⚠️ No se detectó ningún código QR en la foto. Intenta tomarla más de cerca con buena iluminación.');
+      if (status) status.textContent = 'No se detectó QR';
+      alert('No se detectó ningún código QR en la foto. Intenta tomarla más de cerca con buena iluminación.');
     };
     img.src = e.target.result;
   };
@@ -1470,7 +1473,7 @@ async function fetchStudentByScannedQr(rawValue) {
         stopTransferCamera();
         onTransferTargetIdentified(found);
       } else {
-        alert('⚠️ Este es tu propio código QR. Escanea el carné o QR de tu compañero.');
+        alert('Este es tu propio código QR. Escanea el carné o QR de tu compañero.');
       }
     }
   } catch (e) {}
@@ -1488,7 +1491,7 @@ async function executeP2PTransfer() {
   const pin = document.getElementById('inputTransferPin').value.trim();
   if (!pin) {
     if (window.sounds) window.sounds.playError();
-    return alert('⚠️ Por favor ingresa tu PIN de seguridad (por defecto 1234).');
+    return alert('Por favor ingresa tu PIN de seguridad (por defecto 1234).');
   }
 
   const motivo = document.getElementById('inputTransferMotivo').value.trim();
@@ -1518,15 +1521,15 @@ async function executeP2PTransfer() {
 
     if (window.sounds) window.sounds.playSuccess();
 
-    alert(`🎉 ¡TRANSFERENCIA EXITOSA!\nLe pasaste ₡${data.monto.toLocaleString('es-CR')} a ${data.receptor.nombre}.\nTu nuevo saldo es ₡${data.emisor.saldo_nuevo.toLocaleString('es-CR')}.`);
+    alert(`¡TRANSFERENCIA EXITOSA!\nLe pasaste ₡${data.monto.toLocaleString('es-CR')} a ${data.receptor.nombre}.\nTu nuevo saldo es ₡${data.emisor.saldo_nuevo.toLocaleString('es-CR')}.`);
 
     closeTransferModal();
     await selectStudent(currentStudent.id);
   } catch (err) {
-    alert(`❌ Fallo en la transferencia: ${err.message}`);
+    alert(`Fallo en la transferencia: ${err.message}`);
   } finally {
     btn.disabled = false;
-    btn.innerHTML = '<span>💸</span> Enviar Dinero al Instante';
+    btn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg> <span>Enviar Dinero al Instante</span>';
   }
 }
 
@@ -1670,7 +1673,7 @@ function initStudentSSE() {
           updateStudentUI();
           triggerBalancePulse();
         }
-        alert(`🔔 ¡Te pasaron plata!\n${data.emisor.nombre} te transfirió ₡${data.monto.toLocaleString('es-CR')}.\nMotivo: ${data.motivo}`);
+        alert(`¡Transferencia Recibida!\n${data.emisor.nombre} te transfirió ₡${data.monto.toLocaleString('es-CR')}.\nMotivo: ${data.motivo}`);
         fetch(`/api/estudiantes/${myId}`).then(r => r.json()).then(s => { if (s && currentStudent && currentStudent.id === s.id) { currentStudent = s; updateStudentUI(); } }).catch(()=>{});
       } else if (myId && data.emisor && Number(data.emisor.id) === myId) {
         if (currentStudent && typeof data.emisor.saldo_nuevo === 'number') {
@@ -2033,13 +2036,13 @@ async function executeParentSinpeRecharge() {
     if (!res.ok) throw new Error(data.error);
 
     if (window.sounds) window.sounds.playCoin();
-    alert(`🎉 ¡Recarga Exitosa!\nSe agregaron ₡${monto.toLocaleString('es-CR')} al monedero de ${currentParentChild.nombre_completo}.\nNuevo Saldo: ₡${data.saldo_nuevo.toLocaleString('es-CR')}`);
+    alert(`¡Recarga Exitosa!\nSe agregaron ₡${monto.toLocaleString('es-CR')} al monedero de ${currentParentChild.nombre_completo}.\nNuevo Saldo: ₡${data.saldo_nuevo.toLocaleString('es-CR')}`);
 
     if (input) input.value = '';
     await loadParentDashboard();
   } catch (err) {
     if (window.sounds) window.sounds.playError();
-    alert(`❌ Error al procesar recarga SINPE: ${err.message}`);
+    alert(`Error al procesar recarga SINPE: ${err.message}`);
   }
 }
 
@@ -2081,11 +2084,11 @@ async function saveParentCustomLimit() {
 
     currentParentChild.limite_diario_colones = val;
     if (window.sounds) window.sounds.playSuccess();
-    alert(`🛡️ Límite diario actualizado a ₡${val.toLocaleString('es-CR')} para ${currentParentChild.nombre_completo}.`);
+    alert(`Límite diario actualizado a ₡${val.toLocaleString('es-CR')} para ${currentParentChild.nombre_completo}.`);
     await loadParentDashboard();
   } catch (err) {
     if (window.sounds) window.sounds.playError();
-    alert(`❌ Error al guardar límite: ${err.message}`);
+    alert(`Error al guardar límite: ${err.message}`);
   }
 }
 
@@ -2104,7 +2107,7 @@ async function onToggleParentTransfer(checked) {
     currentParentChild.permitir_transferencias = checked ? 1 : 0;
     if (window.sounds) window.sounds.playTap();
   } catch (err) {
-    alert(`❌ No se pudo actualizar permiso de transferencia: ${err.message}`);
+    alert(`No se pudo actualizar permiso de transferencia: ${err.message}`);
   }
 }
 
@@ -2139,12 +2142,12 @@ async function saveParentStudentCredentials() {
     if (!res.ok) throw new Error(data.error);
 
     if (window.sounds) window.sounds.playSuccess();
-    alert(`✅ ¡Credenciales de acceso escolar actualizadas!\n${data.mensaje}`);
+    alert(`¡Credenciales de acceso escolar actualizadas!\n${data.mensaje}`);
     if (pinInput) pinInput.value = '';
     if (passInput) passInput.value = '';
   } catch (err) {
     if (window.sounds) window.sounds.playError();
-    alert(`❌ Error al actualizar credenciales: ${err.message}`);
+    alert(`Error al actualizar credenciales: ${err.message}`);
   }
 }
 
@@ -2342,7 +2345,7 @@ async function startScanChildCamera() {
     await video.play();
 
     if (badge) {
-      badge.textContent = '📷 Apunta al código QR del carné';
+      badge.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align: -2px; margin-right: 4px;"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg> Apunta al código QR del carné';
       badge.style.color = '#38bdf8';
     }
 
@@ -2371,7 +2374,7 @@ async function startScanChildCamera() {
   } catch (err) {
     console.warn('Cámara no disponible para escaneo de carné:', err);
     if (badge) {
-      badge.textContent = '⚠️ Cámara no disponible - Digita el código';
+      badge.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align: -2px; margin-right: 4px;"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg> Cámara no disponible - Digita el código';
       badge.style.color = '#fca5a5';
     }
   }
@@ -2410,7 +2413,7 @@ async function validateStudentCodeForLink() {
 
   if (!val) {
     if (errorMsg) {
-      errorMsg.textContent = '⚠️ Por favor ingresa el código del estudiante (ej: EST-2026-001).';
+      errorMsg.textContent = 'Por favor ingresa el código del estudiante (ej: EST-2026-001).';
       errorMsg.style.display = 'block';
     }
     return;
@@ -2427,7 +2430,7 @@ async function validateStudentCodeForLink() {
   } finally {
     if (btn) {
       btn.disabled = false;
-      btn.innerHTML = '<span>🔍</span> Validar';
+      btn.innerHTML = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg> <span>Validar</span>';
     }
   }
 }
@@ -2464,7 +2467,7 @@ async function showStudentConfirmationForLink(tokenOrCode) {
   } catch (err) {
     if (window.sounds) window.sounds.playError();
     if (errorMsg) {
-      errorMsg.textContent = `⚠️ No se encontró ningún estudiante con el código "${tokenOrCode}". Verifica que el código esté bien escrito e intenta de nuevo.`;
+      errorMsg.textContent = `No se encontró ningún estudiante con el código "${tokenOrCode}". Verifica que el código esté bien escrito e intenta de nuevo.`;
       errorMsg.style.display = 'block';
     }
     // Si estábamos en cámara, reiniciar escaneo tras 2 segundos si el usuario sigue en la pestaña cámara
@@ -2510,7 +2513,7 @@ async function confirmLinkValidatedChild() {
   const btnConfirm = document.getElementById('btnConfirmLinkChild');
   if (btnConfirm) {
     btnConfirm.disabled = true;
-    btnConfirm.innerHTML = '<span>⏳</span> Vinculando...';
+    btnConfirm.innerHTML = '<span>Vinculando...</span>';
   }
 
   try {
@@ -2531,15 +2534,15 @@ async function confirmLinkValidatedChild() {
 
     closeScanChildQrModal();
     if (window.sounds) window.sounds.playSuccess();
-    alert(`🎉 ¡Éxito!\n${data.mensaje}`);
+    alert(`¡Éxito!\n${data.mensaje}`);
     renderParentDashboardView();
   } catch (err) {
     if (window.sounds) window.sounds.playError();
-    alert(`❌ ${err.message}`);
+    alert(err.message);
   } finally {
     if (btnConfirm) {
       btnConfirm.disabled = false;
-      btnConfirm.innerHTML = '<span>✅</span> Confirmar y Vincular';
+      btnConfirm.innerHTML = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg> <span>Confirmar y Vincular</span>';
     }
   }
 }
@@ -2636,11 +2639,11 @@ function renderAdminInventory(list) {
     if (p.control_stock === 0) {
       statusPill = `<span style="font-size: 0.7rem; font-weight: 800; color: #0284c7; background: #e0f2fe; padding: 3px 8px; border-radius: 6px;">Ilimitado</span>`;
     } else if (isOutOfStock) {
-      statusPill = `<span style="font-size: 0.7rem; font-weight: 900; color: #ef4444; background: #fee2e2; padding: 3px 8px; border-radius: 6px;">🚫 AGOTADO</span>`;
+      statusPill = `<span style="font-size: 0.7rem; font-weight: 800; color: #ef4444; background: #fee2e2; padding: 3px 8px; border-radius: 6px;">Agotado</span>`;
     } else if (isLowStock) {
-      statusPill = `<span style="font-size: 0.7rem; font-weight: 800; color: #d97706; background: #fef3c7; padding: 3px 8px; border-radius: 6px;">⚠️ Quedan ${p.stock}</span>`;
+      statusPill = `<span style="font-size: 0.7rem; font-weight: 800; color: #d97706; background: #fef3c7; padding: 3px 8px; border-radius: 6px;">Quedan ${p.stock}</span>`;
     } else {
-      statusPill = `<span style="font-size: 0.7rem; font-weight: 800; color: #166534; background: #dcfce7; padding: 3px 8px; border-radius: 6px;">🟢 ${p.stock} unid.</span>`;
+      statusPill = `<span style="font-size: 0.7rem; font-weight: 800; color: #166534; background: #dcfce7; padding: 3px 8px; border-radius: 6px;">${p.stock} unid.</span>`;
     }
 
     return `
@@ -2652,7 +2655,7 @@ function renderAdminInventory(list) {
               <div style="display: flex; align-items: center; gap: 6px; flex-wrap: wrap;">
                 <strong style="font-size: 0.92rem; color: var(--text-main); word-break: break-word;">${p.nombre}</strong>
                 ${statusPill}
-                ${p.cumple_mep === 1 ? '<span style="font-size: 0.68rem; font-weight: 800; background: #dcfce7; color: #15803d; padding: 2px 6px; border-radius: 5px;">🟢 MEP</span>' : '<span style="font-size: 0.68rem; font-weight: 800; background: #fef3c7; color: #b45309; padding: 2px 6px; border-radius: 5px;">🟠 Ocasional</span>'}
+                ${p.cumple_mep === 1 ? '<span style="font-size: 0.68rem; font-weight: 800; background: #dcfce7; color: #15803d; padding: 2px 6px; border-radius: 5px;">MEP Saludable</span>' : '<span style="font-size: 0.68rem; font-weight: 800; background: #fef3c7; color: #b45309; padding: 2px 6px; border-radius: 5px;">Ocasional</span>'}
               </div>
               <div style="font-size: 0.74rem; color: var(--text-muted); margin-top: 2px;">
                 ${p.categoria_nombre || 'General'} • ₡${p.precio_colones.toLocaleString('es-CR')}
@@ -2867,17 +2870,17 @@ async function submitNewStudent(event) {
     if (!res.ok) throw new Error(data.error);
 
     if (window.sounds) window.sounds.playSuccess();
-    alert(`🎉 ¡Estudiante Creado con Éxito!\nNombre: ${data.nombre_completo}\nCódigo: ${data.codigo_estudiante}\nQR Token: ${data.qr_token}`);
+    alert(`¡Estudiante Creado con Éxito!\nNombre: ${data.nombre_completo}\nCódigo: ${data.codigo_estudiante}\nQR Token: ${data.qr_token}`);
 
     closeNewStudentModal();
     document.getElementById('formNewStudent').reset();
     await loadAdminData();
   } catch (err) {
     if (window.sounds) window.sounds.playError();
-    alert(`❌ Error al crear estudiante: ${err.message}`);
+    alert(`Error al crear estudiante: ${err.message}`);
   } finally {
     btn.disabled = false;
-    btn.innerHTML = '✅ Guardar y Generar Carné';
+    btn.innerHTML = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg> <span>Guardar y Generar Carné</span>';
   }
 }
 
@@ -2952,7 +2955,7 @@ function onAdminSearchStudent(query) {
   if (results.length === 0) {
     dropdown.innerHTML = `
       <div style="padding: 16px 12px; text-align: center; color: var(--text-muted); font-size: 0.85rem;">
-        ❌ No se encontró ningún estudiante con "<strong>${query}</strong>"
+        No se encontró ningún estudiante con "<strong>${query}</strong>"
         <div style="margin-top: 6px; font-size: 0.74rem;">Intenta con el primer nombre, apellidos o carné (ej: EST-2026-001)</div>
       </div>
     `;
@@ -2970,7 +2973,7 @@ function renderAdminSearchDropdown(list, query = '') {
   const displayList = (list || []).slice(0, 12);
   dropdown.innerHTML = `
     <div style="padding: 6px 12px; background: #f8fafc; border-bottom: 1px solid var(--border); font-size: 0.72rem; font-weight: 800; color: var(--text-muted); display: flex; justify-content: space-between; align-items: center;">
-      <span>${query ? `🔍 Resultados para "${query}" (${list.length})` : `👥 Estudiantes Registrados (${list.length})`}:</span>
+      <span>${query ? `Resultados para "${query}" (${list.length})` : `Estudiantes Registrados (${list.length})`}:</span>
       <span style="color: #0284c7;">${displayList.length < list.length ? `Mostrando primeros ${displayList.length}` : 'Todos'}</span>
     </div>
     ${displayList.map(s => {
@@ -3198,7 +3201,7 @@ function openAdminScanQrModal() {
   if (manualInput) manualInput.value = '';
   if (modal) modal.style.display = 'flex';
   if (statusEl) {
-    statusEl.textContent = '📷 Enfoca el código QR del carné';
+    statusEl.textContent = 'Enfoca el código QR del carné';
     statusEl.style.color = '#0284c7';
     statusEl.style.background = '#e0f2fe';
   }
@@ -3295,7 +3298,7 @@ async function startScanAdminCamera() {
         if (detected && !isProcessingAdminScan) {
           isProcessingAdminScan = true;
           if (statusEl) {
-            statusEl.textContent = '⚡ ¡Código detectado! Verificando...';
+            statusEl.textContent = '¡Código detectado! Verificando...';
             statusEl.style.color = '#166534';
             statusEl.style.background = '#dcfce7';
           }
@@ -3305,7 +3308,7 @@ async function startScanAdminCamera() {
               setTimeout(() => {
                 isProcessingAdminScan = false;
                 if (statusEl && isScanAdminLoopRunning) {
-                  statusEl.textContent = '📷 Enfoca el código QR del carné';
+                  statusEl.textContent = 'Enfoca el código QR del carné';
                   statusEl.style.color = '#0284c7';
                   statusEl.style.background = '#e0f2fe';
                 }
@@ -3315,7 +3318,7 @@ async function startScanAdminCamera() {
             console.error('Error no capturado en detección:', err);
             isProcessingAdminScan = false;
             if (statusEl && isScanAdminLoopRunning) {
-              statusEl.textContent = '📷 Enfoca el código QR del carné';
+              statusEl.textContent = 'Enfoca el código QR del carné';
               statusEl.style.color = '#0284c7';
               statusEl.style.background = '#e0f2fe';
             }
@@ -3332,7 +3335,7 @@ async function startScanAdminCamera() {
   } catch (err) {
     console.warn('Cámara de mostrador no disponible:', err);
     if (statusEl) {
-      statusEl.textContent = '⚠️ Cámara no disponible. Digita el carné abajo o búscalo arriba.';
+      statusEl.textContent = 'Cámara no disponible. Digita el carné abajo o búscalo arriba.';
       statusEl.style.color = '#dc2626';
       statusEl.style.background = '#fee2e2';
     }
@@ -3373,7 +3376,7 @@ async function handleAdminQrDetected(token) {
     const clean = (parsed || '').toLowerCase();
 
     if (statusEl) {
-      statusEl.textContent = '⏳ Verificando estudiante...';
+      statusEl.textContent = 'Verificando estudiante...';
       statusEl.style.color = '#0284c7';
       statusEl.style.background = '#e0f2fe';
     }
@@ -3454,7 +3457,7 @@ async function handleAdminQrDetected(token) {
         }
       } catch (e) {}
       if (statusEl) {
-        statusEl.textContent = `❌ Código no reconocido: "${String(parsed || token).slice(0, 20)}". Enfoca de nuevo.`;
+        statusEl.textContent = `Código no reconocido: "${String(parsed || token).slice(0, 20)}". Enfoca de nuevo.`;
         statusEl.style.color = '#dc2626';
         statusEl.style.background = '#fee2e2';
       }
@@ -3463,7 +3466,7 @@ async function handleAdminQrDetected(token) {
   } catch (err) {
     console.error('Error crítico en handleAdminQrDetected:', err);
     if (statusEl) {
-      statusEl.textContent = '⚠️ Error al verificar estudiante. Intenta de nuevo.';
+      statusEl.textContent = 'Error al verificar estudiante. Intenta de nuevo.';
       statusEl.style.color = '#dc2626';
       statusEl.style.background = '#fee2e2';
     }
@@ -3515,7 +3518,7 @@ async function submitAdminManualRecharge() {
     if (!res.ok) throw new Error(data.error);
 
     if (window.sounds) window.sounds.playSuccess();
-    alert(`💰 ${data.mensaje}\nNuevo Saldo: ₡${data.saldo_nuevo.toLocaleString('es-CR')}`);
+    alert(`${data.mensaje}\nNuevo Saldo: ₡${data.saldo_nuevo.toLocaleString('es-CR')}`);
 
     inputMonto.value = '';
     if (inputDesc) inputDesc.value = '';
@@ -3532,10 +3535,10 @@ async function submitAdminManualRecharge() {
     clearAdminSelectedStudent();
   } catch (err) {
     if (window.sounds) window.sounds.playError();
-    alert(`❌ Error al recargar: ${err.message}`);
+    alert(`Error al recargar: ${err.message}`);
   } finally {
     btn.disabled = false;
-    btn.innerHTML = '<span>💰</span> Aplicar Recarga Inmediata';
+    btn.innerHTML = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg> <span>Aplicar Recarga Inmediata</span>';
   }
 }
 
@@ -3553,7 +3556,7 @@ async function loadAdminMovimientos() {
   try {
     container.innerHTML = `
       <div style="text-align: center; color: var(--text-muted); padding: 30px; font-size: 0.88rem;">
-        ⏳ Cargando movimientos recientes...
+        Cargando movimientos recientes...
       </div>
     `;
 
@@ -3563,7 +3566,7 @@ async function loadAdminMovimientos() {
     renderAdminMovimientos();
   } catch (err) {
     console.error('Error cargando movimientos:', err);
-    container.innerHTML = `<div style="text-align: center; color: #ef4444; padding: 25px; font-weight: 700;">⚠️ Error al cargar el historial: ${err.message}</div>`;
+    container.innerHTML = `<div style="text-align: center; color: #ef4444; padding: 25px; font-weight: 700;">Error al cargar el historial: ${err.message}</div>`;
   }
 }
 
@@ -3627,7 +3630,7 @@ function renderAdminMovimientos() {
   if (filtered.length === 0) {
     container.innerHTML = `
       <div style="text-align: center; color: var(--text-muted); padding: 35px 20px; background: #f8fafc; border-radius: 14px; border: 1.5px dashed var(--border);">
-        <span style="font-size: 2.2rem;">🔍</span>
+        <div style="display: flex; justify-content: center; margin-bottom: 8px;"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="opacity: 0.4;"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></div>
         <p style="margin: 8px 0 2px 0; font-weight: 800; font-size: 0.95rem; color: var(--text-main);">No se encontraron movimientos</p>
         <span style="font-size: 0.78rem; color: var(--text-muted);">No hay registros que coincidan con el filtro o búsqueda actual.</span>
       </div>
@@ -3645,15 +3648,15 @@ function renderAdminMovimientos() {
     // Determinar badge de tipo
     let tipoBadge = '';
     if (m.tipo === 'recarga_manual') {
-      tipoBadge = `<span style="background: #dcfce7; color: #166534; font-size: 0.7rem; font-weight: 800; padding: 3px 8px; border-radius: 6px; display: inline-flex; align-items: center; gap: 4px;">💵 Recarga Efectivo</span>`;
+      tipoBadge = `<span style="background: #dcfce7; color: #166534; font-size: 0.7rem; font-weight: 800; padding: 3px 8px; border-radius: 6px; display: inline-flex; align-items: center; gap: 4px;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="2"/></svg> Recarga Efectivo</span>`;
     } else if (m.tipo === 'recarga_sinpe') {
-      tipoBadge = `<span style="background: #e0f2fe; color: #0369a1; font-size: 0.7rem; font-weight: 800; padding: 3px 8px; border-radius: 6px; display: inline-flex; align-items: center; gap: 4px;">📲 Recarga SINPE</span>`;
+      tipoBadge = `<span style="background: #e0f2fe; color: #0369a1; font-size: 0.7rem; font-weight: 800; padding: 3px 8px; border-radius: 6px; display: inline-flex; align-items: center; gap: 4px;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="5" y="2" width="14" height="20" rx="2" ry="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></svg> Recarga SINPE</span>`;
     } else if (m.tipo === 'compra_mostrador' || m.tipo === 'preorden') {
-      tipoBadge = `<span style="background: #fef3c7; color: #92400e; font-size: 0.7rem; font-weight: 800; padding: 3px 8px; border-radius: 6px; display: inline-flex; align-items: center; gap: 4px;">🥪 Cobro Soda</span>`;
+      tipoBadge = `<span style="background: #fef3c7; color: #92400e; font-size: 0.7rem; font-weight: 800; padding: 3px 8px; border-radius: 6px; display: inline-flex; align-items: center; gap: 4px;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg> Cobro Soda</span>`;
     } else if (m.tipo === 'reversion_recarga') {
-      tipoBadge = `<span style="background: #f3e8ff; color: #6b21a8; font-size: 0.7rem; font-weight: 800; padding: 3px 8px; border-radius: 6px; display: inline-flex; align-items: center; gap: 4px;">↩️ Reversión Recarga</span>`;
+      tipoBadge = `<span style="background: #f3e8ff; color: #6b21a8; font-size: 0.7rem; font-weight: 800; padding: 3px 8px; border-radius: 6px; display: inline-flex; align-items: center; gap: 4px;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 5.5 5.5v0a5.5 5.5 0 0 1-5.5 5.5H11"/></svg> Reversión Recarga</span>`;
     } else if (m.tipo === 'reembolso') {
-      tipoBadge = `<span style="background: #f3e8ff; color: #6b21a8; font-size: 0.7rem; font-weight: 800; padding: 3px 8px; border-radius: 6px; display: inline-flex; align-items: center; gap: 4px;">↩️ Reembolso Compra</span>`;
+      tipoBadge = `<span style="background: #f3e8ff; color: #6b21a8; font-size: 0.7rem; font-weight: 800; padding: 3px 8px; border-radius: 6px; display: inline-flex; align-items: center; gap: 4px;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 5.5 5.5v0a5.5 5.5 0 0 1-5.5 5.5H11"/></svg> Reembolso Compra</span>`;
     } else {
       tipoBadge = `<span style="background: #f1f5f9; color: #475569; font-size: 0.7rem; font-weight: 800; padding: 3px 8px; border-radius: 6px;">${m.tipo.toUpperCase()}</span>`;
     }
@@ -3680,7 +3683,7 @@ function renderAdminMovimientos() {
       actionHtml = `
         <div style="display: flex; align-items: center; gap: 6px;">
           <span style="display: inline-flex; align-items: center; gap: 4px; background: #fee2e2; color: #991b1b; padding: 4px 9px; border-radius: 7px; font-size: 0.72rem; font-weight: 900; border: 1px solid #fca5a5;">
-            ⛔ REVERTIDO
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/></svg> Revertido
           </span>
           ${m.revertido_por_nombre ? `<span style="font-size: 0.68rem; color: var(--text-muted); font-weight: 700;">(${m.revertido_por_nombre})</span>` : ''}
         </div>
@@ -3694,7 +3697,7 @@ function renderAdminMovimientos() {
     } else if (!canRevertTime) {
       actionHtml = `
         <button type="button" disabled title="Han pasado más de 10 minutos. Esta reversión solo puede ser realizada por un Administrador." style="padding: 5px 10px; background: #e2e8f0; color: #64748b; border: 1px solid #cbd5e1; border-radius: 7px; font-size: 0.72rem; font-weight: 800; cursor: not-allowed; display: inline-flex; align-items: center; gap: 4px;">
-          ⏳ Admin (+10m)
+          Admin (+10m)
         </button>
       `;
     } else {
@@ -3717,7 +3720,7 @@ function renderAdminMovimientos() {
             <span style="font-size: 0.72rem; color: var(--text-muted); font-weight: 800;">#${m.id}</span>
           </div>
           <span style="font-size: 0.72rem; color: var(--text-muted); font-weight: 700; display: inline-flex; align-items: center; gap: 4px;">
-            🕒 ${fechaHoraStr}
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right: 2px;"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg> ${fechaHoraStr}
           </span>
         </div>
 
@@ -3735,7 +3738,7 @@ function renderAdminMovimientos() {
             </div>
             ${m.descripcion ? `
               <div style="font-size: 0.72rem; color: var(--text-muted); margin-top: 4px; background: rgba(148, 163, 184, 0.08); padding: 3px 8px; border-radius: 6px; line-height: 1.35; display: inline-block;">
-                📝 ${m.descripcion}
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right: 4px; vertical-align: -2px;"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>${m.descripcion}
               </div>
             ` : ''}
           </div>
@@ -3772,7 +3775,7 @@ async function revertirMovimientoAdmin(transaccionId, monto, nombreEstudiante, t
     `¿Estás seguro de revertir ${accionTexto}?\n\n` +
     `• Alumno: ${nombreEstudiante}\n` +
     `• Monto: ₡${monto.toLocaleString('es-CR')}\n\n` +
-    `⚠️ ${efectoTexto}\n\n` +
+    `${efectoTexto}\n\n` +
     `¿Deseas continuar con la reversión?`
   );
 
@@ -3792,13 +3795,13 @@ async function revertirMovimientoAdmin(transaccionId, monto, nombreEstudiante, t
     if (!res.ok) throw new Error(data.error);
 
     if (window.sounds) window.sounds.playSuccess();
-    alert(`✅ Reversión Exitosa:\n${data.mensaje}`);
+    alert(`Reversión Exitosa:\n${data.mensaje}`);
 
     await loadAdminMovimientos();
     await loadAdminData();
   } catch (err) {
     if (window.sounds) window.sounds.playError();
-    alert(`❌ No se pudo revertir el movimiento:\n${err.message}`);
+    alert(`No se pudo revertir el movimiento:\n${err.message}`);
   }
 }
 
@@ -3822,7 +3825,7 @@ async function populateCategorySelect(selectedId) {
 
   select.innerHTML = (categories || []).map(c => `
     <option value="${c.id}" ${selectedId && Number(selectedId) === Number(c.id) ? 'selected' : ''}>
-      ${c.icono || '🏷️'} ${c.nombre}
+      ${c.nombre}
     </option>
   `).join('');
 }
@@ -3841,7 +3844,7 @@ function openCreateProductModal() {
   const modal = document.getElementById('modalAdminProduct');
   if (!modal) return;
 
-  document.getElementById('modalProductTitle').textContent = '➕ Crear Nuevo Producto';
+  document.getElementById('modalProductTitle').textContent = 'Crear Nuevo Producto';
   document.getElementById('adminProdId').value = '';
   document.getElementById('adminProdNombre').value = '';
   document.getElementById('adminProdPrecio').value = '';
@@ -3856,7 +3859,7 @@ function openCreateProductModal() {
   if (btnDel) btnDel.style.display = 'none';
 
   const btnSubmit = document.getElementById('btnSaveProductSubmit');
-  if (btnSubmit) btnSubmit.innerHTML = '<span>💾</span> <span>Guardar Producto</span>';
+  if (btnSubmit) btnSubmit.innerHTML = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg> <span>Guardar Producto</span>';
 
   populateCategorySelect();
   modal.style.display = 'flex';
@@ -3873,7 +3876,7 @@ function openEditProductModal(prodId) {
     return;
   }
 
-  document.getElementById('modalProductTitle').textContent = '✏️ Editar Producto';
+  document.getElementById('modalProductTitle').textContent = 'Editar Producto';
   document.getElementById('adminProdId').value = prod.id;
   document.getElementById('adminProdNombre').value = prod.nombre || '';
   document.getElementById('adminProdPrecio').value = prod.precio_colones || 0;
@@ -3890,7 +3893,7 @@ function openEditProductModal(prodId) {
   if (btnDel) btnDel.style.display = 'inline-block';
 
   const btnSubmit = document.getElementById('btnSaveProductSubmit');
-  if (btnSubmit) btnSubmit.innerHTML = '<span>💾</span> <span>Actualizar Producto</span>';
+  if (btnSubmit) btnSubmit.innerHTML = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg> <span>Actualizar Producto</span>';
 
   populateCategorySelect(prod.categoria_id);
   modal.style.display = 'flex';
@@ -3952,7 +3955,7 @@ async function submitAdminProduct(e) {
     if (typeof loadInitialData === 'function') {
       loadInitialData();
     }
-    alert(isEdit ? '✅ Producto actualizado correctamente.' : '✅ Producto creado exitosamente.');
+    alert(isEdit ? 'Producto actualizado correctamente.' : 'Producto creado exitosamente.');
   } catch (err) {
     if (window.sounds) window.sounds.playError();
     alert(`Error: ${err.message}`);
@@ -3980,7 +3983,7 @@ async function handleDeleteProduct() {
     if (typeof loadInitialData === 'function') {
       loadInitialData();
     }
-    alert(data.mensaje || '✅ Producto procesado correctamente.');
+    alert(data.mensaje || 'Producto procesado correctamente.');
   } catch (err) {
     if (window.sounds) window.sounds.playError();
     alert(`Error: ${err.message}`);
@@ -4032,32 +4035,61 @@ function renderAdminStaff(list) {
   container.innerHTML = list.map(s => {
     const isRootAdmin = (s.id === 1);
     const isBlocked = (s.activo === 0);
-    const roleIcon = s.rol === 'admin' ? '👨‍🍳' : (s.rol === 'cajero' ? '📟' : '🥪');
-    const roleLabel = s.rol === 'admin' ? 'Administrador' : (s.rol === 'cajero' ? 'Cajero POS' : 'Vendedor Despacho');
+
+    // Iniciales del empleado para el avatar elegante
+    const initials = (s.nombre || 'U')
+      .trim()
+      .split(/\s+/)
+      .filter(Boolean)
+      .slice(0, 2)
+      .map(w => w[0].toUpperCase())
+      .join('') || 'U';
+
+    let roleSvg = '';
+    let roleLabel = 'Personal';
+    if (s.rol === 'admin') {
+      roleLabel = 'Administrador';
+      roleSvg = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>`;
+    } else if (s.rol === 'cajero') {
+      roleLabel = 'Cajero POS';
+      roleSvg = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="14" x="2" y="5" rx="2"/><line x1="2" x2="22" y1="10" y2="10"/></svg>`;
+    } else {
+      roleLabel = 'Vendedor Despacho';
+      roleSvg = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z"/><path d="M3 6h18"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>`;
+    }
 
     return `
       <div class="admin-staff-card ${isBlocked ? 'blocked' : ''}">
-        <div style="display: flex; align-items: center; gap: 12px; min-width: 0; flex: 1;">
-          <div style="font-size: 2rem; width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; background: var(--bg-main); border-radius: 12px; flex-shrink: 0;">
-            ${roleIcon}
+        <div style="display: flex; align-items: center; gap: 14px; min-width: 0; flex: 1;">
+          <div class="staff-initials-avatar">
+            ${initials}
           </div>
           <div style="min-width: 0; flex: 1;">
             <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
-              <strong style="font-size: 0.95rem; color: var(--text-main);">${s.nombre}</strong>
-              <span class="staff-role-badge staff-role-${s.rol}">${roleLabel}</span>
-              <span class="staff-status-badge ${isBlocked ? 'staff-status-blocked' : 'staff-status-active'}">
-                ${isBlocked ? '⛔ Bloqueado' : '● Activo'}
-              </span>
+              <strong style="font-size: 0.95rem; font-weight: 800; color: var(--text-main); line-height: 1.2;">${s.nombre}</strong>
+              <span class="staff-role-badge staff-role-${s.rol}">${roleSvg} ${roleLabel}</span>
+              ${isBlocked 
+                ? '<span class="saas-status-badge saas-status-blocked"><span class="saas-dot"></span>Bloqueado</span>' 
+                : '<span class="saas-status-badge saas-status-active"><span class="saas-dot"></span>Activo</span>'
+              }
             </div>
-            <div style="font-size: 0.76rem; color: var(--text-muted); margin-top: 2px; display: flex; flex-wrap: wrap; gap: 8px;">
-              <span><strong>Usuario:</strong> @${s.username}</span>
-              ${s.telefono ? `<span>• 📞 ${s.telefono}</span>` : ''}
-              ${s.email ? `<span>• ✉️ ${s.email}</span>` : ''}
+            <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 3px; display: flex; align-items: center; flex-wrap: wrap; gap: 12px;">
+              <span style="font-family: ui-monospace, SFMono-Regular, Menlo, monospace;">Usuario: <strong style="color: var(--text-main);">@${s.username}</strong></span>
+              ${s.telefono ? `
+                <span style="display: inline-flex; align-items: center; gap: 4px;">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+                  ${s.telefono}
+                </span>` : ''}
+              ${s.email ? `
+                <span style="display: inline-flex; align-items: center; gap: 4px;">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
+                  ${s.email}
+                </span>` : ''}
             </div>
           </div>
         </div>
 
-        <div style="display: flex; align-items: center; gap: 6px; flex-shrink: 0; flex-wrap: wrap;">
+        <div style="display: flex; align-items: center; gap: 8px; flex-shrink: 0; flex-wrap: wrap;">
           <button type="button" class="btn-saas btn-saas-outline" onclick="openEditStaffModal(${s.id})" title="Editar datos del personal">
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/><path d="m15 5 4 4"/></svg>
             <span>Editar</span>
@@ -4086,7 +4118,7 @@ function openCreateStaffModal() {
   const modal = document.getElementById('modalAdminStaff');
   if (!modal) return;
 
-  document.getElementById('modalStaffTitle').textContent = '👥 Nuevo Empleado / Cajero';
+  document.getElementById('modalStaffTitle').textContent = 'Nuevo Empleado / Cajero';
   document.getElementById('adminStaffId').value = '';
   document.getElementById('adminStaffNombre').value = '';
   
@@ -4107,7 +4139,7 @@ function openCreateStaffModal() {
   document.getElementById('adminStaffEmail').value = '';
 
   const btnSubmit = document.getElementById('btnSaveStaffSubmit');
-  if (btnSubmit) btnSubmit.innerHTML = '<span>💾</span> <span>Guardar Empleado</span>';
+  if (btnSubmit) btnSubmit.innerHTML = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg> <span>Guardar Empleado</span>';
 
   modal.style.display = 'flex';
   if (window.sounds) window.sounds.playTap();
@@ -4123,7 +4155,7 @@ function openEditStaffModal(staffId) {
     return;
   }
 
-  document.getElementById('modalStaffTitle').textContent = '✏️ Editar Empleado / Cajero';
+  document.getElementById('modalStaffTitle').textContent = 'Editar Empleado / Cajero';
   document.getElementById('adminStaffId').value = staff.id;
   document.getElementById('adminStaffNombre').value = staff.nombre || '';
   
@@ -4147,7 +4179,7 @@ function openEditStaffModal(staffId) {
   document.getElementById('adminStaffEmail').value = staff.email || '';
 
   const btnSubmit = document.getElementById('btnSaveStaffSubmit');
-  if (btnSubmit) btnSubmit.innerHTML = '<span>💾</span> <span>Actualizar Datos</span>';
+  if (btnSubmit) btnSubmit.innerHTML = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg> <span>Actualizar Datos</span>';
 
   modal.style.display = 'flex';
   if (window.sounds) window.sounds.playTap();
@@ -4210,7 +4242,7 @@ async function submitAdminStaff(e) {
     if (window.sounds) window.sounds.playSuccess();
     closeAdminStaffModal();
     await loadAdminStaff();
-    alert(isEdit ? '✅ Datos de empleado actualizados correctamente.' : '✅ Empleado creado exitosamente con credenciales de acceso.');
+    alert(isEdit ? 'Datos de empleado actualizados correctamente.' : 'Empleado creado exitosamente con credenciales de acceso.');
   } catch (err) {
     if (window.sounds) window.sounds.playError();
     alert(`Error: ${err.message}`);
@@ -4240,7 +4272,7 @@ async function toggleBlockStaff(staffId, nuevoEstado) {
 }
 
 async function deleteStaff(staffId, nombre) {
-  const conf = confirm(`⚠️ PELIGRO:\n¿Estás completamente seguro de ELIMINAR definitivamente al empleado "${nombre}"?\n\nEsta acción no se puede deshacer y perderá el acceso al sistema.`);
+  const conf = confirm(`PELIGRO:\n¿Estás completamente seguro de ELIMINAR definitivamente al empleado "${nombre}"?\n\nEsta acción no se puede deshacer y perderá el acceso al sistema.`);
   if (!conf) return;
 
   try {
@@ -4252,7 +4284,7 @@ async function deleteStaff(staffId, nombre) {
 
     if (window.sounds) window.sounds.playSuccess();
     await loadAdminStaff();
-    alert(data.mensaje || '✅ Empleado eliminado correctamente.');
+    alert(data.mensaje || 'Empleado eliminado correctamente.');
   } catch (err) {
     if (window.sounds) window.sounds.playError();
     alert(`Error: ${err.message}`);
@@ -4447,8 +4479,8 @@ function renderCardDesignsCarousel() {
               </div>
             </div>
             <div style="display: flex; gap: 4px; align-items: center;">
-              <span class="preview-card-badge">📱 QR</span>
-              <span class="preview-card-badge">⚡ Pasar</span>
+              <span class="preview-card-badge">QR</span>
+              <span class="preview-card-badge">Pasar</span>
             </div>
           </div>
         </div>
@@ -4457,14 +4489,14 @@ function renderCardDesignsCarousel() {
         <div style="margin-top: 10px; display: flex; justify-content: space-between; align-items: center; gap: 8px;">
           <div style="min-width: 0; flex: 1;">
             <div style="display: flex; align-items: center; gap: 6px; flex-wrap: wrap;">
-              <strong style="font-size: 0.95rem; color: var(--text-main);">${t.icon} ${t.name}</strong>
+              <strong style="font-size: 0.95rem; color: var(--text-main);">${t.name}</strong>
               <span style="font-size: 0.68rem; font-weight: 800; padding: 2px 7px; border-radius: 6px; background: rgba(2, 132, 199, 0.1); color: #0284c7;">${t.category}</span>
             </div>
             <p style="margin: 2px 0 0 0; font-size: 0.72rem; color: var(--text-muted); line-height: 1.25; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${t.desc}</p>
           </div>
           <div style="flex-shrink: 0;">
             <button type="button" id="btnSelectTheme_${t.id}" onclick="selectCardTheme('${t.id}')" style="padding: 7px 15px; border-radius: 10px; font-weight: 900; font-size: 0.8rem; cursor: pointer; white-space: nowrap; border: none; ${isSelected ? 'background: #10b981; color: white;' : 'background: #0284c7; color: white;'}">
-              ${isSelected ? '✓ Activo' : 'Elegir'}
+              ${isSelected ? 'Activo' : 'Elegir'}
             </button>
           </div>
         </div>
@@ -4481,7 +4513,7 @@ function renderCardDesignsCarousel() {
   if (strip) {
     strip.innerHTML = themes.map((t, idx) => `
       <button type="button" class="theme-pill-btn ${t.id === currentTheme ? 'active' : ''}" id="pillTheme_${t.id}" onclick="jumpToCardSlide(${idx})">
-        <span>${t.icon}</span> <span>${t.name}</span>
+        <span>${t.name}</span>
       </button>
     `).join('');
   }
@@ -4559,7 +4591,7 @@ function selectCardTheme(themeId) {
     const btn = document.getElementById(`btnSelectTheme_${t.id}`);
     if (btn) {
       if (t.id === themeId) {
-        btn.textContent = '✓ Activo';
+        btn.textContent = 'Activo';
         btn.style.background = '#10b981';
       } else {
         btn.textContent = 'Elegir';
@@ -4616,19 +4648,19 @@ function renderDevUserStats(users) {
       Total: <span style="color: #0284c7;">${counts.total}</span>
     </div>
     <div style="background: var(--card-bg); border: 1px solid var(--border); border-radius: 10px; padding: 6px 12px; font-size: 0.78rem; font-weight: 800; white-space: nowrap;">
-      👨‍🍳 Admins: <span style="color: #3b82f6;">${counts.admin}</span>
+      Admins: <span style="color: #3b82f6;">${counts.admin}</span>
     </div>
     <div style="background: var(--card-bg); border: 1px solid var(--border); border-radius: 10px; padding: 6px 12px; font-size: 0.78rem; font-weight: 800; white-space: nowrap;">
-      🛠️ Devs: <span style="color: #8b5cf6;">${counts.developer}</span>
+      Devs: <span style="color: #8b5cf6;">${counts.developer}</span>
     </div>
     <div style="background: var(--card-bg); border: 1px solid var(--border); border-radius: 10px; padding: 6px 12px; font-size: 0.78rem; font-weight: 800; white-space: nowrap;">
-      📟 Cajeros: <span style="color: #10b981;">${counts.cajero}</span>
+      Cajeros: <span style="color: #10b981;">${counts.cajero}</span>
     </div>
     <div style="background: var(--card-bg); border: 1px solid var(--border); border-radius: 10px; padding: 6px 12px; font-size: 0.78rem; font-weight: 800; white-space: nowrap;">
-      👨‍👩‍👦 Padres: <span style="color: #f59e0b;">${counts.padre}</span>
+      Padres: <span style="color: #f59e0b;">${counts.padre}</span>
     </div>
     <div style="background: var(--card-bg); border: 1px solid var(--border); border-radius: 10px; padding: 6px 12px; font-size: 0.78rem; font-weight: 800; white-space: nowrap;">
-      🎒 Estudiantes: <span style="color: #ec4899;">${counts.estudiante}</span>
+      Estudiantes: <span style="color: #ec4899;">${counts.estudiante}</span>
     </div>
   `;
 }
@@ -4662,17 +4694,17 @@ function renderDevUsuarios(users) {
 
   tbody.innerHTML = users.map(u => {
     let roleBadge = '';
-    if (u.rol === 'developer') roleBadge = '<span class="dev-role-badge role-dev">🛠️ Developer</span>';
-    else if (u.rol === 'admin') roleBadge = '<span class="dev-role-badge role-admin">👨‍🍳 Admin Soda</span>';
-    else if (u.rol === 'cajero') roleBadge = '<span class="dev-role-badge role-cajero">📟 Cajero</span>';
-    else if (u.rol === 'vendedor') roleBadge = '<span class="dev-role-badge role-vendedor">📦 Vendedor</span>';
-    else if (u.rol === 'padre') roleBadge = '<span class="dev-role-badge role-padre">👨‍👩‍👦 Padre</span>';
-    else if (u.rol === 'estudiante') roleBadge = '<span class="dev-role-badge role-estudiante">🎒 Estudiante</span>';
+    if (u.rol === 'developer') roleBadge = '<span class="dev-role-badge role-dev">Developer</span>';
+    else if (u.rol === 'admin') roleBadge = '<span class="dev-role-badge role-admin">Admin Soda</span>';
+    else if (u.rol === 'cajero') roleBadge = '<span class="dev-role-badge role-cajero">Cajero</span>';
+    else if (u.rol === 'vendedor') roleBadge = '<span class="dev-role-badge role-vendedor">Vendedor</span>';
+    else if (u.rol === 'padre') roleBadge = '<span class="dev-role-badge role-padre">Padre</span>';
+    else if (u.rol === 'estudiante') roleBadge = '<span class="dev-role-badge role-estudiante">Estudiante</span>';
     else roleBadge = `<span class="dev-role-badge">${escapeHtml(u.rol)}</span>`;
 
     const statusBadge = u.activo ? 
       `<span style="color: #10b981; font-weight: 800; background: rgba(16, 185, 129, 0.1); padding: 3px 8px; border-radius: 6px; font-size: 0.72rem;">● Activo</span>` :
-      `<span style="color: #ef4444; font-weight: 800; background: rgba(239, 68, 68, 0.1); padding: 3px 8px; border-radius: 6px; font-size: 0.72rem;">✕ Bloqueado</span>`;
+      `<span style="color: #ef4444; font-weight: 800; background: rgba(239, 68, 68, 0.1); padding: 3px 8px; border-radius: 6px; font-size: 0.72rem;">Bloqueado</span>`;
 
     let extraInfo = '';
     if (u.rol === 'estudiante' && u.estudiante_codigo) {
@@ -4691,23 +4723,23 @@ function renderDevUsuarios(users) {
         <td style="padding: 10px 14px; color: var(--text-main); font-weight: 600;">${escapeHtml(u.nombre || '-')}</td>
         <td style="padding: 10px 14px;">${roleBadge}</td>
         <td style="padding: 10px 14px; font-size: 0.76rem; color: var(--text-muted);">
-          ${u.telefono ? `📞 ${escapeHtml(u.telefono)}<br>` : ''}
-          ${u.email ? `✉️ ${escapeHtml(u.email)}` : (!u.telefono ? '-' : '')}
+          ${u.telefono ? `<span style="display:inline-flex;align-items:center;gap:4px;"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>${escapeHtml(u.telefono)}</span><br>` : ''}
+          ${u.email ? `<span style="display:inline-flex;align-items:center;gap:4px;"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>${escapeHtml(u.email)}</span>` : (!u.telefono ? '-' : '')}
         </td>
         <td style="padding: 10px 14px;">${statusBadge}</td>
         <td style="padding: 10px 14px; text-align: right; white-space: nowrap;">
           <div style="display: inline-flex; gap: 4px;">
-            <button onclick="openModalDevUser(${u.id})" class="dev-action-btn" style="padding: 4px 8px; font-size: 0.75rem;" title="Modificar datos del usuario">
-              ✏️ Editar
+            <button onclick="openModalDevUser(${u.id})" class="dev-action-btn" style="padding: 4px 8px; font-size: 0.75rem; display: inline-flex; align-items: center; gap: 4px;" title="Modificar datos del usuario">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/><path d="m15 5 4 4"/></svg> Editar
             </button>
-            <button onclick="openModalDevPassword(${u.id}, '${escapeHtml(u.username)}')" class="dev-action-btn" style="padding: 4px 8px; font-size: 0.75rem; color: #8b5cf6;" title="Cambiar contraseña directamente">
-              🔑 Clave
+            <button onclick="openModalDevPassword(${u.id}, '${escapeHtml(u.username)}')" class="dev-action-btn" style="padding: 4px 8px; font-size: 0.75rem; color: #8b5cf6; display: inline-flex; align-items: center; gap: 4px;" title="Cambiar contraseña directamente">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="7.5" cy="15.5" r="5.5"/><path d="m21 2-9.6 9.6"/><path d="m15.5 7.5 3 3L22 7l-3-3"/></svg> Clave
             </button>
-            <button onclick="toggleDevUserStatus(${u.id}, ${u.activo ? 0 : 1})" class="dev-action-btn" style="padding: 4px 8px; font-size: 0.75rem; color: ${u.activo ? '#eab308' : '#10b981'};" title="${u.activo ? 'Bloquear usuario' : 'Desbloquear usuario'}">
-              ${u.activo ? '⏸️ Bloquear' : '▶️ Desbloquear'}
+            <button onclick="toggleDevUserStatus(${u.id}, ${u.activo ? 0 : 1})" class="dev-action-btn" style="padding: 4px 8px; font-size: 0.75rem; color: ${u.activo ? '#eab308' : '#10b981'}; display: inline-flex; align-items: center; gap: 4px;" title="${u.activo ? 'Bloquear usuario' : 'Desbloquear usuario'}">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/></svg> ${u.activo ? 'Bloquear' : 'Desbloquear'}
             </button>
-            <button onclick="deleteDevUser(${u.id}, '${escapeHtml(u.username)}')" class="dev-action-btn dev-action-btn-danger" style="padding: 4px 8px; font-size: 0.75rem;" title="Eliminar usuario">
-              🗑️
+            <button onclick="deleteDevUser(${u.id}, '${escapeHtml(u.username)}')" class="dev-action-btn dev-action-btn-danger" style="padding: 4px 8px; font-size: 0.75rem; display: inline-flex; align-items: center;" title="Eliminar usuario">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>
             </button>
           </div>
         </td>
@@ -4802,11 +4834,11 @@ async function saveDevUser(e) {
     closeModalDevUser();
     await loadDevUsuarios();
     if (window.sounds) window.sounds.playSuccess();
-    alert(userId ? '✅ Usuario actualizado con éxito' : '✅ Usuario creado con éxito');
+    alert(userId ? 'Usuario actualizado con éxito' : 'Usuario creado con éxito');
   } catch (err) {
     console.error('Error guardando usuario:', err);
     if (window.sounds) window.sounds.playError();
-    alert('❌ ' + err.message);
+    alert(err.message);
   }
 }
 
@@ -4850,11 +4882,11 @@ async function saveDevPassword(e) {
 
     closeModalDevPassword();
     if (window.sounds) window.sounds.playSuccess();
-    alert('🔒 Contraseña actualizada correctamente');
+    alert('Contraseña actualizada correctamente');
   } catch (err) {
     console.error('Error cambiando contraseña:', err);
     if (window.sounds) window.sounds.playError();
-    alert('❌ ' + err.message);
+    alert(err.message);
   }
 }
 
@@ -4869,7 +4901,7 @@ async function toggleDevUserStatus(userId, activo) {
     if (!res.ok) throw new Error(data.error || 'Error cambiando estado');
     await loadDevUsuarios();
   } catch (err) {
-    alert('❌ ' + err.message);
+    alert(err.message);
   }
 }
 
@@ -4885,7 +4917,7 @@ async function deleteDevUser(userId, username) {
     await loadDevUsuarios();
     if (window.sounds) window.sounds.playTrash();
   } catch (err) {
-    alert('❌ ' + err.message);
+    alert(err.message);
   }
 }
 
@@ -4989,17 +5021,17 @@ async function saveDevCardDesign(e) {
     document.getElementById('devLiveCardBgImg').src = '/img/cards/card_robo_lab.jpg';
 
     if (window.sounds) window.sounds.playSuccess();
-    alert('🎉 ¡Diseño guardado y publicado con éxito! Ya está disponible para todos los estudiantes.');
+    alert('¡Diseño guardado y publicado con éxito! Ya está disponible para todos los estudiantes.');
 
     await loadDevDisenos();
     await loadCardDesigns();
   } catch (err) {
     console.error('Error guardando tarjeta:', err);
     if (window.sounds) window.sounds.playError();
-    alert('❌ ' + err.message);
+    alert(err.message);
   } finally {
     submitBtn.disabled = false;
-    submitBtn.innerHTML = '<span>🚀</span> <span>Guardar y Publicar Diseño</span>';
+    submitBtn.innerHTML = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16z"/></svg> <span>Guardar y Publicar Diseño</span>';
   }
 }
 
@@ -5041,13 +5073,13 @@ function renderDevDisenosGrid(disenos) {
   }
 
   grid.innerHTML = disenos.map(d => {
-    let catLabel = '🌐 Unisex';
-    if (d.categoria === 'fem') catLabel = '🌸 Femenino';
-    if (d.categoria === 'masc') catLabel = '🚀 Masculino';
+    let catLabel = 'Unisex';
+    if (d.categoria === 'fem') catLabel = 'Femenino';
+    if (d.categoria === 'masc') catLabel = 'Masculino';
 
     const statusBadge = d.activo ?
       `<span style="color: #10b981; font-weight: 800; font-size: 0.72rem; background: rgba(16, 185, 129, 0.1); padding: 2px 7px; border-radius: 6px;">● Activo</span>` :
-      `<span style="color: #ef4444; font-weight: 800; font-size: 0.72rem; background: rgba(239, 68, 68, 0.1); padding: 2px 7px; border-radius: 6px;">✕ Inactivo</span>`;
+      `<span style="color: #ef4444; font-weight: 800; font-size: 0.72rem; background: rgba(239, 68, 68, 0.1); padding: 2px 7px; border-radius: 6px;">Inactivo</span>`;
 
     const textColorLabel = (d.estilo_texto === 'light') ? 'Texto Oscuro' : 'Texto Blanco';
 
@@ -5068,16 +5100,16 @@ function renderDevDisenosGrid(disenos) {
               ${escapeHtml(d.nombre)}
             </div>
             <div style="font-size: 0.72rem; color: var(--text-muted); display: flex; gap: 8px;">
-              <span>👁️ ${textColorLabel}</span>
-              ${d.es_predeterminado ? '<span style="color: #8b5cf6; font-weight: 800;">★ Predeterminado</span>' : ''}
+              <span>${textColorLabel}</span>
+              ${d.es_predeterminado ? '<span style="color: #8b5cf6; font-weight: 800;">Predeterminado</span>' : ''}
             </div>
           </div>
           <div style="margin-top: 10px; display: flex; gap: 6px; justify-content: flex-end;">
             <button onclick="toggleDevCardStatus(${d.id}, ${d.activo ? 0 : 1})" class="dev-action-btn" style="padding: 5px 9px; font-size: 0.74rem;">
               ${d.activo ? 'Desactivar' : 'Activar'}
             </button>
-            <button onclick="deleteDevCardDesign(${d.id}, '${escapeHtml(d.nombre)}')" class="dev-action-btn dev-action-btn-danger" style="padding: 5px 9px; font-size: 0.74rem;">
-              🗑️
+            <button onclick="deleteDevCardDesign(${d.id}, '${escapeHtml(d.nombre)}')" class="dev-action-btn dev-action-btn-danger" style="padding: 5px 9px; font-size: 0.74rem; display: inline-flex; align-items: center;" title="Eliminar diseño">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>
             </button>
           </div>
         </div>
@@ -5098,7 +5130,7 @@ async function toggleDevCardStatus(id, activo) {
     await loadDevDisenos();
     await loadCardDesigns();
   } catch (err) {
-    alert('❌ ' + err.message);
+    alert(err.message);
   }
 }
 
@@ -5115,7 +5147,7 @@ async function deleteDevCardDesign(id, nombre) {
     await loadCardDesigns();
     if (window.sounds) window.sounds.playTrash();
   } catch (err) {
-    alert('❌ ' + err.message);
+    alert(err.message);
   }
 }
 
@@ -5136,32 +5168,32 @@ async function loadDevStats() {
 
     container.innerHTML = `
       <div style="background: var(--card-bg); border: 1.5px solid var(--border); border-radius: 14px; padding: 18px;">
-        <div style="font-size: 0.74rem; font-weight: 800; color: var(--text-muted); text-transform: uppercase;">⏱️ Tiempo Activo (Uptime)</div>
+        <div style="font-size: 0.74rem; font-weight: 800; color: var(--text-muted); text-transform: uppercase;">Tiempo Activo (Uptime)</div>
         <div style="font-size: 1.35rem; font-weight: 900; color: #0284c7; margin-top: 6px;">${uptimeStr}</div>
         <div style="font-size: 0.72rem; color: var(--text-muted); margin-top: 2px;">Node.js ${escapeHtml(s.sistema?.node_version || '')}</div>
       </div>
       <div style="background: var(--card-bg); border: 1.5px solid var(--border); border-radius: 14px; padding: 18px;">
-        <div style="font-size: 0.74rem; font-weight: 800; color: var(--text-muted); text-transform: uppercase;">🧠 Memoria RAM (Heap)</div>
+        <div style="font-size: 0.74rem; font-weight: 800; color: var(--text-muted); text-transform: uppercase;">Memoria RAM (Heap)</div>
         <div style="font-size: 1.35rem; font-weight: 900; color: #8b5cf6; margin-top: 6px;">${s.sistema?.memoria_mb || 0} MB</div>
         <div style="font-size: 0.72rem; color: var(--text-muted); margin-top: 2px;">Consumo de Proceso Node</div>
       </div>
       <div style="background: var(--card-bg); border: 1.5px solid var(--border); border-radius: 14px; padding: 18px;">
-        <div style="font-size: 0.74rem; font-weight: 800; color: var(--text-muted); text-transform: uppercase;">💾 Base de Datos SQLite</div>
+        <div style="font-size: 0.74rem; font-weight: 800; color: var(--text-muted); text-transform: uppercase;">Base de Datos SQLite</div>
         <div style="font-size: 1.35rem; font-weight: 900; color: #10b981; margin-top: 6px;">${s.sistema?.db_size_kb || 0} KB</div>
         <div style="font-size: 0.72rem; color: var(--text-muted); margin-top: 2px;">WAL Mode Activado</div>
       </div>
       <div style="background: var(--card-bg); border: 1.5px solid var(--border); border-radius: 14px; padding: 18px;">
-        <div style="font-size: 0.74rem; font-weight: 800; color: var(--text-muted); text-transform: uppercase;">👥 Usuarios Registrados</div>
+        <div style="font-size: 0.74rem; font-weight: 800; color: var(--text-muted); text-transform: uppercase;">Usuarios Registrados</div>
         <div style="font-size: 1.35rem; font-weight: 900; color: #f59e0b; margin-top: 6px;">${s.usuarios?.total || 0} Cuentas</div>
         <div style="font-size: 0.72rem; color: var(--text-muted); margin-top: 2px;">${s.estudiantes?.total || 0} Alumnos vinculados</div>
       </div>
       <div style="background: var(--card-bg); border: 1.5px solid var(--border); border-radius: 14px; padding: 18px;">
-        <div style="font-size: 0.74rem; font-weight: 800; color: var(--text-muted); text-transform: uppercase;">🎨 Diseños de Tarjetas</div>
+        <div style="font-size: 0.74rem; font-weight: 800; color: var(--text-muted); text-transform: uppercase;">Diseños de Tarjetas</div>
         <div style="font-size: 1.35rem; font-weight: 900; color: #ec4899; margin-top: 6px;">${s.negocio?.disenos_tarjetas_activas || 0} Activos</div>
         <div style="font-size: 0.72rem; color: var(--text-muted); margin-top: 2px;">Disponibles para alumnos</div>
       </div>
       <div style="background: var(--card-bg); border: 1.5px solid var(--border); border-radius: 14px; padding: 18px;">
-        <div style="font-size: 0.74rem; font-weight: 800; color: var(--text-muted); text-transform: uppercase;">🧾 Pedidos en Soda</div>
+        <div style="font-size: 0.74rem; font-weight: 800; color: var(--text-muted); text-transform: uppercase;">Pedidos en Soda</div>
         <div style="font-size: 1.35rem; font-weight: 900; color: #06b6d4; margin-top: 6px;">${s.negocio?.ordenes_totales || 0} Órdenes</div>
         <div style="font-size: 0.72rem; color: var(--text-muted); margin-top: 2px;">${s.negocio?.transacciones_totales || 0} Transacciones totales</div>
       </div>
