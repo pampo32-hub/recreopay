@@ -1,7 +1,14 @@
-const express = require('express');
-const cors = require('cors');
 const path = require('path');
 const fs = require('fs');
+
+// Cargar variables de entorno de .env nativamente
+try {
+  const envPath = path.join(__dirname, '../.env');
+  if (fs.existsSync(envPath)) process.loadEnvFile(envPath);
+} catch (e) {}
+
+const express = require('express');
+const cors = require('cors');
 const QRCode = require('qrcode');
 const { db, initDatabase, debitoCompraTransaction, recargaSaldoTransaction, crearOrdenCompleta, transferenciaP2PTransaction, revertirTransaccionSaldoTransaction } = require('./db');
 

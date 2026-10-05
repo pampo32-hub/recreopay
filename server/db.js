@@ -1,15 +1,108 @@
-const Database = require('better-sqlite3');
 const path = require('path');
 const fs = require('fs');
 
-const dbPath = path.join(__dirname, 'recreopay.db');
-const db = new Database(dbPath);
+try {
+  const envPath = path.join(__dirname, '../.env');
+  if (fs.existsSync(envPath)) process.loadEnvFile(envPath);
+} catch (e) {}
 
-// Enable WAL mode for high concurrent read/write performance
-db.pragma('journal_mode = WAL');
-db.pragma('foreign_keys = ON');
+let db;
+const isPg = Boolean(process.env.DATABASE_URL);
+
+if (isPg) {
+  const { createSyncFn } = require('synckit');
+  const syncQuery = createSyncFn(require.resolve('./pg-worker.js'));
+
+  function convertSqlToPg(sql) {
+    if (!sql || typeof sql !== 'string') return sql;
+    let idx = 0;
+    let s = sql.replace(/\?/g, () => `$${++idx}`);
+    
+    if (/^\s*PRAGMA/i.test(s)) return null;
+
+    s = s.replace(/INTEGER\s+PRIMARY\s+KEY\s+AUTOINCREMENT/gi, 'SERIAL PRIMARY KEY');
+    s = s.replace(/INSERT\s+OR\s+IGNORE\s+INTO/gi, 'INSERT INTO');
+    if (/INSERT\s+INTO/i.test(s) && !/ON\s+CONFLICT/i.test(s) && /OR\s+IGNORE/i.test(sql)) {
+      s += ' ON CONFLICT DO NOTHING';
+    }
+
+    s = s.replace(/datetime\s*\(\s*['"]now['"][^)]*\)/gi, 'CURRENT_TIMESTAMP');
+    s = s.replace(/strftime\s*\(\s*['"]%s['"]\s*,\s*['"]now['"]\s*\)/gi, 'EXTRACT(EPOCH FROM CURRENT_TIMESTAMP)');
+    s = s.replace(/strftime\s*\(\s*['"]%s['"]\s*,\s*([^)]+)\s*\)/gi, 'EXTRACT(EPOCH FROM $1)');
+
+    return s;
+  }
+
+  function normalizeParams(args) {
+    let params = args;
+    if (args.length === 1 && Array.isArray(args[0])) {
+      params = args[0];
+    }
+    return params.map(p => (p === undefined ? null : p));
+  }
+
+  db = {
+    isPg: true,
+    prepare(sql) {
+      const isInsert = /^\s*INSERT\s+INTO/i.test(sql);
+      const hasReturning = /RETURNING/i.test(sql);
+      let runSql = convertSqlToPg(sql);
+      if (isInsert && !hasReturning) {
+        runSql += ' RETURNING id';
+      }
+
+      return {
+        all(...args) {
+          const pgSql = convertSqlToPg(sql);
+          if (!pgSql) return [];
+          const res = syncQuery({ sql: pgSql, params: normalizeParams(args) });
+          return res.rows;
+        },
+        get(...args) {
+          const pgSql = convertSqlToPg(sql);
+          if (!pgSql) return null;
+          const res = syncQuery({ sql: pgSql, params: normalizeParams(args) });
+          return res.rows[0] || null;
+        },
+        run(...args) {
+          if (!runSql) return { changes: 0, lastInsertRowid: 0 };
+          try {
+            const res = syncQuery({ sql: runSql, params: normalizeParams(args) });
+            const id = (res.rows && res.rows[0] && res.rows[0].id) ? Number(res.rows[0].id) : 0;
+            return { changes: res.rowCount, lastInsertRowid: id };
+          } catch (err) {
+            const plainSql = convertSqlToPg(sql);
+            const res = syncQuery({ sql: plainSql, params: normalizeParams(args) });
+            return { changes: res.rowCount, lastInsertRowid: 0 };
+          }
+        }
+      };
+    },
+    exec(sql) {
+      const pgSql = convertSqlToPg(sql);
+      if (pgSql) syncQuery({ sql: pgSql, params: [] });
+    },
+    pragma() {},
+    transaction(fn) {
+      return (...args) => fn(...args);
+    }
+  };
+  console.log('🐘 Conectado a PostgreSQL central (recreopay_db)');
+} else {
+  const Database = require('better-sqlite3');
+  const dbPath = path.join(__dirname, 'recreopay.db');
+  db = new Database(dbPath);
+  db.pragma('journal_mode = WAL');
+  db.pragma('foreign_keys = ON');
+}
 
 function initDatabase() {
+  if (isPg) {
+    seedUsuarios();
+    seedDisenosTarjetas();
+    return;
+  }
+
   const schema = `
   -- 1. Usuarios del Sistema
   CREATE TABLE IF NOT EXISTS usuarios (
@@ -168,7 +261,8 @@ function initDatabase() {
 }
 
 function seedUsuarios() {
-  const count = db.prepare('SELECT COUNT(*) as count FROM usuarios').get().count;
+  const res = db.prepare('SELECT COUNT(*) as count FROM usuarios').get();
+  const count = res ? Number(res.count) : 0;
   if (count === 0) {
     console.log('👤 Creando usuarios iniciales de demostración en RecreoPay...');
     const insert = db.prepare('INSERT INTO usuarios (username, password_hash, rol, nombre, telefono, email, activo) VALUES (?, ?, ?, ?, ?, ?, ?)');
@@ -215,7 +309,8 @@ function seedUsuarios() {
 
 function seedDisenosTarjetas() {
   try {
-    const count = db.prepare('SELECT COUNT(*) as count FROM disenos_tarjetas').get().count;
+    const res = db.prepare('SELECT COUNT(*) as count FROM disenos_tarjetas').get();
+    const count = res ? Number(res.count) : 0;
     if (count > 0) return;
 
     console.log('🎨 Inicializando colección de 16 diseños de tarjetas en RecreoPay...');
