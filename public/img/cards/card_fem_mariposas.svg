@@ -1,0 +1,114 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 756" width="1200" height="756">
+  <defs>
+    <!-- Fondo suave menta botánica a crema -->
+    <linearGradient id="gardenBg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#f0fdf4" />
+      <stop offset="40%" stop-color="#fdfbf7" />
+      <stop offset="100%" stop-color="#ecfdf5" />
+    </linearGradient>
+
+    <!-- Alas de Mariposa en acuarela melocotón y lavanda -->
+    <linearGradient id="butterflyWing1" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#fb7185" />
+      <stop offset="50%" stop-color="#f472b6" />
+      <stop offset="100%" stop-color="#c084fc" />
+    </linearGradient>
+
+    <linearGradient id="butterflyWing2" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#38bdf8" />
+      <stop offset="70%" stop-color="#a855f7" />
+    </linearGradient>
+
+    <filter id="gardenShadow" x="-15%" y="-15%" width="130%" height="130%">
+      <feDropShadow dx="0" dy="6" stdDeviation="12" flood-color="#059669" flood-opacity="0.12" />
+    </filter>
+  </defs>
+
+  <!-- Fondo Principal -->
+  <rect width="1200" height="756" rx="36" fill="url(#gardenBg)" />
+
+  <!-- Hojas de fondo tenues -->
+  <g fill="#dcfce7" opacity="0.6">
+    <ellipse cx="180" cy="120" rx="90" ry="40" transform="rotate(-30 180 120)" />
+    <ellipse cx="320" cy="80" rx="70" ry="30" transform="rotate(20 320 80)" />
+    <ellipse cx="980" cy="580" rx="140" ry="60" transform="rotate(-40 980 580)" />
+  </g>
+
+  <!-- Rama Floral Botánica en la Esquina Derecha (Dejando 65% izquierdo limpio) -->
+  <g transform="translate(860, 220)" filter="url(#gardenShadow)">
+    
+    <!-- Tallo Orgánico Curvo -->
+    <path d="M 280 480 C 220 400, 160 320, 140 200 C 130 140, 160 60, 220 10" fill="none" stroke="#65a30d" stroke-width="6" stroke-linecap="round" />
+    <path d="M 160 260 C 120 230, 80 220, 40 240" fill="none" stroke="#65a30d" stroke-width="4" stroke-linecap="round" />
+    <path d="M 140 160 C 90 140, 60 100, 40 50" fill="none" stroke="#65a30d" stroke-width="4" stroke-linecap="round" />
+
+    <!-- Hojas Tiernas de Salvia -->
+    <path d="M 40 240 Q 60 210 90 225 Q 70 250 40 240 Z" fill="#86efac" />
+    <path d="M 40 50 Q 55 20 80 40 Q 65 70 40 50 Z" fill="#86efac" />
+    <path d="M 170 340 Q 210 320 220 350 Q 180 370 170 340 Z" fill="#86efac" />
+    <path d="M 200 80 Q 230 50 250 80 Q 220 100 200 80 Z" fill="#86efac" />
+
+    <!-- Flores de Cerezo / Magnolia Silvestre (Flores en Rosa Suave) -->
+    <!-- Flor 1 -->
+    <g transform="translate(140, 180)">
+      <circle cx="0" cy="0" r="14" fill="#fbbf24" />
+      <ellipse cx="0" cy="-28" rx="16" ry="22" fill="#fda4af" opacity="0.9" />
+      <ellipse cx="26" cy="-10" rx="16" ry="22" transform="rotate(72 26 -10)" fill="#fda4af" opacity="0.9" />
+      <ellipse cx="18" cy="22" rx="16" ry="22" transform="rotate(144 18 22)" fill="#fda4af" opacity="0.9" />
+      <ellipse cx="-18" cy="22" rx="16" ry="22" transform="rotate(216 -18 22)" fill="#fda4af" opacity="0.9" />
+      <ellipse cx="-26" cy="-10" rx="16" ry="22" transform="rotate(288 -26 -10)" fill="#fda4af" opacity="0.9" />
+      <circle cx="0" cy="0" r="9" fill="#f59e0b" />
+    </g>
+
+    <!-- Flor 2 más pequeña -->
+    <g transform="translate(60, 100) scale(0.7)">
+      <circle cx="0" cy="0" r="14" fill="#fbbf24" />
+      <ellipse cx="0" cy="-28" rx="16" ry="22" fill="#fbcfe8" opacity="0.95" />
+      <ellipse cx="26" cy="-10" rx="16" ry="22" transform="rotate(72 26 -10)" fill="#fbcfe8" opacity="0.95" />
+      <ellipse cx="18" cy="22" rx="16" ry="22" transform="rotate(144 18 22)" fill="#fbcfe8" opacity="0.95" />
+      <ellipse cx="-18" cy="22" rx="16" ry="22" transform="rotate(216 -18 22)" fill="#fbcfe8" opacity="0.95" />
+      <ellipse cx="-26" cy="-10" rx="16" ry="22" transform="rotate(288 -26 -10)" fill="#fbcfe8" opacity="0.95" />
+      <circle cx="0" cy="0" r="8" fill="#f59e0b" />
+    </g>
+
+    <!-- Mariposa Principal Volando (Grande y Elegante) -->
+    <g transform="translate(60, 20) rotate(-15) scale(0.95)">
+      <!-- Cuerpo de la mariposa -->
+      <path d="M 0 -25 C 0 -35, 6 -35, 6 -25 L 4 35 C 4 42, 2 42, 2 35 Z" fill="#4a044e" />
+      <!-- Antenas -->
+      <path d="M 2 -32 Q -10 -48 -20 -45" fill="none" stroke="#4a044e" stroke-width="2" />
+      <circle cx="-20" cy="-45" r="2.5" fill="#4a044e" />
+      <path d="M 4 -32 Q 16 -48 26 -45" fill="none" stroke="#4a044e" stroke-width="2" />
+      <circle cx="26" cy="-45" r="2.5" fill="#4a044e" />
+
+      <!-- Ala Superior Izquierda -->
+      <path d="M 0 -20 C -40 -70, -100 -60, -90 -10 C -80 30, -30 20, 0 5 Z" fill="url(#butterflyWing1)" />
+      <!-- Ala Inferior Izquierda -->
+      <path d="M 0 5 C -50 20, -70 60, -40 85 C -15 100, -5 60, 0 30 Z" fill="url(#butterflyWing1)" opacity="0.85" />
+
+      <!-- Ala Superior Derecha -->
+      <path d="M 6 -20 C 46 -70, 106 -60, 96 -10 C 86 30, 36 20, 6 5 Z" fill="url(#butterflyWing1)" />
+      <!-- Ala Inferior Derecha -->
+      <path d="M 6 5 C 56 20, 76 60, 46 85 C 21 100, 11 60, 6 30 Z" fill="url(#butterflyWing1)" opacity="0.85" />
+
+      <!-- Detalles blancos en las alas -->
+      <circle cx="-50" cy="-25" r="6" fill="#ffffff" opacity="0.6" />
+      <circle cx="-30" cy="-40" r="4" fill="#ffffff" opacity="0.6" />
+      <circle cx="56" cy="-25" r="6" fill="#ffffff" opacity="0.6" />
+      <circle cx="36" cy="-40" r="4" fill="#ffffff" opacity="0.6" />
+    </g>
+
+    <!-- Pequeña Mariposa Celeste Acompañante -->
+    <g transform="translate(190, 120) rotate(20) scale(0.55)">
+      <path d="M 0 -20 L 2 30" stroke="#1e293b" stroke-width="4" stroke-linecap="round" />
+      <path d="M 0 -15 C -40 -60, -80 -40, -60 0 C -40 20, -10 10, 0 0 Z" fill="url(#butterflyWing2)" />
+      <path d="M 0 0 C -40 10, -50 40, -30 55 C -10 65, 0 35, 0 15 Z" fill="url(#butterflyWing2)" opacity="0.85" />
+      <path d="M 2 -15 C 42 -60, 82 -40, 62 0 C 42 20, 12 10, 2 0 Z" fill="url(#butterflyWing2)" />
+      <path d="M 2 0 C 42 10, 52 40, 32 55 C 12 65, 2 35, 2 15 Z" fill="url(#butterflyWing2)" opacity="0.85" />
+    </g>
+
+  </g>
+
+  <!-- Marco interior sutil botánico -->
+  <rect x="20" y="20" width="1160" height="716" rx="26" fill="none" stroke="#ffffff" stroke-width="2" opacity="0.7" />
+</svg>

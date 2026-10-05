@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Diseños Frescos y Minimalistas - RecreoPay</title>
+  <title>Catálogo Oficial de 16 Tarjetas - RecreoPay</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800;900&display=swap" rel="stylesheet">
@@ -30,8 +30,8 @@
       min-height: 100vh;
     }
     .header {
-      max-width: 1050px;
-      margin: 0 auto 30px;
+      max-width: 1100px;
+      margin: 0 auto 25px;
       text-align: center;
       padding: 24px;
       background: var(--card-bg);
@@ -52,7 +52,7 @@
       margin-bottom: 12px;
     }
     h1 {
-      font-size: 1.8rem;
+      font-size: 1.85rem;
       font-weight: 900;
       margin-bottom: 10px;
       background: linear-gradient(135deg, #ffffff, #6ee7b7);
@@ -62,40 +62,53 @@
     p.subtitle {
       color: var(--text-muted);
       font-size: 0.95rem;
-      max-width: 650px;
+      max-width: 700px;
       margin: 0 auto 18px;
       line-height: 1.5;
     }
-    .toggle-bar {
+    .controls-row {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 15px;
+      align-items: center;
+      margin-top: 15px;
+    }
+    .toggle-bar, .category-bar {
       display: inline-flex;
       background: #0b0f19;
       padding: 5px;
       border-radius: 14px;
       border: 1px solid var(--border);
-      gap: 6px;
+      gap: 5px;
     }
-    .toggle-btn {
-      padding: 9px 18px;
+    .btn-tab, .btn-mode {
+      padding: 8px 16px;
       border-radius: 10px;
       border: none;
       background: transparent;
       color: var(--text-muted);
       font-weight: 700;
-      font-size: 0.88rem;
+      font-size: 0.85rem;
       cursor: pointer;
       transition: all 0.2s;
     }
-    .toggle-btn.active {
+    .btn-tab.active {
+      background: #3b82f6;
+      color: #ffffff;
+      box-shadow: 0 4px 12px rgba(59, 130, 246, 0.35);
+    }
+    .btn-mode.active {
       background: var(--primary);
       color: #0b0f19;
       font-weight: 900;
-      box-shadow: 0 4px 14px var(--primary-glow);
+      box-shadow: 0 4px 12px var(--primary-glow);
     }
     .cards-grid {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
-      gap: 25px;
-      max-width: 1050px;
+      gap: 24px;
+      max-width: 1100px;
       margin: 0 auto 40px;
     }
     .card-item {
@@ -110,13 +123,13 @@
     }
     .card-item:hover {
       transform: translateY(-4px);
-      border-color: #10b981;
+      border-color: #3b82f6;
     }
     .card-preview-wrapper {
       position: relative;
       width: 100%;
       aspect-ratio: 1.586;
-      background: #111;
+      background: #000;
       overflow: hidden;
     }
     .card-img {
@@ -162,7 +175,7 @@
     }
     .overlay-brand {
       font-weight: 900;
-      font-size: 0.9rem;
+      font-size: 0.88rem;
       letter-spacing: 0.5px;
       text-transform: uppercase;
       padding: 4px 10px;
@@ -172,38 +185,39 @@
     /* Estilos dinámicos de texto según contraste */
     .card-dark .overlay-brand {
       color: #ffffff;
-      background: rgba(0,0,0,0.35);
+      background: rgba(0,0,0,0.4);
     }
     .card-dark .overlay-name {
       color: #ffffff;
-      text-shadow: 0 2px 8px rgba(0,0,0,0.8);
+      text-shadow: 0 2px 8px rgba(0,0,0,0.9);
     }
     .card-dark .overlay-sub {
       color: #e2e8f0;
-      text-shadow: 0 2px 6px rgba(0,0,0,0.8);
+      text-shadow: 0 2px 6px rgba(0,0,0,0.9);
     }
     .card-dark .overlay-bal-lbl {
       color: #cbd5e1;
-      text-shadow: 0 1px 4px rgba(0,0,0,0.8);
+      text-shadow: 0 1px 4px rgba(0,0,0,0.9);
     }
     .card-dark .overlay-bal-val {
       color: #4ade80;
-      text-shadow: 0 2px 8px rgba(0,0,0,0.9);
+      text-shadow: 0 2px 10px rgba(0,0,0,0.95);
     }
     .card-dark .overlay-code {
       color: #ffffff;
-      background: rgba(0,0,0,0.5);
-      border: 1px solid rgba(255,255,255,0.2);
+      background: rgba(0,0,0,0.55);
+      border: 1px solid rgba(255,255,255,0.25);
     }
 
     .card-light .overlay-brand {
-      color: #1e293b;
-      background: rgba(255,255,255,0.6);
+      color: #0f172a;
+      background: rgba(255,255,255,0.7);
       border: 1px solid rgba(0,0,0,0.08);
     }
     .card-light .overlay-name {
       color: #0f172a;
       font-weight: 900;
+      text-shadow: 0 1px 2px rgba(255,255,255,0.8);
     }
     .card-light .overlay-sub {
       color: #334155;
@@ -219,8 +233,8 @@
     }
     .card-light .overlay-code {
       color: #0f172a;
-      background: rgba(255,255,255,0.7);
-      border: 1px solid rgba(0,0,0,0.12);
+      background: rgba(255,255,255,0.75);
+      border: 1px solid rgba(0,0,0,0.15);
     }
 
     .overlay-mid {
@@ -228,7 +242,7 @@
       margin-bottom: 8px;
     }
     .overlay-name {
-      font-size: 1.1rem;
+      font-size: 1.08rem;
       font-weight: 900;
       letter-spacing: 0.3px;
     }
@@ -260,20 +274,20 @@
       backdrop-filter: blur(4px);
     }
     .card-info {
-      padding: 18px;
+      padding: 16px 18px;
       display: flex;
       flex-direction: column;
       gap: 6px;
     }
     .card-title {
-      font-size: 1.1rem;
+      font-size: 1.05rem;
       font-weight: 800;
       display: flex;
       align-items: center;
       gap: 8px;
     }
     .card-desc {
-      font-size: 0.85rem;
+      font-size: 0.84rem;
       color: var(--text-muted);
       line-height: 1.45;
     }
@@ -291,9 +305,29 @@
       font-weight: 700;
       color: #cbd5e1;
     }
+    .tag-cat {
+      background: rgba(59, 130, 246, 0.2);
+      color: #60a5fa;
+      border: 1px solid rgba(59, 130, 246, 0.3);
+    }
+    .tag-fem {
+      background: rgba(244, 114, 182, 0.2);
+      color: #f472b6;
+      border: 1px solid rgba(244, 114, 182, 0.3);
+    }
+    .tag-masc {
+      background: rgba(56, 189, 248, 0.2);
+      color: #38bdf8;
+      border: 1px solid rgba(56, 189, 248, 0.3);
+    }
+    .tag-uni {
+      background: rgba(16, 185, 129, 0.2);
+      color: #34d399;
+      border: 1px solid rgba(16, 185, 129, 0.3);
+    }
     .footer-action {
       max-width: 650px;
-      margin: 0 auto;
+      margin: 0 auto 30px;
       text-align: center;
       padding: 24px;
       background: var(--card-bg);
@@ -301,7 +335,7 @@
       border: 1px solid var(--border);
     }
     .footer-action h3 {
-      font-size: 1.2rem;
+      font-size: 1.25rem;
       margin-bottom: 8px;
       color: #6ee7b7;
     }
@@ -315,24 +349,237 @@
 <body>
 
   <header class="header">
-    <div class="badge">🌿 Propuestas Frescas & Minimalistas</div>
-    <h1>Diseños Limpios Inspirados en tus Bocetos</h1>
+    <div class="badge">🌿 Catálogo Oficial de 16 Tarjetas Virtuales</div>
+    <h1>Diseños Frescos, Minimalistas y Balanceados</h1>
     <p class="subtitle">
-      Composiciones limpias, con espacio despejado para los datos del estudiante, sin sobrecarga de efectos y con un único elemento o personaje icónico.
+      6 diseños Femeninos, 6 diseños Masculinos y 4 diseños Unisex. Diseñados con espacio despejado para respirar, estética de videojuego/fantasía limpia y datos del estudiante en tiempo real sin asteriscos.
     </p>
 
-    <div class="toggle-bar">
-      <button class="toggle-btn active" id="btnArtOnly" onclick="setMode(false)">🎨 Ver Solo Ilustración</button>
-      <button class="toggle-btn" id="btnWithData" onclick="setMode(true)">💳 Ver con Datos del Estudiante</button>
+    <div class="controls-row">
+      <!-- Filtro de Categoría -->
+      <div class="category-bar">
+        <button class="btn-tab active" onclick="filterCards('all', this)">🌟 Todos (16)</button>
+        <button class="btn-tab" onclick="filterCards('fem', this)">🌸 Femenino (6)</button>
+        <button class="btn-tab" onclick="filterCards('masc', this)">🚀 Masculino (6)</button>
+        <button class="btn-tab" onclick="filterCards('uni', this)">🌐 Unisex (4)</button>
+      </div>
+
+      <!-- Toggle Datos -->
+      <div class="toggle-bar">
+        <button class="btn-mode active" id="btnArtOnly" onclick="setMode(false)">🎨 Solo Ilustración</button>
+        <button class="btn-mode" id="btnWithData" onclick="setMode(true)">💳 Con Datos de Alumno</button>
+      </div>
     </div>
   </header>
 
   <main class="cards-grid" id="cardsGrid">
 
-    <!-- 1. Estrellas del Campo (Fútbol) -->
-    <article class="card-item">
+    <!-- ==================== 6 FEMENINOS ==================== -->
+
+    <!-- F1. Gatito Tierno -->
+    <article class="card-item" data-category="fem">
+      <div class="card-preview-wrapper card-light">
+        <img src="/img/cards/card_fem_gatito.jpg" alt="Gatito Tierno" class="card-img">
+        <div class="card-overlay">
+          <div class="overlay-top">
+            <div class="overlay-chip"></div>
+            <span class="overlay-brand">⚡ RECREOPAY</span>
+          </div>
+          <div class="overlay-mid">
+            <div class="overlay-name">VALENTINA CASTRO MORA</div>
+            <div class="overlay-sub">2° Grado · Sección 2-A</div>
+          </div>
+          <div class="overlay-bottom">
+            <div>
+              <div class="overlay-bal-lbl">Saldo Disponible</div>
+              <div class="overlay-bal-val">₡5.300</div>
+            </div>
+            <div class="overlay-code">EST-2026-00001</div>
+          </div>
+        </div>
+      </div>
+      <div class="card-info">
+        <h2 class="card-title">🐱 Gatito Tierno (Kitten Love)</h2>
+        <p class="card-desc">Fondo acuarela suave crema y rosa pastel, gatito tierno con lazo y huellitas discretas. Calma y dulzura.</p>
+        <div class="card-tags">
+          <span class="tag tag-fem">Femenino</span>
+          <span class="tag">Mascotas</span>
+          <span class="tag">Acuarela</span>
+        </div>
+      </div>
+    </article>
+
+    <!-- F2. Unicornio de Ensueño -->
+    <article class="card-item" data-category="fem">
+      <div class="card-preview-wrapper card-light">
+        <img src="/img/cards/card_fem_unicornio.svg" alt="Unicornio de Ensueño" class="card-img">
+        <div class="card-overlay">
+          <div class="overlay-top">
+            <div class="overlay-chip"></div>
+            <span class="overlay-brand">⚡ RECREOPAY</span>
+          </div>
+          <div class="overlay-mid">
+            <div class="overlay-name">VALENTINA CASTRO MORA</div>
+            <div class="overlay-sub">2° Grado · Sección 2-A</div>
+          </div>
+          <div class="overlay-bottom">
+            <div>
+              <div class="overlay-bal-lbl">Saldo Disponible</div>
+              <div class="overlay-bal-val">₡5.300</div>
+            </div>
+            <div class="overlay-code">EST-2026-00001</div>
+          </div>
+        </div>
+      </div>
+      <div class="card-info">
+        <h2 class="card-title">🦄 Unicornio de Ensueño</h2>
+        <p class="card-desc">Gradiente suave lila y lavanda pastel, cuerno dorado, crin arcoíris pastel y estrellas de fantasía sutiles.</p>
+        <div class="card-tags">
+          <span class="tag tag-fem">Femenino</span>
+          <span class="tag">Fantasía</span>
+          <span class="tag">Pastel</span>
+        </div>
+      </div>
+    </article>
+
+    <!-- F3. Mundo de Sirena -->
+    <article class="card-item" data-category="fem">
+      <div class="card-preview-wrapper card-light">
+        <img src="/img/cards/card_fem_sirena.svg" alt="Mundo de Sirena" class="card-img">
+        <div class="card-overlay">
+          <div class="overlay-top">
+            <div class="overlay-chip"></div>
+            <span class="overlay-brand">⚡ RECREOPAY</span>
+          </div>
+          <div class="overlay-mid">
+            <div class="overlay-name">VALENTINA CASTRO MORA</div>
+            <div class="overlay-sub">2° Grado · Sección 2-A</div>
+          </div>
+          <div class="overlay-bottom">
+            <div>
+              <div class="overlay-bal-lbl">Saldo Disponible</div>
+              <div class="overlay-bal-val">₡5.300</div>
+            </div>
+            <div class="overlay-code">EST-2026-00001</div>
+          </div>
+        </div>
+      </div>
+      <div class="card-info">
+        <h2 class="card-title">🧜‍♀️ Océano de Sirena</h2>
+        <p class="card-desc">Agua turquesa cristalina con rayos de sol suaves, cola de sirena nacarada en degradado coral y burbujas limpias.</p>
+        <div class="card-tags">
+          <span class="tag tag-fem">Femenino</span>
+          <span class="tag">Marino</span>
+          <span class="tag">Turquesa</span>
+        </div>
+      </div>
+    </article>
+
+    <!-- F4. Gamer Girl Pastel -->
+    <article class="card-item" data-category="fem">
+      <div class="card-preview-wrapper card-light">
+        <img src="/img/cards/card_fem_gamer.svg" alt="Gamer Girl Pastel" class="card-img">
+        <div class="card-overlay">
+          <div class="overlay-top">
+            <div class="overlay-chip"></div>
+            <span class="overlay-brand">⚡ RECREOPAY</span>
+          </div>
+          <div class="overlay-mid">
+            <div class="overlay-name">VALENTINA CASTRO MORA</div>
+            <div class="overlay-sub">2° Grado · Sección 2-A</div>
+          </div>
+          <div class="overlay-bottom">
+            <div>
+              <div class="overlay-bal-lbl">Saldo Disponible</div>
+              <div class="overlay-bal-val">₡5.300</div>
+            </div>
+            <div class="overlay-code">EST-2026-00001</div>
+          </div>
+        </div>
+      </div>
+      <div class="card-info">
+        <h2 class="card-title">🎧 Gamer Girl Pastel</h2>
+        <p class="card-desc">Fondo lila menta tenue, audífonos con orejitas de gato y control de videojuegos pastel con corazones pixel.</p>
+        <div class="card-tags">
+          <span class="tag tag-fem">Femenino</span>
+          <span class="tag">Gaming</span>
+          <span class="tag">Cute</span>
+        </div>
+      </div>
+    </article>
+
+    <!-- F5. Ballet & Danza -->
+    <article class="card-item" data-category="fem">
+      <div class="card-preview-wrapper card-light">
+        <img src="/img/cards/card_fem_ballet.svg" alt="Ballet & Danza" class="card-img">
+        <div class="card-overlay">
+          <div class="overlay-top">
+            <div class="overlay-chip"></div>
+            <span class="overlay-brand">⚡ RECREOPAY</span>
+          </div>
+          <div class="overlay-mid">
+            <div class="overlay-name">VALENTINA CASTRO MORA</div>
+            <div class="overlay-sub">2° Grado · Sección 2-A</div>
+          </div>
+          <div class="overlay-bottom">
+            <div>
+              <div class="overlay-bal-lbl">Saldo Disponible</div>
+              <div class="overlay-bal-val">₡5.300</div>
+            </div>
+            <div class="overlay-code">EST-2026-00001</div>
+          </div>
+        </div>
+      </div>
+      <div class="card-info">
+        <h2 class="card-title">🩰 Ballet & Danza</h2>
+        <p class="card-desc">Rosa palo y perla satinado, zapatillas de punta con cintas fluidas de satén, tiara sutil y destellos dorados.</p>
+        <div class="card-tags">
+          <span class="tag tag-fem">Femenino</span>
+          <span class="tag">Danza</span>
+          <span class="tag">Elegante</span>
+        </div>
+      </div>
+    </article>
+
+    <!-- F6. Jardín Botánico & Mariposas -->
+    <article class="card-item" data-category="fem">
+      <div class="card-preview-wrapper card-light">
+        <img src="/img/cards/card_fem_mariposas.svg" alt="Jardín Botánico" class="card-img">
+        <div class="card-overlay">
+          <div class="overlay-top">
+            <div class="overlay-chip"></div>
+            <span class="overlay-brand">⚡ RECREOPAY</span>
+          </div>
+          <div class="overlay-mid">
+            <div class="overlay-name">VALENTINA CASTRO MORA</div>
+            <div class="overlay-sub">2° Grado · Sección 2-A</div>
+          </div>
+          <div class="overlay-bottom">
+            <div>
+              <div class="overlay-bal-lbl">Saldo Disponible</div>
+              <div class="overlay-bal-val">₡5.300</div>
+            </div>
+            <div class="overlay-code">EST-2026-00001</div>
+          </div>
+        </div>
+      </div>
+      <div class="card-info">
+        <h2 class="card-title">🌸 Jardín Botánico & Mariposas</h2>
+        <p class="card-desc">Fondo menta suave y crema, rama con flores silvestres acuarela y mariposas revoloteando con elegancia y frescura.</p>
+        <div class="card-tags">
+          <span class="tag tag-fem">Femenino</span>
+          <span class="tag">Naturaleza</span>
+          <span class="tag">Botánica</span>
+        </div>
+      </div>
+    </article>
+
+    <!-- ==================== 6 MASCULINOS ==================== -->
+
+    <!-- M1. Estrellas del Campo (Fútbol) -->
+    <article class="card-item" data-category="masc">
       <div class="card-preview-wrapper card-dark">
-        <img src="/img/cards/card_estrellas_futbol.jpg" alt="Estrellas del Campo (Fútbol)" class="card-img">
+        <img src="/img/cards/card_estrellas_futbol.jpg" alt="Estrellas del Campo" class="card-img">
         <div class="card-overlay">
           <div class="overlay-top">
             <div class="overlay-chip"></div>
@@ -353,17 +600,17 @@
       </div>
       <div class="card-info">
         <h2 class="card-title">⚽ Estrellas del Campo (Fútbol)</h2>
-        <p class="card-desc">Césped verde fresco en plano cenital con líneas reglamentarias blancas y un balón clásico con estela limpia en movimiento.</p>
+        <p class="card-desc">Césped verde cenital con líneas de cancha blancas y un balón clásico con estela limpia en movimiento.</p>
         <div class="card-tags">
-          <span class="tag">Fresco</span>
-          <span class="tag">Minimalista</span>
-          <span class="tag">Deporte</span>
+          <span class="tag tag-masc">Masculino</span>
+          <span class="tag">Deportes</span>
+          <span class="tag">Fútbol</span>
         </div>
       </div>
     </article>
 
-    <!-- 2. Eco-Aventura -->
-    <article class="card-item">
+    <!-- M2. Eco-Aventura -->
+    <article class="card-item" data-category="masc">
       <div class="card-preview-wrapper card-light">
         <img src="/img/cards/card_eco_aventura.jpg" alt="Eco-Aventura" class="card-img">
         <div class="card-overlay">
@@ -386,19 +633,19 @@
       </div>
       <div class="card-info">
         <h2 class="card-title">🌲 Eco-Aventura</h2>
-        <p class="card-desc">Paisaje sereno de lago y montañas en tonos pastel, marco natural de pinos y niño explorador con mochila y mapa en la esquina.</p>
+        <p class="card-desc">Paisaje sereno de lago y montañas en tonos pastel, marco natural de pinos y niño explorador con mochila y mapa.</p>
         <div class="card-tags">
-          <span class="tag">Naturaleza</span>
+          <span class="tag tag-masc">Masculino</span>
+          <span class="tag">Campamento</span>
           <span class="tag">Aire Libre</span>
-          <span class="tag">Pastel</span>
         </div>
       </div>
     </article>
 
-    <!-- 3. Pixel Quest (Videojuegos) -->
-    <article class="card-item">
+    <!-- M3. Pixel Quest -->
+    <article class="card-item" data-category="masc">
       <div class="card-preview-wrapper card-dark">
-        <img src="/img/cards/card_pixel_quest.jpg" alt="Pixel Quest (Videojuegos)" class="card-img">
+        <img src="/img/cards/card_pixel_quest.jpg" alt="Pixel Quest" class="card-img">
         <div class="card-overlay">
           <div class="overlay-top">
             <div class="overlay-chip"></div>
@@ -419,17 +666,17 @@
       </div>
       <div class="card-info">
         <h2 class="card-title">🎮 Pixel Quest (Videojuegos)</h2>
-        <p class="card-desc">Cielo azul despejado en 8-bit, bloques flotantes de ladrillo y misterio (?), y un caballero pixel nostálgico estilo retro-gaming.</p>
+        <p class="card-desc">Cielo azul despejado en 8-bit, plataformas de ladrillo con el bloque misterio (?) y caballero pixel retro.</p>
         <div class="card-tags">
+          <span class="tag tag-masc">Masculino</span>
           <span class="tag">Retro 8-Bit</span>
-          <span class="tag">Videojuegos</span>
-          <span class="tag">Despejado</span>
+          <span class="tag">Nintendo</span>
         </div>
       </div>
     </article>
 
-    <!-- 4. Exploración Galáctica -->
-    <article class="card-item">
+    <!-- M4. Exploración Galáctica -->
+    <article class="card-item" data-category="masc">
       <div class="card-preview-wrapper card-dark">
         <img src="/img/cards/card_exploracion_galactica.jpg" alt="Exploración Galáctica" class="card-img">
         <div class="card-overlay">
@@ -452,17 +699,85 @@
       </div>
       <div class="card-info">
         <h2 class="card-title">🚀 Exploración Galáctica</h2>
-        <p class="card-desc">Fondo azul noche profundo con nebulosa en espiral suave, planeta Tierra distante y astronauta tierno saludando desde la luna con su rover.</p>
+        <p class="card-desc">Fondo azul noche profundo con nebulosa suave, planeta Tierra y astronauta tierno saludando desde la luna con su rover.</p>
         <div class="card-tags">
+          <span class="tag tag-masc">Masculino</span>
           <span class="tag">Espacio</span>
-          <span class="tag">Calmo</span>
           <span class="tag">Cosmos</span>
         </div>
       </div>
     </article>
 
-    <!-- 5. Robo-Lab -->
-    <article class="card-item">
+    <!-- M5. Skate Park & Street Art -->
+    <article class="card-item" data-category="masc">
+      <div class="card-preview-wrapper card-light">
+        <img src="/img/cards/card_masc_skate.svg" alt="Skate Park" class="card-img">
+        <div class="card-overlay">
+          <div class="overlay-top">
+            <div class="overlay-chip"></div>
+            <span class="overlay-brand">⚡ RECREOPAY</span>
+          </div>
+          <div class="overlay-mid">
+            <div class="overlay-name">MATEO ALVARADO CASTRO</div>
+            <div class="overlay-sub">2° Grado · Sección 2-A</div>
+          </div>
+          <div class="overlay-bottom">
+            <div>
+              <div class="overlay-bal-lbl">Saldo Disponible</div>
+              <div class="overlay-bal-val">₡5.300</div>
+            </div>
+            <div class="overlay-code">EST-2026-00001</div>
+          </div>
+        </div>
+      </div>
+      <div class="card-info">
+        <h2 class="card-title">🛹 Skate Park (Street Art)</h2>
+        <p class="card-desc">Veta de madera natural de tabla de skateboard, silueta de truco aéreo de patineta y graffiti urbano fresco.</p>
+        <div class="card-tags">
+          <span class="tag tag-masc">Masculino</span>
+          <span class="tag">Skate</span>
+          <span class="tag">Urbano</span>
+        </div>
+      </div>
+    </article>
+
+    <!-- M6. Velocidad Super Carreras -->
+    <article class="card-item" data-category="masc">
+      <div class="card-preview-wrapper card-dark">
+        <img src="/img/cards/card_masc_carreras.svg" alt="Super Carreras" class="card-img">
+        <div class="card-overlay">
+          <div class="overlay-top">
+            <div class="overlay-chip"></div>
+            <span class="overlay-brand">⚡ RECREOPAY</span>
+          </div>
+          <div class="overlay-mid">
+            <div class="overlay-name">MATEO ALVARADO CASTRO</div>
+            <div class="overlay-sub">2° Grado · Sección 2-A</div>
+          </div>
+          <div class="overlay-bottom">
+            <div>
+              <div class="overlay-bal-lbl">Saldo Disponible</div>
+              <div class="overlay-bal-val">₡5.300</div>
+            </div>
+            <div class="overlay-code">EST-2026-00001</div>
+          </div>
+        </div>
+      </div>
+      <div class="card-info">
+        <h2 class="card-title">🏎️ Velocidad Super Carreras</h2>
+        <p class="card-desc">Pista de asfalto nocturna, piano de curva blanco/rojo, superdeportivo aerodinámico con estelas de luz.</p>
+        <div class="card-tags">
+          <span class="tag tag-masc">Masculino</span>
+          <span class="tag">Motorsport</span>
+          <span class="tag">Racing</span>
+        </div>
+      </div>
+    </article>
+
+    <!-- ==================== 4 UNISEX ==================== -->
+
+    <!-- U1. Robo-Lab -->
+    <article class="card-item" data-category="uni">
       <div class="card-preview-wrapper card-dark">
         <img src="/img/cards/card_robo_lab.jpg" alt="Robo-Lab" class="card-img">
         <div class="card-overlay">
@@ -471,7 +786,7 @@
             <span class="overlay-brand">⚡ RECREOPAY</span>
           </div>
           <div class="overlay-mid">
-            <div class="overlay-name">MATEO ALVARADO CASTRO</div>
+            <div class="overlay-name">ALEX RÍOS MORALES</div>
             <div class="overlay-sub">2° Grado · Sección 2-A</div>
           </div>
           <div class="overlay-bottom">
@@ -485,17 +800,17 @@
       </div>
       <div class="card-info">
         <h2 class="card-title">🤖 Robo-Lab</h2>
-        <p class="card-desc">Azul tecnológico limpio con circuitos cian sutiles en los bordes, engranajes naranjas suaves y un robot amigable saludando al centro.</p>
+        <p class="card-desc">Azul tecnológico limpio con circuitos cian sutiles en los bordes y robot sonriente saludando amistosamente.</p>
         <div class="card-tags">
-          <span class="tag">Tecnología</span>
+          <span class="tag tag-uni">Unisex</span>
           <span class="tag">Robótica</span>
-          <span class="tag">Limpio</span>
+          <span class="tag">Ciencia</span>
         </div>
       </div>
     </article>
 
-    <!-- 6. Mundo de Arte -->
-    <article class="card-item">
+    <!-- U2. Mundo de Arte -->
+    <article class="card-item" data-category="uni">
       <div class="card-preview-wrapper card-light">
         <img src="/img/cards/card_mundo_arte.jpg" alt="Mundo de Arte" class="card-img">
         <div class="card-overlay">
@@ -504,7 +819,7 @@
             <span class="overlay-brand">⚡ RECREOPAY</span>
           </div>
           <div class="overlay-mid">
-            <div class="overlay-name">MATEO ALVARADO CASTRO</div>
+            <div class="overlay-name">ALEX RÍOS MORALES</div>
             <div class="overlay-sub">2° Grado · Sección 2-A</div>
           </div>
           <div class="overlay-bottom">
@@ -518,11 +833,77 @@
       </div>
       <div class="card-info">
         <h2 class="card-title">🎨 Mundo de Arte</h2>
-        <p class="card-desc">Lienzo blanco texturizado con suave arcoíris en acuarela en la parte superior, paleta de pintor en madera y cuaderno de bocetos con pincel.</p>
+        <p class="card-desc">Lienzo blanco texturizado con suave arcoíris en acuarela en la parte superior, paleta de madera y cuaderno con pincel.</p>
         <div class="card-tags">
-          <span class="tag">Acuarela</span>
+          <span class="tag tag-uni">Unisex</span>
           <span class="tag">Creativo</span>
-          <span class="tag">Espacio Blanco</span>
+          <span class="tag">Acuarela</span>
+        </div>
+      </div>
+    </article>
+
+    <!-- U3. Ritmo & DJ -->
+    <article class="card-item" data-category="uni">
+      <div class="card-preview-wrapper card-dark">
+        <img src="/img/cards/card_uni_musica.svg" alt="Ritmo & DJ" class="card-img">
+        <div class="card-overlay">
+          <div class="overlay-top">
+            <div class="overlay-chip"></div>
+            <span class="overlay-brand">⚡ RECREOPAY</span>
+          </div>
+          <div class="overlay-mid">
+            <div class="overlay-name">ALEX RÍOS MORALES</div>
+            <div class="overlay-sub">2° Grado · Sección 2-A</div>
+          </div>
+          <div class="overlay-bottom">
+            <div>
+              <div class="overlay-bal-lbl">Saldo Disponible</div>
+              <div class="overlay-bal-val">₡5.300</div>
+            </div>
+            <div class="overlay-code">EST-2026-00001</div>
+          </div>
+        </div>
+      </div>
+      <div class="card-info">
+        <h2 class="card-title">🎵 Ritmo & Beats (DJ)</h2>
+        <p class="card-desc">Fondo carbón mate elegante, barras de ecualizador de sonido limpias y audífonos de música con tornamesa sutil.</p>
+        <div class="card-tags">
+          <span class="tag tag-uni">Unisex</span>
+          <span class="tag">Música</span>
+          <span class="tag">Sonido</span>
+        </div>
+      </div>
+    </article>
+
+    <!-- U4. Titanium Metal -->
+    <article class="card-item" data-category="uni">
+      <div class="card-preview-wrapper card-dark">
+        <img src="/img/cards/card_uni_titanium.svg" alt="Titanium Metal" class="card-img">
+        <div class="card-overlay">
+          <div class="overlay-top">
+            <div class="overlay-chip"></div>
+            <span class="overlay-brand">⚡ RECREOPAY</span>
+          </div>
+          <div class="overlay-mid">
+            <div class="overlay-name">ALEX RÍOS MORALES</div>
+            <div class="overlay-sub">2° Grado · Sección 2-A</div>
+          </div>
+          <div class="overlay-bottom">
+            <div>
+              <div class="overlay-bal-lbl">Saldo Disponible</div>
+              <div class="overlay-bal-val">₡5.300</div>
+            </div>
+            <div class="overlay-code">EST-2026-00001</div>
+          </div>
+        </div>
+      </div>
+      <div class="card-info">
+        <h2 class="card-title">💳 Titanium Metal Edition</h2>
+        <p class="card-desc">Metal cepillado oscuro elegante con líneas biseladas plateadas y grabado sutil. Estilo ejecutivo y sobrio.</p>
+        <div class="card-tags">
+          <span class="tag tag-uni">Unisex</span>
+          <span class="tag">Metal</span>
+          <span class="tag">Ejecutivo</span>
         </div>
       </div>
     </article>
@@ -530,8 +911,8 @@
   </main>
 
   <footer class="footer-action">
-    <h3>¿Qué tal esta dirección más fresca y minimalista?</h3>
-    <p>Compara estos 6 diseños limpios con los que me enviaste. Dime si este es el equilibrio exacto que buscas antes de proceder a montarlos en el carrusel de la app.</p>
+    <h3>¡Catálogo Completo de 16 Diseños!</h3>
+    <p>Revisa cada categoría y activa el botón <strong>"Con Datos de Alumno"</strong> para evaluar el contraste y la limpieza visual. Con tu autorización los integramos de inmediato al carrusel interactivo de la aplicación.</p>
   </footer>
 
   <script>
@@ -548,6 +929,19 @@
         btnArt.classList.add('active');
         btnData.classList.remove('active');
       }
+    }
+
+    function filterCards(cat, btn) {
+      document.querySelectorAll('.btn-tab').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      const items = document.querySelectorAll('.card-item');
+      items.forEach(item => {
+        if (cat === 'all' || item.dataset.category === cat) {
+          item.style.display = 'flex';
+        } else {
+          item.style.display = 'none';
+        }
+      });
     }
   </script>
 </body>
