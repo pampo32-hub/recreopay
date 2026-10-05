@@ -82,6 +82,10 @@ app.post('/api/auth/login', (req, res) => {
       return res.status(401).json({ error: 'Usuario o contraseña incorrectos' });
     }
 
+    if (user.activo === 0) {
+      return res.status(403).json({ error: 'Tu cuenta ha sido bloqueada por la administración.' });
+    }
+
     let estudiante = null;
     let hijos = [];
 
@@ -430,6 +434,276 @@ app.post('/api/admin/productos/:id/ajuste-rapido', (req, res) => {
 
     broadcastEvent('producto_actualizado', actualizado);
     res.json(actualizado);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Crear nuevo producto
+app.post('/api/admin/productos', (req, res) => {
+  try {
+    const {
+      nombre, categoria_id, precio_colones, descripcion, icono,
+      imagen_url, calorias, cumple_mep, alergenos, disponible,
+      control_stock, stock, permite_preorden
+    } = req.body;
+
+    if (!nombre || !precio_colones || !categoria_id) {
+      return res.status(400).json({ error: 'Nombre, precio y categoría son obligatorios.' });
+    }
+
+    const precio = parseInt(precio_colones, 10);
+    const catId = parseInt(categoria_id, 10);
+    const stockVal = stock !== undefined ? Math.max(0, parseInt(stock, 10)) : 10;
+    const ctrlStock = control_stock !== undefined ? (control_stock ? 1 : 0) : 1;
+    const disp = disponible !== undefined ? (disponible ? 1 : 0) : (ctrlStock === 1 && stockVal <= 0 ? 0 : 1);
+    const mep = cumple_mep !== undefined ? (cumple_mep ? 1 : 0) : 1;
+
+    const info = db.prepare(`
+      INSERT INTO productos (
+        categoria_id, nombre, descripcion, precio_colones, imagen_url, 
+        icono, calorias, cumple_mep, alergenos, disponible, 
+        permite_preorden, destacado, control_stock, stock
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?, ?)
+    `).run(
+      catId,
+      String(nombre).trim(),
+      descripcion ? String(descripcion).trim() : null,
+      precio,
+      imagen_url || null,
+      icono || '🥪',
+      calorias ? parseInt(calorias, 10) : null,
+      mep,
+      alergenos ? String(alergenos).trim() : null,
+      disp,
+      permite_preorden !== undefined ? (permite_preorden ? 1 : 0) : 1,
+      ctrlStock,
+      stockVal
+    );
+
+    const nuevo = db.prepare(`
+      SELECT p.*, c.nombre as categoria_nombre, c.icono as categoria_icono
+      FROM productos p
+      JOIN categorias c ON p.categoria_id = c.id
+      WHERE p.id = ?
+    `).get(info.lastInsertRowid);
+
+    broadcastEvent('producto_actualizado', nuevo);
+    res.status(201).json(nuevo);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Modificar producto completo
+app.put('/api/admin/productos/:id', (req, res) => {
+  try {
+    const prodId = parseInt(req.params.id, 10);
+    const prod = db.prepare('SELECT * FROM productos WHERE id = ?').get(prodId);
+    if (!prod) return res.status(404).json({ error: 'Producto no encontrado' });
+
+    const {
+      nombre, categoria_id, precio_colones, descripcion, icono,
+      imagen_url, calorias, cumple_mep, alergenos, disponible,
+      control_stock, stock, permite_preorden
+    } = req.body;
+
+    const precio = precio_colones !== undefined ? parseInt(precio_colones, 10) : prod.precio_colones;
+    const catId = categoria_id !== undefined ? parseInt(categoria_id, 10) : prod.categoria_id;
+    const stockVal = stock !== undefined ? Math.max(0, parseInt(stock, 10)) : prod.stock;
+    const ctrlStock = control_stock !== undefined ? (control_stock ? 1 : 0) : prod.control_stock;
+    let disp = disponible !== undefined ? (disponible ? 1 : 0) : prod.disponible;
+    if (ctrlStock === 1 && stockVal <= 0) {
+      disp = 0;
+    }
+    const mep = cumple_mep !== undefined ? (cumple_mep ? 1 : 0) : prod.cumple_mep;
+
+    db.prepare(`
+      UPDATE productos SET
+        nombre = ?, categoria_id = ?, descripcion = ?, precio_colones = ?,
+        imagen_url = ?, icono = ?, calorias = ?, cumple_mep = ?,
+        alergenos = ?, disponible = ?, permite_preorden = ?,
+        control_stock = ?, stock = ?
+      WHERE id = ?
+    `).run(
+      nombre !== undefined ? String(nombre).trim() : prod.nombre,
+      catId,
+      descripcion !== undefined ? (descripcion ? String(descripcion).trim() : null) : prod.descripcion,
+      precio,
+      imagen_url !== undefined ? imagen_url : prod.imagen_url,
+      icono !== undefined ? icono : prod.icono,
+      calorias !== undefined ? (calorias ? parseInt(calorias, 10) : null) : prod.calorias,
+      mep,
+      alergenos !== undefined ? (alergenos ? String(alergenos).trim() : null) : prod.alergenos,
+      disp,
+      permite_preorden !== undefined ? (permite_preorden ? 1 : 0) : prod.permite_preorden,
+      ctrlStock,
+      stockVal,
+      prodId
+    );
+
+    const actualizado = db.prepare(`
+      SELECT p.*, c.nombre as categoria_nombre, c.icono as categoria_icono
+      FROM productos p
+      JOIN categorias c ON p.categoria_id = c.id
+      WHERE p.id = ?
+    `).get(prodId);
+
+    broadcastEvent('producto_actualizado', actualizado);
+    res.json(actualizado);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Eliminar o desactivar producto
+app.delete('/api/admin/productos/:id', (req, res) => {
+  try {
+    const prodId = parseInt(req.params.id, 10);
+    const prod = db.prepare('SELECT * FROM productos WHERE id = ?').get(prodId);
+    if (!prod) return res.status(404).json({ error: 'Producto no encontrado' });
+
+    const enOrdenes = db.prepare('SELECT COUNT(*) as count FROM orden_detalles WHERE producto_id = ?').get(prodId).count;
+    if (enOrdenes > 0) {
+      // Soft-delete para proteger la integridad referencial y reportes contables
+      db.prepare('UPDATE productos SET disponible = 0, stock = 0 WHERE id = ?').run(prodId);
+      broadcastEvent('producto_actualizado', { id: prodId, disponible: 0, stock: 0 });
+      res.json({ exito: true, accion: 'desactivado', mensaje: `"${prod.nombre}" se desactivó del menú ya que tiene ventas históricas asociadas.` });
+    } else {
+      // Hard delete
+      db.prepare('DELETE FROM productos WHERE id = ?').run(prodId);
+      broadcastEvent('producto_actualizado', { id: prodId, eliminado: true });
+      res.json({ exito: true, accion: 'eliminado', mensaje: `"${prod.nombre}" fue eliminado exitosamente.` });
+    }
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ==========================================
+// GESTIÓN DE PERSONAL Y CAJEROS
+// ==========================================
+
+// Listar empleados (admin, cajero, vendedor)
+app.get('/api/admin/personal', (req, res) => {
+  try {
+    const personal = db.prepare(`
+      SELECT id, username, rol, nombre, telefono, email, activo, creado_en 
+      FROM usuarios 
+      WHERE rol IN ('admin', 'cajero', 'vendedor')
+      ORDER BY id ASC
+    `).all();
+    res.json(personal);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Crear nuevo empleado o cajero
+app.post('/api/admin/personal', (req, res) => {
+  try {
+    const { username, password, rol, nombre, telefono, email } = req.body;
+    if (!username || !password || !nombre || !rol) {
+      return res.status(400).json({ error: 'Usuario, contraseña, nombre y rol son obligatorios.' });
+    }
+
+    const cleanUser = String(username).trim().toLowerCase();
+    const cleanPass = String(password).trim();
+    const cleanRol = String(rol).trim().toLowerCase();
+
+    if (!['admin', 'cajero', 'vendedor'].includes(cleanRol)) {
+      return res.status(400).json({ error: 'Rol no válido. Debe ser "cajero", "vendedor" o "admin".' });
+    }
+
+    const existe = db.prepare('SELECT id FROM usuarios WHERE LOWER(username) = ?').get(cleanUser);
+    if (existe) {
+      return res.status(400).json({ error: `El usuario "${cleanUser}" ya existe en el sistema.` });
+    }
+
+    const info = db.prepare(`
+      INSERT INTO usuarios (username, password_hash, rol, nombre, telefono, email, activo)
+      VALUES (?, ?, ?, ?, ?, ?, 1)
+    `).run(
+      cleanUser,
+      cleanPass,
+      cleanRol,
+      String(nombre).trim(),
+      telefono ? String(telefono).trim() : null,
+      email ? String(email).trim().toLowerCase() : null
+    );
+
+    const creado = db.prepare('SELECT id, username, rol, nombre, telefono, email, activo, creado_en FROM usuarios WHERE id = ?').get(info.lastInsertRowid);
+    res.status(201).json(creado);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Modificar datos de empleado
+app.put('/api/admin/personal/:id', (req, res) => {
+  try {
+    const staffId = parseInt(req.params.id, 10);
+    const { nombre, rol, telefono, email, password } = req.body;
+
+    const user = db.prepare('SELECT * FROM usuarios WHERE id = ?').get(staffId);
+    if (!user) return res.status(404).json({ error: 'Empleado no encontrado' });
+
+    let sql = 'UPDATE usuarios SET nombre = ?, rol = ?, telefono = ?, email = ?';
+    let params = [
+      String(nombre || user.nombre).trim(),
+      rol || user.rol,
+      telefono !== undefined ? (telefono ? String(telefono).trim() : null) : user.telefono,
+      email !== undefined ? (email ? String(email).trim().toLowerCase() : null) : user.email
+    ];
+
+    if (password && String(password).trim().length > 0) {
+      sql += ', password_hash = ?';
+      params.push(String(password).trim());
+    }
+
+    sql += ' WHERE id = ?';
+    params.push(staffId);
+
+    db.prepare(sql).run(...params);
+
+    const actualizado = db.prepare('SELECT id, username, rol, nombre, telefono, email, activo, creado_en FROM usuarios WHERE id = ?').get(staffId);
+    res.json(actualizado);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Bloquear / Desbloquear empleado
+app.put('/api/admin/personal/:id/estado', (req, res) => {
+  try {
+    const staffId = parseInt(req.params.id, 10);
+    const { activo } = req.body;
+    const nuevoEstado = activo ? 1 : 0;
+
+    if (staffId === 1 && nuevoEstado === 0) {
+      return res.status(400).json({ error: 'No es posible bloquear al Administrador Principal.' });
+    }
+
+    db.prepare('UPDATE usuarios SET activo = ? WHERE id = ?').run(nuevoEstado, staffId);
+    res.json({ exito: true, id: staffId, activo: nuevoEstado });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Eliminar empleado
+app.delete('/api/admin/personal/:id', (req, res) => {
+  try {
+    const staffId = parseInt(req.params.id, 10);
+    if (staffId === 1) {
+      return res.status(400).json({ error: 'No es posible eliminar al Administrador Principal del sistema.' });
+    }
+
+    const user = db.prepare('SELECT * FROM usuarios WHERE id = ?').get(staffId);
+    if (!user) return res.status(404).json({ error: 'Empleado no encontrado' });
+
+    db.prepare('DELETE FROM usuarios WHERE id = ?').run(staffId);
+    res.json({ exito: true, mensaje: `Empleado "${user.nombre}" eliminado correctamente.` });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

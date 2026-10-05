@@ -11,6 +11,7 @@ let currentAppMode = 'teens';
 let adminProducts = [];
 let adminStats = null;
 let adminSearchQuery = '';
+let adminStaffList = [];
 
 let CLOUDFLARE_TUNNEL_URL = 'https://recreopay.gammapos.app';
 
@@ -86,6 +87,23 @@ document.addEventListener('DOMContentLoaded', async () => {
     transferPinEl.addEventListener('input', (e) => {
       if (window.sounds && e.data) {
         window.sounds.playTap();
+      }
+    });
+  }
+
+  const customAmountEl = document.getElementById('inputTransferCustomAmount');
+  if (customAmountEl) {
+    customAmountEl.addEventListener('input', (e) => {
+      const val = parseInt(e.target.value, 10);
+      document.querySelectorAll('#transferStepConfirm .transfer-amount-btn, #transferStepConfirm .mode-btn').forEach(b => b.classList.remove('active'));
+      if (val && val > 0) {
+        currentTransferAmount = val;
+        updateTransferConfirmButton(val);
+        const match = document.getElementById(`btnTransfer${val}`);
+        if (match) match.classList.add('active');
+      } else {
+        currentTransferAmount = 0;
+        updateTransferConfirmButton(0);
       }
     });
   }
@@ -259,15 +277,21 @@ async function applyUserRoleSession() {
 
   if (viewLogin) viewLogin.style.display = 'none';
 
-  if (currentUser.rol === 'admin' || currentUser.rol === 'cajero') {
+  if (currentUser.rol === 'admin' || currentUser.rol === 'cajero' || currentUser.rol === 'vendedor') {
     if (viewAdmin) viewAdmin.style.display = 'block';
     if (viewPadres) viewPadres.style.display = 'none';
     if (appContainer) appContainer.style.display = 'none';
     if (bottomNav) bottomNav.style.display = 'none';
     const adminNameEl = document.getElementById('adminLoggedName');
     if (adminNameEl) {
-      const badgeRol = currentUser.rol === 'cajero' ? 'Cajero Soda' : 'Administrador';
+      let badgeRol = 'Administrador';
+      if (currentUser.rol === 'cajero') badgeRol = 'Cajero Soda';
+      if (currentUser.rol === 'vendedor') badgeRol = 'Vendedor / Despacho';
       adminNameEl.textContent = `${currentUser.nombre} (${badgeRol})`;
+    }
+    const btnTabStaff = document.getElementById('btnTabAdminPersonal');
+    if (btnTabStaff) {
+      btnTabStaff.style.display = (currentUser.rol === 'admin') ? 'inline-block' : 'none';
     }
     await loadAdminData();
     setupAdminSmartSearch();
@@ -1049,10 +1073,19 @@ function resetTransferScan() {
 
 function setTransferAmount(val, btn) {
   currentTransferAmount = val;
-  document.querySelectorAll('#transferStepConfirm .mode-btn').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('#transferStepConfirm .transfer-amount-btn, #transferStepConfirm .mode-btn').forEach(b => b.classList.remove('active'));
   if (btn) btn.classList.add('active');
-  document.getElementById('inputTransferCustomAmount').value = '';
+  const customInput = document.getElementById('inputTransferCustomAmount');
+  if (customInput) customInput.value = val;
+  updateTransferConfirmButton(val);
   if (window.sounds) window.sounds.playCoin();
+}
+
+function updateTransferConfirmButton(monto) {
+  const lbl = document.getElementById('lblBtnConfirmTransferText');
+  if (lbl) {
+    lbl.textContent = `Enviar ₡${(monto || 0).toLocaleString('es-CR')} al Instante`;
+  }
 }
 
 // Control del Teclado Numérico Táctil del PIN
@@ -2407,7 +2440,7 @@ async function confirmLinkValidatedChild() {
 // ==========================================
 
 function switchAdminTab(tabName) {
-  const tabs = ['inventario', 'estudiantes', 'recarga', 'movimientos'];
+  const tabs = ['inventario', 'estudiantes', 'recarga', 'movimientos', 'personal'];
   tabs.forEach(t => {
     const btn = document.getElementById(`btnTabAdmin${t.charAt(0).toUpperCase() + t.slice(1)}`);
     const content = document.getElementById(`adminTabContent${t.charAt(0).toUpperCase() + t.slice(1)}`);
@@ -2417,6 +2450,8 @@ function switchAdminTab(tabName) {
 
   if (tabName === 'movimientos') {
     loadAdminMovimientos();
+  } else if (tabName === 'personal') {
+    loadAdminStaff();
   } else if (tabName === 'recarga') {
     if (!adminSelectedStudent) {
       clearAdminSelectedStudent();
@@ -2448,6 +2483,15 @@ async function loadAdminData() {
     students = await resEst.json();
     renderAdminStudents(students);
     populateAdminRecargaStudents(students);
+
+    // 4. Si las categorías están vacías, cargarlas para los modales
+    if (!categories || categories.length === 0) {
+      const resCat = await fetch('/api/productos');
+      const dataCat = await resCat.json();
+      if (dataCat && dataCat.categorias) {
+        categories = dataCat.categorias;
+      }
+    }
   } catch (err) {
     console.error('Error cargando datos de administración:', err);
   }
@@ -2492,16 +2536,25 @@ function renderAdminInventory(list) {
 
     return `
       <div class="inventory-item-row" style="${isOutOfStock ? 'background: #fff1f2;' : ''}">
-        <div class="inventory-item-top">
-          <div style="font-size: 1.8rem; text-align: center; flex-shrink: 0; min-width: 40px;">${p.icono || '🥪'}</div>
-          <div style="flex: 1; min-width: 0;">
-            <div style="display: flex; align-items: center; gap: 6px; flex-wrap: wrap;">
-              <strong style="font-size: 0.92rem; color: var(--text-main); word-break: break-word;">${p.nombre}</strong>
-              ${statusPill}
+        <div class="inventory-item-top" style="display: flex; align-items: center; justify-content: space-between; gap: 10px;">
+          <div style="display: flex; align-items: center; gap: 10px; flex: 1; min-width: 0;">
+            <div style="font-size: 1.8rem; text-align: center; flex-shrink: 0; min-width: 40px;">${p.icono || '🥪'}</div>
+            <div style="flex: 1; min-width: 0;">
+              <div style="display: flex; align-items: center; gap: 6px; flex-wrap: wrap;">
+                <strong style="font-size: 0.92rem; color: var(--text-main); word-break: break-word;">${p.nombre}</strong>
+                ${statusPill}
+                ${p.cumple_mep === 1 ? '<span style="font-size: 0.68rem; font-weight: 800; background: #dcfce7; color: #15803d; padding: 2px 6px; border-radius: 5px;">🟢 MEP</span>' : '<span style="font-size: 0.68rem; font-weight: 800; background: #fef3c7; color: #b45309; padding: 2px 6px; border-radius: 5px;">🟠 Ocasional</span>'}
+              </div>
+              <div style="font-size: 0.74rem; color: var(--text-muted); margin-top: 2px;">
+                ${p.categoria_nombre || 'General'} • ₡${p.precio_colones.toLocaleString('es-CR')}
+                ${p.descripcion ? ` • <span style="font-style: italic;">${p.descripcion}</span>` : ''}
+              </div>
             </div>
-            <div style="font-size: 0.74rem; color: var(--text-muted); margin-top: 2px;">
-              ${p.categoria_nombre || 'General'} • ₡${p.precio_colones.toLocaleString('es-CR')}
-            </div>
+          </div>
+          <div style="flex-shrink: 0;">
+            <button type="button" class="btn-action-edit" onclick="openEditProductModal(${p.id})" title="Editar este producto">
+              <span>✏️</span> <span>Editar</span>
+            </button>
           </div>
         </div>
 
@@ -3611,6 +3664,460 @@ async function revertirMovimientoAdmin(transaccionId, monto, nombreEstudiante, t
   } catch (err) {
     if (window.sounds) window.sounds.playError();
     alert(`❌ No se pudo revertir el movimiento:\n${err.message}`);
+  }
+}
+
+// ==========================================
+// GESTIÓN DE PRODUCTOS (ADMIN)
+// ==========================================
+
+async function populateCategorySelect(selectedId) {
+  const select = document.getElementById('adminProdCategoria');
+  if (!select) return;
+
+  if (!categories || categories.length === 0) {
+    try {
+      const res = await fetch('/api/productos');
+      const data = await res.json();
+      if (data && data.categorias) categories = data.categorias;
+    } catch (e) {
+      console.warn('Error al cargar categorías:', e);
+    }
+  }
+
+  select.innerHTML = (categories || []).map(c => `
+    <option value="${c.id}" ${selectedId && Number(selectedId) === Number(c.id) ? 'selected' : ''}>
+      ${c.icono || '🏷️'} ${c.nombre}
+    </option>
+  `).join('');
+}
+
+function selectProdIcon(emoji) {
+  const input = document.getElementById('adminProdIcono');
+  if (input) input.value = emoji;
+}
+
+function toggleStockInput(checked) {
+  const box = document.getElementById('boxProdStockCount');
+  if (box) box.style.display = checked ? 'block' : 'none';
+}
+
+function openCreateProductModal() {
+  const modal = document.getElementById('modalAdminProduct');
+  if (!modal) return;
+
+  document.getElementById('modalProductTitle').textContent = '➕ Crear Nuevo Producto';
+  document.getElementById('adminProdId').value = '';
+  document.getElementById('adminProdNombre').value = '';
+  document.getElementById('adminProdPrecio').value = '';
+  document.getElementById('adminProdIcono').value = '🥪';
+  document.getElementById('adminProdDescripcion').value = '';
+  document.getElementById('adminProdControlStock').checked = true;
+  toggleStockInput(true);
+  document.getElementById('adminProdStock').value = '15';
+  document.getElementById('adminProdMep').value = '1';
+
+  const btnDel = document.getElementById('btnDeleteProduct');
+  if (btnDel) btnDel.style.display = 'none';
+
+  const btnSubmit = document.getElementById('btnSaveProductSubmit');
+  if (btnSubmit) btnSubmit.innerHTML = '<span>💾</span> <span>Guardar Producto</span>';
+
+  populateCategorySelect();
+  modal.style.display = 'flex';
+  if (window.sounds) window.sounds.playTap();
+}
+
+function openEditProductModal(prodId) {
+  const modal = document.getElementById('modalAdminProduct');
+  if (!modal) return;
+
+  const prod = (adminProducts || []).find(p => p.id === prodId) || (products || []).find(p => p.id === prodId);
+  if (!prod) {
+    alert('No se encontró la información del producto.');
+    return;
+  }
+
+  document.getElementById('modalProductTitle').textContent = '✏️ Editar Producto';
+  document.getElementById('adminProdId').value = prod.id;
+  document.getElementById('adminProdNombre').value = prod.nombre || '';
+  document.getElementById('adminProdPrecio').value = prod.precio_colones || 0;
+  document.getElementById('adminProdIcono').value = prod.icono || '🥪';
+  document.getElementById('adminProdDescripcion').value = prod.descripcion || '';
+  
+  const hasControl = prod.control_stock === 1;
+  document.getElementById('adminProdControlStock').checked = hasControl;
+  toggleStockInput(hasControl);
+  document.getElementById('adminProdStock').value = prod.stock !== undefined ? prod.stock : 0;
+  document.getElementById('adminProdMep').value = (prod.cumple_mep !== undefined ? prod.cumple_mep : 1);
+
+  const btnDel = document.getElementById('btnDeleteProduct');
+  if (btnDel) btnDel.style.display = 'inline-block';
+
+  const btnSubmit = document.getElementById('btnSaveProductSubmit');
+  if (btnSubmit) btnSubmit.innerHTML = '<span>💾</span> <span>Actualizar Producto</span>';
+
+  populateCategorySelect(prod.categoria_id);
+  modal.style.display = 'flex';
+  if (window.sounds) window.sounds.playTap();
+}
+
+function closeAdminProductModal(event) {
+  if (event && event.target !== event.currentTarget) return;
+  const modal = document.getElementById('modalAdminProduct');
+  if (modal) modal.style.display = 'none';
+}
+
+async function submitAdminProduct(e) {
+  if (e) e.preventDefault();
+
+  const idVal = document.getElementById('adminProdId').value;
+  const nombre = document.getElementById('adminProdNombre').value.trim();
+  const categoria_id = parseInt(document.getElementById('adminProdCategoria').value, 10);
+  const precio_colones = parseInt(document.getElementById('adminProdPrecio').value, 10);
+  const icono = document.getElementById('adminProdIcono').value.trim() || '🥪';
+  const descripcion = document.getElementById('adminProdDescripcion').value.trim();
+  const control_stock = document.getElementById('adminProdControlStock').checked ? 1 : 0;
+  const stock = parseInt(document.getElementById('adminProdStock').value, 10) || 0;
+  const cumple_mep = parseInt(document.getElementById('adminProdMep').value, 10);
+
+  if (!nombre || isNaN(precio_colones) || precio_colones <= 0 || isNaN(categoria_id)) {
+    alert('Por favor ingresa un nombre y precio válidos.');
+    return;
+  }
+
+  const payload = {
+    nombre,
+    categoria_id,
+    precio_colones,
+    icono,
+    descripcion,
+    control_stock,
+    stock,
+    cumple_mep
+  };
+
+  const isEdit = !!idVal;
+  const url = isEdit ? `/api/admin/productos/${idVal}` : '/api/admin/productos';
+  const method = isEdit ? 'PUT' : 'POST';
+
+  try {
+    const res = await fetch(url, {
+      method,
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Error al guardar producto');
+
+    if (window.sounds) window.sounds.playSuccess();
+    closeAdminProductModal();
+    await loadAdminData();
+
+    if (typeof loadInitialData === 'function') {
+      loadInitialData();
+    }
+    alert(isEdit ? '✅ Producto actualizado correctamente.' : '✅ Producto creado exitosamente.');
+  } catch (err) {
+    if (window.sounds) window.sounds.playError();
+    alert(`Error: ${err.message}`);
+  }
+}
+
+async function handleDeleteProduct() {
+  const idVal = document.getElementById('adminProdId').value;
+  if (!idVal) return;
+
+  const prodNombre = document.getElementById('adminProdNombre').value.trim();
+  const conf = confirm(`¿Estás seguro de eliminar o desactivar "${prodNombre}"?\n\nSi tiene ventas históricas asociadas se desactivará para proteger el reporte contable. Si es nuevo, se eliminará permanentemente.`);
+  if (!conf) return;
+
+  try {
+    const res = await fetch(`/api/admin/productos/${idVal}`, {
+      method: 'DELETE'
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Error al eliminar producto');
+
+    if (window.sounds) window.sounds.playSuccess();
+    closeAdminProductModal();
+    await loadAdminData();
+    if (typeof loadInitialData === 'function') {
+      loadInitialData();
+    }
+    alert(data.mensaje || '✅ Producto procesado correctamente.');
+  } catch (err) {
+    if (window.sounds) window.sounds.playError();
+    alert(`Error: ${err.message}`);
+  }
+}
+
+// ==========================================
+// GESTIÓN DE PERSONAL Y CAJEROS (ADMIN)
+// ==========================================
+
+async function loadAdminStaff() {
+  const container = document.getElementById('adminStaffList');
+  if (!container) return;
+
+  try {
+    container.innerHTML = `
+      <div style="text-align: center; color: var(--text-muted); padding: 24px; font-size: 0.88rem;">
+        Cargando personal de la soda...
+      </div>
+    `;
+
+    const res = await fetch('/api/admin/personal');
+    if (!res.ok) throw new Error('Error al cargar la lista de personal');
+    adminStaffList = await res.json();
+    renderAdminStaff(adminStaffList);
+  } catch (err) {
+    console.error('Error cargando personal:', err);
+    container.innerHTML = `
+      <div style="text-align: center; color: #dc2626; padding: 20px;">
+        Error al cargar personal: ${err.message}
+      </div>
+    `;
+  }
+}
+
+function renderAdminStaff(list) {
+  const container = document.getElementById('adminStaffList');
+  if (!container) return;
+
+  if (!list || list.length === 0) {
+    container.innerHTML = `
+      <div style="text-align: center; padding: 24px; color: var(--text-muted);">
+        No hay personal registrado en el sistema.
+      </div>
+    `;
+    return;
+  }
+
+  container.innerHTML = list.map(s => {
+    const isRootAdmin = (s.id === 1);
+    const isBlocked = (s.activo === 0);
+    const roleIcon = s.rol === 'admin' ? '👨‍🍳' : (s.rol === 'cajero' ? '📟' : '🥪');
+    const roleLabel = s.rol === 'admin' ? 'Administrador' : (s.rol === 'cajero' ? 'Cajero POS' : 'Vendedor Despacho');
+
+    return `
+      <div class="admin-staff-card ${isBlocked ? 'blocked' : ''}">
+        <div style="display: flex; align-items: center; gap: 12px; min-width: 0; flex: 1;">
+          <div style="font-size: 2rem; width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; background: var(--bg-main); border-radius: 12px; flex-shrink: 0;">
+            ${roleIcon}
+          </div>
+          <div style="min-width: 0; flex: 1;">
+            <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+              <strong style="font-size: 0.95rem; color: var(--text-main);">${s.nombre}</strong>
+              <span class="staff-role-badge staff-role-${s.rol}">${roleLabel}</span>
+              <span class="staff-status-badge ${isBlocked ? 'staff-status-blocked' : 'staff-status-active'}">
+                ${isBlocked ? '⛔ Bloqueado' : '● Activo'}
+              </span>
+            </div>
+            <div style="font-size: 0.76rem; color: var(--text-muted); margin-top: 2px; display: flex; flex-wrap: wrap; gap: 8px;">
+              <span><strong>Usuario:</strong> @${s.username}</span>
+              ${s.telefono ? `<span>• 📞 ${s.telefono}</span>` : ''}
+              ${s.email ? `<span>• ✉️ ${s.email}</span>` : ''}
+            </div>
+          </div>
+        </div>
+
+        <div style="display: flex; align-items: center; gap: 6px; flex-shrink: 0; flex-wrap: wrap;">
+          <button type="button" class="btn-action-edit" onclick="openEditStaffModal(${s.id})" title="Editar datos">
+            <span>✏️</span> <span>Editar</span>
+          </button>
+          ${!isRootAdmin ? `
+            <button type="button" class="btn-action-block" onclick="toggleBlockStaff(${s.id}, ${isBlocked ? 1 : 0})" title="${isBlocked ? 'Desbloquear acceso' : 'Bloquear acceso'}">
+              <span>${isBlocked ? '🔓' : '🔒'}</span> <span>${isBlocked ? 'Desbloquear' : 'Bloquear'}</span>
+            </button>
+            <button type="button" class="btn-action-delete" onclick="deleteStaff(${s.id}, '${s.nombre.replace(/'/g, "\\'")}')" title="Eliminar empleado">
+              <span>🗑️</span> <span>Eliminar</span>
+            </button>
+          ` : `
+            <span style="font-size: 0.72rem; color: var(--text-muted); font-weight: 700; padding: 4px 8px; background: rgba(0,0,0,0.04); border-radius: 6px;">
+              👑 Principal
+            </span>
+          `}
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+function openCreateStaffModal() {
+  const modal = document.getElementById('modalAdminStaff');
+  if (!modal) return;
+
+  document.getElementById('modalStaffTitle').textContent = '👥 Nuevo Empleado / Cajero';
+  document.getElementById('adminStaffId').value = '';
+  document.getElementById('adminStaffNombre').value = '';
+  
+  const userInput = document.getElementById('adminStaffUsername');
+  userInput.value = '';
+  userInput.disabled = false;
+  userInput.style.opacity = '1';
+
+  document.getElementById('adminStaffRol').value = 'cajero';
+  
+  const passInput = document.getElementById('adminStaffPassword');
+  passInput.value = '';
+  passInput.required = true;
+  document.getElementById('lblStaffPassword').textContent = 'Contraseña de Acceso *:';
+  document.getElementById('hintStaffPassword').style.display = 'none';
+
+  document.getElementById('adminStaffTel').value = '';
+  document.getElementById('adminStaffEmail').value = '';
+
+  const btnSubmit = document.getElementById('btnSaveStaffSubmit');
+  if (btnSubmit) btnSubmit.innerHTML = '<span>💾</span> <span>Guardar Empleado</span>';
+
+  modal.style.display = 'flex';
+  if (window.sounds) window.sounds.playTap();
+}
+
+function openEditStaffModal(staffId) {
+  const modal = document.getElementById('modalAdminStaff');
+  if (!modal) return;
+
+  const staff = (adminStaffList || []).find(s => s.id === staffId);
+  if (!staff) {
+    alert('No se encontró el empleado especificado.');
+    return;
+  }
+
+  document.getElementById('modalStaffTitle').textContent = '✏️ Editar Empleado / Cajero';
+  document.getElementById('adminStaffId').value = staff.id;
+  document.getElementById('adminStaffNombre').value = staff.nombre || '';
+  
+  const userInput = document.getElementById('adminStaffUsername');
+  userInput.value = staff.username || '';
+  userInput.disabled = true;
+  userInput.style.opacity = '0.7';
+
+  document.getElementById('adminStaffRol').value = staff.rol || 'cajero';
+  if (staff.id === 1) {
+    document.getElementById('adminStaffRol').value = 'admin';
+  }
+
+  const passInput = document.getElementById('adminStaffPassword');
+  passInput.value = '';
+  passInput.required = false;
+  document.getElementById('lblStaffPassword').textContent = 'Nueva Contraseña (opcional):';
+  document.getElementById('hintStaffPassword').style.display = 'block';
+
+  document.getElementById('adminStaffTel').value = staff.telefono || '';
+  document.getElementById('adminStaffEmail').value = staff.email || '';
+
+  const btnSubmit = document.getElementById('btnSaveStaffSubmit');
+  if (btnSubmit) btnSubmit.innerHTML = '<span>💾</span> <span>Actualizar Datos</span>';
+
+  modal.style.display = 'flex';
+  if (window.sounds) window.sounds.playTap();
+}
+
+function closeAdminStaffModal(event) {
+  if (event && event.target !== event.currentTarget) return;
+  const modal = document.getElementById('modalAdminStaff');
+  if (modal) modal.style.display = 'none';
+}
+
+async function submitAdminStaff(e) {
+  if (e) e.preventDefault();
+
+  const idVal = document.getElementById('adminStaffId').value;
+  const nombre = document.getElementById('adminStaffNombre').value.trim();
+  const username = document.getElementById('adminStaffUsername').value.trim().toLowerCase();
+  const rol = document.getElementById('adminStaffRol').value;
+  const password = document.getElementById('adminStaffPassword').value.trim();
+  const telefono = document.getElementById('adminStaffTel').value.trim();
+  const email = document.getElementById('adminStaffEmail').value.trim().toLowerCase();
+
+  if (!nombre) {
+    alert('El nombre es obligatorio.');
+    return;
+  }
+
+  const isEdit = !!idVal;
+  if (!isEdit && (!username || !password)) {
+    alert('Usuario y contraseña son obligatorios para crear un nuevo empleado.');
+    return;
+  }
+
+  const payload = {
+    nombre,
+    rol,
+    telefono,
+    email
+  };
+
+  if (!isEdit) {
+    payload.username = username;
+    payload.password = password;
+  } else if (password) {
+    payload.password = password;
+  }
+
+  const url = isEdit ? `/api/admin/personal/${idVal}` : '/api/admin/personal';
+  const method = isEdit ? 'PUT' : 'POST';
+
+  try {
+    const res = await fetch(url, {
+      method,
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Error al procesar empleado');
+
+    if (window.sounds) window.sounds.playSuccess();
+    closeAdminStaffModal();
+    await loadAdminStaff();
+    alert(isEdit ? '✅ Datos de empleado actualizados correctamente.' : '✅ Empleado creado exitosamente con credenciales de acceso.');
+  } catch (err) {
+    if (window.sounds) window.sounds.playError();
+    alert(`Error: ${err.message}`);
+  }
+}
+
+async function toggleBlockStaff(staffId, nuevoEstado) {
+  const accion = (nuevoEstado === 1) ? 'desbloquear' : 'bloquear';
+  const conf = confirm(`¿Estás seguro de ${accion.toUpperCase()} el acceso de este empleado a RecreoPay?`);
+  if (!conf) return;
+
+  try {
+    const res = await fetch(`/api/admin/personal/${staffId}/estado`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ activo: nuevoEstado })
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Error al cambiar estado del empleado');
+
+    if (window.sounds) window.sounds.playSuccess();
+    await loadAdminStaff();
+  } catch (err) {
+    if (window.sounds) window.sounds.playError();
+    alert(`Error: ${err.message}`);
+  }
+}
+
+async function deleteStaff(staffId, nombre) {
+  const conf = confirm(`⚠️ PELIGRO:\n¿Estás completamente seguro de ELIMINAR definitivamente al empleado "${nombre}"?\n\nEsta acción no se puede deshacer y perderá el acceso al sistema.`);
+  if (!conf) return;
+
+  try {
+    const res = await fetch(`/api/admin/personal/${staffId}`, {
+      method: 'DELETE'
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Error al eliminar empleado');
+
+    if (window.sounds) window.sounds.playSuccess();
+    await loadAdminStaff();
+    alert(data.mensaje || '✅ Empleado eliminado correctamente.');
+  } catch (err) {
+    if (window.sounds) window.sounds.playError();
+    alert(`Error: ${err.message}`);
   }
 }
 

@@ -1921,3 +1921,160 @@ body.dark-mode .selected-student-banner {
   display: inline-block;
 }
 
+/* ==========================================================================
+   BOTONES DE MONTO RÁPIDO (TRANSFERENCIAS P2P)
+   ========================================================================== */
+.mode-btn,
+.transfer-amount-btn {
+  padding: 10px 8px;
+  background: var(--card-bg, #ffffff);
+  border: 1.5px solid var(--border, #cbd5e1);
+  border-radius: 12px;
+  font-size: 0.92rem;
+  font-weight: 800;
+  color: var(--text-main, #1e293b);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.18s ease;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+.mode-btn:hover,
+.transfer-amount-btn:hover {
+  border-color: #0284c7;
+  transform: translateY(-1px);
+}
+
+.mode-btn.active,
+.transfer-amount-btn.active {
+  background: linear-gradient(135deg, #0284c7, #0369a1) !important;
+  color: #ffffff !important;
+  border-color: #0284c7 !important;
+  box-shadow: 0 4px 12px rgba(2, 132, 199, 0.35) !important;
+  transform: scale(1.03);
+}
+
+body.dark-mode .mode-btn,
+body.dark-mode .transfer-amount-btn {
+  background: #1e293b;
+  border-color: #334155;
+  color: #f1f5f9;
+}
+
+/* ==========================================================================
+   GESTIÓN DE PERSONAL (TARJETAS DE EMPLEADOS)
+   ========================================================================== */
+.admin-staff-card {
+  background: var(--card-bg, #ffffff);
+  border: 1px solid var(--border, #e2e8f0);
+  border-radius: 14px;
+  padding: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  transition: all 0.2s ease;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+}
+
+.admin-staff-card:hover {
+  border-color: #cbd5e1;
+  box-shadow: 0 3px 8px rgba(0,0,0,0.06);
+}
+
+.admin-staff-card.blocked {
+  background: #fef2f2;
+  border-color: #fca5a5;
+  opacity: 0.85;
+}
+
+body.dark-mode .admin-staff-card.blocked {
+  background: rgba(239, 68, 68, 0.1);
+  border-color: rgba(239, 68, 68, 0.3);
+}
+
+.staff-role-badge {
+  font-size: 0.72rem;
+  font-weight: 800;
+  padding: 2px 8px;
+  border-radius: 6px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.staff-role-admin { background: #fef3c7; color: #b45309; }
+.staff-role-cajero { background: #e0f2fe; color: #0369a1; }
+.staff-role-vendedor { background: #dcfce7; color: #15803d; }
+
+.staff-status-badge {
+  font-size: 0.72rem;
+  font-weight: 800;
+  padding: 2px 8px;
+  border-radius: 6px;
+}
+
+.staff-status-active { background: #dcfce7; color: #166534; }
+.staff-status-blocked { background: #fee2e2; color: #991b1b; }
+
+/* Botones de acción de inventario y personal */
+.btn-action-edit {
+  padding: 6px 12px;
+  background: #f1f5f9;
+  color: #334155;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  transition: all 0.15s ease;
+}
+
+.btn-action-edit:hover {
+  background: #e2e8f0;
+  color: #0f172a;
+}
+
+.btn-action-block {
+  padding: 6px 10px;
+  background: #fff7ed;
+  color: #c2410c;
+  border: 1px solid #fed7aa;
+  border-radius: 8px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  transition: all 0.15s ease;
+}
+
+.btn-action-block:hover {
+  background: #ffedd5;
+}
+
+.btn-action-delete {
+  padding: 6px 10px;
+  background: #fef2f2;
+  color: #dc2626;
+  border: 1px solid #fecaca;
+  border-radius: 8px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  transition: all 0.15s ease;
+}
+
+.btn-action-delete:hover {
+  background: #fee2e2;
+}
+

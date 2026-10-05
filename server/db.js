@@ -120,6 +120,8 @@ function initDatabase() {
   try { db.exec('ALTER TABLE productos ADD COLUMN stock INTEGER DEFAULT 10'); } catch (e) {}
   try { db.exec('UPDATE productos SET control_stock = 1 WHERE control_stock IS NULL OR control_stock = 0'); } catch (e) {}
   try { db.exec('UPDATE productos SET stock = 10 WHERE stock IS NULL'); } catch (e) {}
+  try { db.exec('ALTER TABLE usuarios ADD COLUMN activo INTEGER DEFAULT 1'); } catch (e) {}
+  try { db.exec('UPDATE usuarios SET activo = 1 WHERE activo IS NULL'); } catch (e) {}
 
   // 8. Relación N:M Padres - Estudiantes
   try {
