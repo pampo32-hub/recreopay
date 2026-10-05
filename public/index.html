@@ -10,7 +10,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="RecreoPay">
   <meta name="mobile-web-app-capable" content="yes">
-  <link rel="stylesheet" href="/css/styles.css?v=8.0">
+  <link rel="stylesheet" href="/css/styles.css?v=8.1">
   <style>
     /* Transiciones suaves */
     .fade-enter { animation: fadeIn 0.2s ease-in-out; }
@@ -364,13 +364,10 @@
           </div>
         </div>
 
-        <div style="display: flex; gap: 8px; flex-wrap: wrap;">
-          <button type="button" onclick="switchToSodaMenuAsParent()" style="flex: 1; padding: 9px; background: #0284c7; color: white; border: none; border-radius: 10px; font-weight: 800; font-size: 0.8rem; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px;">
-            <span>🥪</span> Pre-ordenar Merienda
+        <div style="display: flex; gap: 8px;">
+          <button type="button" onclick="switchToSodaMenuAsParent()" style="width: 100%; padding: 11px; background: #0284c7; color: white; border: none; border-radius: 10px; font-weight: 800; font-size: 0.85rem; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px;">
+            <span>🥪</span> Pre-ordenar Merienda / Ver Menú
           </button>
-          <a id="btnParentViewCarnet" href="/carnet.html" target="_blank" style="padding: 9px 12px; background: #f1f5f9; color: #1e293b; border: 1px solid #cbd5e1; border-radius: 10px; font-weight: 800; font-size: 0.8rem; text-decoration: none; display: flex; align-items: center; gap: 4px;">
-            <span>🖨️</span> Ver Carné QR
-          </a>
         </div>
       </div>
 
@@ -538,14 +535,9 @@
       <div class="student-info">
         <img id="walletAvatar" class="student-avatar" src="" alt="Avatar">
         <div class="student-meta" style="flex: 1; min-width: 0;">
-          <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 8px;">
-            <div style="min-width: 0;">
-              <h2 id="walletName" style="word-break: break-word; margin: 0; font-size: 1.15rem; font-weight: 800;">Cargando...</h2>
-              <span id="walletGrade" class="student-grade">Grado y Sección</span>
-            </div>
-            <button type="button" onclick="logout(true)" class="wallet-logout-pill" title="Cerrar sesión o cambiar de estudiante">
-              <span>🚪 Salir</span>
-            </button>
+          <div style="min-width: 0;">
+            <h2 id="walletName" style="word-break: break-word; margin: 0; font-size: 1.15rem; font-weight: 800;">Cargando...</h2>
+            <span id="walletGrade" class="student-grade">Grado y Sección</span>
           </div>
         </div>
       </div>
@@ -1078,8 +1070,8 @@
     </button>
   </nav>
 
-  <script src="/js/sounds.js?v=8.0"></script>
+  <script src="/js/sounds.js?v=8.1"></script>
   <script src="/js/jsQR.js"></script>
-  <script src="/js/app.js?v=8.0"></script>
+  <script src="/js/app.js?v=8.1"></script>
 </body>
 </html>

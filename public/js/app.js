@@ -51,7 +51,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   // Registrar Service Worker para PWA
   if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('/sw.js?v=8.0').then(reg => {
+    navigator.serviceWorker.register('/sw.js?v=8.1').then(reg => {
       // Registro limpio sin recargas forzadas
     }).catch(err => console.log('SW error:', err));
   }
@@ -521,10 +521,8 @@ function renderProducts() {
 
   grid.innerHTML = filtered.map(prod => {
     const isOutOfStock = prod.control_stock === 1 && (prod.stock <= 0 || prod.disponible === 0);
-    const stockBadge = prod.control_stock === 1
-      ? (isOutOfStock 
-          ? '<span class="badge-out-of-stock">🚫 AGOTADO</span>' 
-          : `<span style="font-size: 0.68rem; font-weight: 800; color: #166534; background: #dcfce7; padding: 2px 6px; border-radius: 4px;">🟢 ${prod.stock} disponibles</span>`)
+    const stockBadge = (prod.control_stock === 1 && isOutOfStock)
+      ? '<span class="badge-out-of-stock">🚫 AGOTADO</span>'
       : '';
 
     return `
@@ -1549,7 +1547,6 @@ function renderActiveChildDetails(child) {
   const name = document.getElementById('parentActiveChildName');
   const meta = document.getElementById('parentActiveChildMeta');
   const balance = document.getElementById('parentActiveChildBalance');
-  const linkCarnet = document.getElementById('btnParentViewCarnet');
   const lblLimit = document.getElementById('lblParentDailyLimitDisplay');
   const inputCustomLimit = document.getElementById('inputParentCustomLimit');
   const rangeLimit = document.getElementById('rangeParentLimit');
@@ -1559,7 +1556,6 @@ function renderActiveChildDetails(child) {
   if (name) name.textContent = child.nombre_completo;
   if (meta) meta.textContent = `${child.grado} - Sección ${child.seccion} • Cód: ${child.codigo_estudiante}`;
   if (balance) balance.textContent = `₡${(child.saldo_colones || 0).toLocaleString('es-CR')}`;
-  if (linkCarnet) linkCarnet.href = `/carnet.html?token=${child.qr_token || ''}&id=${child.id}`;
 
   const currentLimit = child.limite_diario_colones || 3000;
   if (lblLimit) lblLimit.textContent = `₡${currentLimit.toLocaleString('es-CR')}`;

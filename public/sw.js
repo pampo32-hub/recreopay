@@ -1,5 +1,5 @@
-// RecreoPay PWA Service Worker v8.0 - Portal Padres, Registro QR y Buscador Admin
-const CACHE_NAME = 'recreopay-v8.0';
+// RecreoPay PWA Service Worker v8.1
+const CACHE_NAME = 'recreopay-v8.1';
 const STATIC_ASSETS = [
   '/',
   '/index.html',
