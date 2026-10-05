@@ -494,8 +494,8 @@ function seedInitialData() {
     '+506 8999-0011'
   );
 
-  // Asegurar que todos los estudiantes tengan el PIN 1234 estándar para el piloto
-  db.prepare("UPDATE estudiantes SET pin_seguridad = '1234' WHERE pin_seguridad IS NULL OR pin_seguridad != '1234'").run();
+  // Asignar PIN por defecto únicamente si algún estudiante no tiene PIN definido
+  db.prepare("UPDATE estudiantes SET pin_seguridad = '1234' WHERE pin_seguridad IS NULL OR pin_seguridad = ''").run();
 
   console.log('✅ Base de datos inicializada con éxito.');
 }
@@ -763,14 +763,14 @@ function transferenciaP2PTransaction({ emisorId, qrReceptor, receptorId, monto, 
       throw new Error('Tus padres tienen desactivadas las transferencias entre compañeros en tu perfil');
     }
 
-    // 2. Validar PIN de seguridad del emisor (permite 1234 universal o el PIN personalizado)
+    // 2. Validar PIN de seguridad del emisor (debe coincidir exactamente con su PIN registrado)
     const pinIngresado = String(pin || '').trim();
-    const pinEstudiante = String(emisor.pin_seguridad || '1234').trim();
+    const pinEstudiante = String(emisor.pin_seguridad || '').trim();
     if (!pinIngresado) {
-      throw new Error('Debes ingresar tu PIN de 4 dígitos para transferir');
+      throw new Error('Debes ingresar tu PIN de seguridad');
     }
-    if (pinIngresado !== '1234' && pinIngresado !== pinEstudiante) {
-      throw new Error(`PIN de seguridad incorrecto. Tu PIN es ${pinEstudiante}`);
+    if (pinIngresado !== pinEstudiante) {
+      throw new Error('El PIN de seguridad es incorrecto.');
     }
 
     // 3. Obtener receptor (por ID o por escaneo de QR/código de carné)

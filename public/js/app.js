@@ -1148,10 +1148,6 @@ function onTransferTargetIdentified(target) {
     pinInput.value = '';
     pinInput.type = 'password';
   }
-  const pinHint = document.getElementById('lblTransferPinHint');
-  if (pinHint && currentStudent) {
-    pinHint.textContent = `(PIN: ${currentStudent.pin_seguridad || '1234'})`;
-  }
 
   document.getElementById('transferStepScan').style.display = 'none';
   document.getElementById('transferStepConfirm').style.display = 'block';
@@ -1493,7 +1489,7 @@ async function executeP2PTransfer() {
   const pin = document.getElementById('inputTransferPin').value.trim();
   if (!pin) {
     if (window.sounds) window.sounds.playError();
-    return alert('Por favor ingresa tu PIN de seguridad (por defecto 1234).');
+    return alert('Por favor ingresa tu PIN de seguridad.');
   }
 
   const motivo = document.getElementById('inputTransferMotivo').value.trim();
