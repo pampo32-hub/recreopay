@@ -29,6 +29,8 @@ if (isPg) {
     s = s.replace(/datetime\s*\(\s*['"]now['"][^)]*\)/gi, 'CURRENT_TIMESTAMP');
     s = s.replace(/strftime\s*\(\s*['"]%s['"]\s*,\s*['"]now['"]\s*\)/gi, 'EXTRACT(EPOCH FROM CURRENT_TIMESTAMP)');
     s = s.replace(/strftime\s*\(\s*['"]%s['"]\s*,\s*([^)]+)\s*\)/gi, 'EXTRACT(EPOCH FROM $1)');
+    s = s.replace(/date\s*\(\s*['"]now['"][^)]*\)/gi, 'CURRENT_DATE');
+    s = s.replace(/date\s*\(\s*([^,)]+)(?:\s*,\s*['"]localtime['"])?\s*\)/gi, 'CAST($1 AS DATE)');
 
     return s;
   }
