@@ -779,10 +779,11 @@ app.get('/api/estudiantes/qr/:token', (req, res) => {
 app.get('/api/qr-image/:token', async (req, res) => {
   try {
     const qrDataUrl = await QRCode.toDataURL(req.params.token, {
-      width: 300,
-      margin: 2,
+      width: 350,
+      margin: 3,
+      errorCorrectionLevel: 'M',
       color: {
-        dark: '#0f172a',
+        dark: '#000000',
         light: '#ffffff'
       }
     });

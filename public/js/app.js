@@ -1996,6 +1996,72 @@ function switchLinkChildTab(tab) {
   if (window.sounds) window.sounds.playTap();
 }
 
+// DETECTOR UNIVERSAL DE CÓDIGOS QR (BARCODE DETECTOR CON HARDWARE ACCELERATION + FALLBACK JSQR OPTIMIZADO)
+let nativeBarcodeDetector = null;
+if (typeof window !== 'undefined' && 'BarcodeDetector' in window) {
+  try {
+    nativeBarcodeDetector = new window.BarcodeDetector({ formats: ['qr_code'] });
+  } catch (e) {
+    console.warn('BarcodeDetector formats no soportados:', e);
+  }
+}
+
+async function detectQrFromMedia(video, canvas, ctx) {
+  if (!video || video.videoWidth === 0 || video.videoHeight === 0 || video.readyState < 2) {
+    return null;
+  }
+
+  // 1. Detección nativa por aceleración de hardware (ultrarrápida ~1ms)
+  if (nativeBarcodeDetector) {
+    try {
+      const barcodes = await nativeBarcodeDetector.detect(video);
+      if (barcodes && barcodes.length > 0 && barcodes[0].rawValue) {
+        return barcodes[0].rawValue.trim();
+      }
+    } catch (e) {
+      // Ignorar error transitorio y continuar a jsQR
+    }
+  }
+
+  // 2. Fallback de jsQR optimizado por downscale (máx 640px para 30-60 FPS fluidos)
+  if (window.jsQR && canvas && ctx) {
+    let w = video.videoWidth;
+    let h = video.videoHeight;
+    const maxDim = 640;
+    if (w > maxDim || h > maxDim) {
+      if (w > h) {
+        h = Math.round((h * maxDim) / w);
+        w = maxDim;
+      } else {
+        w = Math.round((w * maxDim) / h);
+        h = maxDim;
+      }
+    }
+
+    if (canvas.width !== w) canvas.width = w;
+    if (canvas.height !== h) canvas.height = h;
+
+    ctx.drawImage(video, 0, 0, w, h);
+    const imageData = ctx.getImageData(0, 0, w, h);
+
+    // Intento 1: Sin invertir (el 99% de los carnés son oscuros sobre fondo claro)
+    let qr = window.jsQR(imageData.data, w, h, { inversionAttempts: 'dontInvert' });
+    if (!qr || !qr.data) {
+      // Intento 2: Inversión en caso de pantalla oscura o reflejos
+      qr = window.jsQR(imageData.data, w, h, { inversionAttempts: 'attemptBoth' });
+    }
+
+    if (qr && qr.data && String(qr.data).trim().length > 0) {
+      return String(qr.data).trim();
+    }
+  }
+
+  return null;
+}
+
+let isScanChildLoopRunning = false;
+let isProcessingChildScan = false;
+
 async function startScanChildCamera() {
   stopScanChildCamera();
   const video = document.getElementById('videoScanChild');
@@ -2019,25 +2085,26 @@ async function startScanChildCamera() {
     }
 
     const ctx = canvas.getContext('2d', { willReadFrequently: true });
+    isScanChildLoopRunning = true;
+    isProcessingChildScan = false;
 
-    function scanFrame() {
-      if (video.readyState === video.HAVE_ENOUGH_DATA) {
-        canvas.width = video.videoWidth;
-        canvas.height = video.videoHeight;
-        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-        const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-        if (window.jsQR) {
-          const code = window.jsQR(imageData.data, imageData.width, imageData.height, {
-            inversionAttempts: 'dontInvert'
-          });
-          if (code && code.data) {
-            handleChildQrDetected(code.data);
-            return;
-          }
+    async function scanFrame() {
+      if (!isScanChildLoopRunning || !scanChildStream) return;
+
+      if (!isProcessingChildScan) {
+        const detected = await detectQrFromMedia(video, canvas, ctx);
+        if (detected && !isProcessingChildScan) {
+          isProcessingChildScan = true;
+          handleChildQrDetected(detected);
+          return;
         }
       }
-      scanChildAnimId = requestAnimationFrame(scanFrame);
+
+      if (isScanChildLoopRunning) {
+        scanChildAnimId = requestAnimationFrame(scanFrame);
+      }
     }
+
     scanChildAnimId = requestAnimationFrame(scanFrame);
   } catch (err) {
     console.warn('Cámara no disponible para escaneo de carné:', err);
@@ -2049,12 +2116,16 @@ async function startScanChildCamera() {
 }
 
 function stopScanChildCamera() {
+  isScanChildLoopRunning = false;
+  isProcessingChildScan = false;
   if (scanChildAnimId) {
     cancelAnimationFrame(scanChildAnimId);
     scanChildAnimId = null;
   }
   if (scanChildStream) {
-    scanChildStream.getTracks().forEach(t => t.stop());
+    try {
+      scanChildStream.getTracks().forEach(t => t.stop());
+    } catch (e) {}
     scanChildStream = null;
   }
   const video = document.getElementById('videoScanChild');
@@ -2809,9 +2880,15 @@ function parseScannedStudentToken(raw) {
 }
 
 // ESCANEO QR CON CÁMARA EN MOSTRADOR DE SODA (ADMIN)
+let adminScanFacingMode = 'environment';
+let isScanAdminLoopRunning = false;
+let isProcessingAdminScan = false;
+
 function openAdminScanQrModal() {
   const modal = document.getElementById('modalAdminScanQr');
   const statusEl = document.getElementById('adminScanModalStatus');
+  const manualInput = document.getElementById('inputAdminScanManualCode');
+  if (manualInput) manualInput.value = '';
   if (modal) modal.style.display = 'flex';
   if (statusEl) {
     statusEl.textContent = '📷 Enfoca el código QR del carné';
@@ -2830,6 +2907,22 @@ function closeAdminScanQrModal(event) {
   if (modal) modal.style.display = 'none';
 }
 
+async function toggleAdminCameraFacing() {
+  adminScanFacingMode = (adminScanFacingMode === 'environment') ? 'user' : 'environment';
+  await startScanAdminCamera();
+}
+
+async function submitAdminScanManualCode() {
+  const input = document.getElementById('inputAdminScanManualCode');
+  const val = input ? input.value.trim() : '';
+  if (!val) {
+    alert('Por favor digita el carné o código del estudiante');
+    if (input) input.focus();
+    return;
+  }
+  await handleAdminQrDetected(val);
+}
+
 async function startScanAdminCamera() {
   stopScanAdminCamera();
   const video = document.getElementById('videoAdminScan');
@@ -2845,9 +2938,9 @@ async function startScanAdminCamera() {
     video.setAttribute('autoplay', 'true');
 
     const constraintConfigs = [
-      { video: { facingMode: { ideal: 'environment' }, width: { ideal: 1280 } }, audio: false },
-      { video: { facingMode: { ideal: 'environment' }, width: { ideal: 640 }, height: { ideal: 480 } }, audio: false },
-      { video: { facingMode: 'environment' }, audio: false },
+      { video: { facingMode: { ideal: adminScanFacingMode }, width: { ideal: 1280 } }, audio: false },
+      { video: { facingMode: { ideal: adminScanFacingMode }, width: { ideal: 640 }, height: { ideal: 480 } }, audio: false },
+      { video: { facingMode: adminScanFacingMode }, audio: false },
       { video: true, audio: false }
     ];
 
@@ -2884,39 +2977,47 @@ async function startScanAdminCamera() {
     }
 
     const ctx = canvas.getContext('2d', { willReadFrequently: true });
-    let isProcessingScan = false;
+    isScanAdminLoopRunning = true;
+    isProcessingAdminScan = false;
 
-    function scanFrame() {
-      if (!scanAdminStream) return;
-      if (!isProcessingScan && video.readyState === video.HAVE_ENOUGH_DATA) {
-        canvas.width = video.videoWidth;
-        canvas.height = video.videoHeight;
-        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-        const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-        if (window.jsQR) {
-          const code = window.jsQR(imageData.data, imageData.width, imageData.height, {
-            inversionAttempts: 'attemptBoth'
-          });
-          if (code && code.data && String(code.data).trim().length > 0) {
-            isProcessingScan = true;
-            handleAdminQrDetected(code.data).then(success => {
-              if (!success) {
-                setTimeout(() => {
-                  isProcessingScan = false;
-                }, 2000);
-              }
-            });
-            return;
+    async function scanFrame() {
+      if (!isScanAdminLoopRunning || !scanAdminStream) return;
+
+      if (!isProcessingAdminScan) {
+        const detected = await detectQrFromMedia(video, canvas, ctx);
+        if (detected && !isProcessingAdminScan) {
+          isProcessingAdminScan = true;
+          if (statusEl) {
+            statusEl.textContent = '⚡ ¡Código detectado! Verificando...';
+            statusEl.style.color = '#166534';
+            statusEl.style.background = '#dcfce7';
           }
+
+          handleAdminQrDetected(detected).then(success => {
+            if (!success) {
+              setTimeout(() => {
+                isProcessingAdminScan = false;
+                if (statusEl && isScanAdminLoopRunning) {
+                  statusEl.textContent = '📷 Enfoca el código QR del carné';
+                  statusEl.style.color = '#0284c7';
+                  statusEl.style.background = '#e0f2fe';
+                }
+              }, 1500);
+            }
+          });
         }
       }
-      scanAdminAnimId = requestAnimationFrame(scanFrame);
+
+      if (isScanAdminLoopRunning) {
+        scanAdminAnimId = requestAnimationFrame(scanFrame);
+      }
     }
+
     scanAdminAnimId = requestAnimationFrame(scanFrame);
   } catch (err) {
     console.warn('Cámara de mostrador no disponible:', err);
     if (statusEl) {
-      statusEl.textContent = '⚠️ Cámara no disponible. Selecciona el alumno en el buscador.';
+      statusEl.textContent = '⚠️ Cámara no disponible. Digita el carné abajo o búscalo arriba.';
       statusEl.style.color = '#dc2626';
       statusEl.style.background = '#fee2e2';
     }
@@ -2924,12 +3025,16 @@ async function startScanAdminCamera() {
 }
 
 function stopScanAdminCamera() {
+  isScanAdminLoopRunning = false;
+  isProcessingAdminScan = false;
   if (scanAdminAnimId) {
     cancelAnimationFrame(scanAdminAnimId);
     scanAdminAnimId = null;
   }
   if (scanAdminStream) {
-    scanAdminStream.getTracks().forEach(t => t.stop());
+    try {
+      scanAdminStream.getTracks().forEach(t => t.stop());
+    } catch (e) {}
     scanAdminStream = null;
   }
   const video = document.getElementById('videoAdminScan');
@@ -2982,7 +3087,24 @@ async function handleAdminQrDetected(token) {
     } catch (e) {}
   }
 
-  // 4. Procesar resultado
+  // 4. Fallback si el usuario digitó carné o nombre parcial
+  if (!student) {
+    try {
+      const resAll = await fetch('/api/estudiantes');
+      if (resAll.ok) {
+        const allEst = await resAll.json();
+        students = allEst;
+        student = (students || []).find(s => 
+          (s.qr_token && s.qr_token.toLowerCase() === clean) ||
+          (s.codigo_estudiante && s.codigo_estudiante.toLowerCase() === clean) ||
+          (s.nombre_completo && s.nombre_completo.toLowerCase().includes(clean)) ||
+          (String(s.id) === parsed)
+        );
+      }
+    } catch (e) {}
+  }
+
+  // 5. Procesar resultado
   if (student) {
     const idx = (students || []).findIndex(s => s.id === student.id);
     if (idx >= 0) {
