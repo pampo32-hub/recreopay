@@ -10,7 +10,19 @@ try {
 const express = require('express');
 const cors = require('cors');
 const QRCode = require('qrcode');
-const { db, initDatabase, debitoCompraTransaction, recargaSaldoTransaction, crearOrdenCompleta, transferenciaP2PTransaction, revertirTransaccionSaldoTransaction } = require('./db');
+const { 
+  db, 
+  initDatabase, 
+  debitoCompraTransaction, 
+  recargaSaldoTransaction, 
+  crearOrdenCompleta, 
+  transferenciaP2PTransaction, 
+  revertirTransaccionSaldoTransaction,
+  crearSolicitudRecargaSinpe,
+  obtenerSolicitudesRecargaSinpe,
+  obtenerSolicitudesRecargaPorEstudiante,
+  procesarSolicitudRecargaSinpe
+} = require('./db');
 
 const app = express();
 const PORT = process.env.PORT || 3030;
@@ -1454,6 +1466,103 @@ app.post('/api/estudiantes/:id/recarga', (req, res) => {
     broadcastEvent('estudiante_actualizado', { id: estudianteId, estudiante_id: estudianteId, saldo_colones: resultado.saldo_nuevo });
     broadcastEvent('saldo_actualizado', { id: estudianteId, estudiante_id: estudianteId, saldo_colones: resultado.saldo_nuevo });
     res.json(resultado);
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+});
+
+// ==========================================
+// SOLICITUDES DE RECARGA SINPE MÓVIL (PORTAL PADRES & SODA)
+// ==========================================
+
+// 1. Crear solicitud de recarga (enviada por el padre)
+app.post('/api/sinpe/solicitar', (req, res) => {
+  try {
+    const { estudiante_id, padre_usuario_id, monto, comprobante, notas } = req.body;
+    if (!estudiante_id) return res.status(400).json({ error: 'Estudiante no especificado' });
+    const montoNum = parseInt(monto, 10);
+    if (isNaN(montoNum) || montoNum <= 0) {
+      return res.status(400).json({ error: 'Ingresa un monto válido mayor a ₡0' });
+    }
+    const cleanComp = String(comprobante || '').trim();
+    if (!cleanComp) {
+      return res.status(400).json({ error: 'Debes ingresar el número de comprobante SINPE' });
+    }
+
+    const nuevaSol = crearSolicitudRecargaSinpe({
+      estudianteId: parseInt(estudiante_id, 10),
+      padreUsuarioId: padre_usuario_id ? parseInt(padre_usuario_id, 10) : null,
+      monto: montoNum,
+      comprobante: cleanComp,
+      notas
+    });
+
+    const estudiante = db.prepare('SELECT nombre_completo, grado, seccion, foto_url FROM estudiantes WHERE id = ?').get(estudiante_id);
+
+    const payloadNotificacion = {
+      ...nuevaSol,
+      estudiante_nombre: estudiante ? estudiante.nombre_completo : 'Estudiante',
+      estudiante_grado: estudiante ? estudiante.grado : '',
+      estudiante_seccion: estudiante ? estudiante.seccion : '',
+      estudiante_foto: estudiante ? estudiante.foto_url : ''
+    };
+
+    broadcastEvent('solicitud_sinpe_nueva', payloadNotificacion);
+
+    res.json({
+      success: true,
+      mensaje: 'Solicitud de recarga enviada. La soda verificará el comprobante en breve.',
+      solicitud: payloadNotificacion
+    });
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+});
+
+// 2. Listar solicitudes (para la soda/admin)
+app.get('/api/sinpe/solicitudes', (req, res) => {
+  try {
+    const estado = req.query.estado || 'pendiente';
+    const solicitudes = obtenerSolicitudesRecargaSinpe(estado);
+    res.json({ success: true, solicitudes });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// 3. Listar solicitudes por estudiante (para el portal de padres)
+app.get('/api/sinpe/solicitudes/estudiante/:id', (req, res) => {
+  try {
+    const solicitudes = obtenerSolicitudesRecargaPorEstudiante(parseInt(req.params.id, 10));
+    res.json({ success: true, solicitudes });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// 4. Procesar (aprobar o rechazar) solicitud de recarga desde la soda
+app.post('/api/sinpe/procesar', (req, res) => {
+  try {
+    const { solicitud_id, accion, usuario_id, motivo } = req.body;
+    if (!solicitud_id || !accion) {
+      return res.status(400).json({ error: 'solicitud_id y accion son obligatorios' });
+    }
+
+    const resultado = procesarSolicitudRecargaSinpe({
+      solicitudId: parseInt(solicitud_id, 10),
+      accion,
+      usuarioId: usuario_id ? parseInt(usuario_id, 10) : null,
+      motivo
+    });
+
+    if (resultado.estado === 'aprobada') {
+      broadcastEvent('recarga_exitosa', resultado);
+      broadcastEvent('estudiante_actualizado', { id: resultado.estudiante_id, saldo_colones: resultado.saldo_nuevo });
+      broadcastEvent('saldo_actualizado', { id: resultado.estudiante_id, saldo_colones: resultado.saldo_nuevo });
+    }
+    broadcastEvent('solicitud_sinpe_procesada', resultado);
+
+    res.json({ success: true, resultado });
   } catch (error) {
     res.status(400).json({ error: error.message });
   }

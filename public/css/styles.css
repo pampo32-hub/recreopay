@@ -3596,6 +3596,27 @@ body.dark-mode .admin-student-row.is-blocked {
   }
 }
 
+/* Botón de transferir en gris claro / gray out cuando los padres lo desactivan */
+.qr-toggle-btn.transfer-btn-disabled {
+  background: rgba(241, 245, 249, 0.85) !important;
+  color: #94a3b8 !important;
+  border-color: #cbd5e1 !important;
+  box-shadow: none !important;
+  opacity: 0.65 !important;
+  filter: grayscale(1) !important;
+  cursor: pointer !important;
+}
 
+.qr-toggle-btn.transfer-btn-disabled svg {
+  stroke: #94a3b8 !important;
+}
 
+.pwa-nav-item.transfer-nav-disabled {
+  opacity: 0.45 !important;
+  filter: grayscale(1) !important;
+  color: #94a3b8 !important;
+}
 
+.pwa-nav-item.transfer-nav-disabled svg {
+  stroke: #94a3b8 !important;
+}

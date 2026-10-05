@@ -78,6 +78,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   checkPosHttpsEnvironment();
   await loadCatalog();
   await loadPreOrders();
+  await loadSinpeRequests();
   // La cámara se activa bajo demanda al cobrar o identificar, NO al entrar
   initSSE();
   initPistolScanner();
@@ -1150,12 +1151,18 @@ function switchPosTab(tab) {
   currentTab = tab;
   document.getElementById('tabBtnMostrador').classList.toggle('active', tab === 'mostrador');
   document.getElementById('tabBtnPreordenes').classList.toggle('active', tab === 'preordenes');
+  const tabSinpe = document.getElementById('tabBtnSinpe');
+  if (tabSinpe) tabSinpe.classList.toggle('active', tab === 'sinpe');
 
   document.getElementById('viewPosMostrador').style.display = tab === 'mostrador' ? 'block' : 'none';
   document.getElementById('viewPosPreordenes').style.display = tab === 'preordenes' ? 'block' : 'none';
+  const viewSinpe = document.getElementById('viewPosSinpe');
+  if (viewSinpe) viewSinpe.style.display = tab === 'sinpe' ? 'block' : 'none';
 
   if (tab === 'preordenes') {
     loadPreOrders();
+  } else if (tab === 'sinpe') {
+    loadSinpeRequests();
   }
 }
 
@@ -1337,4 +1344,152 @@ function initSSE() {
       }
     } catch (err) {}
   });
+
+  sseSource.addEventListener('solicitud_sinpe_nueva', (e) => {
+    if (window.sounds) window.sounds.playCoin();
+    loadSinpeRequests();
+  });
+
+  sseSource.addEventListener('solicitud_sinpe_procesada', () => {
+    loadSinpeRequests();
+  });
 }
+
+// ==========================================
+// RECARGAS SINPE EN POS
+// ==========================================
+
+async function loadSinpeRequests() {
+  const list = document.getElementById('sinpeRequestsList');
+  const badge = document.getElementById('badgeSinpeCount');
+  if (!list) return;
+
+  try {
+    const res = await fetch('/api/sinpe/solicitudes?estado=pendiente');
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error);
+
+    const solicitudes = data.solicitudes || [];
+
+    if (badge) {
+      if (solicitudes.length > 0) {
+        badge.textContent = solicitudes.length;
+        badge.style.display = 'inline-block';
+      } else {
+        badge.style.display = 'none';
+      }
+    }
+
+    if (solicitudes.length === 0) {
+      list.innerHTML = `
+        <div style="background: white; border: 1.5px dashed #cbd5e1; border-radius: 14px; padding: 48px 20px; text-align: center; color: #64748b;">
+          <div style="font-size: 2.5rem; margin-bottom: 8px;">✨</div>
+          <strong style="color: #0f172a; font-size: 1.05rem; display: block; margin-bottom: 4px;">No hay recargas SINPE pendientes</strong>
+          <p style="font-size: 0.85rem; margin: 0; color: #94a3b8;">Todas las recargas reportadas por los padres han sido procesadas.</p>
+        </div>
+      `;
+      return;
+    }
+
+    list.innerHTML = solicitudes.map(s => {
+      const fecha = new Date(s.creado_en).toLocaleString('es-CR', { 
+        day: '2-digit', 
+        month: 'short', 
+        hour: '2-digit', 
+        minute: '2-digit' 
+      });
+
+      return `
+        <div style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 14px; padding: 16px; box-shadow: 0 2px 6px rgba(0,0,0,0.03); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 14px;">
+          <div style="display: flex; align-items: center; gap: 12px; min-width: 240px;">
+            <img src="${s.estudiante_foto || 'https://api.dicebear.com/7.x/bottts/svg?seed=' + s.estudiante_id}" style="width: 48px; height: 48px; border-radius: 12px; object-fit: cover; border: 1.5px solid #cbd5e1; background: #f8fafc;" alt="Foto">
+            <div>
+              <div style="font-weight: 800; font-size: 0.95rem; color: #0f172a;">${s.estudiante_nombre}</div>
+              <div style="font-size: 0.76rem; color: #64748b;">
+                ${s.estudiante_grado || ''} ${s.estudiante_seccion ? '• Sec. ' + s.estudiante_seccion : ''} 
+                <span style="background: #f1f5f9; padding: 2px 6px; border-radius: 4px; font-weight: 700; color: #334155; margin-left: 4px;">Saldo actual: ₡${(s.estudiante_saldo || 0).toLocaleString('es-CR')}</span>
+              </div>
+              <div style="font-size: 0.72rem; color: #94a3b8; margin-top: 3px;">
+                Reportado: ${fecha}
+              </div>
+            </div>
+          </div>
+
+          <div style="display: flex; flex-direction: column; align-items: flex-end; min-width: 140px;">
+            <div style="font-size: 1.25rem; font-weight: 900; color: #16a34a;">
+              +₡${s.monto_colones.toLocaleString('es-CR')}
+            </div>
+            <div style="font-size: 0.8rem; font-weight: 800; color: #1e293b; background: #f8fafc; border: 1px solid #e2e8f0; padding: 3px 8px; border-radius: 6px; margin-top: 2px;">
+              Comp: <span style="font-family: monospace; color: #0284c7;">#${s.comprobante_sinpe}</span>
+            </div>
+          </div>
+
+          <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+            <button onclick="procesarSinpePos(${s.id}, 'aprobar')" style="padding: 10px 16px; background: linear-gradient(135deg, #16a34a, #15803d); color: white; border: none; border-radius: 10px; font-weight: 800; font-size: 0.85rem; cursor: pointer; display: flex; align-items: center; gap: 6px; box-shadow: 0 2px 8px rgba(22, 163, 74, 0.25);">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+              <span>Aprobar y Acreditar</span>
+            </button>
+            <button onclick="procesarSinpePos(${s.id}, 'rechazar')" style="padding: 10px 14px; background: #fff1f2; color: #e11d48; border: 1px solid #fecdd3; border-radius: 10px; font-weight: 800; font-size: 0.85rem; cursor: pointer; display: flex; align-items: center; gap: 6px;">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+              <span>Rechazar</span>
+            </button>
+          </div>
+        </div>
+      `;
+    }).join('');
+  } catch (err) {
+    console.error('Error cargando solicitudes SINPE:', err);
+  }
+}
+
+async function procesarSinpePos(solicitudId, accion) {
+  if (accion === 'aprobar') {
+    const ok = confirm('¿Confirmas que verificaste el comprobante y el dinero ya ingresó a la cuenta bancaria de la soda?');
+    if (!ok) return;
+
+    try {
+      const res = await fetch('/api/sinpe/procesar', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          solicitud_id: solicitudId,
+          accion: 'aprobar',
+          usuario_id: null
+        })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+
+      if (window.sounds) window.sounds.playCoin();
+      alert(`¡Recarga Aprobada!\nSe acreditaron ₡${data.resultado.monto.toLocaleString('es-CR')} al estudiante ${data.resultado.estudiante_nombre}.\nNuevo saldo: ₡${data.resultado.saldo_nuevo.toLocaleString('es-CR')}.`);
+      loadSinpeRequests();
+    } catch (err) {
+      if (window.sounds) window.sounds.playError();
+      alert(`Error al aprobar recarga: ${err.message}`);
+    }
+  } else if (accion === 'rechazar') {
+    const motivo = prompt('Motivo del rechazo de la recarga:', 'Comprobante no coincide o fondos no recibidos');
+    if (motivo === null) return; // cancelado por usuario
+
+    try {
+      const res = await fetch('/api/sinpe/procesar', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          solicitud_id: solicitudId,
+          accion: 'rechazar',
+          motivo: motivo || 'Rechazado por la soda',
+          usuario_id: null
+        })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+
+      alert('La solicitud de recarga ha sido rechazada.');
+      loadSinpeRequests();
+    } catch (err) {
+      alert(`Error al rechazar recarga: ${err.message}`);
+    }
+  }
+}
+

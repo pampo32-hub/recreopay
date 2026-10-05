@@ -272,6 +272,24 @@ function initDatabase() {
     `);
   } catch (e) {}
 
+  // 11. Solicitudes de Recarga SINPE Móvil
+  try {
+    db.exec(`
+      CREATE TABLE IF NOT EXISTS solicitudes_recarga_sinpe (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        estudiante_id INTEGER NOT NULL REFERENCES estudiantes(id) ON DELETE CASCADE,
+        padre_usuario_id INTEGER,
+        monto_colones INTEGER NOT NULL,
+        comprobante_sinpe TEXT NOT NULL,
+        estado TEXT DEFAULT 'pendiente',
+        notas TEXT,
+        aprobado_por_usuario_id INTEGER,
+        creado_en DATETIME DEFAULT CURRENT_TIMESTAMP,
+        procesado_en DATETIME
+      );
+    `);
+  } catch (e) {}
+
   seedInitialData();
   seedUsuarios();
   seedDisenosTarjetas();
@@ -1006,6 +1024,111 @@ function revertirTransaccionSaldoTransaction({ transaccionId, usuarioId, usuario
   return transaction();
 }
 
+/**
+ * Crea una nueva solicitud de recarga por SINPE Móvil enviada por un padre
+ */
+function crearSolicitudRecargaSinpe({ estudianteId, padreUsuarioId, monto, comprobante, notas }) {
+  const insert = db.prepare(`
+    INSERT INTO solicitudes_recarga_sinpe (estudiante_id, padre_usuario_id, monto_colones, comprobante_sinpe, estado, notas)
+    VALUES (?, ?, ?, ?, 'pendiente', ?)
+  `);
+  const res = insert.run(estudianteId, padreUsuarioId || null, parseInt(monto, 10), String(comprobante).trim(), notas || '');
+  return {
+    id: res.lastInsertRowid,
+    estudiante_id: estudianteId,
+    monto_colones: parseInt(monto, 10),
+    comprobante_sinpe: String(comprobante).trim(),
+    estado: 'pendiente'
+  };
+}
+
+/**
+ * Obtiene las solicitudes de recarga SINPE (con datos del estudiante)
+ */
+function obtenerSolicitudesRecargaSinpe(filtroEstado = 'pendiente') {
+  let sql = `
+    SELECT s.*, 
+           e.nombre_completo as estudiante_nombre, 
+           e.grado as estudiante_grado, 
+           e.seccion as estudiante_seccion, 
+           e.foto_url as estudiante_foto, 
+           e.saldo_colones as estudiante_saldo
+    FROM solicitudes_recarga_sinpe s
+    JOIN estudiantes e ON e.id = s.estudiante_id
+  `;
+  if (filtroEstado && filtroEstado !== 'todas') {
+    sql += ` WHERE s.estado = ? ORDER BY s.creado_en DESC`;
+    return db.prepare(sql).all(filtroEstado);
+  } else {
+    sql += ` ORDER BY s.creado_en DESC`;
+    return db.prepare(sql).all();
+  }
+}
+
+/**
+ * Obtiene las solicitudes de recarga de un estudiante específico (para el portal de padres)
+ */
+function obtenerSolicitudesRecargaPorEstudiante(estudianteId) {
+  return db.prepare(`
+    SELECT * FROM solicitudes_recarga_sinpe 
+    WHERE estudiante_id = ? 
+    ORDER BY creado_en DESC 
+    LIMIT 10
+  `).all(estudianteId);
+}
+
+/**
+ * Procesa (aprueba o rechaza) una solicitud de recarga SINPE
+ */
+function procesarSolicitudRecargaSinpe({ solicitudId, accion, usuarioId, motivo }) {
+  const transaction = db.transaction(() => {
+    const sol = db.prepare('SELECT * FROM solicitudes_recarga_sinpe WHERE id = ?').get(solicitudId);
+    if (!sol) throw new Error('Solicitud de recarga no encontrada');
+    if (sol.estado !== 'pendiente') throw new Error(`Esta solicitud ya fue ${sol.estado}`);
+
+    if (accion === 'aprobar') {
+      const resultadoSaldo = recargaSaldoTransaction({
+        estudianteId: sol.estudiante_id,
+        monto: sol.monto_colones,
+        comprobanteSinpe: sol.comprobante_sinpe,
+        descripcion: `Recarga SINPE aprobada en soda (Comprobante #${sol.comprobante_sinpe})`
+      });
+
+      db.prepare(`
+        UPDATE solicitudes_recarga_sinpe 
+        SET estado = 'aprobada', aprobado_por_usuario_id = ?, procesado_en = CURRENT_TIMESTAMP, notas = ?
+        WHERE id = ?
+      `).run(usuarioId || null, motivo || 'Aprobada por la soda', solicitudId);
+
+      return {
+        solicitud_id: solicitudId,
+        estado: 'aprobada',
+        estudiante_id: sol.estudiante_id,
+        monto: sol.monto_colones,
+        saldo_nuevo: resultadoSaldo.saldo_nuevo,
+        estudiante_nombre: resultadoSaldo.nombre
+      };
+    } else if (accion === 'rechazar') {
+      db.prepare(`
+        UPDATE solicitudes_recarga_sinpe 
+        SET estado = 'rechazada', aprobado_por_usuario_id = ?, procesado_en = CURRENT_TIMESTAMP, notas = ?
+        WHERE id = ?
+      `).run(usuarioId || null, motivo || 'Comprobante no verificado en cuenta', solicitudId);
+
+      return {
+        solicitud_id: solicitudId,
+        estado: 'rechazada',
+        estudiante_id: sol.estudiante_id,
+        monto: sol.monto_colones
+      };
+    } else {
+      throw new Error('Acción no válida (usar aprobar o rechazar)');
+    }
+  });
+
+  return transaction();
+}
+
 module.exports = {
   db,
   initDatabase,
@@ -1013,5 +1136,9 @@ module.exports = {
   recargaSaldoTransaction,
   crearOrdenCompleta,
   transferenciaP2PTransaction,
-  revertirTransaccionSaldoTransaction
+  revertirTransaccionSaldoTransaction,
+  crearSolicitudRecargaSinpe,
+  obtenerSolicitudesRecargaSinpe,
+  obtenerSolicitudesRecargaPorEstudiante,
+  procesarSolicitudRecargaSinpe
 };

@@ -555,6 +555,26 @@ function updateStudentUI() {
     }
   });
 
+  // Gray-out del botón Transferir cuando los padres lo desactivan
+  const btnCardTransfer = document.getElementById('btnCardTransfer');
+  const pwaNavTransfer = document.getElementById('pwaNavTransfer');
+  const transferenciasHabilitadas = currentStudent.permitir_transferencias !== 0;
+
+  if (btnCardTransfer) {
+    if (!transferenciasHabilitadas) {
+      btnCardTransfer.classList.add('transfer-btn-disabled');
+    } else {
+      btnCardTransfer.classList.remove('transfer-btn-disabled');
+    }
+  }
+  if (pwaNavTransfer) {
+    if (!transferenciasHabilitadas) {
+      pwaNavTransfer.classList.add('transfer-nav-disabled');
+    } else {
+      pwaNavTransfer.classList.remove('transfer-nav-disabled');
+    }
+  }
+
   // Alergias
   const allergyBox = document.getElementById('allergyWarning');
   if (currentStudent.alergias && currentStudent.alergias !== 'Ninguna' && currentStudent.alergias !== 'Ninguna conocida') {
@@ -929,37 +949,38 @@ async function quickSinpeRecharge(monto) {
 }
 
 async function customSinpeRecharge() {
-  const input = document.getElementById('inputCustomSinpe');
-  const val = parseInt(input.value, 10);
-  if (!val || val <= 0) return alert('Por favor escribe un monto válido a recargar en colones.');
-  await doSinpeRecharge(val);
-  input.value = '';
-}
-
-async function doSinpeRecharge(monto) {
   if (!currentStudent) return;
-  const comprobante = `SINPE-${Math.floor(100000 + Math.random() * 900000)}`;
+  const inputMonto = document.getElementById('inputCustomSinpe');
+  const inputComp = document.getElementById('inputCustomSinpeComprobante');
+  const val = parseInt(inputMonto ? inputMonto.value : 0, 10);
+  const comp = inputComp ? inputComp.value.trim() : '';
+
+  if (!val || val <= 0) return alert('Por favor escribe un monto válido a recargar en colones.');
+  if (!comp) return alert('Por favor escribe el número de comprobante SINPE.');
 
   try {
-    const res = await fetch(`/api/estudiantes/${currentStudent.id}/recarga`, {
+    const res = await fetch('/api/sinpe/solicitar', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        monto,
-        comprobante,
-        descripcion: `Recarga SINPE Móvil desde portal de padres`
+        estudiante_id: currentStudent.id,
+        padre_usuario_id: currentUser && currentUser.rol === 'padre' ? currentUser.id : null,
+        monto: val,
+        comprobante: comp,
+        notas: `Portal Parental Móvil para ${currentStudent.nombre_completo}`
       })
     });
-
     const data = await res.json();
     if (!res.ok) throw new Error(data.error);
 
     if (window.sounds) window.sounds.playSuccess();
-    alert(`¡Recarga SINPE exitosa!\nSe acreditaron ₡${monto.toLocaleString('es-CR')} al monedero de ${currentStudent.nombre_completo}.\nComprobante: ${comprobante}`);
+    alert(`¡Solicitud de Recarga Enviada!\n\nMonto: ₡${val.toLocaleString('es-CR')}\nComprobante: #${comp}\n\nLa soda verificará el depósito y el saldo se acreditará automáticamente.`);
 
-    await selectStudent(currentStudent.id);
+    if (inputMonto) inputMonto.value = '';
+    if (inputComp) inputComp.value = '';
   } catch (err) {
-    alert(`Error en recarga: ${err.message}`);
+    if (window.sounds) window.sounds.playError();
+    alert(`Error al enviar solicitud SINPE: ${err.message}`);
   }
 }
 
@@ -1541,6 +1562,7 @@ async function onToggleAllowTransfer(checked) {
       body: JSON.stringify({ permitir_transferencias: checked ? 1 : 0 })
     });
     currentStudent.permitir_transferencias = checked ? 1 : 0;
+    updateStudentUI();
     if (window.sounds) window.sounds.playCoin();
   } catch (e) {
     console.error('Error actualizando permiso de transferencias:', e);
@@ -1656,6 +1678,17 @@ function initStudentSSE() {
       }
       if (currentUser && (currentUser.rol === 'admin' || currentUser.rol === 'cajero')) {
         loadAdminData();
+      }
+    } catch (err) {}
+  });
+
+  sse.addEventListener('solicitud_sinpe_procesada', (e) => {
+    try {
+      if (currentUser && currentUser.rol === 'padre') {
+        if (currentParentChild) {
+          loadParentSinpeRequests(currentParentChild.id);
+        }
+        loadParentDashboard();
       }
     } catch (err) {}
   });
@@ -1978,6 +2011,7 @@ function renderActiveChildDetails(child) {
   if (chkTransfer) chkTransfer.checked = child.permitir_transferencias !== 0;
 
   loadActiveChildHistory(child.id);
+  loadParentSinpeRequests(child.id);
 }
 
 async function loadActiveChildHistory(studentId) {
@@ -2015,48 +2049,118 @@ async function loadActiveChildHistory(studentId) {
   }
 }
 
-function setParentSinpePreset(amt) {
-  const input = document.getElementById('inputParentSinpeMonto');
-  if (input) input.value = amt;
-  if (window.sounds) window.sounds.playTap();
-}
-
 async function executeParentSinpeRecharge() {
   if (!currentParentChild) {
     alert('Selecciona primero al estudiante a quien deseas recargarle.');
     return;
   }
-  const input = document.getElementById('inputParentSinpeMonto');
-  const monto = parseInt(input ? input.value : 0, 10);
+  const inputMonto = document.getElementById('inputParentSinpeMonto');
+  const inputComp = document.getElementById('inputParentSinpeComprobante');
+  const btn = document.getElementById('btnParentValidarSinpe');
+
+  const monto = parseInt(inputMonto ? inputMonto.value : 0, 10);
+  const comprobante = inputComp ? inputComp.value.trim() : '';
 
   if (isNaN(monto) || monto <= 0) {
     alert('Ingresa un monto válido mayor a ₡0 para recargar.');
+    if (inputMonto) inputMonto.focus();
+    return;
+  }
+  if (!comprobante) {
+    alert('Por favor ingresa el número de comprobante de la transferencia SINPE Móvil.');
+    if (inputComp) inputComp.focus();
     return;
   }
 
   try {
-    const res = await fetch(`/api/estudiantes/${currentParentChild.id}/recarga`, {
+    if (btn) {
+      btn.disabled = true;
+      btn.innerHTML = '<span>Verificando...</span>';
+    }
+
+    const res = await fetch('/api/sinpe/solicitar', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
+        estudiante_id: currentParentChild.id,
+        padre_usuario_id: currentUser ? currentUser.id : null,
         monto,
-        comprobante: 'SINPE-PADRE',
-        descripcion: `Recarga SINPE Móvil por Padre/Madre para ${currentParentChild.nombre_completo}`
+        comprobante,
+        notas: `Portal de Padres - ${currentUser ? currentUser.nombre : 'Encargado'}`
       })
     });
     const data = await res.json();
     if (!res.ok) throw new Error(data.error);
 
     if (window.sounds) window.sounds.playCoin();
-    alert(`¡Recarga Exitosa!\nSe agregaron ₡${monto.toLocaleString('es-CR')} al monedero de ${currentParentChild.nombre_completo}.\nNuevo Saldo: ₡${data.saldo_nuevo.toLocaleString('es-CR')}`);
+    alert(`¡Solicitud de Recarga Enviada!\n\nMonto: ₡${monto.toLocaleString('es-CR')}\nComprobante: #${comprobante}\n\nLa soda verificará el depósito y el saldo se acreditará automáticamente.`);
 
-    if (input) input.value = '';
-    await loadParentDashboard();
+    if (inputMonto) inputMonto.value = '';
+    if (inputComp) inputComp.value = '';
+
+    await loadParentSinpeRequests(currentParentChild.id);
   } catch (err) {
     if (window.sounds) window.sounds.playError();
-    alert(`Error al procesar recarga SINPE: ${err.message}`);
+    alert(`Error al enviar solicitud SINPE: ${err.message}`);
+  } finally {
+    if (btn) {
+      btn.disabled = false;
+      btn.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg><span>Validar SINPE</span>`;
+    }
   }
 }
+
+async function loadParentSinpeRequests(studentId) {
+  const box = document.getElementById('parentSinpePendingBox');
+  const list = document.getElementById('parentSinpePendingList');
+  if (!box || !list) return;
+
+  try {
+    const res = await fetch(`/api/sinpe/solicitudes/estudiante/${studentId}`);
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error);
+
+    const solicitudes = data.solicitudes || [];
+    if (solicitudes.length === 0) {
+      box.style.display = 'none';
+      list.innerHTML = '';
+      return;
+    }
+
+    box.style.display = 'block';
+    list.innerHTML = solicitudes.slice(0, 5).map(s => {
+      const fecha = new Date(s.creado_en).toLocaleString('es-CR', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+      let badgeStyle = '';
+      let badgeText = '';
+
+      if (s.estado === 'pendiente') {
+        badgeStyle = 'background: #fef3c7; color: #b45309; border: 1px solid #fde68a;';
+        badgeText = '⏳ Por Verificar';
+      } else if (s.estado === 'aprobada') {
+        badgeStyle = 'background: #dcfce7; color: #15803d; border: 1px solid #bbf7d0;';
+        badgeText = '✅ Acreditado';
+      } else {
+        badgeStyle = 'background: #fee2e2; color: #b91c1c; border: 1px solid #fecaca;';
+        badgeText = '❌ Rechazado';
+      }
+
+      return `
+        <div style="background: white; border: 1px solid #e2e8f0; border-radius: 8px; padding: 8px 10px; display: flex; justify-content: space-between; align-items: center; font-size: 0.76rem;">
+          <div>
+            <div style="font-weight: 800; color: #0f172a;">₡${s.monto_colones.toLocaleString('es-CR')} <span style="font-weight: 500; color: #64748b;">(Comp: #${s.comprobante_sinpe})</span></div>
+            <div style="font-size: 0.68rem; color: #94a3b8;">${fecha}</div>
+          </div>
+          <div>
+            <span style="font-size: 0.7rem; font-weight: 800; padding: 3px 8px; border-radius: 6px; ${badgeStyle}">${badgeText}</span>
+          </div>
+        </div>
+      `;
+    }).join('');
+  } catch (err) {
+    console.error('Error cargando solicitudes SINPE:', err);
+  }
+}
+
 
 function setParentLimitPreset(amt) {
   const input = document.getElementById('inputParentCustomLimit');
@@ -2117,6 +2221,10 @@ async function onToggleParentTransfer(checked) {
     if (!res.ok) throw new Error(data.error);
 
     currentParentChild.permitir_transferencias = checked ? 1 : 0;
+    if (currentStudent && currentStudent.id === currentParentChild.id) {
+      currentStudent.permitir_transferencias = checked ? 1 : 0;
+      updateStudentUI();
+    }
     if (window.sounds) window.sounds.playTap();
   } catch (err) {
     alert(`No se pudo actualizar permiso de transferencia: ${err.message}`);
