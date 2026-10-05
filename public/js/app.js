@@ -2511,6 +2511,19 @@ function setupAdminSmartSearch() {
   if (students && students.length > 0) {
     populateAdminRecargaStudents(students);
   }
+  const input = document.getElementById('inputAdminSearchStudent');
+  if (input && !input.dataset.listenerBound) {
+    input.dataset.listenerBound = 'true';
+    input.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        const val = input.value.trim();
+        if (val) {
+          handleAdminQrDetected(val);
+        }
+      }
+    });
+  }
 }
 
 function populateAdminRecargaStudents(list) {
@@ -2687,9 +2700,14 @@ function clearAdminSelectedStudent() {
   if (descInput) descInput.value = '';
 }
 
-function selectAdminStudent(studentId, updateSearchInput = false) {
-  const id = parseInt(studentId, 10);
-  const student = (students || []).find(s => s.id === id);
+function selectAdminStudent(studentOrId, updateSearchInput = false) {
+  let student = null;
+  if (typeof studentOrId === 'object' && studentOrId !== null) {
+    student = studentOrId;
+  } else {
+    const id = parseInt(studentOrId, 10);
+    student = (students || []).find(s => s.id === id);
+  }
   if (!student) return;
 
   adminSelectedStudent = student;
@@ -2746,7 +2764,11 @@ function selectAdminStudent(studentId, updateSearchInput = false) {
 
   if (updateSearchInput) {
     const montoInput = document.getElementById('adminRecargaMonto');
-    if (montoInput) montoInput.focus();
+    if (montoInput) {
+      setTimeout(() => {
+        montoInput.focus();
+      }, 120);
+    }
   }
 }
 
@@ -2759,10 +2781,47 @@ document.addEventListener('click', (e) => {
   }
 });
 
+// PARSEADOR INTELIGENTE DE TOKENS Y CÓDIGOS QR
+function parseScannedStudentToken(raw) {
+  if (!raw) return '';
+  let str = String(raw).trim();
+  str = str.replace(/^["'`]+|["'`]+$/g, '').trim();
+
+  // Si viene en formato JSON
+  if (str.startsWith('{') && str.endsWith('}')) {
+    try {
+      const obj = JSON.parse(str);
+      str = obj.qr_token || obj.token || obj.codigo_estudiante || obj.codigo || obj.id || str;
+    } catch (e) {}
+  }
+
+  // Si viene como URL o ruta
+  if (typeof str === 'string' && (str.includes('http://') || str.includes('https://') || str.includes('carnet.html') || str.includes('/'))) {
+    const matchId = str.match(/[?&]id=(\d+)/i);
+    if (matchId) return matchId[1];
+
+    const matchParam = str.match(/[?&](?:qr|token|code)=([^&#]+)/i);
+    if (matchParam) return decodeURIComponent(matchParam[1]).trim();
+
+    const parts = str.split(/[/?#]/).filter(Boolean);
+    const last = parts[parts.length - 1];
+    if (last && !last.endsWith('.html') && !last.includes('=')) {
+      return decodeURIComponent(last).trim();
+    }
+  }
+  return String(str).trim();
+}
+
 // ESCANEO QR CON CÁMARA EN MOSTRADOR DE SODA (ADMIN)
 function openAdminScanQrModal() {
   const modal = document.getElementById('modalAdminScanQr');
+  const statusEl = document.getElementById('adminScanModalStatus');
   if (modal) modal.style.display = 'flex';
+  if (statusEl) {
+    statusEl.textContent = '📷 Enfoca el código QR del carné';
+    statusEl.style.color = '#0284c7';
+    statusEl.style.background = '#e0f2fe';
+  }
   startScanAdminCamera();
 }
 
@@ -2779,30 +2838,78 @@ async function startScanAdminCamera() {
   stopScanAdminCamera();
   const video = document.getElementById('videoAdminScan');
   const canvas = document.getElementById('canvasAdminScan');
+  const statusEl = document.getElementById('adminScanModalStatus');
   if (!video || !canvas) return;
 
   try {
-    scanAdminStream = await navigator.mediaDevices.getUserMedia({
-      video: { facingMode: 'environment', width: { ideal: 640 }, height: { ideal: 480 } }
-    });
+    video.muted = true;
+    video.playsInline = true;
+    video.setAttribute('playsinline', 'true');
+    video.setAttribute('webkit-playsinline', 'true');
+    video.setAttribute('autoplay', 'true');
+
+    const constraintConfigs = [
+      { video: { facingMode: { ideal: 'environment' }, width: { ideal: 1280 } }, audio: false },
+      { video: { facingMode: { ideal: 'environment' }, width: { ideal: 640 }, height: { ideal: 480 } }, audio: false },
+      { video: { facingMode: 'environment' }, audio: false },
+      { video: true, audio: false }
+    ];
+
+    let stream = null;
+    let lastErr = null;
+    for (const c of constraintConfigs) {
+      try {
+        stream = await navigator.mediaDevices.getUserMedia(c);
+        if (stream) break;
+      } catch (errAttempt) {
+        lastErr = errAttempt;
+      }
+    }
+
+    if (!stream) {
+      throw lastErr || new Error('No se pudo acceder al lente de la cámara');
+    }
+
+    scanAdminStream = stream;
     video.srcObject = scanAdminStream;
-    video.setAttribute('playsinline', true);
-    await video.play();
+
+    await new Promise((resolve) => {
+      if (video.readyState >= 1) resolve();
+      else {
+        video.onloadedmetadata = () => resolve();
+        setTimeout(resolve, 800);
+      }
+    });
+
+    try {
+      await video.play();
+    } catch (e) {
+      console.warn('Play video diferido:', e);
+    }
 
     const ctx = canvas.getContext('2d', { willReadFrequently: true });
+    let isProcessingScan = false;
 
     function scanFrame() {
-      if (video.readyState === video.HAVE_ENOUGH_DATA) {
+      if (!scanAdminStream) return;
+      if (!isProcessingScan && video.readyState === video.HAVE_ENOUGH_DATA) {
         canvas.width = video.videoWidth;
         canvas.height = video.videoHeight;
         ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
         const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
         if (window.jsQR) {
           const code = window.jsQR(imageData.data, imageData.width, imageData.height, {
-            inversionAttempts: 'dontInvert'
+            inversionAttempts: 'attemptBoth'
           });
-          if (code && code.data) {
-            handleAdminQrDetected(code.data);
+          if (code && code.data && String(code.data).trim().length > 0) {
+            isProcessingScan = true;
+            handleAdminQrDetected(code.data).then(success => {
+              if (!success) {
+                setTimeout(() => {
+                  isProcessingScan = false;
+                }, 2000);
+              }
+            });
             return;
           }
         }
@@ -2812,6 +2919,11 @@ async function startScanAdminCamera() {
     scanAdminAnimId = requestAnimationFrame(scanFrame);
   } catch (err) {
     console.warn('Cámara de mostrador no disponible:', err);
+    if (statusEl) {
+      statusEl.textContent = '⚠️ Cámara no disponible. Selecciona el alumno en el buscador.';
+      statusEl.style.color = '#dc2626';
+      statusEl.style.background = '#fee2e2';
+    }
   }
 }
 
@@ -2824,43 +2936,83 @@ function stopScanAdminCamera() {
     scanAdminStream.getTracks().forEach(t => t.stop());
     scanAdminStream = null;
   }
+  const video = document.getElementById('videoAdminScan');
+  if (video) {
+    video.srcObject = null;
+  }
 }
 
 async function handleAdminQrDetected(token) {
-  stopScanAdminCamera();
+  const statusEl = document.getElementById('adminScanModalStatus');
   const modal = document.getElementById('modalAdminScanQr');
-  if (modal) modal.style.display = 'none';
+
   if (window.sounds) window.sounds.playBeep();
 
-  const clean = String(token).trim().toLowerCase();
-  let student = (students || []).find(s => 
-    (s.qr_token && s.qr_token.toLowerCase() === clean) ||
-    (s.codigo_estudiante && s.codigo_estudiante.toLowerCase() === clean)
-  );
+  const parsed = parseScannedStudentToken(token);
+  const clean = parsed.toLowerCase();
 
-  if (student) {
-    selectAdminStudent(student.id, true);
-    if (window.sounds) window.sounds.playSuccess();
-    return;
+  if (statusEl) {
+    statusEl.textContent = '⏳ Verificando estudiante...';
+    statusEl.style.color = '#0284c7';
+    statusEl.style.background = '#e0f2fe';
   }
 
-  // Si no está en cache local, buscarlo en el servidor
-  try {
-    const res = await fetch(`/api/estudiantes/qr/${encodeURIComponent(token)}`);
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.error);
+  // 1. Buscar en memoria local primero
+  let student = (students || []).find(s => 
+    (s.qr_token && s.qr_token.toLowerCase() === clean) ||
+    (s.codigo_estudiante && s.codigo_estudiante.toLowerCase() === clean) ||
+    (String(s.id) === parsed)
+  );
 
-    student = data;
+  // 2. Si no se encontró en cache local, buscar en el servidor
+  if (!student) {
+    try {
+      const res = await fetch(`/api/estudiantes/qr/${encodeURIComponent(parsed)}`);
+      if (res.ok) {
+        student = await res.json();
+      }
+    } catch (fetchErr) {
+      console.warn('Error buscando en servidor:', fetchErr);
+    }
+  }
+
+  // 3. Fallback con token original sin parsear
+  if (!student && parsed !== token) {
+    try {
+      const res = await fetch(`/api/estudiantes/qr/${encodeURIComponent(String(token).trim())}`);
+      if (res.ok) {
+        student = await res.json();
+      }
+    } catch (e) {}
+  }
+
+  // 4. Procesar resultado
+  if (student) {
     const idx = (students || []).findIndex(s => s.id === student.id);
-    if (idx >= 0) students[idx] = student;
-    else students.push(student);
+    if (idx >= 0) {
+      students[idx] = student;
+    } else {
+      students.push(student);
+    }
 
     populateAdminRecargaStudents(students);
-    selectAdminStudent(student.id, true);
+    selectAdminStudent(student, true);
+
+    // Apagar cámara y cerrar modal
+    stopScanAdminCamera();
+    if (modal) modal.style.display = 'none';
+
     if (window.sounds) window.sounds.playSuccess();
-  } catch (err) {
+    return true;
+  } else {
+    // Si no se encontró, NO cerrar el modal: dar feedback visual claro
     if (window.sounds) window.sounds.playError();
-    alert(`❌ Estudiante no encontrado por QR: ${err.message}`);
+    if (statusEl) {
+      statusEl.textContent = `❌ Código no reconocido: "${parsed.slice(0, 20)}". Enfoca de nuevo.`;
+      statusEl.style.color = '#dc2626';
+      statusEl.style.background = '#fee2e2';
+    }
+    return false;
   }
 }
 

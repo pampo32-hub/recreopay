@@ -1198,14 +1198,22 @@
       </div>
 
       <div style="position: relative; width: 100%; height: 220px; background: #000; border-radius: 14px; overflow: hidden; margin-bottom: 10px;">
-        <video id="videoAdminScan" playsinline autoplay muted style="width: 100%; height: 100%; object-fit: cover;"></video>
+        <video id="videoAdminScan" playsinline webkit-playsinline autoplay muted style="width: 100%; height: 100%; object-fit: cover;"></video>
         <canvas id="canvasAdminScan" style="display: none;"></canvas>
         <div style="position: absolute; inset: 16px; border: 2px dashed #10b981; border-radius: 12px; pointer-events: none;"></div>
       </div>
 
-      <p style="font-size: 0.78rem; color: var(--text-muted); margin-bottom: 6px;">
-        Escanea el QR del carné del alumno para seleccionarlo al instante.
+      <div id="adminScanModalStatus" style="font-size: 0.8rem; font-weight: 800; color: #0284c7; min-height: 22px; margin-bottom: 6px; padding: 4px 8px; border-radius: 6px;">
+        📷 Enfoca el código QR del carné
+      </div>
+
+      <p style="font-size: 0.76rem; color: var(--text-muted); margin-bottom: 8px;">
+        Escanea el QR del carné para seleccionarlo al instante.
       </p>
+
+      <button type="button" onclick="closeAdminScanQrModal()" style="width: 100%; padding: 10px; background: #f1f5f9; color: #475569; border: 1px solid var(--border); border-radius: 10px; font-weight: 800; font-size: 0.82rem; cursor: pointer;">
+        Cerrar Cámara
+      </button>
     </div>
   </div>
 
@@ -1233,8 +1241,8 @@
     </button>
   </nav>
 
-  <script src="/js/sounds.js?v=8.8"></script>
+  <script src="/js/sounds.js?v=8.9"></script>
   <script src="/js/jsQR.js"></script>
-  <script src="/js/app.js?v=8.8"></script>
+  <script src="/js/app.js?v=8.9"></script>
 </body>
 </html>

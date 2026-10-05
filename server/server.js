@@ -692,12 +692,53 @@ app.get('/api/estudiantes/:id', (req, res) => {
   }
 });
 
-// Buscar estudiante por código QR (Ultra rápido para terminal de caja)
+// Buscar estudiante por código QR (Ultra rápido para terminal de caja y recargas)
 app.get('/api/estudiantes/qr/:token', (req, res) => {
   try {
     const { token } = req.params;
-    const cleanToken = String(token).trim();
-    const est = db.prepare('SELECT * FROM estudiantes WHERE qr_token = ? OR codigo_estudiante = ? OR LOWER(codigo_estudiante) = LOWER(?)').get(cleanToken, cleanToken, cleanToken);
+    let raw = decodeURIComponent(String(token || '')).trim();
+    raw = raw.replace(/^["'`]+|["'`]+$/g, '').trim();
+
+    // Si viene como JSON
+    if (raw.startsWith('{') && raw.endsWith('}')) {
+      try {
+        const parsed = JSON.parse(raw);
+        raw = parsed.qr_token || parsed.token || parsed.codigo_estudiante || parsed.codigo || parsed.id || raw;
+      } catch (e) {}
+    }
+
+    // Si viene como URL o ruta (ej: carnet.html?id=2 o /api/qr-image/QR-...)
+    let queryId = null;
+    if (typeof raw === 'string' && (raw.includes('http://') || raw.includes('https://') || raw.includes('carnet.html') || raw.includes('/'))) {
+      const matchId = raw.match(/[?&]id=(\d+)/i);
+      if (matchId) queryId = parseInt(matchId[1], 10);
+
+      const matchParam = raw.match(/[?&](?:qr|token|code)=([^&#]+)/i);
+      if (matchParam) {
+        raw = decodeURIComponent(matchParam[1]).trim();
+      } else {
+        const parts = raw.split(/[/?#]/).filter(Boolean);
+        const lastPart = parts[parts.length - 1];
+        if (lastPart && !lastPart.endsWith('.html') && !lastPart.includes('=')) {
+          raw = lastPart;
+        }
+      }
+    }
+
+    const cleanToken = String(raw).trim();
+    const asInt = parseInt(cleanToken, 10);
+    const validIntId = (!isNaN(asInt) && String(asInt) === cleanToken) ? asInt : (queryId || -1);
+
+    const est = db.prepare(`
+      SELECT * FROM estudiantes 
+      WHERE qr_token = ? 
+         OR LOWER(qr_token) = LOWER(?)
+         OR codigo_estudiante = ? 
+         OR LOWER(codigo_estudiante) = LOWER(?)
+         OR id = ?
+      LIMIT 1
+    `).get(cleanToken, cleanToken, cleanToken, cleanToken, validIntId);
+
     if (!est) {
       return res.status(404).json({ error: 'Código QR no reconocido en la base de datos de la escuela' });
     }
