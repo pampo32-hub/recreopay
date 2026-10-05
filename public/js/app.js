@@ -2680,13 +2680,11 @@ function clearAdminSelectedStudent() {
   if (sel) sel.value = '';
 
   const wrap = document.getElementById('adminSelectedStudentWrap');
-  const notice = document.getElementById('adminEmptyStudentNotice');
   const fields = document.getElementById('adminRecargaFormFields');
   const searchInput = document.getElementById('inputAdminSearchStudent');
   const btnClear = document.getElementById('btnClearAdminSearch');
 
   if (wrap) wrap.style.display = 'none';
-  if (notice) notice.style.display = 'block';
   if (fields) {
     fields.style.opacity = '0.45';
     fields.style.pointerEvents = 'none';
@@ -2716,11 +2714,9 @@ function selectAdminStudent(studentOrId, updateSearchInput = false) {
   if (sel) sel.value = String(student.id);
 
   const wrap = document.getElementById('adminSelectedStudentWrap');
-  const notice = document.getElementById('adminEmptyStudentNotice');
   const fields = document.getElementById('adminRecargaFormFields');
 
   if (wrap) wrap.style.display = 'block';
-  if (notice) notice.style.display = 'none';
   if (fields) {
     fields.style.opacity = '1';
     fields.style.pointerEvents = 'auto';
