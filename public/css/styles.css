@@ -1,5 +1,5 @@
 /* ==========================================================================
-   RECREOPAY - SISTEMA DE DISEÑO ADAPTATIVO (KIDS 7-10 & TEENS 11-15 & SODA POS)
+   RECREOPAY - SISTEMA DE DISEÑO UNIFICADO (MODO CLARO + MODO OSCURO)
    ========================================================================== */
 
 :root {
@@ -13,37 +13,24 @@
   --text-main: #0f172a;
   --text-muted: #64748b;
   --border: #e2e8f0;
-  --radius: 16px;
-  --shadow: 0 4px 6px -1px rgb(0 0 0 / 0.08), 0 2px 4px -2px rgb(0 0 0 / 0.06);
+  --radius: 14px;
+  --shadow: 0 4px 12px -2px rgba(15, 23, 42, 0.08);
 }
 
-/* Modo Teens (Estilo Fintech / Dark Mode) */
-body.mode-teens {
+/* Modo Oscuro (activable con el botón de luna 🌙) */
+body.dark-mode {
   --primary: #38bdf8;
   --primary-hover: #0284c7;
   --secondary: #34d399;
   --accent: #fbbf24;
+  --danger: #f87171;
   --bg-main: #0b1120;
   --card-bg: #1e293b;
   --text-main: #f1f5f9;
   --text-muted: #94a3b8;
   --border: #334155;
-  --radius: 12px;
-  --shadow: 0 10px 15px -3px rgb(0 0 0 / 0.4);
-}
-
-/* Modo Kids (Primaria: Lúdico, Grande, Amigable) */
-body.mode-kids {
-  --primary: #0284c7;
-  --secondary: #10b981;
-  --accent: #f59e0b;
-  --bg-main: #eff6ff;
-  --card-bg: #ffffff;
-  --text-main: #1e293b;
-  --border: #bfdbfe;
-  --radius: 22px;
-  --shadow: 0 8px 20px -4px rgb(2 132 199 / 0.15);
-  font-size: 16px;
+  --radius: 14px;
+  --shadow: 0 10px 20px -3px rgba(0, 0, 0, 0.5);
 }
 
 * {
@@ -107,58 +94,77 @@ body {
   font-size: 1.2rem;
 }
 
-/* Selector de Perfil y Modo */
-.mode-toggle {
-  display: flex;
-  background: var(--bg-main);
-  border: 1px solid var(--border);
-  padding: 3px;
-  border-radius: 30px;
-  gap: 2px;
-}
-
-.mode-btn {
-  border: none;
-  background: transparent;
-  padding: 5px 12px;
-  border-radius: 20px;
-  font-size: 0.78rem;
-  font-weight: 700;
-  color: var(--text-muted);
-  cursor: pointer;
+/* Botones de acción en la cabecera */
+.top-actions {
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: 8px;
+}
+
+.theme-toggle-btn {
+  background: var(--bg-main);
+  border: 1.5px solid var(--border);
+  color: var(--text-main);
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.2rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+}
+
+.theme-toggle-btn:hover {
+  transform: scale(1.08);
+  border-color: var(--primary);
+}
+
+.logout-btn {
+  background: #fee2e2;
+  color: #dc2626;
+  border: 1px solid #fecaca;
+  padding: 7px 12px;
+  border-radius: 10px;
+  font-size: 0.8rem;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  cursor: pointer;
   transition: all 0.2s ease;
 }
 
-.mode-btn.active {
-  background: var(--primary);
-  color: #ffffff;
-  box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+body.dark-mode .logout-btn {
+  background: rgba(239, 68, 68, 0.15);
+  color: #f87171;
+  border-color: rgba(239, 68, 68, 0.3);
+}
+
+.logout-btn:hover {
+  background: #fecaca;
+  transform: scale(1.02);
 }
 
 /* Tarjeta de Saldo y Carné Digital */
 .wallet-card {
   margin: 16px;
-  background: linear-gradient(135deg, #0369a1, #0284c7);
+  background: linear-gradient(135deg, #0284c7, #0369a1);
   color: white;
   border-radius: var(--radius);
   padding: 20px;
-  box-shadow: 0 12px 25px -4px rgba(2, 132, 199, 0.4);
+  box-shadow: 0 12px 25px -4px rgba(2, 132, 199, 0.35);
   position: relative;
   overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.2);
 }
 
-body.mode-teens .wallet-card {
+body.dark-mode .wallet-card {
   background: linear-gradient(135deg, #1e293b, #0f172a);
   border: 1px solid #334155;
   box-shadow: 0 10px 25px -4px rgba(0, 0, 0, 0.5);
-}
-
-body.mode-kids .wallet-card {
-  background: linear-gradient(135deg, #0284c7, #38bdf8);
-  border: 3px solid #7dd3fc;
 }
 
 .wallet-card::after {
@@ -368,10 +374,6 @@ body.mode-kids .wallet-card {
   padding: 0 16px;
 }
 
-body.mode-kids .products-grid {
-  grid-template-columns: 1fr;
-}
-
 .product-card {
   background: var(--card-bg);
   border: 1px solid var(--border);
@@ -389,23 +391,10 @@ body.mode-kids .products-grid {
   transform: scale(0.98);
 }
 
-body.mode-kids .product-card {
-  flex-direction: row;
-  align-items: center;
-  gap: 16px;
-  padding: 16px;
-}
-
 .product-icon-wrap {
   font-size: 2.8rem;
   text-align: center;
   margin-bottom: 8px;
-}
-
-body.mode-kids .product-icon-wrap {
-  font-size: 3.4rem;
-  margin-bottom: 0;
-  flex-shrink: 0;
 }
 
 .product-name {
@@ -413,10 +402,6 @@ body.mode-kids .product-icon-wrap {
   font-weight: 800;
   line-height: 1.25;
   margin-bottom: 4px;
-}
-
-body.mode-kids .product-name {
-  font-size: 1.15rem;
 }
 
 .product-desc {
@@ -448,12 +433,6 @@ body.mode-kids .product-name {
   margin-top: 6px;
 }
 
-body.mode-kids .product-footer {
-  flex-direction: column;
-  align-items: flex-end;
-  gap: 8px;
-}
-
 .product-price {
   font-size: 1.1rem;
   font-weight: 900;
@@ -475,13 +454,6 @@ body.mode-kids .product-footer {
   cursor: pointer;
   box-shadow: 0 4px 10px rgba(2, 132, 199, 0.3);
   transition: transform 0.15s;
-}
-
-body.mode-kids .add-btn {
-  width: 48px;
-  height: 48px;
-  font-size: 1.5rem;
-  border-radius: 14px;
 }
 
 .add-btn:active {
@@ -508,9 +480,9 @@ body.mode-kids .add-btn {
   cursor: pointer;
 }
 
-body.mode-kids .floating-cart-bar {
+body.dark-mode .floating-cart-bar {
   background: #0284c7;
-  border: 2px solid white;
+  border: 1px solid rgba(255, 255, 255, 0.2);
 }
 
 .cart-summary {

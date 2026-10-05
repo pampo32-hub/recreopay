@@ -42,6 +42,7 @@ function checkHttpsEnvironment() {
 
 // Inicialización al cargar la página
 document.addEventListener('DOMContentLoaded', async () => {
+  initTheme();
   checkHttpsEnvironment();
 
   // Registrar Service Worker para PWA con forzado de actualizacion
@@ -98,14 +99,7 @@ async function selectStudent(studentId) {
   try {
     const res = await fetch(`/api/estudiantes/${studentId}`);
     currentStudent = await res.json();
-
-    // Adaptar modo automáticamente por edad (7-10 Kids, 11-15 Teens)
-    if (currentStudent.edad <= 10) {
-      setAppMode('kids', false);
-    } else {
-      setAppMode('teens', false);
-    }
-
+    currentAppMode = 'teens';
     updateStudentUI();
   } catch (e) {
     console.error('Error seleccionando estudiante:', e);
@@ -120,8 +114,15 @@ function updateStudentUI() {
   document.getElementById('walletName').textContent = currentStudent.nombre_completo;
   document.getElementById('walletGrade').textContent = `${currentStudent.grado} • Sección ${currentStudent.seccion} • Cód: ${currentStudent.codigo_estudiante}`;
 
-  // Saldo en colones
+  // Saldo en colones (Interfaz unificada estilo Teens)
   document.getElementById('walletBalance').textContent = `₡${currentStudent.saldo_colones.toLocaleString('es-CR')}`;
+  document.getElementById('balanceLabel').textContent = 'SALDO DISPONIBLE';
+  const coin = document.getElementById('kidsCoinIcon');
+  if (coin) coin.style.display = 'none';
+  const qrBtn = document.getElementById('qrBtnText');
+  if (qrBtn) qrBtn.textContent = 'Mi QR';
+  const transferBtn = document.getElementById('transferBtnText');
+  if (transferBtn) transferBtn.textContent = 'Transferir ⚡';
 
   // Límite diario
   document.getElementById('dailyLimitText').textContent = `₡${currentStudent.limite_diario_colones.toLocaleString('es-CR')}`;
@@ -156,33 +157,39 @@ function updateStudentUI() {
   renderParentHistory();
 }
 
-function setAppMode(mode, playSound = true) {
-  currentAppMode = mode;
-  document.body.classList.remove('mode-kids', 'mode-teens');
+function setAppMode(mode, playSound = false) {
+  currentAppMode = 'teens';
+}
 
-  document.getElementById('btnModeKids').classList.remove('active');
-  document.getElementById('btnModeTeens').classList.remove('active');
-
-  const transferBtnText = document.getElementById('transferBtnText');
-
-  if (mode === 'kids') {
-    document.body.classList.add('mode-kids');
-    document.getElementById('btnModeKids').classList.add('active');
-    document.getElementById('balanceLabel').textContent = '💰 Mis Colones para el Recreo';
-    document.getElementById('kidsCoinIcon').style.display = 'inline-block';
-    document.getElementById('qrBtnText').textContent = 'Mi QR 📱';
-    if (transferBtnText) transferBtnText.textContent = 'Pasar Plata 🤝';
+function initTheme() {
+  const saved = localStorage.getItem('recreopay_theme') || 'light';
+  const btn = document.getElementById('btnThemeToggle');
+  if (saved === 'dark') {
+    document.body.classList.add('dark-mode');
+    if (btn) btn.textContent = '☀️';
   } else {
-    document.body.classList.add('mode-teens');
-    document.getElementById('btnModeTeens').classList.add('active');
-    document.getElementById('balanceLabel').textContent = 'SALDO DISPONIBLE';
-    document.getElementById('kidsCoinIcon').style.display = 'none';
-    document.getElementById('qrBtnText').textContent = 'Mi QR';
-    if (transferBtnText) transferBtnText.textContent = 'Transferir ⚡';
+    document.body.classList.remove('dark-mode');
+    if (btn) btn.textContent = '🌙';
   }
+}
 
-  if (playSound && window.sounds) {
-    window.sounds.playCoin();
+function toggleTheme() {
+  const isDark = document.body.classList.toggle('dark-mode');
+  const btn = document.getElementById('btnThemeToggle');
+  if (isDark) {
+    if (btn) btn.textContent = '☀️';
+    localStorage.setItem('recreopay_theme', 'dark');
+  } else {
+    if (btn) btn.textContent = '🌙';
+    localStorage.setItem('recreopay_theme', 'light');
+  }
+  if (window.sounds) window.sounds.playTap();
+}
+
+function logout() {
+  if (confirm('¿Deseas cerrar la sesión actual?')) {
+    localStorage.removeItem('recreopay_session');
+    window.location.reload();
   }
 }
 

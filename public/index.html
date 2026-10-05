@@ -6,7 +6,7 @@
   <title>RecreoPay - Tu Soda Escolar Digital</title>
   <link rel="manifest" href="/manifest.json">
   <meta name="theme-color" content="#0284c7">
-  <link rel="stylesheet" href="/css/styles.css?v=5.0">
+  <link rel="stylesheet" href="/css/styles.css?v=6.0">
   <script>
     // Purgar y desactivar service workers y cachés obsoletas en móviles
     if ('serviceWorker' in navigator) {
@@ -26,7 +26,7 @@
     @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
   </style>
 </head>
-<body class="mode-kids">
+<body class="">
 
   <div class="app-container">
     <!-- BANNER DE ADVERTENCIA HTTPS PARA TELÉFONOS MÓVILES -->
@@ -39,7 +39,7 @@
       </div>
     </div>
 
-    <!-- BARRA SUPERIOR -->
+    <!-- BARRA SUPERIOR UNIFICADA -->
     <header class="top-bar">
       <a href="#" class="brand-badge">
         <div class="logo-icon">🥪</div>
@@ -49,23 +49,25 @@
         </div>
       </a>
 
-      <!-- SWITCHER DE MODO (KIDS / TEENS / PADRES) -->
-      <div class="mode-toggle">
-        <button class="mode-btn active" id="btnModeKids" onclick="setAppMode('kids')">🧒 Kids</button>
-        <button class="mode-btn" id="btnModeTeens" onclick="setAppMode('teens')">⚡ Teens</button>
-        <button class="mode-btn" id="btnModePadres" onclick="toggleParentPanel(true)">👨‍👩‍👦 Padres</button>
+      <!-- ACCIONES DE CABECERA (TEMA OSCURO/CLARO Y SALIR) -->
+      <div class="top-actions">
+        <button id="btnThemeToggle" onclick="toggleTheme()" class="theme-toggle-btn" title="Alternar Modo Oscuro / Modo Claro">
+          🌙
+        </button>
+        <button id="btnModePadres" onclick="toggleParentPanel(true)" class="mode-btn" style="background: var(--bg-main); border: 1.5px solid var(--border); font-size: 0.8rem; font-weight: 800; border-radius: 10px; padding: 7px 11px; cursor: pointer; color: var(--text-main);" title="Acceso al Portal de Padres">
+          👨‍👩‍👦 Padres
+        </button>
+        <button id="btnLogout" onclick="logout()" class="logout-btn" title="Cerrar sesión">
+          <span>🚪</span>
+          <span class="logout-text">Salir</span>
+        </button>
       </div>
     </header>
 
-    <!-- SELECTOR RÁPIDO DE ALUMNO DE PRUEBA -->
-    <div style="padding: 10px 16px 0 16px; display: flex; align-items: center; justify-content: space-between; font-size: 0.8rem;">
-      <span style="color: var(--text-muted); font-weight: 700;">Estudiante Activo:</span>
-      <select id="studentSelector" onchange="onStudentChange(this.value)" style="padding: 4px 8px; border-radius: 8px; border: 1px solid var(--border); background: var(--card-bg); color: var(--text-main); font-weight: 700;">
-        <!-- Se llena dinámicamente -->
-      </select>
-    </div>
+    <!-- SELECTOR OCULTO PARA COMPATIBILIDAD JS -->
+    <select id="studentSelector" onchange="onStudentChange(this.value)" style="display: none;"></select>
 
-    <!-- TARJETA DIGITAL DE MONEDERO Y SALDO -->
+    <!-- TARJETA DIGITAL DE MONEDERO Y SALDO (ESTILO UNIFICADO TEENS) -->
     <section class="wallet-card">
       <div class="student-info">
         <img id="walletAvatar" class="student-avatar" src="" alt="Avatar">
@@ -77,10 +79,10 @@
 
       <div class="balance-row">
         <div class="balance-col">
-          <div class="label" id="balanceLabel">💰 Mis Colones Disponibles</div>
+          <div class="label" id="balanceLabel">SALDO DISPONIBLE</div>
           <div class="amount">
             <span id="walletBalance">₡0</span>
-            <span class="kids-coin-icon" id="kidsCoinIcon">🪙</span>
+            <span class="kids-coin-icon" id="kidsCoinIcon" style="display: none;">🪙</span>
           </div>
         </div>
 
@@ -90,8 +92,8 @@
             <span id="qrBtnText">Mi QR</span>
           </button>
           <button class="qr-toggle-btn" style="background: rgba(16, 185, 129, 0.25); border-color: rgba(52, 211, 153, 0.4);" onclick="openTransferModal()">
-            <span>🤝</span>
-            <span id="transferBtnText">Pasar Plata</span>
+            <span>⚡</span>
+            <span id="transferBtnText">Transferir ⚡</span>
           </button>
         </div>
       </div>
@@ -432,8 +434,8 @@
     </div>
   </div>
 
-  <script src="/js/sounds.js?v=5.0"></script>
+  <script src="/js/sounds.js?v=6.0"></script>
   <script src="/js/jsQR.js"></script>
-  <script src="/js/app.js?v=5.0"></script>
+  <script src="/js/app.js?v=6.0"></script>
 </body>
 </html>
