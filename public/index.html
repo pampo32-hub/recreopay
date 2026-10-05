@@ -10,7 +10,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="RecreoPay">
   <meta name="mobile-web-app-capable" content="yes">
-  <link rel="stylesheet" href="/css/styles.css?v=8.5">
+  <link rel="stylesheet" href="/css/styles.css?v=8.6">
   <style>
     /* Transiciones suaves */
     .fade-enter { animation: fadeIn 0.2s ease-in-out; }
@@ -1022,35 +1022,101 @@
           <span>💸</span> Enviar Dinero al Instante
         </button>
       </div>
-  <!-- MODAL: ESCANEAR QR PARA VINCULAR HIJO (PORTAL PADRES) -->
+    </div>
+  </div>
+
+  <!-- MODAL: VINCULAR HIJO POR QR O CÓDIGO (PORTAL PADRES) -->
   <div class="modal-qr-backdrop" id="modalScanChildQr" style="display: none;" onclick="closeScanChildQrModal(event)">
-    <div class="modal-qr-card" onclick="event.stopPropagation()" style="max-width: 400px; text-align: center;">
-      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; border-bottom: 1px solid var(--border); padding-bottom: 8px;">
-        <strong style="font-size: 1rem; color: var(--text-main);">📷 Vincular Estudiante con QR</strong>
-        <button type="button" onclick="closeScanChildQrModal()" style="background: none; border: none; font-size: 1.2rem; cursor: pointer; color: var(--text-muted);">✕</button>
+    <div class="modal-qr-card" onclick="event.stopPropagation()" style="max-width: 440px; text-align: center; border-radius: 20px;">
+      
+      <!-- CABECERA -->
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; border-bottom: 1px solid var(--border); padding-bottom: 10px;">
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <span style="font-size: 1.3rem;">🎒</span>
+          <strong style="font-size: 1.05rem; color: var(--text-main);">Vincular Estudiante</strong>
+        </div>
+        <button type="button" onclick="closeScanChildQrModal()" style="background: none; border: none; font-size: 1.3rem; cursor: pointer; color: var(--text-muted); padding: 4px;">✕</button>
       </div>
 
-      <div style="position: relative; width: 100%; height: 220px; background: #000; border-radius: 14px; overflow: hidden; margin-bottom: 10px;">
-        <video id="videoScanChild" playsinline autoplay muted style="width: 100%; height: 100%; object-fit: cover;"></video>
-        <canvas id="canvasScanChild" style="display: none;"></canvas>
-        <div style="position: absolute; inset: 16px; border: 2px dashed #38bdf8; border-radius: 12px; pointer-events: none;"></div>
+      <!-- VISTA 1: SELECCIÓN DE MÉTODO (PESTAÑAS) -->
+      <div id="linkChildViewTabs">
+        <div style="display: flex; gap: 6px; background: #f1f5f9; padding: 4px; border-radius: 12px; margin-bottom: 14px;">
+          <button type="button" id="tabBtnLinkCamera" onclick="switchLinkChildTab('camera')" style="flex: 1; padding: 9px 8px; border: none; border-radius: 8px; font-weight: 800; font-size: 0.82rem; cursor: pointer; transition: all 0.2s; background: #ffffff; color: #0284c7; box-shadow: 0 2px 4px rgba(0,0,0,0.06);">
+            📷 Escanear con Cámara
+          </button>
+          <button type="button" id="tabBtnLinkCode" onclick="switchLinkChildTab('code')" style="flex: 1; padding: 9px 8px; border: none; border-radius: 8px; font-weight: 700; font-size: 0.82rem; cursor: pointer; transition: all 0.2s; background: transparent; color: #64748b;">
+            ⌨️ Digitar Código
+          </button>
+        </div>
+
+        <!-- PANEL 1: CÁMARA QR -->
+        <div id="panelLinkCamera" style="display: block;">
+          <div style="position: relative; width: 100%; height: 220px; background: #000; border-radius: 14px; overflow: hidden; margin-bottom: 10px; border: 2px solid #0284c7;">
+            <video id="videoScanChild" playsinline webkit-playsinline autoplay muted style="width: 100%; height: 100%; object-fit: cover;"></video>
+            <canvas id="canvasScanChild" style="display: none;"></canvas>
+            <div class="laser-scan-line"></div>
+            <div id="badgeCameraChildStatus" style="position: absolute; bottom: 8px; left: 50%; transform: translateX(-50%); background: rgba(15, 23, 42, 0.9); color: #38bdf8; padding: 3px 12px; border-radius: 20px; font-size: 0.72rem; font-weight: 800; border: 1px solid #0284c7; white-space: nowrap;">
+              📷 Apunta al código QR del carné
+            </div>
+          </div>
+          <p style="font-size: 0.78rem; color: var(--text-muted); margin: 0 0 10px 0;">
+            Apunta la cámara hacia el código QR impreso en el carné del estudiante.
+          </p>
+        </div>
+
+        <!-- PANEL 2: DIGITAR CÓDIGO -->
+        <div id="panelLinkCode" style="display: none; text-align: left;">
+          <label for="inputManualStudentCode" style="display: block; font-size: 0.8rem; font-weight: 800; color: var(--text-main); margin-bottom: 6px;">
+            Código de carné del estudiante:
+          </label>
+          <div style="display: flex; gap: 8px; margin-bottom: 6px;">
+            <input type="text" id="inputManualStudentCode" placeholder="Ej: EST-2026-001" onkeydown="if(event.key==='Enter'){event.preventDefault();validateStudentCodeForLink();}" style="flex: 1; padding: 11px 12px; border-radius: 10px; border: 2px solid var(--border); font-size: 0.95rem; font-weight: 800; background: var(--card-bg); color: var(--text-main); box-sizing: border-box; text-transform: uppercase;">
+            <button type="button" id="btnValidateStudentCode" onclick="validateStudentCodeForLink()" style="padding: 10px 16px; background: #0284c7; color: white; border: none; border-radius: 10px; font-weight: 800; font-size: 0.85rem; cursor: pointer; white-space: nowrap; display: flex; align-items: center; gap: 4px; box-shadow: 0 2px 6px rgba(2, 132, 199, 0.3);">
+              <span>🔍</span> Validar
+            </button>
+          </div>
+          <p style="font-size: 0.75rem; color: var(--text-muted); margin: 0 0 10px 0;">
+            💡 Digita el código que aparece en el carné escolar (ej: EST-2026-001).
+          </p>
+        </div>
+
+        <!-- MENSAJE DE ERROR -->
+        <div id="linkStudentErrorMsg" style="display: none; background: #fee2e2; border: 1.5px solid #ef4444; color: #991b1b; padding: 10px 12px; border-radius: 10px; font-size: 0.8rem; font-weight: 700; margin-top: 10px; text-align: center;"></div>
       </div>
 
-      <p style="font-size: 0.78rem; color: var(--text-muted); margin-bottom: 10px;">
-        Apunta la cámara al carné escolar del estudiante.
-      </p>
+      <!-- VISTA 2: TARJETA DE VERIFICACIÓN / CONFIRMACIÓN -->
+      <div id="linkChildViewConfirm" style="display: none; text-align: left;">
+        <div style="background: #f0fdf4; border: 1.5px solid #86efac; border-radius: 14px; padding: 10px 12px; margin-bottom: 12px; display: flex; align-items: center; gap: 8px;">
+          <span style="font-size: 1.2rem;">✅</span>
+          <span style="font-size: 0.82rem; font-weight: 800; color: #166534;">Estudiante Identificado Correctamente</span>
+        </div>
 
-      <div style="border-top: 1px dashed var(--border); padding-top: 10px; margin-top: 10px; text-align: left;">
-        <label for="inputManualStudentCode" style="display: block; font-size: 0.76rem; font-weight: 800; color: var(--text-main); margin-bottom: 4px;">
-          O escribe el código de carné manualmente:
-        </label>
-        <div style="display: flex; gap: 6px;">
-          <input type="text" id="inputManualStudentCode" placeholder="Ej: EST-2026-001 o QR Token" style="flex: 1; padding: 8px 10px; border-radius: 8px; border: 1.5px solid var(--border); font-size: 0.85rem; font-weight: 800; background: var(--card-bg); color: var(--text-main); box-sizing: border-box;">
-          <button type="button" onclick="submitManualStudentLink()" style="padding: 8px 14px; background: #0284c7; color: white; border: none; border-radius: 8px; font-weight: 800; font-size: 0.8rem; cursor: pointer; white-space: nowrap;">
-            Vincular
+        <!-- TARJETA DEL ESTUDIANTE -->
+        <div style="background: var(--card-bg); border: 2px solid #0284c7; border-radius: 16px; padding: 14px; margin-bottom: 14px; display: flex; align-items: center; gap: 14px; box-shadow: 0 4px 12px rgba(2, 132, 199, 0.1);">
+          <img id="linkPreviewAvatar" src="" style="width: 58px; height: 58px; border-radius: 50%; border: 2.5px solid #0284c7; object-fit: cover; background: white; flex-shrink: 0;">
+          <div style="flex: 1; min-width: 0;">
+            <div style="font-size: 0.7rem; color: #64748b; font-weight: 800; text-transform: uppercase;">Alumno a vincular:</div>
+            <h3 id="linkPreviewName" style="font-size: 1.05rem; font-weight: 900; color: var(--text-main); margin: 2px 0; word-break: break-word; line-height: 1.2;">Nombre Alumno</h3>
+            <div id="linkPreviewGrade" style="font-size: 0.8rem; color: #0284c7; font-weight: 800; margin-top: 2px;">2° Grado - Sección 2-A</div>
+            <div id="linkPreviewCode" style="font-size: 0.72rem; color: var(--text-muted); font-weight: 700; margin-top: 2px;">Carné: EST-2026-001</div>
+          </div>
+        </div>
+
+        <p style="font-size: 0.78rem; color: var(--text-muted); margin: 0 0 14px 0; text-align: center;">
+          ¿Confirmas que este es tu hijo/a para vincularlo a tu cuenta y gestionar sus fondos?
+        </p>
+
+        <!-- BOTONES DE ACCIÓN -->
+        <div style="display: flex; gap: 8px;">
+          <button type="button" onclick="resetLinkChildToTabs()" style="flex: 1; padding: 11px; background: #f1f5f9; color: #475569; border: 1px solid var(--border); border-radius: 10px; font-weight: 800; font-size: 0.82rem; cursor: pointer;">
+            ← Cambiar
+          </button>
+          <button type="button" id="btnConfirmLinkChild" onclick="confirmLinkValidatedChild()" style="flex: 2; padding: 11px; background: linear-gradient(135deg, #10b981, #059669); color: white; border: none; border-radius: 10px; font-weight: 900; font-size: 0.88rem; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);">
+            <span>✅</span> Confirmar y Vincular
           </button>
         </div>
       </div>
+
     </div>
   </div>
 
@@ -1098,8 +1164,8 @@
     </button>
   </nav>
 
-  <script src="/js/sounds.js?v=8.5"></script>
+  <script src="/js/sounds.js?v=8.6"></script>
   <script src="/js/jsQR.js"></script>
-  <script src="/js/app.js?v=8.5"></script>
+  <script src="/js/app.js?v=8.6"></script>
 </body>
 </html>

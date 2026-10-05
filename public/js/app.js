@@ -1899,12 +1899,18 @@ function returnToParentDashboard() {
 // ESCANEO QR Y VINCULACIÓN DE ESTUDIANTES PARA PADRES
 // ==========================================
 
+let currentLinkChildTab = 'camera';
+let currentLinkCandidateStudent = null;
+
 function openScanChildQrModal() {
   const modal = document.getElementById('modalScanChildQr');
   if (modal) modal.style.display = 'flex';
+  
   const input = document.getElementById('inputManualStudentCode');
   if (input) input.value = '';
-  startScanChildCamera();
+  
+  resetLinkChildToTabs();
+  switchLinkChildTab('camera');
 }
 
 function closeScanChildQrModal(event) {
@@ -1914,12 +1920,64 @@ function closeScanChildQrModal(event) {
   stopScanChildCamera();
   const modal = document.getElementById('modalScanChildQr');
   if (modal) modal.style.display = 'none';
+  currentLinkCandidateStudent = null;
+}
+
+function switchLinkChildTab(tab) {
+  currentLinkChildTab = tab;
+  const btnCamera = document.getElementById('tabBtnLinkCamera');
+  const btnCode = document.getElementById('tabBtnLinkCode');
+  const panelCamera = document.getElementById('panelLinkCamera');
+  const panelCode = document.getElementById('panelLinkCode');
+  const errorMsg = document.getElementById('linkStudentErrorMsg');
+  if (errorMsg) errorMsg.style.display = 'none';
+
+  if (tab === 'camera') {
+    if (btnCamera) {
+      btnCamera.style.background = '#ffffff';
+      btnCamera.style.color = '#0284c7';
+      btnCamera.style.boxShadow = '0 2px 4px rgba(0,0,0,0.06)';
+      btnCamera.style.fontWeight = '800';
+    }
+    if (btnCode) {
+      btnCode.style.background = 'transparent';
+      btnCode.style.color = '#64748b';
+      btnCode.style.boxShadow = 'none';
+      btnCode.style.fontWeight = '700';
+    }
+    if (panelCamera) panelCamera.style.display = 'block';
+    if (panelCode) panelCode.style.display = 'none';
+    startScanChildCamera();
+  } else {
+    stopScanChildCamera();
+    if (btnCode) {
+      btnCode.style.background = '#ffffff';
+      btnCode.style.color = '#0284c7';
+      btnCode.style.boxShadow = '0 2px 4px rgba(0,0,0,0.06)';
+      btnCode.style.fontWeight = '800';
+    }
+    if (btnCamera) {
+      btnCamera.style.background = 'transparent';
+      btnCamera.style.color = '#64748b';
+      btnCamera.style.boxShadow = 'none';
+      btnCamera.style.fontWeight = '700';
+    }
+    if (panelCamera) panelCamera.style.display = 'none';
+    if (panelCode) panelCode.style.display = 'block';
+    const input = document.getElementById('inputManualStudentCode');
+    if (input) {
+      input.focus();
+    }
+  }
+
+  if (window.sounds) window.sounds.playTap();
 }
 
 async function startScanChildCamera() {
   stopScanChildCamera();
   const video = document.getElementById('videoScanChild');
   const canvas = document.getElementById('canvasScanChild');
+  const badge = document.getElementById('badgeCameraChildStatus');
   if (!video || !canvas) return;
 
   try {
@@ -1927,8 +1985,15 @@ async function startScanChildCamera() {
       video: { facingMode: 'environment', width: { ideal: 640 }, height: { ideal: 480 } }
     });
     video.srcObject = scanChildStream;
-    video.setAttribute('playsinline', true);
+    video.setAttribute('playsinline', 'true');
+    video.setAttribute('webkit-playsinline', 'true');
+    video.muted = true;
     await video.play();
+
+    if (badge) {
+      badge.textContent = '📷 Apunta al código QR del carné';
+      badge.style.color = '#38bdf8';
+    }
 
     const ctx = canvas.getContext('2d', { willReadFrequently: true });
 
@@ -1953,6 +2018,10 @@ async function startScanChildCamera() {
     scanChildAnimId = requestAnimationFrame(scanFrame);
   } catch (err) {
     console.warn('Cámara no disponible para escaneo de carné:', err);
+    if (badge) {
+      badge.textContent = '⚠️ Cámara no disponible - Digita el código';
+      badge.style.color = '#fca5a5';
+    }
   }
 }
 
@@ -1965,28 +2034,127 @@ function stopScanChildCamera() {
     scanChildStream.getTracks().forEach(t => t.stop());
     scanChildStream = null;
   }
+  const video = document.getElementById('videoScanChild');
+  if (video) {
+    video.srcObject = null;
+  }
 }
 
 async function handleChildQrDetected(token) {
   stopScanChildCamera();
-  if (window.sounds) window.sounds.playBeep();
-  await linkStudentToParentAccount(token);
+  if (window.sounds) window.sounds.playScanChirp();
+  await showStudentConfirmationForLink(token);
 }
 
-function submitManualStudentLink() {
+async function validateStudentCodeForLink() {
   const input = document.getElementById('inputManualStudentCode');
   const val = input ? input.value.trim() : '';
+  const errorMsg = document.getElementById('linkStudentErrorMsg');
+  const btn = document.getElementById('btnValidateStudentCode');
+
   if (!val) {
-    alert('Por favor ingresa el carné o token del estudiante.');
+    if (errorMsg) {
+      errorMsg.textContent = '⚠️ Por favor ingresa el código del estudiante (ej: EST-2026-001).';
+      errorMsg.style.display = 'block';
+    }
     return;
   }
-  linkStudentToParentAccount(val);
+
+  if (errorMsg) errorMsg.style.display = 'none';
+  if (btn) {
+    btn.disabled = true;
+    btn.textContent = 'Buscando...';
+  }
+
+  try {
+    await showStudentConfirmationForLink(val);
+  } finally {
+    if (btn) {
+      btn.disabled = false;
+      btn.innerHTML = '<span>🔍</span> Validar';
+    }
+  }
 }
 
-async function linkStudentToParentAccount(tokenOrCode) {
+async function showStudentConfirmationForLink(tokenOrCode) {
+  const errorMsg = document.getElementById('linkStudentErrorMsg');
+  if (errorMsg) errorMsg.style.display = 'none';
+
+  try {
+    const res = await fetch(`/api/estudiantes/qr/${encodeURIComponent(tokenOrCode.trim())}`);
+    const student = await res.json();
+    if (!res.ok) throw new Error(student.error || 'Código escolar no encontrado');
+
+    currentLinkCandidateStudent = student;
+
+    // Poblar tarjeta de confirmación
+    const avatar = document.getElementById('linkPreviewAvatar');
+    const name = document.getElementById('linkPreviewName');
+    const grade = document.getElementById('linkPreviewGrade');
+    const code = document.getElementById('linkPreviewCode');
+
+    if (avatar) avatar.src = student.foto_url || '/img/avatar_default.png';
+    if (name) name.textContent = student.nombre_completo;
+    if (grade) grade.textContent = `${student.grado} - Sección ${student.seccion}`;
+    if (code) code.textContent = `Carné: ${student.codigo_estudiante}`;
+
+    // Cambiar a vista de confirmación
+    const viewTabs = document.getElementById('linkChildViewTabs');
+    const viewConfirm = document.getElementById('linkChildViewConfirm');
+    if (viewTabs) viewTabs.style.display = 'none';
+    if (viewConfirm) viewConfirm.style.display = 'block';
+
+    if (window.sounds) window.sounds.playSuccess();
+  } catch (err) {
+    if (window.sounds) window.sounds.playError();
+    if (errorMsg) {
+      errorMsg.textContent = `⚠️ No se encontró ningún estudiante con el código "${tokenOrCode}". Verifica que el código esté bien escrito e intenta de nuevo.`;
+      errorMsg.style.display = 'block';
+    }
+    // Si estábamos en cámara, reiniciar escaneo tras 2 segundos si el usuario sigue en la pestaña cámara
+    if (currentLinkChildTab === 'camera') {
+      setTimeout(() => {
+        const modal = document.getElementById('modalScanChildQr');
+        if (modal && modal.style.display !== 'none' && currentLinkChildTab === 'camera' && !currentLinkCandidateStudent) {
+          startScanChildCamera();
+        }
+      }, 2000);
+    }
+  }
+}
+
+function resetLinkChildToTabs() {
+  currentLinkCandidateStudent = null;
+  const viewTabs = document.getElementById('linkChildViewTabs');
+  const viewConfirm = document.getElementById('linkChildViewConfirm');
+  const errorMsg = document.getElementById('linkStudentErrorMsg');
+
+  if (viewTabs) viewTabs.style.display = 'block';
+  if (viewConfirm) viewConfirm.style.display = 'none';
+  if (errorMsg) errorMsg.style.display = 'none';
+
+  if (currentLinkChildTab === 'camera') {
+    startScanChildCamera();
+  } else {
+    const input = document.getElementById('inputManualStudentCode');
+    if (input) input.focus();
+  }
+}
+
+async function confirmLinkValidatedChild() {
   if (!currentUser || !currentUser.id) {
     alert('Debes iniciar sesión como padre para vincular un estudiante.');
     return;
+  }
+  if (!currentLinkCandidateStudent) {
+    alert('No hay ningún estudiante seleccionado para vincular.');
+    return;
+  }
+
+  const btnConfirm = document.getElementById('btnConfirmLinkChild');
+  if (btnConfirm) {
+    btnConfirm.disabled = true;
+    btnConfirm.innerHTML = '<span>⏳</span> Vinculando...';
   }
 
   try {
@@ -1995,7 +2163,7 @@ async function linkStudentToParentAccount(tokenOrCode) {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         padre_usuario_id: currentUser.id,
-        qr_token_o_codigo: tokenOrCode
+        qr_token_o_codigo: currentLinkCandidateStudent.codigo_estudiante || currentLinkCandidateStudent.qr_token
       })
     });
     const data = await res.json();
@@ -2012,10 +2180,10 @@ async function linkStudentToParentAccount(tokenOrCode) {
   } catch (err) {
     if (window.sounds) window.sounds.playError();
     alert(`❌ ${err.message}`);
-    // Reiniciar cámara si el modal sigue abierto
-    const modal = document.getElementById('modalScanChildQr');
-    if (modal && modal.style.display !== 'none') {
-      startScanChildCamera();
+  } finally {
+    if (btnConfirm) {
+      btnConfirm.disabled = false;
+      btnConfirm.innerHTML = '<span>✅</span> Confirmar y Vincular';
     }
   }
 }
