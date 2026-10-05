@@ -8,7 +8,7 @@ let activeCategoryId = null;
 let cart = [];
 let currentAppMode = 'kids';
 
-let CLOUDFLARE_TUNNEL_URL = 'https://somewhat-ships-looksmart-optical.trycloudflare.com';
+let CLOUDFLARE_TUNNEL_URL = 'https://recreopay.gammapos.app';
 
 function checkHttpsEnvironment() {
   const isHttp = window.location.protocol !== 'https:' && 
