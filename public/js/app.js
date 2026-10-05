@@ -3004,6 +3004,14 @@ async function startScanAdminCamera() {
                 }
               }, 1500);
             }
+          }).catch(err => {
+            console.error('Error no capturado en detección:', err);
+            isProcessingAdminScan = false;
+            if (statusEl && isScanAdminLoopRunning) {
+              statusEl.textContent = '📷 Enfoca el código QR del carné';
+              statusEl.style.color = '#0284c7';
+              statusEl.style.background = '#e0f2fe';
+            }
           });
         }
       }
@@ -3047,86 +3055,108 @@ async function handleAdminQrDetected(token) {
   const statusEl = document.getElementById('adminScanModalStatus');
   const modal = document.getElementById('modalAdminScanQr');
 
-  if (window.sounds) window.sounds.playBeep();
-
-  const parsed = parseScannedStudentToken(token);
-  const clean = parsed.toLowerCase();
-
-  if (statusEl) {
-    statusEl.textContent = '⏳ Verificando estudiante...';
-    statusEl.style.color = '#0284c7';
-    statusEl.style.background = '#e0f2fe';
-  }
-
-  // 1. Buscar en memoria local primero
-  let student = (students || []).find(s => 
-    (s.qr_token && s.qr_token.toLowerCase() === clean) ||
-    (s.codigo_estudiante && s.codigo_estudiante.toLowerCase() === clean) ||
-    (String(s.id) === parsed)
-  );
-
-  // 2. Si no se encontró en cache local, buscar en el servidor
-  if (!student) {
-    try {
-      const res = await fetch(`/api/estudiantes/qr/${encodeURIComponent(parsed)}`);
-      if (res.ok) {
-        student = await res.json();
-      }
-    } catch (fetchErr) {
-      console.warn('Error buscando en servidor:', fetchErr);
+  try {
+    if (window.sounds && typeof window.sounds.playScanChirp === 'function') {
+      window.sounds.playScanChirp();
     }
-  }
+  } catch (e) {}
 
-  // 3. Fallback con token original sin parsear
-  if (!student && parsed !== token) {
-    try {
-      const res = await fetch(`/api/estudiantes/qr/${encodeURIComponent(String(token).trim())}`);
-      if (res.ok) {
-        student = await res.json();
-      }
-    } catch (e) {}
-  }
+  try {
+    const parsed = parseScannedStudentToken(token);
+    const clean = (parsed || '').toLowerCase();
 
-  // 4. Fallback si el usuario digitó carné o nombre parcial
-  if (!student) {
-    try {
-      const resAll = await fetch('/api/estudiantes');
-      if (resAll.ok) {
-        const allEst = await resAll.json();
-        students = allEst;
-        student = (students || []).find(s => 
-          (s.qr_token && s.qr_token.toLowerCase() === clean) ||
-          (s.codigo_estudiante && s.codigo_estudiante.toLowerCase() === clean) ||
-          (s.nombre_completo && s.nombre_completo.toLowerCase().includes(clean)) ||
-          (String(s.id) === parsed)
-        );
-      }
-    } catch (e) {}
-  }
-
-  // 5. Procesar resultado
-  if (student) {
-    const idx = (students || []).findIndex(s => s.id === student.id);
-    if (idx >= 0) {
-      students[idx] = student;
-    } else {
-      students.push(student);
-    }
-
-    populateAdminRecargaStudents(students);
-    selectAdminStudent(student, true);
-
-    // Apagar cámara y cerrar modal
-    stopScanAdminCamera();
-    if (modal) modal.style.display = 'none';
-
-    if (window.sounds) window.sounds.playSuccess();
-    return true;
-  } else {
-    // Si no se encontró, NO cerrar el modal: dar feedback visual claro
-    if (window.sounds) window.sounds.playError();
     if (statusEl) {
-      statusEl.textContent = `❌ Código no reconocido: "${parsed.slice(0, 20)}". Enfoca de nuevo.`;
+      statusEl.textContent = '⏳ Verificando estudiante...';
+      statusEl.style.color = '#0284c7';
+      statusEl.style.background = '#e0f2fe';
+    }
+
+    // 1. Buscar en memoria local primero
+    let student = (students || []).find(s => 
+      (s.qr_token && s.qr_token.toLowerCase() === clean) ||
+      (s.codigo_estudiante && s.codigo_estudiante.toLowerCase() === clean) ||
+      (String(s.id) === parsed)
+    );
+
+    // 2. Si no se encontró en cache local, buscar en el servidor
+    if (!student && parsed) {
+      try {
+        const res = await fetch(`/api/estudiantes/qr/${encodeURIComponent(parsed)}`);
+        if (res.ok) {
+          student = await res.json();
+        }
+      } catch (fetchErr) {
+        console.warn('Error buscando en servidor:', fetchErr);
+      }
+    }
+
+    // 3. Fallback con token original sin parsear
+    if (!student && parsed !== token && token) {
+      try {
+        const res = await fetch(`/api/estudiantes/qr/${encodeURIComponent(String(token).trim())}`);
+        if (res.ok) {
+          student = await res.json();
+        }
+      } catch (e) {}
+    }
+
+    // 4. Fallback si el usuario digitó carné o nombre parcial
+    if (!student) {
+      try {
+        const resAll = await fetch('/api/estudiantes');
+        if (resAll.ok) {
+          const allEst = await resAll.json();
+          students = allEst;
+          student = (students || []).find(s => 
+            (s.qr_token && s.qr_token.toLowerCase() === clean) ||
+            (s.codigo_estudiante && s.codigo_estudiante.toLowerCase() === clean) ||
+            (s.nombre_completo && s.nombre_completo.toLowerCase().includes(clean)) ||
+            (String(s.id) === parsed)
+          );
+        }
+      } catch (e) {}
+    }
+
+    // 5. Procesar resultado
+    if (student) {
+      const idx = (students || []).findIndex(s => s.id === student.id);
+      if (idx >= 0) {
+        students[idx] = student;
+      } else {
+        students.push(student);
+      }
+
+      populateAdminRecargaStudents(students);
+      selectAdminStudent(student, true);
+
+      // Apagar cámara y cerrar modal
+      stopScanAdminCamera();
+      if (modal) modal.style.display = 'none';
+
+      try {
+        if (window.sounds && typeof window.sounds.playSuccess === 'function') {
+          window.sounds.playSuccess();
+        }
+      } catch (e) {}
+      return true;
+    } else {
+      // Si no se encontró, NO cerrar el modal: dar feedback visual claro
+      try {
+        if (window.sounds && typeof window.sounds.playError === 'function') {
+          window.sounds.playError();
+        }
+      } catch (e) {}
+      if (statusEl) {
+        statusEl.textContent = `❌ Código no reconocido: "${String(parsed || token).slice(0, 20)}". Enfoca de nuevo.`;
+        statusEl.style.color = '#dc2626';
+        statusEl.style.background = '#fee2e2';
+      }
+      return false;
+    }
+  } catch (err) {
+    console.error('Error crítico en handleAdminQrDetected:', err);
+    if (statusEl) {
+      statusEl.textContent = '⚠️ Error al verificar estudiante. Intenta de nuevo.';
       statusEl.style.color = '#dc2626';
       statusEl.style.background = '#fee2e2';
     }
