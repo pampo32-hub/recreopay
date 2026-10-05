@@ -244,13 +244,16 @@ async function applyUserRoleSession() {
 
   if (viewLogin) viewLogin.style.display = 'none';
 
-  if (currentUser.rol === 'admin') {
+  if (currentUser.rol === 'admin' || currentUser.rol === 'cajero') {
     if (viewAdmin) viewAdmin.style.display = 'block';
     if (viewPadres) viewPadres.style.display = 'none';
     if (appContainer) appContainer.style.display = 'none';
     if (bottomNav) bottomNav.style.display = 'none';
     const adminNameEl = document.getElementById('adminLoggedName');
-    if (adminNameEl) adminNameEl.textContent = `${currentUser.nombre} (Administrador)`;
+    if (adminNameEl) {
+      const badgeRol = currentUser.rol === 'cajero' ? 'Cajero Soda' : 'Administrador';
+      adminNameEl.textContent = `${currentUser.nombre} (${badgeRol})`;
+    }
     await loadAdminData();
     setupAdminSmartSearch();
   } else if (currentUser.rol === 'padre') {
@@ -1510,8 +1513,12 @@ function initStudentSSE() {
       if (currentUser && currentUser.rol === 'padre') {
         loadParentDashboard();
       }
-      if (currentUser && currentUser.rol === 'admin') {
+      if (currentUser && (currentUser.rol === 'admin' || currentUser.rol === 'cajero')) {
         loadAdminData();
+        const movTab = document.getElementById('adminTabContentMovimientos');
+        if (movTab && movTab.style.display !== 'none') {
+          loadAdminMovimientos();
+        }
       }
     } catch (err) {}
   });
@@ -1526,7 +1533,7 @@ function initStudentSSE() {
         renderProducts();
       }
       // Actualizar en admin
-      if (currentUser && currentUser.rol === 'admin') {
+      if (currentUser && (currentUser.rol === 'admin' || currentUser.rol === 'cajero')) {
         const adminIdx = adminProducts.findIndex(p => p.id === prod.id);
         if (adminIdx !== -1) {
           adminProducts[adminIdx] = { ...adminProducts[adminIdx], ...prod };
@@ -1552,8 +1559,24 @@ function initStudentSSE() {
       if (currentUser && currentUser.rol === 'padre') {
         loadParentDashboard();
       }
-      if (currentUser && currentUser.rol === 'admin') {
+      if (currentUser && (currentUser.rol === 'admin' || currentUser.rol === 'cajero')) {
         loadAdminData();
+        const movTab = document.getElementById('adminTabContentMovimientos');
+        if (movTab && movTab.style.display !== 'none') {
+          loadAdminMovimientos();
+        }
+      }
+    } catch (err) {}
+  });
+
+  sse.addEventListener('movimiento_revertido', (e) => {
+    try {
+      if (currentUser && (currentUser.rol === 'admin' || currentUser.rol === 'cajero')) {
+        loadAdminData();
+        const movTab = document.getElementById('adminTabContentMovimientos');
+        if (movTab && movTab.style.display !== 'none') {
+          loadAdminMovimientos();
+        }
       }
     } catch (err) {}
   });
@@ -2193,13 +2216,17 @@ async function confirmLinkValidatedChild() {
 // ==========================================
 
 function switchAdminTab(tabName) {
-  const tabs = ['inventario', 'estudiantes', 'recarga'];
+  const tabs = ['inventario', 'estudiantes', 'recarga', 'movimientos'];
   tabs.forEach(t => {
     const btn = document.getElementById(`btnTabAdmin${t.charAt(0).toUpperCase() + t.slice(1)}`);
     const content = document.getElementById(`adminTabContent${t.charAt(0).toUpperCase() + t.slice(1)}`);
     if (btn) btn.classList.toggle('active', t === tabName);
     if (content) content.style.display = (t === tabName) ? 'block' : 'none';
   });
+
+  if (tabName === 'movimientos') {
+    loadAdminMovimientos();
+  }
 
   if (window.sounds) window.sounds.playTap();
 }
@@ -2868,3 +2895,254 @@ async function submitAdminManualRecharge() {
     btn.innerHTML = '<span>💰</span> Aplicar Recarga Inmediata';
   }
 }
+
+// ==========================================
+// HISTORIAL DE MOVIMIENTOS Y REVERSIONES (ADMIN / CAJERO)
+// ==========================================
+
+let adminMovimientosData = [];
+let currentMovFilter = 'all';
+
+async function loadAdminMovimientos() {
+  const container = document.getElementById('adminMovimientosList');
+  if (!container) return;
+
+  try {
+    container.innerHTML = `
+      <div style="text-align: center; color: var(--text-muted); padding: 30px; font-size: 0.88rem;">
+        ⏳ Cargando movimientos recientes...
+      </div>
+    `;
+
+    const res = await fetch('/api/admin/movimientos?limit=100');
+    if (!res.ok) throw new Error('Error al cargar movimientos desde el servidor');
+    adminMovimientosData = await res.json();
+    renderAdminMovimientos();
+  } catch (err) {
+    console.error('Error cargando movimientos:', err);
+    container.innerHTML = `<div style="text-align: center; color: #ef4444; padding: 25px; font-weight: 700;">⚠️ Error al cargar el historial: ${err.message}</div>`;
+  }
+}
+
+function setMovFilter(filter) {
+  currentMovFilter = filter;
+  const btnAll = document.getElementById('btnFilterMovAll');
+  const btnRecargas = document.getElementById('btnFilterMovRecargas');
+  const btnCobros = document.getElementById('btnFilterMovCobros');
+
+  [btnAll, btnRecargas, btnCobros].forEach(b => {
+    if (!b) return;
+    b.style.background = 'transparent';
+    b.style.color = '#64748b';
+    b.style.boxShadow = 'none';
+    b.style.fontWeight = '700';
+  });
+
+  const activeBtn = filter === 'recargas' ? btnRecargas : (filter === 'cobros' ? btnCobros : btnAll);
+  if (activeBtn) {
+    activeBtn.style.background = '#ffffff';
+    activeBtn.style.color = '#0284c7';
+    activeBtn.style.boxShadow = '0 1px 3px rgba(0,0,0,0.08)';
+    activeBtn.style.fontWeight = '800';
+  }
+
+  renderAdminMovimientos();
+  if (window.sounds) window.sounds.playTap();
+}
+
+function filterMovimientosUI() {
+  renderAdminMovimientos();
+}
+
+function renderAdminMovimientos() {
+  const container = document.getElementById('adminMovimientosList');
+  if (!container) return;
+
+  const searchInput = document.getElementById('inputSearchMovimientos');
+  const search = searchInput ? searchInput.value.toLowerCase().trim() : '';
+
+  let filtered = adminMovimientosData.filter(m => {
+    // Filtro por tipo
+    if (currentMovFilter === 'recargas') {
+      if (m.monto_colones <= 0 || m.tipo === 'compra_mostrador' || m.tipo === 'preorden') return false;
+    } else if (currentMovFilter === 'cobros') {
+      if (m.monto_colones >= 0 && (m.tipo === 'recarga_manual' || m.tipo === 'recarga_sinpe')) return false;
+    }
+
+    // Filtro por texto de búsqueda
+    if (search) {
+      const matchName = (m.estudiante_nombre || '').toLowerCase().includes(search);
+      const matchCode = (m.codigo_estudiante || '').toLowerCase().includes(search);
+      const matchDesc = (m.descripcion || '').toLowerCase().includes(search);
+      const matchTicket = (m.codigo_orden || '').toLowerCase().includes(search);
+      if (!matchName && !matchCode && !matchDesc && !matchTicket) return false;
+    }
+
+    return true;
+  });
+
+  if (filtered.length === 0) {
+    container.innerHTML = `
+      <div style="text-align: center; color: var(--text-muted); padding: 35px 20px; background: #f8fafc; border-radius: 14px; border: 1.5px dashed var(--border);">
+        <span style="font-size: 2.2rem;">🔍</span>
+        <p style="margin: 8px 0 2px 0; font-weight: 800; font-size: 0.95rem; color: var(--text-main);">No se encontraron movimientos</p>
+        <span style="font-size: 0.78rem; color: var(--text-muted);">No hay registros que coincidan con el filtro o búsqueda actual.</span>
+      </div>
+    `;
+    return;
+  }
+
+  const isCajero = currentUser && currentUser.rol === 'cajero';
+
+  container.innerHTML = filtered.map(m => {
+    const isPositive = m.monto_colones > 0;
+    const isRevertida = m.revertida === 1;
+    const isReversionOrRefund = m.tipo === 'reversion_recarga' || m.tipo === 'reembolso';
+
+    // Determinar badge de tipo
+    let tipoBadge = '';
+    if (m.tipo === 'recarga_manual') {
+      tipoBadge = `<span style="background: #dcfce7; color: #166534; font-size: 0.72rem; font-weight: 800; padding: 2px 8px; border-radius: 6px;">💵 RECARGA EFECTIVO</span>`;
+    } else if (m.tipo === 'recarga_sinpe') {
+      tipoBadge = `<span style="background: #e0f2fe; color: #0369a1; font-size: 0.72rem; font-weight: 800; padding: 2px 8px; border-radius: 6px;">📲 RECARGA SINPE</span>`;
+    } else if (m.tipo === 'compra_mostrador' || m.tipo === 'preorden') {
+      tipoBadge = `<span style="background: #fef3c7; color: #92400e; font-size: 0.72rem; font-weight: 800; padding: 2px 8px; border-radius: 6px;">🥪 COBRO SODA</span>`;
+    } else if (m.tipo === 'reversion_recarga') {
+      tipoBadge = `<span style="background: #f3e8ff; color: #6b21a8; font-size: 0.72rem; font-weight: 800; padding: 2px 8px; border-radius: 6px;">↩️ REVERSIÓN RECARGA</span>`;
+    } else if (m.tipo === 'reembolso') {
+      tipoBadge = `<span style="background: #f3e8ff; color: #6b21a8; font-size: 0.72rem; font-weight: 800; padding: 2px 8px; border-radius: 6px;">↩️ REEMBOLSO COMPRA</span>`;
+    } else {
+      tipoBadge = `<span style="background: #f1f5f9; color: #475569; font-size: 0.72rem; font-weight: 800; padding: 2px 8px; border-radius: 6px;">${m.tipo.toUpperCase()}</span>`;
+    }
+
+    // Formato de hora
+    let fechaHoraStr = m.fecha || '';
+    try {
+      const d = new Date(m.fecha.includes('Z') ? m.fecha : m.fecha.replace(' ', 'T') + 'Z');
+      fechaHoraStr = d.toLocaleTimeString('es-CR', { hour: '2-digit', minute: '2-digit' }) + ' • ' + d.toLocaleDateString('es-CR', { day: '2-digit', month: 'short' });
+    } catch (e) {}
+
+    // Monto formateado
+    const absMonto = Math.abs(m.monto_colones);
+    const montoDisplay = isPositive ? `+₡${absMonto.toLocaleString('es-CR')}` : `-₡${absMonto.toLocaleString('es-CR')}`;
+    const montoColor = isPositive ? '#16a34a' : '#d97706';
+
+    // Regla de 10 min para Cajero
+    const minutos = parseFloat(m.minutos_transcurridos) || 0;
+    const canRevertTime = !isCajero || minutos <= 10;
+
+    // Botón de acción / Estado
+    let actionHtml = '';
+    if (isRevertida) {
+      actionHtml = `
+        <div style="text-align: right;">
+          <span style="display: inline-block; background: #fee2e2; color: #991b1b; padding: 5px 10px; border-radius: 8px; font-size: 0.74rem; font-weight: 900; border: 1px solid #fca5a5;">
+            ⛔ REVERTIDO
+          </span>
+          <div style="font-size: 0.68rem; color: var(--text-muted); margin-top: 3px;">
+            ${m.revertido_por_nombre ? `Por ${m.revertido_por_nombre}` : ''}
+          </div>
+        </div>
+      `;
+    } else if (isReversionOrRefund) {
+      actionHtml = `
+        <span style="display: inline-block; background: #f1f5f9; color: #64748b; padding: 5px 10px; border-radius: 8px; font-size: 0.74rem; font-weight: 800;">
+          Ajuste
+        </span>
+      `;
+    } else if (!canRevertTime) {
+      actionHtml = `
+        <button type="button" disabled title="Han pasado más de 10 minutos. Esta reversión solo puede ser realizada por un Administrador." style="padding: 7px 12px; background: #e2e8f0; color: #94a3b8; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 0.74rem; font-weight: 800; cursor: not-allowed; display: flex; align-items: center; gap: 4px;">
+          ⏳ Requiere Admin (+10m)
+        </button>
+      `;
+    } else {
+      const cleanName = (m.estudiante_nombre || '').replace(/'/g, "\\'");
+      actionHtml = `
+        <button type="button" onclick="revertirMovimientoAdmin(${m.id}, ${absMonto}, '${cleanName}', '${m.tipo}')" style="padding: 7px 14px; background: #fee2e2; color: #b91c1c; border: 1.5px solid #f87171; border-radius: 8px; font-size: 0.78rem; font-weight: 900; cursor: pointer; display: flex; align-items: center; gap: 5px; transition: all 0.2s; box-shadow: 0 1px 3px rgba(239, 68, 68, 0.15);" onmouseover="this.style.background='#fca5a5'" onmouseout="this.style.background='#fee2e2'">
+          <span>↩️</span> Revertir
+        </button>
+      `;
+    }
+
+    return `
+      <div style="background: var(--card-bg); border: 1.5px solid ${isRevertida ? '#fecaca' : 'var(--border)'}; border-radius: 14px; padding: 12px 14px; display: flex; align-items: center; justify-content: space-between; gap: 12px; opacity: ${isRevertida ? '0.75' : '1'}; transition: all 0.2s;">
+        <!-- INFO ESTUDIANTE Y MOVIMIENTO -->
+        <div style="display: flex; align-items: center; gap: 12px; min-width: 0; flex: 1;">
+          <img src="${m.estudiante_foto || '/img/avatar_default.png'}" style="width: 44px; height: 44px; border-radius: 50%; border: 2px solid ${isPositive ? '#10b981' : '#f59e0b'}; object-fit: cover; background: white; flex-shrink: 0;">
+          <div style="min-width: 0;">
+            <div style="display: flex; align-items: center; gap: 6px; flex-wrap: wrap; margin-bottom: 2px;">
+              ${tipoBadge}
+              <span style="font-size: 0.72rem; color: var(--text-muted); font-weight: 700;">#${m.id} • ${fechaHoraStr}</span>
+            </div>
+            <strong style="font-size: 0.95rem; color: var(--text-main); display: block; word-break: break-word;">
+              ${m.estudiante_nombre}
+            </strong>
+            <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 1px;">
+              ${m.codigo_estudiante} • ${m.grado || ''} ${m.seccion ? '- ' + m.seccion : ''}
+              ${m.codigo_orden ? `• Ticket: <strong>${m.codigo_orden}</strong>` : ''}
+              ${m.descripcion ? `• <em>${m.descripcion}</em>` : ''}
+            </div>
+          </div>
+        </div>
+
+        <!-- MONTO Y BOTÓN REVERTIR -->
+        <div style="display: flex; align-items: center; gap: 14px; flex-shrink: 0;">
+          <div style="text-align: right;">
+            <div style="font-size: 1.15rem; font-weight: 900; color: ${montoColor};">
+              ${montoDisplay}
+            </div>
+            <div style="font-size: 0.68rem; color: var(--text-muted); font-weight: 700;">
+              Saldo: ₡${(m.saldo_posterior || 0).toLocaleString('es-CR')}
+            </div>
+          </div>
+          <div>
+            ${actionHtml}
+          </div>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+async function revertirMovimientoAdmin(transaccionId, monto, nombreEstudiante, tipo) {
+  const esRecarga = tipo.includes('recarga') || tipo === 'transferencia_recibida';
+  const accionTexto = esRecarga ? 'esta RECARGA errónea de dinero' : 'este COBRO de merienda';
+  const efectoTexto = esRecarga
+    ? `Se restarán ₡${monto.toLocaleString('es-CR')} del monedero del estudiante.`
+    : `Se devolverán ₡${monto.toLocaleString('es-CR')} al monedero del estudiante y se restaurará el stock de los productos.`;
+
+  const conf = confirm(
+    `¿Estás seguro de revertir ${accionTexto}?\n\n` +
+    `• Alumno: ${nombreEstudiante}\n` +
+    `• Monto: ₡${monto.toLocaleString('es-CR')}\n\n` +
+    `⚠️ ${efectoTexto}\n\n` +
+    `¿Deseas continuar con la reversión?`
+  );
+
+  if (!conf) return;
+
+  try {
+    const res = await fetch(`/api/admin/movimientos/${transaccionId}/revertir`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        usuario_id: currentUser ? currentUser.id : null,
+        usuario_rol: currentUser ? currentUser.rol : 'admin'
+      })
+    });
+
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error);
+
+    if (window.sounds) window.sounds.playSuccess();
+    alert(`✅ Reversión Exitosa:\n${data.mensaje}`);
+
+    await loadAdminMovimientos();
+    await loadAdminData();
+  } catch (err) {
+    if (window.sounds) window.sounds.playError();
+    alert(`❌ No se pudo revertir el movimiento:\n${err.message}`);
+  }
+}
+

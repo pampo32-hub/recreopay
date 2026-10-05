@@ -10,7 +10,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="RecreoPay">
   <meta name="mobile-web-app-capable" content="yes">
-  <link rel="stylesheet" href="/css/styles.css?v=8.6">
+  <link rel="stylesheet" href="/css/styles.css?v=8.7">
   <style>
     /* Transiciones suaves */
     .fade-enter { animation: fadeIn 0.2s ease-in-out; }
@@ -94,6 +94,10 @@
             <span style="font-size: 1.3rem;">👨‍🍳</span>
             <span>Admin Soda</span>
           </button>
+          <button type="button" class="login-demo-btn" onclick="quickFillLogin('cajero', 'cajero123')">
+            <span style="font-size: 1.3rem;">🪙</span>
+            <span>Cajero</span>
+          </button>
           <button type="button" class="login-demo-btn" onclick="quickFillLogin('padre', 'padre123')">
             <span style="font-size: 1.3rem;">👨‍👩‍👦</span>
             <span>Padre</span>
@@ -174,6 +178,9 @@
       </button>
       <button class="admin-tab-btn" id="btnTabAdminRecarga" onclick="switchAdminTab('recarga')">
         💵 Cargar Dinero Manual (Buscador y QR)
+      </button>
+      <button class="admin-tab-btn" id="btnTabAdminMovimientos" onclick="switchAdminTab('movimientos')">
+        📜 Movimientos y Reversiones
       </button>
     </div>
 
@@ -314,6 +321,46 @@
       <button type="button" id="btnAdminSubmitRecarga" onclick="submitAdminManualRecharge()" style="width: 100%; padding: 13px; background: linear-gradient(135deg, #10b981, #059669); color: white; border: none; border-radius: 12px; font-size: 1rem; font-weight: 900; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; box-shadow: 0 4px 12px rgba(16, 185, 129, 0.35);">
         <span>💰</span> Aplicar Recarga Inmediata
       </button>
+    </div>
+
+    <!-- TAB 4: MOVIMIENTOS Y REVERSIONES -->
+    <div id="adminTabContentMovimientos" class="admin-card" style="display: none; max-width: 900px; margin: 0 auto;">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; flex-wrap: wrap; gap: 10px;">
+        <div>
+          <h3 style="margin: 0; font-size: 1.2rem; font-weight: 900; color: var(--text-main); display: flex; align-items: center; gap: 8px;">
+            <span>📜</span> Movimientos y Reversiones
+          </h3>
+          <p style="margin: 3px 0 0 0; font-size: 0.78rem; color: var(--text-muted);">
+            Historial de recargas de monedero y cobros de meriendas. Permite anular o revertir transacciones erróneas.
+          </p>
+        </div>
+        <button type="button" onclick="loadAdminMovimientos()" style="padding: 8px 14px; background: #f1f5f9; color: #475569; border: 1.5px solid var(--border); border-radius: 10px; font-weight: 800; font-size: 0.8rem; cursor: pointer; display: flex; align-items: center; gap: 6px;">
+          <span>🔄</span> Actualizar
+        </button>
+      </div>
+
+      <!-- BARRA DE FILTROS Y BÚSQUEDA -->
+      <div style="display: flex; gap: 10px; margin-bottom: 16px; flex-wrap: wrap; align-items: center; justify-content: space-between;">
+        <div style="display: flex; gap: 6px; background: #f1f5f9; padding: 4px; border-radius: 10px;">
+          <button type="button" class="mov-filter-btn active" id="btnFilterMovAll" onclick="setMovFilter('all')" style="padding: 7px 14px; border: none; border-radius: 8px; font-weight: 800; font-size: 0.78rem; cursor: pointer; background: white; color: #0284c7; box-shadow: 0 1px 3px rgba(0,0,0,0.08);">
+            Todos
+          </button>
+          <button type="button" class="mov-filter-btn" id="btnFilterMovRecargas" onclick="setMovFilter('recargas')" style="padding: 7px 14px; border: none; border-radius: 8px; font-weight: 700; font-size: 0.78rem; cursor: pointer; background: transparent; color: #64748b;">
+            💵 Recargas
+          </button>
+          <button type="button" class="mov-filter-btn" id="btnFilterMovCobros" onclick="setMovFilter('cobros')" style="padding: 7px 14px; border: none; border-radius: 8px; font-weight: 700; font-size: 0.78rem; cursor: pointer; background: transparent; color: #64748b;">
+            🥪 Cobros Mostrador
+          </button>
+        </div>
+        <input type="text" id="inputSearchMovimientos" placeholder="🔍 Buscar por alumno, carné o detalle..." oninput="filterMovimientosUI(this.value)" style="flex: 1; min-width: 220px; max-width: 350px; padding: 9px 12px; border-radius: 10px; border: 1.5px solid var(--border); font-size: 0.85rem; box-sizing: border-box; background: var(--card-bg); color: var(--text-main);">
+      </div>
+
+      <!-- LISTA DE MOVIMIENTOS -->
+      <div id="adminMovimientosList" style="display: flex; flex-direction: column; gap: 10px;">
+        <div style="text-align: center; color: var(--text-muted); padding: 30px; font-size: 0.88rem;">
+          Cargando movimientos...
+        </div>
+      </div>
     </div>
   </div>
 
@@ -1164,8 +1211,8 @@
     </button>
   </nav>
 
-  <script src="/js/sounds.js?v=8.6"></script>
+  <script src="/js/sounds.js?v=8.7"></script>
   <script src="/js/jsQR.js"></script>
-  <script src="/js/app.js?v=8.6"></script>
+  <script src="/js/app.js?v=8.7"></script>
 </body>
 </html>

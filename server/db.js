@@ -138,6 +138,11 @@ function initDatabase() {
     `);
   } catch (e) {}
 
+  // 9. Auditoría de Reversiones de Cargos y Recargas
+  try { db.exec('ALTER TABLE transacciones_saldo ADD COLUMN revertida INTEGER DEFAULT 0'); } catch (e) {}
+  try { db.exec('ALTER TABLE transacciones_saldo ADD COLUMN revertido_por_usuario_id INTEGER REFERENCES usuarios(id)'); } catch (e) {}
+  try { db.exec('ALTER TABLE transacciones_saldo ADD COLUMN revertido_en DATETIME'); } catch (e) {}
+
   seedInitialData();
   seedUsuarios();
 }
@@ -151,10 +156,13 @@ function seedUsuarios() {
     // 1. Admin de la Soda
     insert.run('admin', 'admin123', 'admin', 'Administrador de la Soda', '+506 8888-7632', 'admin@recreopay.cr');
     
-    // 2. Padre de Mateo
+    // 2. Cajero de la Soda
+    insert.run('cajero', 'cajero123', 'cajero', 'Cajero de la Soda', '+506 8888-0000', 'caja@recreopay.cr');
+
+    // 3. Padre de Mateo
     const resPadre = insert.run('padre', 'padre123', 'padre', 'Carlos Alvarado (Papá)', '+506 8888-1122', 'carlos.alvarado@gmail.com');
     
-    // 3. Estudiantes
+    // 4. Estudiantes
     const resMateo = insert.run('mateo', '1234', 'estudiante', 'Mateo Alvarado Castro', '', '');
     const resSofia = insert.run('sofia', '1234', 'estudiante', 'Sofía Jiménez Morales', '', '');
 
@@ -162,6 +170,14 @@ function seedUsuarios() {
     try {
       db.prepare('UPDATE estudiantes SET usuario_id = ?, padre_usuario_id = ? WHERE id = 1').run(resMateo.lastInsertRowid, resPadre.lastInsertRowid);
       db.prepare('UPDATE estudiantes SET usuario_id = ? WHERE id = 2').run(resSofia.lastInsertRowid);
+    } catch (e) {}
+  } else {
+    // Asegurar que el usuario cajero exista en bases de datos ya pobladas
+    try {
+      const cajero = db.prepare("SELECT id FROM usuarios WHERE username = 'cajero'").get();
+      if (!cajero) {
+        db.prepare("INSERT INTO usuarios (username, password_hash, rol, nombre, telefono, email) VALUES ('cajero', 'cajero123', 'cajero', 'Cajero de la Soda', '+506 8888-0000', 'caja@recreopay.cr')").run();
+      }
     } catch (e) {}
   }
 }
@@ -632,11 +648,163 @@ function transferenciaP2PTransaction({ emisorId, qrReceptor, receptorId, monto, 
   return transaction();
 }
 
+/**
+ * Reversión de un cargo o recarga errónea
+ * Rol cajero: solo permitido en los primeros 10 minutos
+ * Rol admin: permitido en cualquier momento
+ */
+function revertirTransaccionSaldoTransaction({ transaccionId, usuarioId, usuarioRol }) {
+  const transaction = db.transaction(() => {
+    // 1. Obtener la transacción original y los minutos transcurridos
+    const tx = db.prepare(`
+      SELECT t.*, 
+        ROUND((strftime('%s', 'now') - strftime('%s', t.fecha)) / 60.0, 1) as minutos_transcurridos
+      FROM transacciones_saldo t 
+      WHERE t.id = ?
+    `).get(transaccionId);
+
+    if (!tx) {
+      throw new Error('Transacción no encontrada en los registros');
+    }
+
+    if (tx.revertida === 1) {
+      throw new Error('Esta transacción ya fue revertida previamente');
+    }
+
+    if (tx.tipo === 'reversion_recarga' || tx.tipo === 'reembolso') {
+      throw new Error('No es posible revertir una transacción que ya corresponde a una reversión o reembolso');
+    }
+
+    // 2. Control de tiempo según el rol (Cajero: <= 10 min, Admin: ilimitado)
+    const minutos = parseFloat(tx.minutos_transcurridos) || 0;
+    if (usuarioRol === 'cajero' && minutos > 10) {
+      throw new Error(`Han transcurrido ${Math.round(minutos)} minutos desde este movimiento. Un usuario con rol de Cajero solo puede revertir durante los primeros 10 minutos. Esta operación debe ser realizada por un Administrador.`);
+    }
+
+    // 3. Obtener el estudiante involucrado
+    const est = db.prepare('SELECT * FROM estudiantes WHERE id = ?').get(tx.estudiante_id);
+    if (!est) {
+      throw new Error('El estudiante asociado a este movimiento no fue encontrado');
+    }
+
+    let resultado = {};
+
+    // 4. Caso A: Reversión de Recarga de Dinero (monto positivo ingresado al monedero)
+    if (tx.monto_colones > 0 || tx.tipo === 'recarga_manual' || tx.tipo === 'recarga_sinpe' || tx.tipo === 'transferencia_recibida') {
+      const montoRevertir = Math.abs(tx.monto_colones);
+      const nuevoSaldo = est.saldo_colones - montoRevertir;
+
+      // Actualizar saldo del estudiante (puede quedar en negativo según la decisión acordada)
+      db.prepare('UPDATE estudiantes SET saldo_colones = ? WHERE id = ?').run(nuevoSaldo, est.id);
+
+      // Marcar transacción original como revertida
+      db.prepare(`
+        UPDATE transacciones_saldo 
+        SET revertida = 1, revertido_por_usuario_id = ?, revertido_en = CURRENT_TIMESTAMP 
+        WHERE id = ?
+      `).run(usuarioId || null, tx.id);
+
+      // Registrar auditoría de reversión
+      db.prepare(`
+        INSERT INTO transacciones_saldo 
+        (estudiante_id, tipo, monto_colones, saldo_previo, saldo_posterior, comprobante_sinpe, descripcion)
+        VALUES (?, 'reversion_recarga', ?, ?, ?, 'REVERSION', ?)
+      `).run(
+        est.id,
+        -montoRevertir,
+        est.saldo_colones,
+        nuevoSaldo,
+        `Reversión de recarga #${tx.id} (${tx.descripcion || 'Recarga'})`
+      );
+
+      resultado = {
+        exito: true,
+        tipo_operacion: 'reversion_recarga',
+        transaccion_id: tx.id,
+        estudiante_id: est.id,
+        nombre_completo: est.nombre_completo,
+        monto_revertido: montoRevertir,
+        saldo_anterior: est.saldo_colones,
+        saldo_nuevo: nuevoSaldo,
+        mensaje: `Se revirtió exitosamente la recarga de ₡${montoRevertir.toLocaleString('es-CR')} a ${est.nombre_completo}. Nuevo saldo: ₡${nuevoSaldo.toLocaleString('es-CR')}.`
+      };
+    } 
+    // 5. Caso B: Reversión de Cobro de Mostrador / Compra de Merienda (monto debitado al alumno)
+    else {
+      const montoReembolso = Math.abs(tx.monto_colones);
+      const nuevoSaldo = est.saldo_colones + montoReembolso;
+
+      // Devolver saldo al estudiante
+      db.prepare('UPDATE estudiantes SET saldo_colones = ? WHERE id = ?').run(nuevoSaldo, est.id);
+
+      let productosRestaurados = [];
+      // Anular orden y devolver productos al inventario si tiene orden asociada
+      if (tx.orden_id) {
+        db.prepare(`
+          UPDATE ordenes 
+          SET estado = 'anulada', notas = COALESCE(notas || ' | ', '') || 'Revertida en caja/admin' 
+          WHERE id = ?
+        `).run(tx.orden_id);
+
+        const detalles = db.prepare('SELECT producto_id, cantidad FROM orden_detalles WHERE orden_id = ?').all(tx.orden_id);
+        for (const det of detalles) {
+          db.prepare(`
+            UPDATE productos 
+            SET stock = stock + ?, disponible = 1 
+            WHERE id = ? AND control_stock = 1
+          `).run(det.cantidad, det.producto_id);
+
+          productosRestaurados.push({ producto_id: det.producto_id, cantidad: det.cantidad });
+        }
+      }
+
+      // Marcar transacción original como revertida
+      db.prepare(`
+        UPDATE transacciones_saldo 
+        SET revertida = 1, revertido_por_usuario_id = ?, revertido_en = CURRENT_TIMESTAMP 
+        WHERE id = ?
+      `).run(usuarioId || null, tx.id);
+
+      // Registrar auditoría de reembolso
+      db.prepare(`
+        INSERT INTO transacciones_saldo 
+        (estudiante_id, tipo, monto_colones, saldo_previo, saldo_posterior, orden_id, descripcion)
+        VALUES (?, 'reembolso', ?, ?, ?, ?, ?)
+      `).run(
+        est.id,
+        montoReembolso,
+        est.saldo_colones,
+        nuevoSaldo,
+        tx.orden_id || null,
+        `Reembolso por anulación de cobro #${tx.id} (${tx.descripcion || 'Compra mostrador'})`
+      );
+
+      resultado = {
+        exito: true,
+        tipo_operacion: 'reembolso_cobro',
+        transaccion_id: tx.id,
+        estudiante_id: est.id,
+        nombre_completo: est.nombre_completo,
+        monto_revertido: montoReembolso,
+        saldo_anterior: est.saldo_colones,
+        saldo_nuevo: nuevoSaldo,
+        productos_restaurados: productosRestaurados,
+        mensaje: `Se anuló el cobro de ₡${montoReembolso.toLocaleString('es-CR')} y se reintegró el dinero a ${est.nombre_completo}. Nuevo saldo: ₡${nuevoSaldo.toLocaleString('es-CR')}.`
+      };
+    }
+
+    return resultado;
+  });
+
+  return transaction();
+}
+
 module.exports = {
   db,
   initDatabase,
   debitoCompraTransaction,
   recargaSaldoTransaction,
   crearOrdenCompleta,
-  transferenciaP2PTransaction
+  transferenciaP2PTransaction,
+  revertirTransaccionSaldoTransaction
 };

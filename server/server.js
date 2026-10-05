@@ -2,7 +2,7 @@ const express = require('express');
 const cors = require('cors');
 const path = require('path');
 const QRCode = require('qrcode');
-const { db, initDatabase, debitoCompraTransaction, recargaSaldoTransaction, crearOrdenCompleta, transferenciaP2PTransaction } = require('./db');
+const { db, initDatabase, debitoCompraTransaction, recargaSaldoTransaction, crearOrdenCompleta, transferenciaP2PTransaction, revertirTransaccionSaldoTransaction } = require('./db');
 
 const app = express();
 const PORT = process.env.PORT || 3030;
@@ -552,6 +552,75 @@ app.post('/api/admin/estudiantes/:id/recarga-manual', (req, res) => {
     res.json(resultado);
   } catch (err) {
     res.status(500).json({ error: err.message });
+  }
+});
+
+// Listar historial de movimientos y transacciones con estado de reversión
+app.get('/api/admin/movimientos', (req, res) => {
+  try {
+    const limit = parseInt(req.query.limit, 10) || 100;
+    const movimientos = db.prepare(`
+      SELECT 
+        t.*,
+        ROUND((strftime('%s', 'now') - strftime('%s', t.fecha)) / 60.0, 1) as minutos_transcurridos,
+        e.nombre_completo as estudiante_nombre,
+        e.codigo_estudiante,
+        e.grado,
+        e.seccion,
+        e.foto_url as estudiante_foto,
+        e.saldo_colones as estudiante_saldo_actual,
+        u.nombre as revertido_por_nombre,
+        o.codigo_orden
+      FROM transacciones_saldo t
+      JOIN estudiantes e ON t.estudiante_id = e.id
+      LEFT JOIN usuarios u ON t.revertido_por_usuario_id = u.id
+      LEFT JOIN ordenes o ON t.orden_id = o.id
+      ORDER BY t.fecha DESC, t.id DESC
+      LIMIT ?
+    `).all(limit);
+
+    res.json(movimientos);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Revertir un movimiento (recarga o cobro erróneo)
+app.post('/api/admin/movimientos/:id/revertir', (req, res) => {
+  try {
+    const transaccionId = parseInt(req.params.id, 10);
+    const { usuario_id, usuario_rol } = req.body;
+
+    if (!transaccionId || isNaN(transaccionId)) {
+      return res.status(400).json({ error: 'ID de transacción inválido' });
+    }
+
+    const resultado = revertirTransaccionSaldoTransaction({
+      transaccionId,
+      usuarioId: usuario_id || null,
+      usuarioRol: usuario_rol || 'admin'
+    });
+
+    // Notificaciones en vivo (SSE) para reflejar saldo en portal de padres, PWA y terminal
+    broadcastEvent('saldo_actualizado', {
+      id: resultado.estudiante_id,
+      estudiante_id: resultado.estudiante_id,
+      saldo_colones: resultado.saldo_nuevo
+    });
+    broadcastEvent('estudiante_actualizado', {
+      id: resultado.estudiante_id,
+      estudiante_id: resultado.estudiante_id,
+      saldo_colones: resultado.saldo_nuevo
+    });
+    broadcastEvent('movimiento_revertido', resultado);
+
+    if (resultado.productos_restaurados && resultado.productos_restaurados.length > 0) {
+      broadcastEvent('inventario_actualizado', { motivo: 'reversion_orden' });
+    }
+
+    res.json(resultado);
+  } catch (error) {
+    res.status(400).json({ error: error.message });
   }
 });
 
