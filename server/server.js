@@ -1388,8 +1388,8 @@ app.get('/api/estudiantes/qr/:token', (req, res) => {
     // Verificar si tiene pre-órdenes listas para retirar en el recreo
     const preordenesPendientes = db.prepare(`
       SELECT o.*, 
-        (SELECT json_group_array(json_object('nombre', p.nombre, 'cantidad', d.cantidad, 'precio', d.precio_unitario))
-         FROM orden_detalles d JOIN productos p ON d.producto_id = p.id WHERE d.orden_id = o.id) as items_json
+        (SELECT json_group_array(json_object('nombre', COALESCE(d.nombre_producto, p.nombre), 'cantidad', d.cantidad, 'precio', d.precio_unitario))
+         FROM orden_detalles d LEFT JOIN productos p ON d.producto_id = p.id WHERE d.orden_id = o.id) as items_json
       FROM ordenes o
       WHERE o.estudiante_id = ? AND o.tipo_orden = 'preorden' AND o.estado IN ('pendiente', 'en_preparacion', 'listo')
       ORDER BY o.creado_en ASC
@@ -1672,8 +1672,8 @@ app.get('/api/ordenes', (req, res) => {
     const { estado, tipo, estudiante_id } = req.query;
     let query = `
       SELECT o.*, e.nombre_completo as estudiante_nombre, e.grado, e.seccion, e.foto_url,
-        (SELECT json_group_array(json_object('producto_id', p.id, 'nombre', p.nombre, 'icono', p.icono, 'cantidad', d.cantidad, 'precio_unitario', d.precio_unitario, 'subtotal', d.subtotal))
-         FROM orden_detalles d JOIN productos p ON d.producto_id = p.id WHERE d.orden_id = o.id) as items_json
+        (SELECT json_group_array(json_object('producto_id', d.producto_id, 'nombre', COALESCE(d.nombre_producto, p.nombre), 'icono', COALESCE(p.icono, '🥪'), 'cantidad', d.cantidad, 'precio_unitario', d.precio_unitario, 'subtotal', d.subtotal))
+         FROM orden_detalles d LEFT JOIN productos p ON d.producto_id = p.id WHERE d.orden_id = o.id) as items_json
       FROM ordenes o
       JOIN estudiantes e ON o.estudiante_id = e.id
       WHERE 1=1
@@ -1759,9 +1759,9 @@ app.post('/api/ordenes/despachar-qr', (req, res) => {
 
     // Obtener detalles para mostrar en pantalla de caja
     const items = db.prepare(`
-      SELECT p.nombre, p.icono, d.cantidad, d.subtotal
+      SELECT COALESCE(d.nombre_producto, p.nombre) as nombre, COALESCE(p.icono, '🥪') as icono, d.cantidad, d.subtotal
       FROM orden_detalles d
-      JOIN productos p ON d.producto_id = p.id
+      LEFT JOIN productos p ON d.producto_id = p.id
       WHERE d.orden_id = ?
     `).all(preorden.id);
 

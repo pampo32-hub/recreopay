@@ -189,6 +189,7 @@ function initDatabase() {
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       orden_id INTEGER NOT NULL REFERENCES ordenes(id) ON DELETE CASCADE,
       producto_id INTEGER NOT NULL REFERENCES productos(id),
+      nombre_producto TEXT,
       cantidad INTEGER NOT NULL,
       precio_unitario INTEGER NOT NULL,
       subtotal INTEGER NOT NULL
@@ -243,6 +244,16 @@ function initDatabase() {
   try { db.exec('ALTER TABLE transacciones_saldo ADD COLUMN revertida INTEGER DEFAULT 0'); } catch (e) {}
   try { db.exec('ALTER TABLE transacciones_saldo ADD COLUMN revertido_por_usuario_id INTEGER REFERENCES usuarios(id)'); } catch (e) {}
   try { db.exec('ALTER TABLE transacciones_saldo ADD COLUMN revertido_en DATETIME'); } catch (e) {}
+
+  // 9.1 Garantizar nombre_producto histórico en orden_detalles
+  try { db.exec('ALTER TABLE orden_detalles ADD COLUMN nombre_producto TEXT'); } catch (e) {}
+  try {
+    db.exec(`
+      UPDATE orden_detalles 
+      SET nombre_producto = (SELECT nombre FROM productos WHERE productos.id = orden_detalles.producto_id)
+      WHERE (nombre_producto IS NULL OR nombre_producto = '') AND producto_id IS NOT NULL;
+    `);
+  } catch (e) {}
 
   // 10. Diseños de Tarjetas Virtuales para Estudiantes
   try {
@@ -667,13 +678,14 @@ function crearOrdenCompleta({ estudianteId, tipoOrden, momentoEntrega, notas, it
 
     // Insertar detalle de productos y descontar inventario
     const insertDetalle = db.prepare(`
-      INSERT INTO orden_detalles (orden_id, producto_id, cantidad, precio_unitario, subtotal)
-      VALUES (?, ?, ?, ?, ?)
+      INSERT INTO orden_detalles (orden_id, producto_id, nombre_producto, cantidad, precio_unitario, subtotal)
+      VALUES (?, ?, ?, ?, ?, ?)
     `);
 
     const productosActualizados = [];
     for (const det of detallesParaInsertar) {
-      insertDetalle.run(ordenId, det.producto_id, det.cantidad, det.precio_unitario, det.subtotal);
+      const nombreProd = det.nombre || `Producto #${det.producto_id}`;
+      insertDetalle.run(ordenId, det.producto_id, nombreProd, det.cantidad, det.precio_unitario, det.subtotal);
 
       // Descontar inventario si tiene control de stock activo
       const prod = db.prepare('SELECT control_stock, stock FROM productos WHERE id = ?').get(det.producto_id);
