@@ -29,22 +29,39 @@ function broadcastEvent(eventType, data) {
   for (const client of sseClients) {
     try {
       client.write(payload);
+      if (typeof client.flush === 'function') client.flush();
     } catch (e) {
       sseClients.delete(client);
     }
   }
 }
 
-// SSE stream for real-time soda screen
+// SSE stream for real-time soda screen and student apps
 app.get('/api/events', (req, res) => {
-  res.setHeader('Content-Type', 'text/event-stream');
-  res.setHeader('Cache-Control', 'no-cache');
+  res.setHeader('Content-Type', 'text/event-stream; charset=utf-8');
+  res.setHeader('Cache-Control', 'no-cache, no-transform');
   res.setHeader('Connection', 'keep-alive');
+  res.setHeader('X-Accel-Buffering', 'no');
   res.flushHeaders();
 
+  // Enviar handshake inmediato para confirmar conexión abierta sin buffering
+  res.write(': connected\n\n');
   sseClients.add(res);
   req.on('close', () => sseClients.delete(res));
 });
+
+// Heartbeat cada 10 segundos para mantener vivas las conexiones móviles / proxies
+setInterval(() => {
+  const ping = ': ping\n\n';
+  for (const client of sseClients) {
+    try {
+      client.write(ping);
+      if (typeof client.flush === 'function') client.flush();
+    } catch (e) {
+      sseClients.delete(client);
+    }
+  }
+}, 10000);
 
 // ==========================================
 // 0. AUTENTICACIÓN Y ROLES (ADMIN, PADRE, ESTUDIANTE)

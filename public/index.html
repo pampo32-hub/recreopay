@@ -10,7 +10,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="RecreoPay">
   <meta name="mobile-web-app-capable" content="yes">
-  <link rel="stylesheet" href="/css/styles.css?v=8.8">
+  <link rel="stylesheet" href="/css/styles.css?v=9.4">
   <style>
     /* Transiciones suaves */
     .fade-enter { animation: fadeIn 0.2s ease-in-out; }
@@ -131,15 +131,14 @@
         <button onclick="toggleTheme()" class="theme-toggle-btn" title="Alternar Modo Oscuro / Modo Claro">
           🌙
         </button>
-        <button onclick="switchAdminTab('recarga')" style="padding: 8px 14px; background: linear-gradient(135deg, #10b981, #059669); color: white; border: none; border-radius: 10px; font-size: 0.82rem; font-weight: 800; cursor: pointer; display: flex; align-items: center; gap: 6px; box-shadow: 0 2px 6px rgba(16, 185, 129, 0.3);" title="Cargar dinero a un estudiante">
-          <span>💵</span> Cargar Dinero
+        <button onclick="switchAdminTab('recarga')" class="admin-action-btn admin-action-btn-recarga" title="Cargar dinero a un estudiante">
+          <span>💵</span> <span class="admin-btn-text">Cargar Dinero</span>
         </button>
-        <a href="/pos.html" target="_blank" class="admin-action-btn-caja" title="Abrir Caja / Terminal POS">
-          📟 Ir a Caja
+        <a href="/pos.html" target="_blank" class="admin-action-btn admin-action-btn-caja" title="Abrir Caja / Terminal POS">
+          <span>📟</span> <span class="admin-btn-text">Ir a Caja</span>
         </a>
-        <button onclick="logout(true)" class="logout-btn" title="Cerrar sesión y cambiar de cuenta">
-          <span>🚪</span>
-          <span class="logout-text">Salir</span>
+        <button onclick="logout(true)" class="admin-action-btn admin-action-btn-salir" title="Cerrar sesión y cambiar de cuenta">
+          <span>🚪</span> <span class="admin-btn-text">Salir</span>
         </button>
       </div>
     </header>
@@ -1042,33 +1041,18 @@
           <input type="text" id="inputTransferMotivo" placeholder="Ej: Mitad de la empanada, fresco..." style="width: 100%; padding: 8px 10px; border-radius: 8px; border: 1px solid #cbd5e1; font-size: 0.85rem;">
         </div>
 
-        <!-- PIN DE SEGURIDAD (CON PANEL EXCLUSIVO DE NÚMEROS Y BOTONES TÁCTILES) -->
-        <div style="background: #f8fafc; border: 1.5px dashed #cbd5e1; border-radius: 12px; padding: 12px; margin-bottom: 14px;">
-          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
-            <label style="font-size: 0.78rem; font-weight: 800; color: #0f172a;">🔐 Digita tu PIN de 4 dígitos:</label>
+        <!-- PIN DE SEGURIDAD (TECLADO NATIVO DEL TELÉFONO) -->
+        <div style="background: #f8fafc; border: 1.5px dashed #cbd5e1; border-radius: 14px; padding: 14px; margin-bottom: 14px; text-align: center;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+            <label for="inputTransferPin" style="font-size: 0.8rem; font-weight: 800; color: #0f172a;">🔐 Digita tu PIN de seguridad:</label>
             <span id="lblTransferPinHint" style="font-size: 0.72rem; color: #166534; font-weight: 800; background: #dcfce7; padding: 2px 8px; border-radius: 6px;">(PIN: 1234)</span>
           </div>
 
-          <div style="position: relative; margin-bottom: 8px;">
-            <input type="password" inputmode="numeric" pattern="[0-9]*" maxlength="4" autocomplete="one-time-code" id="inputTransferPin" placeholder="••••" style="width: 100%; text-align: center; font-size: 1.5rem; letter-spacing: 8px; padding: 10px 40px 10px 10px; border-radius: 10px; border: 2px solid #cbd5e1; font-weight: 900; background: white; color: #0f172a;">
-            <button type="button" id="btnTogglePin" onclick="togglePinVisibility()" style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); background: none; border: none; font-size: 1.15rem; cursor: pointer; color: #64748b; padding: 4px;" title="Ver/Ocultar PIN">👁️</button>
+          <div style="position: relative; max-width: 240px; margin: 0 auto;">
+            <input type="password" inputmode="numeric" pattern="[0-9]*" maxlength="4" autocomplete="one-time-code" id="inputTransferPin" placeholder="••••" style="width: 100%; text-align: center; font-size: 1.8rem; letter-spacing: 10px; padding: 10px 42px 10px 18px; border-radius: 12px; border: 2px solid #cbd5e1; font-weight: 900; background: white; color: #0f172a; box-sizing: border-box; outline: none; transition: border-color 0.2s;" onfocus="this.style.borderColor='#0284c7'" onblur="this.style.borderColor='#cbd5e1'">
+            <button type="button" id="btnTogglePin" onclick="togglePinVisibility()" style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); background: none; border: none; font-size: 1.25rem; cursor: pointer; color: #64748b; padding: 4px;" title="Ver/Ocultar PIN">👁️</button>
           </div>
-
-          <!-- TECLADO NUMÉRICO TÁCTIL EN PANTALLA (FACILITA A LOS NIÑOS Y USUARIOS MÓVILES) -->
-          <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px;">
-            <button type="button" onclick="appendPinDigit('1')" style="padding: 10px; background: white; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 1.15rem; font-weight: 800; color: #1e293b; cursor: pointer; box-shadow: 0 1px 2px rgba(0,0,0,0.05);">1</button>
-            <button type="button" onclick="appendPinDigit('2')" style="padding: 10px; background: white; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 1.15rem; font-weight: 800; color: #1e293b; cursor: pointer; box-shadow: 0 1px 2px rgba(0,0,0,0.05);">2</button>
-            <button type="button" onclick="appendPinDigit('3')" style="padding: 10px; background: white; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 1.15rem; font-weight: 800; color: #1e293b; cursor: pointer; box-shadow: 0 1px 2px rgba(0,0,0,0.05);">3</button>
-            <button type="button" onclick="appendPinDigit('4')" style="padding: 10px; background: white; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 1.15rem; font-weight: 800; color: #1e293b; cursor: pointer; box-shadow: 0 1px 2px rgba(0,0,0,0.05);">4</button>
-            <button type="button" onclick="appendPinDigit('5')" style="padding: 10px; background: white; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 1.15rem; font-weight: 800; color: #1e293b; cursor: pointer; box-shadow: 0 1px 2px rgba(0,0,0,0.05);">5</button>
-            <button type="button" onclick="appendPinDigit('6')" style="padding: 10px; background: white; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 1.15rem; font-weight: 800; color: #1e293b; cursor: pointer; box-shadow: 0 1px 2px rgba(0,0,0,0.05);">6</button>
-            <button type="button" onclick="appendPinDigit('7')" style="padding: 10px; background: white; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 1.15rem; font-weight: 800; color: #1e293b; cursor: pointer; box-shadow: 0 1px 2px rgba(0,0,0,0.05);">7</button>
-            <button type="button" onclick="appendPinDigit('8')" style="padding: 10px; background: white; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 1.15rem; font-weight: 800; color: #1e293b; cursor: pointer; box-shadow: 0 1px 2px rgba(0,0,0,0.05);">8</button>
-            <button type="button" onclick="appendPinDigit('9')" style="padding: 10px; background: white; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 1.15rem; font-weight: 800; color: #1e293b; cursor: pointer; box-shadow: 0 1px 2px rgba(0,0,0,0.05);">9</button>
-            <button type="button" onclick="fillQuickPin('1234')" style="padding: 10px; background: #e0f2fe; color: #0284c7; border: 1px solid #bae6fd; border-radius: 8px; font-size: 0.74rem; font-weight: 900; cursor: pointer;">⚡ 1234</button>
-            <button type="button" onclick="appendPinDigit('0')" style="padding: 10px; background: white; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 1.15rem; font-weight: 800; color: #1e293b; cursor: pointer; box-shadow: 0 1px 2px rgba(0,0,0,0.05);">0</button>
-            <button type="button" onclick="backspacePinDigit()" style="padding: 10px; background: #fee2e2; color: #dc2626; border: 1px solid #fecaca; border-radius: 8px; font-size: 1.15rem; font-weight: 800; cursor: pointer;">⌫</button>
-          </div>
+          <div style="font-size: 0.72rem; color: #64748b; margin-top: 6px; font-weight: 600;">Se abrirá automáticamente el teclado numérico de tu teléfono</div>
         </div>
 
         <button id="btnConfirmTransfer" onclick="executeP2PTransfer()" style="width: 100%; padding: 14px; background: linear-gradient(135deg, #10b981, #059669); color: white; border: none; border-radius: 14px; font-weight: 900; font-size: 1.05rem; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);">
@@ -1244,8 +1228,8 @@
     </button>
   </nav>
 
-  <script src="/js/sounds.js?v=9.3"></script>
+  <script src="/js/sounds.js?v=9.4"></script>
   <script src="/js/jsQR.js"></script>
-  <script src="/js/app.js?v=9.3"></script>
+  <script src="/js/app.js?v=9.4"></script>
 </body>
 </html>
