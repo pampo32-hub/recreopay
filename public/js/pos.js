@@ -101,11 +101,12 @@ async function loadCatalog() {
 
 function renderPosCategories() {
   const bar = document.getElementById('posCategoriesBar');
+  if (!bar) return;
   bar.innerHTML = `
-    <button class="pos-tab-btn active" style="padding: 6px 12px; font-size: 0.8rem;" onclick="filterPosCat(null, this)">Todos</button>
+    <button class="pos-cat-pill active" onclick="filterPosCat(null, this)">Todos</button>
     ${posCategories.map(c => `
-      <button class="pos-tab-btn" style="padding: 6px 12px; font-size: 0.8rem;" onclick="filterPosCat(${c.id}, this)">
-        ${c.icono || '🍽️'} ${c.nombre}
+      <button class="pos-cat-pill" onclick="filterPosCat(${c.id}, this)">
+        <span>${c.icono || '🍽️'}</span> ${c.nombre}
       </button>
     `).join('')}
   `;
@@ -115,7 +116,7 @@ let currentPosCatId = null;
 
 function filterPosCat(catId, btn) {
   currentPosCatId = catId;
-  document.querySelectorAll('#posCategoriesBar .pos-tab-btn').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('#posCategoriesBar .pos-cat-pill').forEach(b => b.classList.remove('active'));
   if (btn) btn.classList.add('active');
   renderPosProducts(catId);
 }
@@ -132,16 +133,15 @@ function renderPosProducts(catId) {
 
     return `
       <div class="pos-prod-card ${isOutOfStock ? 'out-of-stock-pos' : ''}" 
-           style="${isOutOfStock ? 'opacity: 0.45; filter: grayscale(0.85); cursor: not-allowed; position: relative; border-color: #ef4444;' : ''}"
            onclick="${isOutOfStock ? `alert('El producto \\'${prod.nombre.replace(/'/g, "\\'")}\\' se encuentra bloqueado o agotado.')` : `addToPosCart(${prod.id})`}">
-        ${isOutOfStock ? '<div style="position: absolute; top: 8px; right: 8px; background: #dc2626; color: #ffffff; font-size: 0.65rem; font-weight: 900; padding: 2px 6px; border-radius: 4px; z-index: 2; letter-spacing: 0.5px;">BLOQUEADO</div>' : ''}
-        <div style="font-size: 2.2rem; text-align: center;">${prod.icono || '🥪'}</div>
+        ${isOutOfStock ? '<div style="position: absolute; top: 10px; right: 10px;"><span class="saas-status-badge saas-status-blocked"><span class="saas-dot"></span>BLOQUEADO</span></div>' : ''}
+        <div style="font-size: 2.2rem; text-align: center; margin-bottom: 6px;">${prod.icono || '🥪'}</div>
         <div>
-          <div style="font-size: 0.88rem; font-weight: 800; color: #ffffff; line-height: 1.2;">${prod.nombre}</div>
-          ${prod.cumple_mep ? '<span style="font-size: 0.65rem; color: #34d399;">🌿 MEP Saludable</span>' : ''}
-          ${isOutOfStock ? '<span style="font-size: 0.65rem; color: #f87171; display: block; margin-top: 2px; font-weight: 700;">No disponible</span>' : ''}
+          <div class="prod-title">${prod.nombre}</div>
+          ${prod.cumple_mep ? '<span style="font-size: 0.68rem; color: #166534; font-weight: 700; margin-top: 3px; display: inline-flex; align-items: center; gap: 3px;">🌿 MEP Saludable</span>' : ''}
+          ${isOutOfStock ? '<span style="font-size: 0.68rem; color: #dc2626; display: block; margin-top: 2px; font-weight: 700;">No disponible</span>' : ''}
         </div>
-        <div style="font-size: 1.1rem; font-weight: 900; color: ${isOutOfStock ? '#94a3b8' : '#38bdf8'}; margin-top: 6px;">
+        <div class="prod-price" style="color: ${isOutOfStock ? '#94a3b8' : '#0284c7'};">
           ₡${prod.precio_colones.toLocaleString('es-CR')}
         </div>
       </div>
@@ -320,14 +320,14 @@ function updatePosCartUI() {
     return `
       <div class="pos-cart-item">
         <div style="flex: 1; min-width: 0; word-break: break-word;">
-          <strong style="color: #f8fafc; font-size: 0.85rem; display: block; line-height: 1.2;">${item.product.icono ? `${item.product.icono} ` : ''}${item.product.nombre}</strong>
-          <div style="font-size: 0.74rem; color: #94a3b8; margin-top: 2px;">₡${item.product.precio_colones.toLocaleString('es-CR')} c/u</div>
+          <strong style="color: #0f172a; font-size: 0.85rem; display: block; line-height: 1.2;">${item.product.icono ? `${item.product.icono} ` : ''}${item.product.nombre}</strong>
+          <div style="font-size: 0.74rem; color: #64748b; margin-top: 2px;">₡${item.product.precio_colones.toLocaleString('es-CR')} c/u</div>
         </div>
         <div style="display: flex; align-items: center; gap: 6px; flex-shrink: 0;">
-          <button onclick="changePosQty(${idx}, -1)" style="width: 26px; height: 26px; background: #334155; color: white; border: none; border-radius: 6px; font-weight: 800; cursor: pointer; display: flex; align-items: center; justify-content: center;">-</button>
-          <span style="font-weight: 800; min-width: 16px; text-align: center; color: #ffffff; font-size: 0.88rem;">${item.cantidad}</span>
-          <button onclick="changePosQty(${idx}, 1)" style="width: 26px; height: 26px; background: #334155; color: white; border: none; border-radius: 6px; font-weight: 800; cursor: pointer; display: flex; align-items: center; justify-content: center;">+</button>
-          <span style="font-weight: 900; color: #38bdf8; min-width: 58px; text-align: right; font-size: 0.88rem;">₡${subtotal.toLocaleString('es-CR')}</span>
+          <button onclick="changePosQty(${idx}, -1)" class="pos-qty-btn">-</button>
+          <span style="font-weight: 800; min-width: 18px; text-align: center; color: #0f172a; font-size: 0.88rem;">${item.cantidad}</span>
+          <button onclick="changePosQty(${idx}, 1)" class="pos-qty-btn">+</button>
+          <span style="font-weight: 900; color: #0284c7; min-width: 58px; text-align: right; font-size: 0.88rem;">₡${subtotal.toLocaleString('es-CR')}</span>
         </div>
       </div>
     `;
@@ -635,18 +635,20 @@ function renderScannedStudent() {
   
   const btnCobrar = document.getElementById('btnCobrarPos');
   if (scannedStudent.tarjeta_bloqueada) {
-    document.getElementById('scannedName').innerHTML = `${scannedStudent.nombre_completo} <span style="font-size: 0.72rem; color: #fee2e2; background: #dc2626; padding: 2px 7px; border-radius: 6px; font-weight: 900; margin-left: 6px;">⛔ TARJETA SUSPENDIDA</span>`;
+    document.getElementById('scannedName').innerHTML = `${scannedStudent.nombre_completo} <span style="font-size: 0.72rem; color: #991b1b; background: #fee2e2; border: 1px solid #fecaca; padding: 2px 7px; border-radius: 6px; font-weight: 800; margin-left: 6px;">⛔ SUSPENDIDA</span>`;
     if (btnCobrar) {
       btnCobrar.disabled = true;
       btnCobrar.textContent = '⛔ Tarjeta Suspendida';
-      btnCobrar.style.background = '#64748b';
+      btnCobrar.style.background = '#94a3b8';
+      btnCobrar.style.cursor = 'not-allowed';
     }
   } else {
     document.getElementById('scannedName').textContent = scannedStudent.nombre_completo;
     if (btnCobrar) {
       btnCobrar.disabled = false;
-      btnCobrar.innerHTML = `<span>🔫</span> COBRAR A ${scannedStudent.nombre_completo.split(' ')[0].toUpperCase()} ➔`;
-      btnCobrar.style.background = 'linear-gradient(135deg, #10b981, #059669)';
+      btnCobrar.innerHTML = `<span>⚡</span> COBRAR A ${scannedStudent.nombre_completo.split(' ')[0].toUpperCase()} ➔`;
+      btnCobrar.style.background = '#16a34a';
+      btnCobrar.style.cursor = 'pointer';
     }
   }
 
@@ -676,8 +678,9 @@ function clearScannedStudent() {
   const btnCobrar = document.getElementById('btnCobrarPos');
   if (btnCobrar) {
     btnCobrar.disabled = false;
-    btnCobrar.innerHTML = '<span>🔫</span> COBRAR CON PISTOLA QR';
-    btnCobrar.style.background = 'linear-gradient(135deg, #0284c7, #0369a1)';
+    btnCobrar.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg> <span>COBRAR CON PISTOLA QR</span>`;
+    btnCobrar.style.background = '#0f172a';
+    btnCobrar.style.cursor = 'pointer';
   }
 }
 
@@ -1012,30 +1015,51 @@ async function loadPreOrders() {
       const hora = new Date(ord.creado_en).toLocaleTimeString('es-CR', { hour: '2-digit', minute: '2-digit' });
       const items = Array.isArray(ord.items) ? ord.items : [];
       const itemsList = items.map(i => `${i.cantidad}x ${i.icono || '🥪'} ${i.nombre}`).join(', ');
+      const avatarUrl = ord.foto_url || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150';
 
       return `
-        <div style="background: #1e293b; border: 1px solid #334155; border-radius: 12px; padding: 14px; display: flex; justify-content: space-between; align-items: center;">
-          <div style="display: flex; gap: 12px; align-items: center;">
-            <img src="${ord.foto_url}" style="width: 44px; height: 44px; border-radius: 50%; border: 2px solid #38bdf8;">
-            <div>
-              <div style="display: flex; align-items: center; gap: 8px;">
-                <strong style="color: #ffffff; font-size: 0.95rem;">${ord.estudiante_nombre}</strong>
-                <span style="font-size: 0.75rem; color: #94a3b8;">${ord.grado} - ${ord.seccion}</span>
-                <span class="status-pill status-${ord.estado}">${ord.estado}</span>
+        <div class="pos-preorder-card">
+          <div class="pos-preorder-header">
+            <div class="pos-preorder-student">
+              <img src="${avatarUrl}" class="pos-preorder-avatar" alt="Foto">
+              <div>
+                <div class="pos-preorder-name-row">
+                  <strong class="pos-preorder-name">${ord.estudiante_nombre}</strong>
+                  <span class="pos-preorder-grade">${ord.grado} • ${ord.seccion}</span>
+                </div>
+                <div class="pos-preorder-ticket-info">Ticket: ${ord.codigo_orden} • Pedido a las ${hora}</div>
               </div>
-              <div style="font-size: 0.8rem; color: #38bdf8; margin: 2px 0;">📦 ${itemsList}</div>
-              <div style="font-size: 0.72rem; color: #94a3b8;">Ticket: ${ord.codigo_orden} • Pedido a las ${hora} • Total: ₡${ord.total_colones.toLocaleString('es-CR')}</div>
+            </div>
+            <div>
+              ${ord.estado === 'entregado'
+                ? '<span class="saas-status-badge saas-status-active"><span class="saas-dot"></span>Entregado</span>'
+                : '<span class="saas-status-badge saas-status-pending"><span class="saas-dot"></span>Pendiente</span>'
+              }
             </div>
           </div>
 
-          <div>
-            ${ord.estado !== 'entregado' ? `
-              <button onclick="updateOrderStatus(${ord.id}, 'entregado')" style="padding: 8px 18px; background: #059669; color: white; border: none; border-radius: 8px; font-weight: 800; font-size: 0.88rem; cursor: pointer; display: flex; align-items: center; gap: 6px; box-shadow: 0 2px 4px rgba(0,0,0,0.2); transition: background 0.15s ease;" onmouseover="this.style.background='#047857'" onmouseout="this.style.background='#059669'">
-                Entregado
-              </button>
-            ` : `
-              <span style="font-size: 0.82rem; color: #34d399; font-weight: 800; padding: 6px 12px; background: rgba(52, 211, 153, 0.1); border-radius: 6px; border: 1px solid rgba(52, 211, 153, 0.2);">✓ Entregado</span>
-            `}
+          <div class="pos-preorder-items-box">
+            <span>📦</span>
+            <span style="flex: 1; word-break: break-word;">${itemsList}</span>
+          </div>
+
+          <div class="pos-preorder-footer">
+            <div class="pos-preorder-total">
+              <span class="pos-preorder-total-label">Total:</span>
+              <strong class="pos-preorder-total-val">₡${ord.total_colones.toLocaleString('es-CR')}</strong>
+            </div>
+            <div>
+              ${ord.estado !== 'entregado' ? `
+                <button onclick="updateOrderStatus(${ord.id}, 'entregado')" class="btn-saas pos-btn-entregar">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                  <span>Entregado</span>
+                </button>
+              ` : `
+                <span class="saas-status-badge saas-status-active" style="padding: 6px 12px; font-size: 0.8rem;">
+                  <span class="saas-dot"></span>Despachado
+                </span>
+              `}
+            </div>
           </div>
         </div>
       `;

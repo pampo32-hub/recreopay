@@ -38,10 +38,10 @@
       to { transform: rotate(360deg); }
     }
   </style>
-<body style="background: #0b1120; color: #f8fafc;" class="pos-mobile-view-catalog">
+<body class="pos-mobile-view-catalog" style="background: #f8fafc; color: #0f172a;">
 
   <!-- BANNER DE ADVERTENCIA HTTPS PARA TERMINALES REMOTAS -->
-  <div id="posBannerHttpsWarning" style="display: none; background: linear-gradient(135deg, #b45309, #d97706); color: white; padding: 10px 14px; font-size: 0.8rem; font-weight: 700; text-align: center;">
+  <div id="posBannerHttpsWarning" style="display: none; background: #b45309; color: white; padding: 10px 14px; font-size: 0.8rem; font-weight: 700; text-align: center;">
     🔒 Terminal en HTTP. Para activar la cámara en vivo del dispositivo, se requiere conexión HTTPS:
     <a id="posLinkHttpsRedirect" href="https://somewhat-ships-looksmart-optical.trycloudflare.com/pos.html" style="margin-left: 8px; color: white; text-decoration: underline; font-weight: 900;">
       🚀 Abrir en HTTPS Seguro ↗
@@ -62,28 +62,29 @@
   <div class="pos-layout">
     <!-- PANEL IZQUIERDO: CATÁLOGO TÁCTIL Y COLA DE PRE-ÓRDENES -->
     <div class="pos-catalog-pane">
-      <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #334155; padding-bottom: 12px; flex-wrap: wrap; gap: 10px;">
+      <div class="pos-header-card">
         <div style="display: flex; align-items: center; gap: 10px;">
           <span style="font-size: 1.8rem;">🥪</span>
           <div>
-            <h1 style="font-size: 1.25rem; font-weight: 900; color: #ffffff; margin: 0;">RecreoPay <span style="color: #38bdf8;">Terminal Soda</span></h1>
-            <span style="font-size: 0.78rem; color: #94a3b8;">Soda Escolar • Ventana de Atención Rápida</span>
+            <h1 style="font-size: 1.2rem; font-weight: 800; color: #0f172a; margin: 0;">RecreoPay <span style="color: #0284c7;">Terminal Soda</span></h1>
+            <span style="font-size: 0.76rem; color: #64748b;">Soda Escolar • Ventana de Atención Rápida</span>
           </div>
         </div>
 
         <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
-          <span id="pistolaStatusBadge" style="display: inline-flex; align-items: center; gap: 6px; font-size: 0.75rem; background: #0c4a6e; color: #38bdf8; padding: 4px 10px; border-radius: 20px; font-weight: 800; border: 1px solid #0284c7;" title="Pistola lectora USB/Bluetooth lista para escanear en cualquier momento">
-            <span>🔫</span> Pistola QR Conectada
+          <span id="pistolaStatusBadge" class="saas-status-badge" style="background: #e0f2fe; color: #0369a1; border: 1px solid #bae6fd; font-weight: 700;" title="Pistola lectora USB/Bluetooth lista para escanear en cualquier momento">
+            <span class="saas-dot" style="background: #0284c7;"></span>
+            Pistola QR Conectada
           </span>
-          <span style="display: inline-flex; align-items: center; gap: 6px; font-size: 0.75rem; background: #064e3b; color: #34d399; padding: 4px 8px; border-radius: 20px; font-weight: 700;">
-            <span style="width: 8px; height: 8px; background: #34d399; border-radius: 50%; display: inline-block;"></span>
+          <span class="saas-status-badge saas-status-active" title="Conexión en tiempo real activa">
+            <span class="saas-dot"></span>
             En Línea (SSE)
           </span>
-          <a href="/index.html" style="color: #cbd5e1; font-size: 0.75rem; font-weight: 700; text-decoration: none; border: 1px solid #475569; padding: 4px 8px; border-radius: 8px; background: #1e293b;">
-            👨‍🍳 Admin
+          <a href="/index.html" class="btn-saas btn-saas-outline" style="height: 30px; font-size: 0.76rem;">
+            <span>👨‍🍳</span> Admin
           </a>
-          <a href="/index.html" target="_blank" style="color: #38bdf8; font-size: 0.75rem; font-weight: 700; text-decoration: none; border: 1px solid #38bdf8; padding: 4px 8px; border-radius: 8px;">
-            PWA Estudiante ↗
+          <a href="/index.html" target="_blank" class="btn-saas btn-saas-outline" style="height: 30px; font-size: 0.76rem; color: #0284c7; border-color: #bae6fd;">
+            <span>📱</span> PWA Estudiante ↗
           </a>
         </div>
       </div>
@@ -100,12 +101,13 @@
 
       <!-- VISTA 1: CATÁLOGO TÁCTIL DE PRODUCTOS (MOSTRADOR) -->
       <div id="viewPosMostrador">
-        <div style="display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: 14px; flex-wrap: wrap;">
-          <div style="display: flex; gap: 8px; overflow-x: auto; flex: 1; min-width: 200px;" id="posCategoriesBar">
+        <div class="pos-category-toolbar">
+          <div class="pos-category-scroll-container" id="posCategoriesBar">
             <!-- Filtros de categorías -->
           </div>
-          <button type="button" onclick="openQuickProductModal()" style="background: linear-gradient(135deg, #10b981, #059669); color: white; border: none; padding: 7px 14px; border-radius: 10px; font-weight: 800; font-size: 0.8rem; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; box-shadow: 0 2px 10px rgba(16, 185, 129, 0.35); flex-shrink: 0; white-space: nowrap;">
-            <span>⚡</span> + Nuevo Rápido
+          <button type="button" onclick="openQuickProductModal()" class="btn-saas btn-saas-primary pos-btn-quick-prod" title="Crear y vender un producto no inventariado al instante">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg>
+            <span>+ Nuevo Rápido</span>
           </button>
         </div>
 
@@ -116,22 +118,27 @@
 
       <!-- VISTA 2: FILA RÁPIDA DE PRE-ÓRDENES (RETIRO EN RECREO) -->
       <div id="viewPosPreordenes" style="display: none;">
-        <div style="background: #1e293b; border: 1px solid #334155; border-radius: 12px; padding: 12px 16px; margin-bottom: 14px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
+        <div style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 14px; padding: 14px 18px; margin-bottom: 14px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; box-shadow: 0 1px 3px rgba(0,0,0,0.04);">
           <div>
-            <strong style="color: #38bdf8; font-size: 0.95rem;">⚡ Despacho Exclusivo Recreo</strong>
-            <p style="font-size: 0.78rem; color: #94a3b8; margin: 2px 0 0 0;">Los estudiantes con pre-orden retiran en 3 segundos escaneando su QR aquí.</p>
+            <div style="display: flex; align-items: center; gap: 6px;">
+              <span style="font-size: 1.1rem;">⚡</span>
+              <strong style="color: #0f172a; font-size: 0.95rem;">Despacho Exclusivo de Recreo</strong>
+            </div>
+            <p style="font-size: 0.78rem; color: #64748b; margin: 3px 0 0 0;">Los estudiantes con pre-orden retiran en segundos escaneando su carné aquí.</p>
           </div>
-          <div style="display: flex; gap: 8px; align-items: center;">
-            <button onclick="openPreOrderScanModal()" style="background: linear-gradient(135deg, #0284c7, #0369a1); border: none; color: white; padding: 8px 14px; border-radius: 8px; font-weight: 800; font-size: 0.8rem; cursor: pointer; display: flex; align-items: center; gap: 6px; box-shadow: 0 2px 8px rgba(2, 132, 199, 0.4);">
-              <span>📷</span> Escanear QR para Entregar
+          <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+            <button onclick="openPreOrderScanModal()" class="btn-saas btn-saas-primary" style="height: 36px; padding: 0 14px;">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+              <span>Escanear QR para Entregar</span>
             </button>
-            <button onclick="loadPreOrders()" style="background: #334155; border: none; color: white; padding: 8px 12px; border-radius: 8px; font-weight: 700; cursor: pointer;">
-              🔄 Refrescar
+            <button onclick="loadPreOrders()" class="btn-saas btn-saas-outline" style="height: 36px; padding: 0 12px;">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M3 21v-5h5"/></svg>
+              <span>Refrescar</span>
             </button>
           </div>
         </div>
 
-        <div id="preOrdersList" style="display: flex; flex-direction: column; gap: 10px;">
+        <div id="preOrdersList" style="display: flex; flex-direction: column; gap: 12px;">
           <!-- Lista de pre-órdenes -->
         </div>
       </div>
@@ -142,7 +149,7 @@
           <span style="font-size: 1.3rem;">🛒</span>
           <div>
             <div style="font-weight: 800; font-size: 0.88rem; color: #ffffff;" id="posFloatingCartText">0 ítems</div>
-            <div style="font-size: 0.72rem; color: #94a3b8;">Toca para cobrar o escanear QR</div>
+            <div style="font-size: 0.72rem; color: #cbd5e1;">Toca para cobrar o escanear QR</div>
           </div>
         </div>
         <div style="display: flex; align-items: center; gap: 8px;">
@@ -165,65 +172,67 @@
         <!-- SECCIÓN DE IDENTIFICACIÓN / ALUMNO EN MOSTRADOR -->
         <div id="posStudentSection" style="margin-bottom: 12px;">
           <!-- ESTADO INICIAL: SIN ALUMNO IDENTIFICADO -->
-          <div id="posNoStudentPlaceholder" style="background: #1e293b; border: 1.5px dashed #334155; border-radius: 14px; padding: 14px 16px; text-align: center;">
+          <div id="posNoStudentPlaceholder" style="background: #f8fafc; border: 1.5px dashed #cbd5e1; border-radius: 14px; padding: 16px; text-align: center;">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
-              <span style="font-size: 0.85rem; font-weight: 800; color: #38bdf8;">👤 Alumno en Mostrador</span>
-              <span style="font-size: 0.7rem; color: #34d399; background: #064e3b; padding: 2px 8px; border-radius: 6px; font-weight: 800;">Caja Lista</span>
+              <span style="font-size: 0.85rem; font-weight: 800; color: #0f172a;">👤 Alumno en Mostrador</span>
+              <span class="saas-status-badge saas-status-active"><span class="saas-dot"></span>Caja Lista</span>
             </div>
-            <p style="font-size: 0.76rem; color: #94a3b8; margin: 0 0 10px 0;">
-              Selecciona productos y presiona <strong>Cobrar</strong> para escanear, o identifica primero al estudiante:
+            <p style="font-size: 0.78rem; color: #64748b; margin: 0 0 12px 0;">
+              Selecciona productos y presiona <strong>Cobrar</strong>, o identifica primero al estudiante:
             </p>
-            <button type="button" onclick="openStudentIdModal()" style="padding: 8px 16px; background: #0284c7; color: white; border: none; border-radius: 10px; font-size: 0.8rem; font-weight: 800; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; box-shadow: 0 2px 8px rgba(2, 132, 199, 0.3);">
-              <span>📷</span> Identificar Alumno / Ver Saldo
+            <button type="button" onclick="openStudentIdModal()" class="btn-saas btn-saas-outline" style="height: 34px; padding: 0 14px; border-color: #cbd5e1;">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+              <span>Identificar Alumno / Ver Saldo</span>
             </button>
           </div>
 
           <!-- TARJETA DEL ESTUDIANTE IDENTIFICADO POR QR -->
-          <div id="studentScannedCard" style="display: none;" class="student-badge-scanned">
-            <img id="scannedAvatar" src="" style="width: 44px; height: 44px; border-radius: 50%; border: 2px solid #38bdf8; background: white; flex-shrink: 0; object-fit: cover;">
+          <div id="studentScannedCard" style="display: none; background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 14px; padding: 12px; margin-bottom: 14px; align-items: center; gap: 12px;">
+            <img id="scannedAvatar" src="" style="width: 44px; height: 44px; border-radius: 50%; border: 2px solid #16a34a; background: white; flex-shrink: 0; object-fit: cover;">
             <div style="flex: 1; min-width: 0; word-break: break-word;">
-              <h4 id="scannedName" style="font-size: 0.92rem; font-weight: 800; color: #ffffff; margin: 0; line-height: 1.2;">Nombre del Alumno</h4>
-              <div id="scannedGrade" style="font-size: 0.74rem; color: #94a3b8; margin-top: 2px;">2° Grado • Sección 2-A</div>
-              <div style="display: flex; gap: 8px; margin-top: 4px; font-size: 0.74rem; flex-wrap: wrap;">
-                <span>Saldo: <strong id="scannedBalance" style="color: #34d399;">₡0</strong></span>
-                <span>Disp. hoy: <strong id="scannedAvailable" style="color: #38bdf8;">₡0</strong></span>
+              <h4 id="scannedName" style="font-size: 0.92rem; font-weight: 800; color: #0f172a; margin: 0; line-height: 1.2;">Nombre del Alumno</h4>
+              <div id="scannedGrade" style="font-size: 0.74rem; color: #64748b; margin-top: 2px;">2° Grado • Sección 2-A</div>
+              <div style="display: flex; gap: 10px; margin-top: 4px; font-size: 0.74rem; flex-wrap: wrap;">
+                <span style="color: #475569;">Saldo: <strong id="scannedBalance" style="color: #16a34a; font-weight: 800;">₡0</strong></span>
+                <span style="color: #475569;">Disp. hoy: <strong id="scannedAvailable" style="color: #0284c7; font-weight: 800;">₡0</strong></span>
               </div>
             </div>
-            <button onclick="clearScannedStudent()" style="background: none; border: none; color: #ef4444; font-size: 1.2rem; cursor: pointer; padding: 4px 8px; flex-shrink: 0;" title="Desconectar alumno">✕</button>
+            <button onclick="clearScannedStudent()" style="background: none; border: none; color: #dc2626; font-size: 1.2rem; cursor: pointer; padding: 4px 8px; flex-shrink: 0;" title="Desconectar alumno">✕</button>
           </div>
 
           <!-- ALERTA DE ALERGIAS AL CAJERO -->
-          <div id="scannedAllergyAlert" style="display: none; background: #7f1d1d; border: 1px solid #ef4444; border-radius: 10px; padding: 8px 12px; margin-top: 10px; font-size: 0.78rem; color: #fecaca;">
+          <div id="scannedAllergyAlert" style="display: none; background: #fef2f2; border: 1px solid #fecaca; border-radius: 10px; padding: 8px 12px; margin-top: 10px; font-size: 0.78rem; color: #991b1b;">
             ⚠️ <strong>ALERTA MÉDICA:</strong> <span id="scannedAllergyText"></span>
           </div>
         </div>
 
         <!-- LISTA DE PRODUCTOS SELECCIONADOS EN CAJA -->
         <div style="margin-top: 14px;">
-          <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.82rem; font-weight: 700; color: #94a3b8; border-bottom: 1px solid #334155; padding-bottom: 6px;">
+          <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.82rem; font-weight: 700; color: #64748b; border-bottom: 1px solid #e2e8f0; padding-bottom: 6px;">
             <div style="display: flex; align-items: center; gap: 8px;">
               <span>Ítems en Mostrador</span>
-              <button type="button" onclick="openQuickProductModal()" style="background: #064e3b; color: #34d399; border: 1px solid #059669; border-radius: 6px; font-size: 0.72rem; font-weight: 800; padding: 2px 8px; cursor: pointer; display: inline-flex; align-items: center; gap: 4px;">
-                <span>⚡</span> + Rápido
+              <button type="button" onclick="openQuickProductModal()" class="btn-saas btn-saas-outline" style="height: 24px; font-size: 0.7rem; padding: 0 8px;">
+                <span>+ Rápido</span>
               </button>
             </div>
-            <button onclick="clearPosCart()" style="background: none; border: none; color: #ef4444; font-size: 0.75rem; font-weight: 700; cursor: pointer; padding: 2px 6px;">Limpiar</button>
+            <button onclick="clearPosCart()" style="background: none; border: none; color: #dc2626; font-size: 0.75rem; font-weight: 700; cursor: pointer; padding: 2px 6px;">Limpiar</button>
           </div>
           <div class="pos-cart-list" id="posCartList">
-            <p style="text-align: center; color: #64748b; padding: 20px; font-size: 0.85rem;">Toca productos del menú para cobrar</p>
+            <p style="text-align: center; color: #94a3b8; padding: 20px; font-size: 0.85rem;">Toca productos del menú para cobrar</p>
           </div>
         </div>
       </div>
 
       <!-- BOTÓN DE COBRO Y TOTAL -->
-      <div style="border-top: 2px solid #334155; padding-top: 14px; margin-top: auto;">
+      <div style="border-top: 1px solid #e2e8f0; padding-top: 14px; margin-top: auto;">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; gap: 10px;">
-          <span style="font-size: 0.88rem; font-weight: 800; color: #94a3b8; letter-spacing: 0.5px;">TOTAL A DEBITAR:</span>
-          <span id="posCartTotal" style="font-size: 1.7rem; font-weight: 900; color: #38bdf8;">₡0</span>
+          <span style="font-size: 0.88rem; font-weight: 700; color: #64748b; letter-spacing: 0.5px;">TOTAL A DEBITAR:</span>
+          <span id="posCartTotal" style="font-size: 1.7rem; font-weight: 900; color: #0f172a;">₡0</span>
         </div>
 
-        <button id="btnCobrarPos" onclick="executePosDebit()" style="width: 100%; padding: 14px; background: linear-gradient(135deg, #0284c7, #0369a1); border: none; border-radius: 14px; color: white; font-size: 1rem; font-weight: 900; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 10px; box-shadow: 0 4px 14px rgba(2, 132, 199, 0.4); box-sizing: border-box;">
-          <span>🔫</span> COBRAR CON PISTOLA QR
+        <button id="btnCobrarPos" onclick="executePosDebit()" style="width: 100%; padding: 13px; background: #0f172a; border: none; border-radius: 12px; color: white; font-size: 0.95rem; font-weight: 800; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; box-shadow: 0 4px 12px rgba(15, 23, 42, 0.15); box-sizing: border-box; transition: all 0.15s ease;">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+          <span>COBRAR CON PISTOLA QR</span>
         </button>
       </div>
     </div>
@@ -231,36 +240,36 @@
 
   <!-- MODAL DE COBRO RÁPIDO CON PISTOLA QR -->
   <div class="modal-qr-backdrop" id="modalPistolaCobro" style="display: none;" onclick="closePistolaModal(event)">
-    <div class="modal-qr-card" onclick="event.stopPropagation()" style="max-width: 440px; background: #0f172a; border: 2px solid #38bdf8; border-radius: 20px; box-shadow: 0 20px 50px rgba(0,0,0,0.8); padding: 22px; color: #f8fafc; text-align: center;">
+    <div class="modal-qr-card" onclick="event.stopPropagation()" style="max-width: 440px; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 20px; box-shadow: 0 20px 50px rgba(0,0,0,0.15); padding: 22px; color: #0f172a; text-align: center;">
       <!-- CABECERA -->
-      <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #334155; padding-bottom: 12px; margin-bottom: 16px;">
+      <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #e2e8f0; padding-bottom: 12px; margin-bottom: 16px;">
         <div style="display: flex; align-items: center; gap: 8px;">
           <span style="font-size: 1.5rem;" id="pistolaModalIcon">📷</span>
-          <strong style="font-size: 1.1rem; color: #38bdf8; letter-spacing: 0.5px;" id="pistolaModalTitle">Escanear Carné QR</strong>
+          <strong style="font-size: 1.1rem; color: #0f172a; letter-spacing: 0.5px;" id="pistolaModalTitle">Escanear Carné QR</strong>
         </div>
-        <button type="button" onclick="closePistolaModal()" style="background: none; border: none; font-size: 1.3rem; color: #94a3b8; cursor: pointer;">✕</button>
+        <button type="button" onclick="closePistolaModal()" style="background: none; border: none; font-size: 1.3rem; color: #64748b; cursor: pointer;">✕</button>
       </div>
 
       <!-- ESTADO 1: ESPERANDO ESCANEO (DEFAULT) -->
       <div id="pistolaStateWaiting">
         <!-- TOTAL A COBRAR GIGANTE (SOLO EN MODO COBRO) -->
-        <div id="pistolaTotalContainer" style="background: #1e293b; border: 1.5px solid #0284c7; border-radius: 14px; padding: 12px; margin-bottom: 14px;">
-          <div style="font-size: 0.78rem; font-weight: 800; color: #94a3b8; text-transform: uppercase;">Monto Total a Cobrar</div>
-          <div id="pistolaModalTotal" style="font-size: 2.3rem; font-weight: 900; color: #38bdf8; margin: 4px 0;">₡0</div>
-          <div id="pistolaModalItemCount" style="font-size: 0.75rem; color: #cbd5e1;">0 productos en mostrador</div>
+        <div id="pistolaTotalContainer" style="background: #f8fafc; border: 1.5px solid #e2e8f0; border-radius: 14px; padding: 12px; margin-bottom: 14px;">
+          <div style="font-size: 0.78rem; font-weight: 800; color: #64748b; text-transform: uppercase;">Monto Total a Cobrar</div>
+          <div id="pistolaModalTotal" style="font-size: 2.3rem; font-weight: 900; color: #0284c7; margin: 4px 0;">₡0</div>
+          <div id="pistolaModalItemCount" style="font-size: 0.75rem; color: #64748b;">0 productos en mostrador</div>
         </div>
 
         <!-- CÁMARA BAJO DEMANDA INTEGRADA EN EL MODAL -->
         <div id="modalCameraContainer" style="position: relative; border-radius: 14px; overflow: hidden; background: #000; min-height: 200px; max-height: 230px; margin-bottom: 12px; display: flex; align-items: center; justify-content: center; border: 2px solid #0284c7;">
           <video id="modalScannerVideo" style="width: 100%; height: 210px; object-fit: cover;" autoplay playsinline webkit-playsinline muted></video>
           <div class="laser-scan-line"></div>
-          <div id="modalCameraStatusBadge" style="position: absolute; bottom: 8px; left: 50%; transform: translateX(-50%); background: rgba(15, 23, 42, 0.92); color: #38bdf8; padding: 4px 12px; border-radius: 20px; font-size: 0.74rem; font-weight: 800; border: 1px solid #0284c7; white-space: nowrap; box-shadow: 0 4px 10px rgba(0,0,0,0.5);">
+          <div id="modalCameraStatusBadge" style="position: absolute; bottom: 8px; left: 50%; transform: translateX(-50%); background: rgba(15, 23, 42, 0.9); color: #ffffff; padding: 4px 12px; border-radius: 20px; font-size: 0.74rem; font-weight: 800; border: 1px solid #0284c7; white-space: nowrap; box-shadow: 0 4px 10px rgba(0,0,0,0.3);">
             📷 Apunta el carné a la cámara o dispara pistola
           </div>
           <div id="modalCameraOverlay" style="display: none; position: absolute; inset: 0; background: rgba(15, 23, 42, 0.95); padding: 14px; text-align: center; flex-direction: column; justify-content: center; align-items: center; gap: 8px; z-index: 10;">
             <span style="font-size: 2rem;">📷</span>
             <div id="modalCameraHelpText" style="font-size: 0.8rem; color: #f8fafc; line-height: 1.35;">Toca el botón para permitir el uso de la cámara</div>
-            <button type="button" onclick="startModalCamera(true)" style="padding: 8px 16px; background: #0284c7; color: white; border: none; border-radius: 8px; font-weight: 800; font-size: 0.82rem; cursor: pointer; box-shadow: 0 4px 10px rgba(2, 132, 199, 0.4);">
+            <button type="button" onclick="startModalCamera(true)" class="btn-saas btn-saas-primary" style="height: 36px; padding: 0 16px;">
               Permitir Cámara
             </button>
           </div>
@@ -268,16 +277,16 @@
 
         <!-- CAMPO DE ENTRADA ENFOCADO PARA PISTOLA USB -->
         <div style="margin-bottom: 12px;">
-          <input type="text" id="inputPistolaDirectScan" placeholder="Esperando lectura de carné o pistola..." autocomplete="off" style="width: 100%; padding: 10px; border-radius: 10px; border: 1.5px solid #334155; background: #1e293b; color: #f8fafc; font-size: 0.88rem; font-weight: 800; text-align: center; box-sizing: border-box;">
+          <input type="text" id="inputPistolaDirectScan" placeholder="Esperando lectura de carné o pistola..." autocomplete="off" style="width: 100%; padding: 10px; border-radius: 10px; border: 1.5px solid #cbd5e1; background: #f8fafc; color: #0f172a; font-size: 0.88rem; font-weight: 800; text-align: center; box-sizing: border-box; outline: none;">
         </div>
 
         <!-- ACCESOS RÁPIDOS DE PRUEBA -->
-        <div style="border-top: 1px dashed #334155; padding-top: 10px; margin-top: 10px;">
-          <span style="font-size: 0.72rem; color: #94a3b8; display: block; margin-bottom: 6px;">Simulación rápida sin pistola física ni cámara:</span>
+        <div style="border-top: 1px dashed #e2e8f0; padding-top: 10px; margin-top: 10px;">
+          <span style="font-size: 0.72rem; color: #64748b; display: block; margin-bottom: 6px;">Simulación rápida sin pistola física ni cámara:</span>
           <div style="display: flex; gap: 6px; justify-content: center; flex-wrap: wrap;">
-            <button type="button" onclick="handlePistolBarcodeScan('QR-MATEO-2026-A891')" style="padding: 5px 10px; background: #334155; color: white; border: none; border-radius: 6px; font-size: 0.72rem; font-weight: 700; cursor: pointer;">🧒 Mateo (8a)</button>
-            <button type="button" onclick="handlePistolBarcodeScan('QR-SOFIA-2026-B442')" style="padding: 5px 10px; background: #334155; color: white; border: none; border-radius: 6px; font-size: 0.72rem; font-weight: 700; cursor: pointer;">👧 Sofía (9a)</button>
-            <button type="button" onclick="handlePistolBarcodeScan('QR-NACHO-2026-D902')" style="padding: 5px 10px; background: #334155; color: white; border: none; border-radius: 6px; font-size: 0.72rem; font-weight: 700; cursor: pointer;">🧑 Ignacio (14a)</button>
+            <button type="button" onclick="handlePistolBarcodeScan('QR-MATEO-2026-A891')" class="btn-saas btn-saas-outline" style="height: 28px; font-size: 0.75rem;">🧒 Mateo (8a)</button>
+            <button type="button" onclick="handlePistolBarcodeScan('QR-SOFIA-2026-B442')" class="btn-saas btn-saas-outline" style="height: 28px; font-size: 0.75rem;">👧 Sofía (9a)</button>
+            <button type="button" onclick="handlePistolBarcodeScan('QR-NACHO-2026-D902')" class="btn-saas btn-saas-outline" style="height: 28px; font-size: 0.75rem;">🧑 Ignacio (14a)</button>
           </div>
         </div>
       </div>
@@ -285,33 +294,33 @@
       <!-- ESTADO 2: PROCESANDO COBRO -->
       <div id="pistolaStateProcessing" style="display: none; padding: 20px 0;">
         <div style="font-size: 2.8rem; animation: spin 1s infinite linear;">⚡</div>
-        <h3 style="font-size: 1.15rem; color: #38bdf8; margin: 10px 0 4px 0;">Procesando Débito...</h3>
-        <p style="font-size: 0.8rem; color: #94a3b8;" id="pistolaProcessingName">Verificando carné y saldo del alumno...</p>
+        <h3 style="font-size: 1.15rem; color: #0284c7; margin: 10px 0 4px 0;">Procesando Débito...</h3>
+        <p style="font-size: 0.8rem; color: #64748b;" id="pistolaProcessingName">Verificando carné y saldo del alumno...</p>
       </div>
 
       <!-- ESTADO 3: ÉXITO -->
       <div id="pistolaStateSuccess" style="display: none; padding: 10px 0;">
         <div style="font-size: 3rem;">✅</div>
-        <h3 style="font-size: 1.3rem; color: #34d399; margin: 6px 0;">¡COBRO EXITOSO!</h3>
-        <div style="background: #1e293b; border-radius: 12px; padding: 12px; margin: 12px 0; text-align: left; font-size: 0.82rem;">
+        <h3 style="font-size: 1.3rem; color: #16a34a; margin: 6px 0;">¡COBRO EXITOSO!</h3>
+        <div style="background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 12px; padding: 14px; margin: 12px 0; text-align: left; font-size: 0.84rem;">
           <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
-            <span style="color: #94a3b8;">Estudiante:</span>
-            <strong id="pistolaSuccessStudent" style="color: #f8fafc;">-</strong>
+            <span style="color: #64748b;">Estudiante:</span>
+            <strong id="pistolaSuccessStudent" style="color: #0f172a;">-</strong>
           </div>
           <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
-            <span style="color: #94a3b8;">Ticket:</span>
-            <strong id="pistolaSuccessTicket" style="color: #38bdf8;">-</strong>
+            <span style="color: #64748b;">Ticket:</span>
+            <strong id="pistolaSuccessTicket" style="color: #0284c7;">-</strong>
           </div>
           <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
-            <span style="color: #94a3b8;">Monto Cobrado:</span>
-            <strong id="pistolaSuccessAmount" style="color: #f8fafc;">-</strong>
+            <span style="color: #64748b;">Monto Cobrado:</span>
+            <strong id="pistolaSuccessAmount" style="color: #0f172a;">-</strong>
           </div>
-          <div style="display: flex; justify-content: space-between; border-top: 1px dashed #334155; padding-top: 6px; margin-top: 6px;">
-            <span style="color: #94a3b8;">Nuevo Saldo Disponible:</span>
-            <strong id="pistolaSuccessBalance" style="color: #34d399; font-size: 0.95rem;">-</strong>
+          <div style="display: flex; justify-content: space-between; border-top: 1px dashed #bbf7d0; padding-top: 6px; margin-top: 6px;">
+            <span style="color: #64748b;">Nuevo Saldo Disponible:</span>
+            <strong id="pistolaSuccessBalance" style="color: #16a34a; font-size: 0.95rem;">-</strong>
           </div>
         </div>
-        <button type="button" onclick="closePistolaModal()" style="width: 100%; padding: 12px; background: #10b981; color: white; border: none; border-radius: 10px; font-weight: 800; font-size: 0.9rem; cursor: pointer;">
+        <button type="button" onclick="closePistolaModal()" class="btn-saas btn-saas-primary" style="width: 100%; height: 42px; background: #16a34a; border-color: #16a34a; font-size: 0.92rem; font-weight: 800;">
           Listo / Siguiente Alumno (Enter) ➔
         </button>
       </div>
@@ -319,9 +328,9 @@
       <!-- ESTADO 4: ERROR / ALERTA -->
       <div id="pistolaStateError" style="display: none; padding: 10px 0;">
         <div style="font-size: 3rem;">⛔</div>
-        <h3 style="font-size: 1.2rem; color: #ef4444; margin: 6px 0;" id="pistolaErrorTitle">No se pudo cobrar</h3>
-        <p style="font-size: 0.85rem; color: #fca5a5; line-height: 1.4; margin-bottom: 16px;" id="pistolaErrorDesc">Detalle del error</p>
-        <button type="button" onclick="resetPistolaModalWaiting()" style="padding: 10px 20px; background: #334155; color: white; border: none; border-radius: 10px; font-weight: 800; font-size: 0.85rem; cursor: pointer;">
+        <h3 style="font-size: 1.2rem; color: #dc2626; margin: 6px 0;" id="pistolaErrorTitle">No se pudo cobrar</h3>
+        <p style="font-size: 0.85rem; color: #991b1b; line-height: 1.4; margin-bottom: 16px;" id="pistolaErrorDesc">Detalle del error</p>
+        <button type="button" onclick="resetPistolaModalWaiting()" class="btn-saas btn-saas-outline" style="height: 38px; padding: 0 18px; font-weight: 700;">
           🔄 Intentar con otro carné
         </button>
       </div>
@@ -329,44 +338,44 @@
   </div>
 
   <!-- MODAL: NUEVO PRODUCTO RÁPIDO EN CALIENTE -->
-  <div id="modalProductoRapido" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.82); z-index: 9999; justify-content: center; align-items: center; padding: 16px; backdrop-filter: blur(5px);">
-    <div style="background: #0f172a; border: 2px solid #10b981; border-radius: 18px; max-width: 420px; width: 100%; padding: 22px; box-shadow: 0 20px 50px rgba(0,0,0,0.8); position: relative;">
-      <button type="button" onclick="closeQuickProductModal()" style="position: absolute; top: 14px; right: 14px; background: none; border: none; color: #94a3b8; font-size: 1.4rem; cursor: pointer; padding: 4px 8px; line-height: 1;" title="Cerrar (Esc)">✕</button>
+  <div id="modalProductoRapido" style="display: none; position: fixed; inset: 0; background: rgba(15, 23, 42, 0.6); z-index: 9999; justify-content: center; align-items: center; padding: 16px; backdrop-filter: blur(4px);">
+    <div style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 18px; max-width: 420px; width: 100%; padding: 24px; box-shadow: 0 20px 50px rgba(0,0,0,0.15); position: relative; color: #0f172a;">
+      <button type="button" onclick="closeQuickProductModal()" style="position: absolute; top: 14px; right: 14px; background: none; border: none; color: #64748b; font-size: 1.4rem; cursor: pointer; padding: 4px 8px; line-height: 1;" title="Cerrar (Esc)">✕</button>
 
       <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 16px;">
-        <span style="font-size: 1.8rem; background: #064e3b; padding: 8px; border-radius: 12px; border: 1px solid #10b981; display: inline-flex;">⚡</span>
+        <span style="font-size: 1.6rem; background: #f0fdf4; padding: 8px; border-radius: 12px; border: 1px solid #bbf7d0; display: inline-flex;">⚡</span>
         <div>
-          <h3 style="font-size: 1.15rem; font-weight: 900; color: #ffffff; margin: 0;">Nuevo Producto Rápido</h3>
-          <span style="font-size: 0.76rem; color: #94a3b8;">Registro instantáneo para cobrar al vuelo</span>
+          <h3 style="font-size: 1.15rem; font-weight: 800; color: #0f172a; margin: 0;">Nuevo Producto Rápido</h3>
+          <span style="font-size: 0.76rem; color: #64748b;">Registro instantáneo para cobrar al vuelo</span>
         </div>
       </div>
 
       <form id="formProductoRapido" onsubmit="saveQuickProduct(event)">
         <div style="margin-bottom: 14px;">
-          <label style="display: block; font-size: 0.78rem; font-weight: 700; color: #cbd5e1; margin-bottom: 6px;">
+          <label style="display: block; font-size: 0.78rem; font-weight: 700; color: #475569; margin-bottom: 6px;">
             Nombre del Producto:
           </label>
-          <input type="text" id="inputQuickProdNombre" placeholder="Ej: Empanada de Pollo, Jugo Naranja..." required autocomplete="off" style="width: 100%; padding: 11px 13px; border-radius: 10px; border: 1.5px solid #334155; background: #1e293b; color: #ffffff; font-size: 0.95rem; font-weight: 700; box-sizing: border-box; outline: none;">
+          <input type="text" id="inputQuickProdNombre" placeholder="Ej: Empanada de Pollo, Jugo Naranja..." required autocomplete="off" style="width: 100%; padding: 10px 12px; border-radius: 10px; border: 1.5px solid #cbd5e1; background: #f8fafc; color: #0f172a; font-size: 0.92rem; font-weight: 700; box-sizing: border-box; outline: none;">
         </div>
 
         <div style="margin-bottom: 18px;">
-          <label style="display: block; font-size: 0.78rem; font-weight: 700; color: #cbd5e1; margin-bottom: 6px;">
+          <label style="display: block; font-size: 0.78rem; font-weight: 700; color: #475569; margin-bottom: 6px;">
             Precio de Venta (₡ Colones):
           </label>
           <div style="position: relative;">
-            <span style="position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: #38bdf8; font-weight: 900; font-size: 1.1rem;">₡</span>
-            <input type="number" id="inputQuickProdPrecio" placeholder="1500" required min="1" step="50" style="width: 100%; padding: 11px 13px 11px 32px; border-radius: 10px; border: 1.5px solid #334155; background: #1e293b; color: #ffffff; font-size: 1.15rem; font-weight: 900; box-sizing: border-box; outline: none;">
+            <span style="position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: #0284c7; font-weight: 900; font-size: 1.1rem;">₡</span>
+            <input type="number" id="inputQuickProdPrecio" placeholder="1500" required min="1" step="50" style="width: 100%; padding: 10px 12px 10px 32px; border-radius: 10px; border: 1.5px solid #cbd5e1; background: #f8fafc; color: #0f172a; font-size: 1.1rem; font-weight: 900; box-sizing: border-box; outline: none;">
           </div>
-          <span style="font-size: 0.72rem; color: #34d399; margin-top: 6px; display: block;">
+          <span style="font-size: 0.72rem; color: #16a34a; margin-top: 6px; display: block; font-weight: 600;">
             🌿 Sello MEP Saludable asignado automáticamente (sin bloqueo parental)
           </span>
         </div>
 
         <div style="display: flex; gap: 10px;">
-          <button type="button" onclick="closeQuickProductModal()" style="flex: 1; padding: 12px; background: #334155; color: #cbd5e1; border: none; border-radius: 10px; font-weight: 700; font-size: 0.85rem; cursor: pointer;">
+          <button type="button" onclick="closeQuickProductModal()" class="btn-saas btn-saas-outline" style="flex: 1; height: 38px; font-size: 0.85rem;">
             Cancelar (Esc)
           </button>
-          <button type="submit" id="btnSubmitQuickProd" style="flex: 2; padding: 12px; background: linear-gradient(135deg, #10b981, #059669); color: white; border: none; border-radius: 10px; font-weight: 800; font-size: 0.92rem; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; box-shadow: 0 4px 14px rgba(16, 185, 129, 0.4);">
+          <button type="submit" id="btnSubmitQuickProd" class="btn-saas btn-saas-primary" style="flex: 2; height: 38px; background: #0f172a; border-color: #0f172a; font-size: 0.88rem; font-weight: 800;">
             <span>💾</span> Guardar y Cobrar ➔
           </button>
         </div>
