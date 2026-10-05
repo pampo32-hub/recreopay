@@ -111,14 +111,19 @@
 
       <!-- VISTA 2: FILA RÁPIDA DE PRE-ÓRDENES (RETIRO EN RECREO) -->
       <div id="viewPosPreordenes" style="display: none;">
-        <div style="background: #1e293b; border: 1px solid #334155; border-radius: 12px; padding: 12px 16px; margin-bottom: 14px; display: flex; justify-content: space-between; align-items: center;">
+        <div style="background: #1e293b; border: 1px solid #334155; border-radius: 12px; padding: 12px 16px; margin-bottom: 14px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
           <div>
             <strong style="color: #38bdf8; font-size: 0.95rem;">⚡ Despacho Exclusivo Recreo</strong>
-            <p style="font-size: 0.78rem; color: #94a3b8;">Los estudiantes con pre-orden retiran en 3 segundos escaneando su QR aquí.</p>
+            <p style="font-size: 0.78rem; color: #94a3b8; margin: 2px 0 0 0;">Los estudiantes con pre-orden retiran en 3 segundos escaneando su QR aquí.</p>
           </div>
-          <button onclick="loadPreOrders()" style="background: #334155; border: none; color: white; padding: 6px 12px; border-radius: 8px; font-weight: 700; cursor: pointer;">
-            🔄 Refrescar
-          </button>
+          <div style="display: flex; gap: 8px; align-items: center;">
+            <button onclick="openPreOrderScanModal()" style="background: linear-gradient(135deg, #0284c7, #0369a1); border: none; color: white; padding: 8px 14px; border-radius: 8px; font-weight: 800; font-size: 0.8rem; cursor: pointer; display: flex; align-items: center; gap: 6px; box-shadow: 0 2px 8px rgba(2, 132, 199, 0.4);">
+              <span>📷</span> Escanear QR para Entregar
+            </button>
+            <button onclick="loadPreOrders()" style="background: #334155; border: none; color: white; padding: 8px 12px; border-radius: 8px; font-weight: 700; cursor: pointer;">
+              🔄 Refrescar
+            </button>
+          </div>
         </div>
 
         <div id="preOrdersList" style="display: flex; flex-direction: column; gap: 10px;">
@@ -152,65 +157,40 @@
           </button>
         </div>
 
-        <!-- CÁMARA / ESCÁNER DE CÓDIGO QR -->
-        <div class="scanner-feed-card">
-          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-            <span style="font-size: 0.85rem; font-weight: 800; color: #38bdf8;">📷 Escáner QR de Alumnos</span>
-            <div style="display: flex; gap: 6px; align-items: center;">
-              <button id="btnFlipPosCamera" onclick="flipPosCamera()" style="display:none; padding: 3px 8px; background: #334155; color: white; border: none; border-radius: 6px; font-size: 0.72rem; font-weight: 700; cursor: pointer;">🔄 Girar</button>
-              <button id="btnRetryPosCamera" onclick="initCamera(true)" style="display:none; padding: 3px 8px; background: #0284c7; color: white; border: none; border-radius: 6px; font-size: 0.72rem; font-weight: 700; cursor: pointer;">📷 Activar</button>
-              <span style="font-size: 0.72rem; color: #94a3b8;" id="cameraStatus">Iniciando cámara...</span>
+        <!-- SECCIÓN DE IDENTIFICACIÓN / ALUMNO EN MOSTRADOR -->
+        <div id="posStudentSection" style="margin-bottom: 12px;">
+          <!-- ESTADO INICIAL: SIN ALUMNO IDENTIFICADO -->
+          <div id="posNoStudentPlaceholder" style="background: #1e293b; border: 1.5px dashed #334155; border-radius: 14px; padding: 14px 16px; text-align: center;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+              <span style="font-size: 0.85rem; font-weight: 800; color: #38bdf8;">👤 Alumno en Mostrador</span>
+              <span style="font-size: 0.7rem; color: #34d399; background: #064e3b; padding: 2px 8px; border-radius: 6px; font-weight: 800;">Caja Lista</span>
             </div>
+            <p style="font-size: 0.76rem; color: #94a3b8; margin: 0 0 10px 0;">
+              Selecciona productos y presiona <strong>Cobrar</strong> para escanear, o identifica primero al estudiante:
+            </p>
+            <button type="button" onclick="openStudentIdModal()" style="padding: 8px 16px; background: #0284c7; color: white; border: none; border-radius: 10px; font-size: 0.8rem; font-weight: 800; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; box-shadow: 0 2px 8px rgba(2, 132, 199, 0.3);">
+              <span>📷</span> Identificar Alumno / Ver Saldo
+            </button>
           </div>
 
-          <div style="position: relative; border-radius: 10px; overflow: hidden; background: #000; min-height: 180px; display: flex; align-items: center; justify-content: center;">
-            <video id="scannerVideo" class="camera-preview" autoplay playsinline webkit-playsinline muted></video>
-            <div class="laser-scan-line"></div>
-            <div id="cameraHelpOverlay" style="display: none; position: absolute; inset: 0; background: rgba(15, 23, 42, 0.92); padding: 14px; text-align: center; flex-direction: column; justify-content: center; align-items: center; gap: 10px; z-index: 10;">
-              <span style="font-size: 1.8rem;">📷</span>
-              <div id="cameraHelpText" style="font-size: 0.78rem; color: #f8fafc; line-height: 1.35;">Haz clic en Activar Cámara para escanear</div>
-              <div id="posCameraActionContainer" style="display: flex; flex-direction: column; gap: 8px; width: 100%; align-items: center;">
-                <button id="btnAllowPosCamera" onclick="initCamera(true)" style="padding: 8px 16px; background: #0284c7; color: white; border: none; border-radius: 8px; font-weight: 800; font-size: 0.82rem; cursor: pointer; box-shadow: 0 4px 10px rgba(2, 132, 199, 0.4);">
-                  Permitir Cámara
-                </button>
+          <!-- TARJETA DEL ESTUDIANTE IDENTIFICADO POR QR -->
+          <div id="studentScannedCard" style="display: none;" class="student-badge-scanned">
+            <img id="scannedAvatar" src="" style="width: 44px; height: 44px; border-radius: 50%; border: 2px solid #38bdf8; background: white; flex-shrink: 0; object-fit: cover;">
+            <div style="flex: 1; min-width: 0; word-break: break-word;">
+              <h4 id="scannedName" style="font-size: 0.92rem; font-weight: 800; color: #ffffff; margin: 0; line-height: 1.2;">Nombre del Alumno</h4>
+              <div id="scannedGrade" style="font-size: 0.74rem; color: #94a3b8; margin-top: 2px;">2° Grado • Sección 2-A</div>
+              <div style="display: flex; gap: 8px; margin-top: 4px; font-size: 0.74rem; flex-wrap: wrap;">
+                <span>Saldo: <strong id="scannedBalance" style="color: #34d399;">₡0</strong></span>
+                <span>Disp. hoy: <strong id="scannedAvailable" style="color: #38bdf8;">₡0</strong></span>
               </div>
             </div>
+            <button onclick="clearScannedStudent()" style="background: none; border: none; color: #ef4444; font-size: 1.2rem; cursor: pointer; padding: 4px 8px; flex-shrink: 0;" title="Desconectar alumno">✕</button>
           </div>
 
-          <!-- BOTÓN PARA TOMAR FOTO DEL CARNÉ O QR -->
-          <div style="display: flex; justify-content: center; margin-top: 8px;">
-            <label style="cursor: pointer; display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; background: #1e293b; border: 1px dashed #475569; border-radius: 8px; font-size: 0.74rem; font-weight: 700; color: #38bdf8;">
-              <span>📸</span> Tomar foto de carné QR
-              <input type="file" accept="image/*" capture="environment" style="display: none;" onchange="handlePosQrPhoto(event)">
-            </label>
+          <!-- ALERTA DE ALERGIAS AL CAJERO -->
+          <div id="scannedAllergyAlert" style="display: none; background: #7f1d1d; border: 1px solid #ef4444; border-radius: 10px; padding: 8px 12px; margin-top: 10px; font-size: 0.78rem; color: #fecaca;">
+            ⚠️ <strong>ALERTA MÉDICA:</strong> <span id="scannedAllergyText"></span>
           </div>
-
-          <!-- BOTONES DE PRUEBA RÁPIDA DE QR (SIMULACIÓN DE ESCANEO DE CARNÉ O CELULAR) -->
-          <div style="margin-top: 10px; display: flex; gap: 6px; flex-wrap: wrap; justify-content: center;">
-            <span style="font-size: 0.7rem; color: #94a3b8; width: 100%;">Prueba rápida de escaneo de carné:</span>
-            <button onclick="simulateScan('QR-MATEO-2026-A891')" style="font-size: 0.72rem; padding: 3px 8px; background: #334155; color: white; border: none; border-radius: 6px; cursor: pointer;">🧒 Mateo (8a)</button>
-            <button onclick="simulateScan('QR-SOFIA-2026-B442')" style="font-size: 0.72rem; padding: 3px 8px; background: #334155; color: white; border: none; border-radius: 6px; cursor: pointer;">👧 Sofía (9a)</button>
-            <button onclick="simulateScan('QR-NACHO-2026-D902')" style="font-size: 0.72rem; padding: 3px 8px; background: #334155; color: white; border: none; border-radius: 6px; cursor: pointer;">🧑 Ignacio (14a)</button>
-          </div>
-        </div>
-
-        <!-- TARJETA DEL ESTUDIANTE IDENTIFICADO POR QR -->
-        <div id="studentScannedCard" style="display: none; margin-top: 14px;" class="student-badge-scanned">
-          <img id="scannedAvatar" src="" style="width: 44px; height: 44px; border-radius: 50%; border: 2px solid #38bdf8; background: white; flex-shrink: 0;">
-          <div style="flex: 1; min-width: 0; word-break: break-word;">
-            <h4 id="scannedName" style="font-size: 0.92rem; font-weight: 800; color: #ffffff; margin: 0; line-height: 1.2;">Nombre del Alumno</h4>
-            <div id="scannedGrade" style="font-size: 0.74rem; color: #94a3b8; margin-top: 2px;">2° Grado • Sección 2-A</div>
-            <div style="display: flex; gap: 8px; margin-top: 4px; font-size: 0.74rem; flex-wrap: wrap;">
-              <span>Saldo: <strong id="scannedBalance" style="color: #34d399;">₡0</strong></span>
-              <span>Disp. hoy: <strong id="scannedAvailable" style="color: #38bdf8;">₡0</strong></span>
-            </div>
-          </div>
-          <button onclick="clearScannedStudent()" style="background: none; border: none; color: #ef4444; font-size: 1.2rem; cursor: pointer; padding: 4px 8px; flex-shrink: 0;" title="Desconectar alumno">✕</button>
-        </div>
-
-        <!-- ALERTA DE ALERGIAS AL CAJERO -->
-        <div id="scannedAllergyAlert" style="display: none; background: #7f1d1d; border: 1px solid #ef4444; border-radius: 10px; padding: 8px 12px; margin-top: 10px; font-size: 0.78rem; color: #fecaca;">
-          ⚠️ <strong>ALERTA MÉDICA:</strong> <span id="scannedAllergyText"></span>
         </div>
 
         <!-- LISTA DE PRODUCTOS SELECCIONADOS EN CAJA -->
@@ -245,38 +225,45 @@
       <!-- CABECERA -->
       <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #334155; padding-bottom: 12px; margin-bottom: 16px;">
         <div style="display: flex; align-items: center; gap: 8px;">
-          <span style="font-size: 1.5rem;">🔫</span>
-          <strong style="font-size: 1.1rem; color: #38bdf8; letter-spacing: 0.5px;">Cobro con Pistola QR</strong>
+          <span style="font-size: 1.5rem;" id="pistolaModalIcon">📷</span>
+          <strong style="font-size: 1.1rem; color: #38bdf8; letter-spacing: 0.5px;" id="pistolaModalTitle">Escanear Carné QR</strong>
         </div>
         <button type="button" onclick="closePistolaModal()" style="background: none; border: none; font-size: 1.3rem; color: #94a3b8; cursor: pointer;">✕</button>
       </div>
 
       <!-- ESTADO 1: ESPERANDO ESCANEO (DEFAULT) -->
       <div id="pistolaStateWaiting">
-        <!-- TOTAL A COBRAR GIGANTE -->
-        <div style="background: #1e293b; border: 1.5px solid #0284c7; border-radius: 14px; padding: 12px; margin-bottom: 16px;">
+        <!-- TOTAL A COBRAR GIGANTE (SOLO EN MODO COBRO) -->
+        <div id="pistolaTotalContainer" style="background: #1e293b; border: 1.5px solid #0284c7; border-radius: 14px; padding: 12px; margin-bottom: 14px;">
           <div style="font-size: 0.78rem; font-weight: 800; color: #94a3b8; text-transform: uppercase;">Monto Total a Cobrar</div>
           <div id="pistolaModalTotal" style="font-size: 2.3rem; font-weight: 900; color: #38bdf8; margin: 4px 0;">₡0</div>
           <div id="pistolaModalItemCount" style="font-size: 0.75rem; color: #cbd5e1;">0 productos en mostrador</div>
         </div>
 
-        <!-- INDICADOR VISUAL ANIMADO DE PISTOLA LÁSER -->
-        <div style="background: #022c22; border: 2px dashed #10b981; border-radius: 14px; padding: 16px; margin-bottom: 14px; position: relative;">
-          <div style="font-size: 2.5rem; animation: pulse 1.5s infinite;">🎯</div>
-          <strong style="font-size: 1rem; color: #34d399; display: block; margin-top: 6px;">¡LISTO PARA DISPARAR LA PISTOLA!</strong>
-          <p style="font-size: 0.78rem; color: #a7f3d0; margin: 4px 0 0 0;">
-            Apunta la pistola al carné del niño o acerca el código QR.
-          </p>
+        <!-- CÁMARA BAJO DEMANDA INTEGRADA EN EL MODAL -->
+        <div id="modalCameraContainer" style="position: relative; border-radius: 14px; overflow: hidden; background: #000; min-height: 200px; max-height: 230px; margin-bottom: 12px; display: flex; align-items: center; justify-content: center; border: 2px solid #0284c7;">
+          <video id="modalScannerVideo" style="width: 100%; height: 210px; object-fit: cover;" autoplay playsinline webkit-playsinline muted></video>
+          <div class="laser-scan-line"></div>
+          <div id="modalCameraStatusBadge" style="position: absolute; bottom: 8px; left: 50%; transform: translateX(-50%); background: rgba(15, 23, 42, 0.92); color: #38bdf8; padding: 4px 12px; border-radius: 20px; font-size: 0.74rem; font-weight: 800; border: 1px solid #0284c7; white-space: nowrap; box-shadow: 0 4px 10px rgba(0,0,0,0.5);">
+            📷 Apunta el carné a la cámara o dispara pistola
+          </div>
+          <div id="modalCameraOverlay" style="display: none; position: absolute; inset: 0; background: rgba(15, 23, 42, 0.95); padding: 14px; text-align: center; flex-direction: column; justify-content: center; align-items: center; gap: 8px; z-index: 10;">
+            <span style="font-size: 2rem;">📷</span>
+            <div id="modalCameraHelpText" style="font-size: 0.8rem; color: #f8fafc; line-height: 1.35;">Toca el botón para permitir el uso de la cámara</div>
+            <button type="button" onclick="startModalCamera(true)" style="padding: 8px 16px; background: #0284c7; color: white; border: none; border-radius: 8px; font-weight: 800; font-size: 0.82rem; cursor: pointer; box-shadow: 0 4px 10px rgba(2, 132, 199, 0.4);">
+              Permitir Cámara
+            </button>
+          </div>
         </div>
 
         <!-- CAMPO DE ENTRADA ENFOCADO PARA PISTOLA USB -->
         <div style="margin-bottom: 12px;">
-          <input type="text" id="inputPistolaDirectScan" placeholder="Esperando lectura de pistola..." autocomplete="off" style="width: 100%; padding: 10px; border-radius: 10px; border: 1.5px solid #334155; background: #1e293b; color: #f8fafc; font-size: 0.9rem; font-weight: 800; text-align: center; box-sizing: border-box;">
+          <input type="text" id="inputPistolaDirectScan" placeholder="Esperando lectura de carné o pistola..." autocomplete="off" style="width: 100%; padding: 10px; border-radius: 10px; border: 1.5px solid #334155; background: #1e293b; color: #f8fafc; font-size: 0.88rem; font-weight: 800; text-align: center; box-sizing: border-box;">
         </div>
 
         <!-- ACCESOS RÁPIDOS DE PRUEBA -->
         <div style="border-top: 1px dashed #334155; padding-top: 10px; margin-top: 10px;">
-          <span style="font-size: 0.72rem; color: #94a3b8; display: block; margin-bottom: 6px;">Simulación rápida sin pistola física:</span>
+          <span style="font-size: 0.72rem; color: #94a3b8; display: block; margin-bottom: 6px;">Simulación rápida sin pistola física ni cámara:</span>
           <div style="display: flex; gap: 6px; justify-content: center; flex-wrap: wrap;">
             <button type="button" onclick="handlePistolBarcodeScan('QR-MATEO-2026-A891')" style="padding: 5px 10px; background: #334155; color: white; border: none; border-radius: 6px; font-size: 0.72rem; font-weight: 700; cursor: pointer;">🧒 Mateo (8a)</button>
             <button type="button" onclick="handlePistolBarcodeScan('QR-SOFIA-2026-B442')" style="padding: 5px 10px; background: #334155; color: white; border: none; border-radius: 6px; font-size: 0.72rem; font-weight: 700; cursor: pointer;">👧 Sofía (9a)</button>
@@ -331,8 +318,8 @@
     </div>
   </div>
 
-  <script src="/js/sounds.js?v=8.1"></script>
+  <script src="/js/sounds.js?v=8.3"></script>
   <script src="/js/jsQR.js"></script>
-  <script src="/js/pos.js?v=8.1"></script>
+  <script src="/js/pos.js?v=8.3"></script>
 </body>
 </html>

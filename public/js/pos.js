@@ -78,7 +78,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   checkPosHttpsEnvironment();
   await loadCatalog();
   await loadPreOrders();
-  initCamera();
+  // La cámara se activa bajo demanda al cobrar o identificar, NO al entrar
   initSSE();
   initPistolScanner();
 });
@@ -232,43 +232,42 @@ function clearPosCart() {
 // ==========================================
 
 let posFacingMode = 'environment';
-let posQrScanningInterval = null;
-let posCanvas = null;
-let posCanvasCtx = null;
+// ==========================================
+// CÁMARA Y ESCÁNER QR BAJO DEMANDA (EN MODAL)
+// ==========================================
+
+let posModalMode = 'cobro'; // 'cobro' | 'identificar' | 'preorden'
+let modalVideoStream = null;
+let modalQrScanningInterval = null;
+let isModalScanningActive = false;
+let modalCanvas = null;
+let modalCanvasCtx = null;
 let lastScannedToken = null;
 let lastScannedTime = 0;
 
-async function initCamera(isUserAction = false) {
-  const video = document.getElementById('scannerVideo');
-  const status = document.getElementById('cameraStatus');
-  const overlay = document.getElementById('cameraHelpOverlay');
-  const helpText = document.getElementById('cameraHelpText');
-  const actionContainer = document.getElementById('posCameraActionContainer');
-  const retryBtn = document.getElementById('btnRetryPosCamera');
-  const flipBtn = document.getElementById('btnFlipPosCamera');
+async function startModalCamera(isUserAction = false) {
+  const video = document.getElementById('modalScannerVideo');
+  const badge = document.getElementById('modalCameraStatusBadge');
+  const overlay = document.getElementById('modalCameraOverlay');
+  const helpText = document.getElementById('modalCameraHelpText');
 
-  if (videoStream) {
-    videoStream.getTracks().forEach(t => t.stop());
-    videoStream = null;
-  }
+  stopModalCamera();
+
+  if (!video) return;
 
   const isHttp = window.location.protocol !== 'https:' && 
                  window.location.hostname !== 'localhost' && 
                  window.location.hostname !== '127.0.0.1';
 
   if (isHttp || !navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-    if (status) status.textContent = '⚠️ Requiere HTTPS';
+    if (badge) badge.textContent = '⚠️ Requiere HTTPS';
     if (overlay) {
       overlay.style.display = 'flex';
       if (helpText) {
         helpText.innerHTML = `
           <div style="font-weight: 800; color: #fca5a5; font-size: 0.85rem; margin-bottom: 4px;">⚠️ Cámara requiere HTTPS</div>
-          <span style="font-size: 0.74rem; color: #cbd5e1;">Para acceder a la cámara en vivo en dispositivos remotos o celulares se requiere conexión segura HTTPS. Toca el botón para abrir la terminal segura:</span>
-        `;
-      }
-      if (actionContainer) {
-        actionContainer.innerHTML = `
-          <button type="button" onclick="window.location.href='${CLOUDFLARE_TUNNEL_URL}' + window.location.pathname" style="padding: 10px 16px; background: #10b981; color: white; border: none; border-radius: 10px; font-weight: 900; font-size: 0.84rem; cursor: pointer; box-shadow: 0 4px 12px rgba(16, 185, 129, 0.4);">
+          <span style="font-size: 0.74rem; color: #cbd5e1;">Para acceder a la cámara en vivo en dispositivos remotos o celulares se requiere conexión segura HTTPS. Toca el botón:</span>
+          <button type="button" onclick="window.location.href='${CLOUDFLARE_TUNNEL_URL}' + window.location.pathname" style="margin-top: 8px; padding: 8px 14px; background: #10b981; color: white; border: none; border-radius: 8px; font-weight: 800; font-size: 0.8rem; cursor: pointer;">
             🚀 Cambiar a HTTPS Seguro
           </button>
         `;
@@ -278,7 +277,12 @@ async function initCamera(isUserAction = false) {
   }
 
   try {
-    if (status) status.textContent = 'Conectando cámara...';
+    if (badge) {
+      badge.textContent = '📷 Conectando cámara...';
+      badge.style.background = 'rgba(15, 23, 42, 0.92)';
+      badge.style.borderColor = '#0284c7';
+      badge.style.color = '#38bdf8';
+    }
     if (overlay) overlay.style.display = 'none';
 
     video.muted = true;
@@ -310,7 +314,7 @@ async function initCamera(isUserAction = false) {
       throw lastError || new Error('No se pudo acceder a la cámara');
     }
 
-    videoStream = stream;
+    modalVideoStream = stream;
     video.srcObject = stream;
 
     await new Promise((resolve) => {
@@ -328,26 +332,24 @@ async function initCamera(isUserAction = false) {
       console.warn('Reproducción diferida de cámara POS:', playErr);
     }
 
-    if (status) status.textContent = '🟢 Escáner activo';
+    if (badge) badge.textContent = '📷 Apunta el carné a la cámara o dispara pistola';
     if (overlay) overlay.style.display = 'none';
-    if (retryBtn) retryBtn.style.display = 'none';
-    if (flipBtn) flipBtn.style.display = 'inline-block';
 
-    startUniversalQrDetection(video);
+    startModalQrDetection(video);
   } catch (err) {
-    console.warn('Error accediendo a cámara:', err);
+    console.warn('Error accediendo a cámara modal:', err);
     let userMsg = 'Toca el botón para permitir el uso de la cámara.';
     const errName = err.name || '';
 
     if (errName === 'NotAllowedError' || errName === 'PermissionDeniedError') {
-      userMsg = '🔒 Permiso denegado: El navegador bloqueó la cámara. Habilita el permiso de cámara en la barra de direcciones.';
+      userMsg = '🔒 Permiso denegado: Habilita el permiso de cámara en la barra de direcciones del navegador.';
     } else if (errName === 'NotFoundError' || errName === 'DevicesNotFoundError') {
-      userMsg = '📷 No se detectó ninguna cámara disponible.';
+      userMsg = '📷 No se detectó ninguna cámara disponible en este dispositivo.';
     } else if (errName === 'NotReadableError' || errName === 'TrackStartError') {
       userMsg = '⚠️ La cámara está ocupada por otra app. Ciérrala e intenta de nuevo.';
     }
 
-    if (status) status.textContent = '⚪ Cámara inactiva';
+    if (badge) badge.textContent = '⚪ Cámara inactiva';
     if (overlay) {
       overlay.style.display = 'flex';
       if (helpText) {
@@ -356,87 +358,43 @@ async function initCamera(isUserAction = false) {
           <span style="font-size: 0.72rem; color: #f1f5f9;">${userMsg}</span>
         `;
       }
-      if (actionContainer) {
-        actionContainer.innerHTML = `
-          <button type="button" onclick="initCamera(true)" style="padding: 8px 16px; background: #0284c7; color: white; border: none; border-radius: 8px; font-weight: 800; font-size: 0.82rem; cursor: pointer; box-shadow: 0 4px 10px rgba(2, 132, 199, 0.4);">
-            📷 Tocar para Permitir Cámara
-          </button>
-        `;
-      }
     }
-    if (retryBtn) retryBtn.style.display = 'inline-block';
   }
 }
 
-function handlePosQrPhoto(event) {
-  const file = event.target.files && event.target.files[0];
-  if (!file) return;
-
-  const status = document.getElementById('cameraStatus');
-  if (status) status.textContent = 'Analizando foto...';
-
-  const reader = new FileReader();
-  reader.onload = function(e) {
-    const img = new Image();
-    img.onload = function() {
-      const canvas = document.createElement('canvas');
-      const maxDim = 1200;
-      let w = img.width;
-      let h = img.height;
-      if (w > maxDim || h > maxDim) {
-        if (w > h) {
-          h = Math.round((h * maxDim) / w);
-          w = maxDim;
-        } else {
-          w = Math.round((w * maxDim) / h);
-          h = maxDim;
-        }
-      }
-      canvas.width = w;
-      canvas.height = h;
-      const ctx = canvas.getContext('2d');
-      ctx.drawImage(img, 0, 0, w, h);
-      const imgData = ctx.getImageData(0, 0, w, h);
-
-      if (window.jsQR) {
-        const code = window.jsQR(imgData.data, w, h, {
-          inversionAttempts: 'attemptBoth'
-        });
-        if (code && code.data) {
-          onQrCodeDetected(code.data);
-          if (status) status.textContent = '🟢 QR Reconocido';
-          return;
-        }
-      }
-      if (status) status.textContent = '❌ No detectado';
-      alert('⚠️ No se detectó un código QR válido en la foto tomada.');
-    };
-    img.src = e.target.result;
-  };
-  reader.readAsDataURL(file);
+function stopModalCamera() {
+  isModalScanningActive = false;
+  if (modalQrScanningInterval) {
+    cancelAnimationFrame(modalQrScanningInterval);
+    modalQrScanningInterval = null;
+  }
+  if (modalVideoStream) {
+    modalVideoStream.getTracks().forEach(t => t.stop());
+    modalVideoStream = null;
+  }
+  const video = document.getElementById('modalScannerVideo');
+  if (video) {
+    video.srcObject = null;
+  }
 }
 
-function flipPosCamera() {
-  posFacingMode = posFacingMode === 'environment' ? 'user' : 'environment';
-  initCamera(true);
-}
-
-function startUniversalQrDetection(video) {
-  if (!posCanvas) {
-    posCanvas = document.createElement('canvas');
-    posCanvasCtx = posCanvas.getContext('2d', { willReadFrequently: true });
+function startModalQrDetection(video) {
+  if (!modalCanvas) {
+    modalCanvas = document.createElement('canvas');
+    modalCanvasCtx = modalCanvas.getContext('2d', { willReadFrequently: true });
   }
 
-  if (posQrScanningInterval) {
-    cancelAnimationFrame(posQrScanningInterval);
+  isModalScanningActive = true;
+  if (modalQrScanningInterval) {
+    cancelAnimationFrame(modalQrScanningInterval);
   }
 
   function scanFrame() {
-    if (isScanningActive && video.readyState === video.HAVE_ENOUGH_DATA) {
-      posCanvas.width = video.videoWidth;
-      posCanvas.height = video.videoHeight;
-      posCanvasCtx.drawImage(video, 0, 0, posCanvas.width, posCanvas.height);
-      const imageData = posCanvasCtx.getImageData(0, 0, posCanvas.width, posCanvas.height);
+    if (isModalScanningActive && video && video.readyState === video.HAVE_ENOUGH_DATA) {
+      modalCanvas.width = video.videoWidth;
+      modalCanvas.height = video.videoHeight;
+      modalCanvasCtx.drawImage(video, 0, 0, modalCanvas.width, modalCanvas.height);
+      const imageData = modalCanvasCtx.getImageData(0, 0, modalCanvas.width, modalCanvas.height);
 
       if (window.jsQR) {
         const code = window.jsQR(imageData.data, imageData.width, imageData.height, {
@@ -444,19 +402,21 @@ function startUniversalQrDetection(video) {
         });
         if (code && code.data) {
           const now = Date.now();
-          // Evitar lecturas duplicadas en menos de 2 segundos
           if (code.data !== lastScannedToken || (now - lastScannedTime) > 2000) {
             lastScannedToken = code.data;
             lastScannedTime = now;
             onQrCodeDetected(code.data);
+            return; // Detener loop de escaneo inmediatamente
           }
         }
       }
     }
-    posQrScanningInterval = requestAnimationFrame(scanFrame);
+    if (isModalScanningActive) {
+      modalQrScanningInterval = requestAnimationFrame(scanFrame);
+    }
   }
 
-  posQrScanningInterval = requestAnimationFrame(scanFrame);
+  modalQrScanningInterval = requestAnimationFrame(scanFrame);
 }
 
 function simulateScan(qrToken) {
@@ -464,47 +424,79 @@ function simulateScan(qrToken) {
 }
 
 async function onQrCodeDetected(token) {
+  // 1. APAGAR LA CÁMARA DE INMEDIATO - DEJA DE GRABAR
+  stopModalCamera();
+
+  // 2. Indicador sonoro y visual de lectura correcta
   if (window.sounds) window.sounds.playScanChirp();
 
-  // Si estamos en la pestaña de fila rápida de pre-órdenes, despachamos de inmediato
-  if (currentTab === 'preordenes') {
+  const badge = document.getElementById('modalCameraStatusBadge');
+  if (badge) {
+    badge.textContent = '✅ ¡QR Detectado Exitosamente!';
+    badge.style.background = '#065f46';
+    badge.style.borderColor = '#10b981';
+    badge.style.color = '#34d399';
+  }
+
+  // Ocultar caja de cámara para que sea evidente que ya terminó de grabar
+  const camBox = document.getElementById('modalCameraContainer');
+  if (camBox) {
+    camBox.style.display = 'none';
+  }
+
+  // 3. Procesar según el modo en el que se abrió el modal
+  if (posModalMode === 'preorden') {
     await dispatchPreOrderExpress(token);
+    closePistolaModal();
     return;
   }
 
-  // Si ya hay productos en el carrito, procesar cobro inmediato con este QR
-  if (posCart.length > 0) {
-    await handlePistolBarcodeScan(token);
-    return;
-  }
+  if (posModalMode === 'identificar' || posCart.length === 0) {
+    try {
+      const res = await fetch(`/api/estudiantes/qr/${encodeURIComponent(token)}`);
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
 
-  // Si estamos en mostrador sin productos, identificamos al estudiante
-  try {
-    const res = await fetch(`/api/estudiantes/qr/${encodeURIComponent(token)}`);
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.error);
+      scannedStudent = data;
+      renderScannedStudent();
+      if (window.sounds) window.sounds.playSuccess();
+      closePistolaModal();
 
-    scannedStudent = data;
-    renderScannedStudent();
-
-    // Si tiene pre-órdenes listas, alertar a la cajera
-    if (data.preordenes_pendientes && data.preordenes_pendientes.length > 0) {
-      if (confirm(`🔔 ¡Atención! ${data.nombre_completo} tiene ${data.preordenes_pendientes.length} pre-orden lista para retirar. ¿Deseas verla y entregarla ahora?`)) {
-        switchPosTab('preordenes');
+      if (data.preordenes_pendientes && data.preordenes_pendientes.length > 0) {
+        if (confirm(`🔔 ¡Atención! ${data.nombre_completo} tiene ${data.preordenes_pendientes.length} pre-orden lista para retirar. ¿Deseas verla y entregarla ahora?`)) {
+          switchPosTab('preordenes');
+        }
       }
+    } catch (err) {
+      if (window.sounds) window.sounds.playError();
+      alert(`⚠️ Estudiante no reconocido: ${err.message}`);
+      resetPistolaModalWaiting();
     }
-  } catch (err) {
-    if (window.sounds) window.sounds.playError();
-    alert(`QR no reconocido: ${err.message}`);
+    return;
   }
+
+  // Modo cobro (posCart.length > 0): Ejecutar cobro inmediato
+  await handlePistolBarcodeScan(token);
+}
+
+function openStudentIdModal() {
+  openPistolaModal('identificar');
+}
+
+function openPreOrderScanModal() {
+  openPistolaModal('preorden');
 }
 
 function renderScannedStudent() {
+  const placeholder = document.getElementById('posNoStudentPlaceholder');
   if (!scannedStudent) {
+    if (placeholder) placeholder.style.display = 'block';
     document.getElementById('studentScannedCard').style.display = 'none';
     document.getElementById('scannedAllergyAlert').style.display = 'none';
     return;
   }
+
+  if (placeholder) placeholder.style.display = 'none';
 
   document.getElementById('scannedAvatar').src = scannedStudent.foto_url;
   
@@ -617,8 +609,10 @@ function initPistolScanner() {
   }
 }
 
-function openPistolaModal() {
-  if (posCart.length === 0) {
+function openPistolaModal(mode = 'cobro') {
+  posModalMode = mode;
+
+  if (posModalMode === 'cobro' && posCart.length === 0) {
     if (window.sounds) window.sounds.playError();
     alert('⚠️ Selecciona al menos un producto en el mostrador para cobrar.');
     return;
@@ -627,14 +621,37 @@ function openPistolaModal() {
   const modal = document.getElementById('modalPistolaCobro');
   if (!modal) return;
 
-  const total = posCart.reduce((sum, item) => sum + (item.product.precio_colones * item.cantidad), 0);
-  const totalItems = posCart.reduce((sum, item) => sum + item.cantidad, 0);
+  const totalContainer = document.getElementById('pistolaTotalContainer');
+  const title = document.getElementById('pistolaModalTitle');
+  const icon = document.getElementById('pistolaModalIcon');
 
-  document.getElementById('pistolaModalTotal').textContent = `₡${total.toLocaleString('es-CR')}`;
-  document.getElementById('pistolaModalItemCount').textContent = `${totalItems} ${totalItems === 1 ? 'producto' : 'productos'} en mostrador`;
+  if (posModalMode === 'cobro') {
+    const total = posCart.reduce((sum, item) => sum + (item.product.precio_colones * item.cantidad), 0);
+    const totalItems = posCart.reduce((sum, item) => sum + item.cantidad, 0);
+
+    if (totalContainer) totalContainer.style.display = 'block';
+    document.getElementById('pistolaModalTotal').textContent = `₡${total.toLocaleString('es-CR')}`;
+    document.getElementById('pistolaModalItemCount').textContent = `${totalItems} ${totalItems === 1 ? 'producto' : 'productos'} en mostrador`;
+    if (title) title.textContent = 'Cobro con QR / Pistola';
+    if (icon) icon.textContent = '💳';
+  } else if (posModalMode === 'identificar') {
+    if (totalContainer) totalContainer.style.display = 'none';
+    if (title) title.textContent = 'Identificar Alumno por QR';
+    if (icon) icon.textContent = '👤';
+  } else if (posModalMode === 'preorden') {
+    if (totalContainer) totalContainer.style.display = 'none';
+    if (title) title.textContent = 'Despachar Pre-Orden con QR';
+    if (icon) icon.textContent = '📦';
+  }
 
   resetPistolaModalWaiting();
   modal.style.display = 'flex';
+
+  // Mostrar el contenedor de cámara e inicializar stream bajo demanda
+  const camBox = document.getElementById('modalCameraContainer');
+  if (camBox) camBox.style.display = 'flex';
+
+  startModalCamera();
 
   setTimeout(() => {
     const input = document.getElementById('inputPistolaDirectScan');
@@ -650,6 +667,9 @@ function closePistolaModal(e) {
     clearTimeout(pistolaAutoCloseTimer);
     pistolaAutoCloseTimer = null;
   }
+  // SIEMPRE apagar la cámara de inmediato al salir del modal
+  stopModalCamera();
+
   const modal = document.getElementById('modalPistolaCobro');
   if (modal) modal.style.display = 'none';
 }
@@ -664,6 +684,17 @@ function resetPistolaModalWaiting() {
   document.getElementById('pistolaStateSuccess').style.display = 'none';
   document.getElementById('pistolaStateError').style.display = 'none';
 
+  const camBox = document.getElementById('modalCameraContainer');
+  if (camBox) camBox.style.display = 'flex';
+
+  const badge = document.getElementById('modalCameraStatusBadge');
+  if (badge) {
+    badge.textContent = '📷 Apunta el carné a la cámara o dispara pistola';
+    badge.style.background = 'rgba(15, 23, 42, 0.92)';
+    badge.style.borderColor = '#0284c7';
+    badge.style.color = '#38bdf8';
+  }
+
   const input = document.getElementById('inputPistolaDirectScan');
   if (input) {
     input.value = '';
@@ -674,6 +705,9 @@ function resetPistolaModalWaiting() {
 async function handlePistolBarcodeScan(rawToken) {
   const token = String(rawToken).trim();
   if (!token) return;
+
+  // Garantizar que la cámara se apague de inmediato
+  stopModalCamera();
 
   if (window.sounds) window.sounds.playScanChirp();
 
@@ -687,6 +721,7 @@ async function handlePistolBarcodeScan(rawToken) {
       scannedStudent = data;
       renderScannedStudent();
       if (window.sounds) window.sounds.playSuccess();
+      closePistolaModal();
     } catch (err) {
       if (window.sounds) window.sounds.playError();
       alert(`⚠️ Estudiante no reconocido: ${err.message}`);
@@ -697,7 +732,7 @@ async function handlePistolBarcodeScan(rawToken) {
   // SI HAY PRODUCTOS EN EL CARRITO: EJECUTAR COBRO INMEDIATO CON PISTOLA
   const modal = document.getElementById('modalPistolaCobro');
   if (modal && modal.style.display === 'none') {
-    openPistolaModal();
+    modal.style.display = 'flex';
   }
 
   // Mostrar estado de procesamiento
