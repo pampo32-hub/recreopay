@@ -76,6 +76,15 @@ app.post('/api/auth/login', (req, res) => {
       if (!estudiante) {
         estudiante = db.prepare('SELECT * FROM estudiantes ORDER BY id ASC LIMIT 1').get();
       }
+      if (estudiante) {
+        const gastoHoy = db.prepare(`
+          SELECT COALESCE(SUM(ABS(monto_colones)), 0) as total
+          FROM transacciones_saldo
+          WHERE estudiante_id = ? AND monto_colones < 0 AND date(fecha, 'localtime') = date('now', 'localtime')
+        `).get(estudiante.id).total;
+        estudiante.gastado_hoy = gastoHoy;
+        estudiante.disponible_hoy = Math.max(0, (estudiante.limite_diario_colones || 0) - gastoHoy);
+      }
     } else if (user.rol === 'padre') {
       hijos = db.prepare(`
         SELECT e.* 
@@ -87,6 +96,18 @@ app.post('/api/auth/login', (req, res) => {
       if (hijos.length === 0) {
         hijos = db.prepare('SELECT * FROM estudiantes WHERE padre_usuario_id = ?').all(user.id);
       }
+      hijos = hijos.map(h => {
+        const gastoHoy = db.prepare(`
+          SELECT COALESCE(SUM(ABS(monto_colones)), 0) as total
+          FROM transacciones_saldo
+          WHERE estudiante_id = ? AND monto_colones < 0 AND date(fecha, 'localtime') = date('now', 'localtime')
+        `).get(h.id).total;
+        return {
+          ...h,
+          gastado_hoy: gastoHoy,
+          disponible_hoy: Math.max(0, (h.limite_diario_colones || 0) - gastoHoy)
+        };
+      });
     }
 
     res.json({
@@ -230,7 +251,20 @@ app.get('/api/padres/mis-hijos', (req, res) => {
       hijos = db.prepare('SELECT * FROM estudiantes WHERE padre_usuario_id = ?').all(padre_usuario_id);
     }
 
-    res.json({ success: true, hijos });
+    const hijosEnriquecidos = hijos.map(h => {
+      const gastoHoy = db.prepare(`
+        SELECT COALESCE(SUM(ABS(monto_colones)), 0) as total
+        FROM transacciones_saldo
+        WHERE estudiante_id = ? AND monto_colones < 0 AND date(fecha, 'localtime') = date('now', 'localtime')
+      `).get(h.id).total;
+      return {
+        ...h,
+        gastado_hoy: gastoHoy,
+        disponible_hoy: Math.max(0, (h.limite_diario_colones || 0) - gastoHoy)
+      };
+    });
+
+    res.json({ success: true, hijos: hijosEnriquecidos });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -513,6 +547,8 @@ app.post('/api/admin/estudiantes/:id/recarga-manual', (req, res) => {
     };
 
     broadcastEvent('recarga_exitosa', resultado);
+    broadcastEvent('estudiante_actualizado', { id: est.id, estudiante_id: est.id, saldo_colones: nuevoSaldo });
+    broadcastEvent('saldo_actualizado', { id: est.id, estudiante_id: est.id, saldo_colones: nuevoSaldo });
     res.json(resultado);
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -532,13 +568,17 @@ app.get('/api/estudiantes', (req, res) => {
           SELECT SUM(ABS(monto_colones)) 
           FROM transacciones_saldo 
           WHERE estudiante_id = e.id AND monto_colones < 0 
-            AND date(fecha) = date('now', 'localtime')
+            AND date(fecha, 'localtime') = date('now', 'localtime')
         ), 0) as gastado_hoy
       FROM estudiantes e 
       WHERE activo = 1 
       ORDER BY grado, seccion, nombre_completo
     `).all();
-    res.json(list);
+    const listWithDisp = list.map(e => ({
+      ...e,
+      disponible_hoy: Math.max(0, (e.limite_diario_colones || 0) - (e.gastado_hoy || 0))
+    }));
+    res.json(listWithDisp);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -554,7 +594,7 @@ app.get('/api/estudiantes/:id', (req, res) => {
     const gastoHoy = db.prepare(`
       SELECT COALESCE(SUM(ABS(monto_colones)), 0) as total
       FROM transacciones_saldo
-      WHERE estudiante_id = ? AND monto_colones < 0 AND date(fecha) = date('now', 'localtime')
+      WHERE estudiante_id = ? AND monto_colones < 0 AND date(fecha, 'localtime') = date('now', 'localtime')
     `).get(est.id).total;
 
     // Transacciones recientes
@@ -596,7 +636,7 @@ app.get('/api/estudiantes/qr/:token', (req, res) => {
     const gastoHoy = db.prepare(`
       SELECT COALESCE(SUM(ABS(monto_colones)), 0) as total
       FROM transacciones_saldo
-      WHERE estudiante_id = ? AND monto_colones < 0 AND date(fecha) = date('now', 'localtime')
+      WHERE estudiante_id = ? AND monto_colones < 0 AND date(fecha, 'localtime') = date('now', 'localtime')
     `).get(est.id).total;
 
     // Verificar si tiene pre-órdenes listas para retirar en el recreo
@@ -662,6 +702,8 @@ app.post('/api/estudiantes/:id/recarga', (req, res) => {
     });
 
     broadcastEvent('recarga_exitosa', resultado);
+    broadcastEvent('estudiante_actualizado', { id: estudianteId, estudiante_id: estudianteId, saldo_colones: resultado.saldo_nuevo });
+    broadcastEvent('saldo_actualizado', { id: estudianteId, estudiante_id: estudianteId, saldo_colones: resultado.saldo_nuevo });
     res.json(resultado);
   } catch (error) {
     res.status(400).json({ error: error.message });
@@ -684,6 +726,16 @@ app.put('/api/estudiantes/:id/limite', (req, res) => {
     `).run(limite_diario_colones, alergias, bloquear_chucherias, permitir_transferencias, estId);
 
     const actualizado = db.prepare('SELECT * FROM estudiantes WHERE id = ?').get(estId);
+    if (actualizado) {
+      const gastoHoy = db.prepare(`
+        SELECT COALESCE(SUM(ABS(monto_colones)), 0) as total
+        FROM transacciones_saldo
+        WHERE estudiante_id = ? AND monto_colones < 0 AND date(fecha, 'localtime') = date('now', 'localtime')
+      `).get(estId).total;
+      actualizado.gastado_hoy = gastoHoy;
+      actualizado.disponible_hoy = Math.max(0, (actualizado.limite_diario_colones || 0) - gastoHoy);
+      broadcastEvent('estudiante_actualizado', actualizado);
+    }
     res.json(actualizado);
   } catch (error) {
     res.status(400).json({ error: error.message });
@@ -707,6 +759,12 @@ app.post('/api/transferencias', (req, res) => {
 
     // Notificar en tiempo real por SSE
     broadcastEvent('transferencia_realizada', resultado);
+    if (resultado.emisor) {
+      broadcastEvent('estudiante_actualizado', { id: resultado.emisor.id, estudiante_id: resultado.emisor.id, saldo_colones: resultado.emisor.saldo_nuevo });
+    }
+    if (resultado.receptor) {
+      broadcastEvent('estudiante_actualizado', { id: resultado.receptor.id, estudiante_id: resultado.receptor.id, saldo_colones: resultado.receptor.saldo_nuevo });
+    }
 
     res.json(resultado);
   } catch (error) {
@@ -764,6 +822,23 @@ app.post('/api/ordenes', (req, res) => {
 
     // Notificar en tiempo real a la pantalla de cocina/caja de la soda
     broadcastEvent('nueva_orden', resultado);
+
+    // Notificar actualización de estudiante (saldo y disponible) en tiempo real a clientes
+    if (resultado && resultado.financiero && resultado.financiero.estudiante) {
+      const fEst = resultado.financiero.estudiante;
+      const payloadActualizacion = {
+        id: targetEstudianteId,
+        estudiante_id: targetEstudianteId,
+        saldo_colones: fEst.saldo_nuevo,
+        gastado_hoy: fEst.gastado_hoy,
+        disponible_hoy: (typeof fEst.disponible_hoy === 'number') 
+          ? fEst.disponible_hoy 
+          : Math.max(0, (fEst.limite_diario || 0) - (fEst.gastado_hoy || 0)),
+        orden: resultado
+      };
+      broadcastEvent('estudiante_actualizado', payloadActualizacion);
+      broadcastEvent('saldo_actualizado', payloadActualizacion);
+    }
 
     res.status(201).json(resultado);
   } catch (error) {

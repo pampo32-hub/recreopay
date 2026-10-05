@@ -328,17 +328,13 @@ function debitoCompraTransaction({ estudianteId, montoTotal, ordenId, descripcio
     }
 
     // 3. Verificar límite diario
-    const startOfDay = new Date();
-    startOfDay.setHours(0, 0, 0, 0);
-    const startOfDayISO = startOfDay.toISOString().replace('T', ' ').substring(0, 19);
-
     const gastoHoyRow = db.prepare(`
       SELECT COALESCE(SUM(ABS(monto_colones)), 0) as total_gastado_hoy
       FROM transacciones_saldo
-      WHERE estudiante_id = ? AND monto_colones < 0 AND fecha >= ?
-    `).get(estudianteId, startOfDayISO);
+      WHERE estudiante_id = ? AND monto_colones < 0 AND date(fecha, 'localtime') = date('now', 'localtime')
+    `).get(estudianteId);
 
-    const totalGastadoHoy = gastoHoyRow.total_gastado_hoy;
+    const totalGastadoHoy = gastoHoyRow ? gastoHoyRow.total_gastado_hoy : 0;
     if (totalGastadoHoy + montoTotal > est.limite_diario_colones) {
       const disponibleHoy = Math.max(0, est.limite_diario_colones - totalGastadoHoy);
       throw new Error(`Límite diario superado. Su límite por día es ₡${est.limite_diario_colones.toLocaleString('es-CR')}. Disponible hoy: ₡${disponibleHoy.toLocaleString('es-CR')}`);
@@ -363,6 +359,9 @@ function debitoCompraTransaction({ estudianteId, montoTotal, ordenId, descripcio
       descripcion || 'Compra en soda escolar'
     );
 
+    const nuevoGastadoHoy = totalGastadoHoy + montoTotal;
+    const nuevoDisponibleHoy = Math.max(0, est.limite_diario_colones - nuevoGastadoHoy);
+
     return {
       exito: true,
       estudiante: {
@@ -374,7 +373,8 @@ function debitoCompraTransaction({ estudianteId, montoTotal, ordenId, descripcio
         saldo_anterior: est.saldo_colones,
         saldo_nuevo: nuevoSaldo,
         limite_diario: est.limite_diario_colones,
-        gastado_hoy: totalGastadoHoy + montoTotal
+        gastado_hoy: nuevoGastadoHoy,
+        disponible_hoy: nuevoDisponibleHoy
       }
     };
   });
@@ -510,6 +510,7 @@ function crearOrdenCompleta({ estudianteId, tipoOrden, momentoEntrega, notas, it
     return {
       orden_id: ordenId,
       codigo_orden: codigoOrden,
+      estudiante_id: estudianteId,
       tipo_orden: tipoOrden,
       momento_entrega: momentoEntrega,
       estado: estadoInicial,

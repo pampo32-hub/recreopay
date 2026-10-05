@@ -390,9 +390,15 @@ function updateStudentUI() {
   const transferBtn = document.getElementById('transferBtnText');
   if (transferBtn) transferBtn.textContent = 'Transferir ⚡';
 
-  // Límite diario
-  document.getElementById('dailyLimitText').textContent = `₡${currentStudent.limite_diario_colones.toLocaleString('es-CR')}`;
-  document.getElementById('dailyAvailableText').textContent = `Disponible hoy: ₡${currentStudent.disponible_hoy.toLocaleString('es-CR')}`;
+  // Límite diario y disponible hoy
+  const limiteDiario = currentStudent.limite_diario_colones || 0;
+  const gastadoHoy = currentStudent.gastado_hoy || 0;
+  const disponibleHoy = (typeof currentStudent.disponible_hoy === 'number')
+    ? currentStudent.disponible_hoy
+    : Math.max(0, limiteDiario - gastadoHoy);
+
+  document.getElementById('dailyLimitText').textContent = `₡${limiteDiario.toLocaleString('es-CR')}`;
+  document.getElementById('dailyAvailableText').textContent = `Disponible hoy: ₡${disponibleHoy.toLocaleString('es-CR')}`;
 
   // Alerta de Tarjeta Bloqueada
   const bannerBlocked = document.getElementById('bannerCardBlocked');
@@ -1384,17 +1390,106 @@ async function onToggleAllowTransfer(checked) {
   }
 }
 
+function triggerBalancePulse() {
+  const el = document.getElementById('walletBalance');
+  if (el) {
+    el.classList.remove('balance-updated');
+    void el.offsetWidth;
+    el.classList.add('balance-updated');
+  }
+  const dispEl = document.getElementById('dailyAvailableText');
+  if (dispEl) {
+    dispEl.classList.remove('balance-updated');
+    void dispEl.offsetWidth;
+    dispEl.classList.add('balance-updated');
+  }
+}
+
 // SSE en tiempo real para eventos de la soda y monederos
 function initStudentSSE() {
   const sse = new EventSource('/api/events');
 
+  // Cobro inmediato en caja / pre-orden realizada
+  sse.addEventListener('nueva_orden', (e) => {
+    try {
+      const data = JSON.parse(e.data);
+      const estId = data.estudiante_id || (data.financiero && data.financiero.estudiante && data.financiero.estudiante.id);
+
+      // Si el estudiante en pantalla fue a quien se le cobró
+      if (currentStudent && currentStudent.id === estId) {
+        if (window.sounds) window.sounds.playCoin();
+
+        if (data.financiero && data.financiero.estudiante) {
+          const f = data.financiero.estudiante;
+          currentStudent.saldo_colones = f.saldo_nuevo;
+          currentStudent.gastado_hoy = f.gastado_hoy;
+          currentStudent.disponible_hoy = (typeof f.disponible_hoy === 'number')
+            ? f.disponible_hoy
+            : Math.max(0, (f.limite_diario || currentStudent.limite_diario_colones || 0) - (f.gastado_hoy || 0));
+          updateStudentUI();
+          triggerBalancePulse();
+        }
+        selectStudent(currentStudent.id);
+      }
+
+      // Si es padre de este estudiante
+      if (currentUser && currentUser.rol === 'padre') {
+        loadParentDashboard();
+      }
+
+      // Si es admin
+      if (currentUser && currentUser.rol === 'admin') {
+        loadAdminData();
+      }
+    } catch (err) {
+      console.warn('Error en SSE nueva_orden:', err);
+    }
+  });
+
+  // Saldo actualizado (débito, recarga, ajuste de límite)
+  sse.addEventListener('saldo_actualizado', (e) => {
+    try {
+      const data = JSON.parse(e.data);
+      const estId = data.estudiante_id || data.id;
+
+      if (currentStudent && currentStudent.id === estId) {
+        if (window.sounds) window.sounds.playCoin();
+        if (typeof data.saldo_colones === 'number') currentStudent.saldo_colones = data.saldo_colones;
+        if (typeof data.disponible_hoy === 'number') currentStudent.disponible_hoy = data.disponible_hoy;
+        if (typeof data.gastado_hoy === 'number') currentStudent.gastado_hoy = data.gastado_hoy;
+        updateStudentUI();
+        triggerBalancePulse();
+        selectStudent(currentStudent.id);
+      }
+
+      if (currentUser && currentUser.rol === 'padre') {
+        loadParentDashboard();
+      }
+      if (currentUser && currentUser.rol === 'admin') {
+        loadAdminData();
+      }
+    } catch (err) {}
+  });
+
   sse.addEventListener('transferencia_realizada', (e) => {
     try {
       const data = JSON.parse(e.data);
-      if (currentStudent && data.receptor.id === currentStudent.id) {
+      if (currentStudent && data.receptor && data.receptor.id === currentStudent.id) {
         if (window.sounds) window.sounds.playCoin();
         alert(`🔔 ¡Te pasaron plata!\n${data.emisor.nombre} te transfirió ₡${data.monto.toLocaleString('es-CR')}.\nMotivo: ${data.motivo}`);
         selectStudent(currentStudent.id);
+        triggerBalancePulse();
+      } else if (currentStudent && data.emisor && data.emisor.id === currentStudent.id) {
+        if (typeof data.emisor.saldo_nuevo === 'number') {
+          currentStudent.saldo_colones = data.emisor.saldo_nuevo;
+          updateStudentUI();
+          triggerBalancePulse();
+        }
+        selectStudent(currentStudent.id);
+      }
+
+      if (currentUser && currentUser.rol === 'padre') {
+        loadParentDashboard();
       }
     } catch (err) {}
   });
@@ -1402,9 +1497,18 @@ function initStudentSSE() {
   sse.addEventListener('recarga_exitosa', (e) => {
     try {
       const data = JSON.parse(e.data);
-      if (currentStudent && data.estudiante_id === currentStudent.id) {
+      const estId = data.estudiante_id || data.id;
+      if (currentStudent && currentStudent.id === estId) {
         if (window.sounds) window.sounds.playCoin();
+        if (typeof data.saldo_nuevo === 'number') {
+          currentStudent.saldo_colones = data.saldo_nuevo;
+          updateStudentUI();
+          triggerBalancePulse();
+        }
         selectStudent(currentStudent.id);
+      }
+      if (currentUser && currentUser.rol === 'padre') {
+        loadParentDashboard();
       }
       if (currentUser && currentUser.rol === 'admin') {
         loadAdminData();
@@ -1435,8 +1539,18 @@ function initStudentSSE() {
   sse.addEventListener('estudiante_actualizado', (e) => {
     try {
       const data = JSON.parse(e.data);
-      if (currentStudent && currentStudent.id === data.id) {
+      const estId = data.id || data.estudiante_id;
+      if (currentStudent && currentStudent.id === estId) {
+        if (typeof data.saldo_colones === 'number') currentStudent.saldo_colones = data.saldo_colones;
+        if (typeof data.disponible_hoy === 'number') currentStudent.disponible_hoy = data.disponible_hoy;
+        if (typeof data.gastado_hoy === 'number') currentStudent.gastado_hoy = data.gastado_hoy;
+        if (typeof data.limite_diario_colones === 'number') currentStudent.limite_diario_colones = data.limite_diario_colones;
+        updateStudentUI();
+        triggerBalancePulse();
         selectStudent(currentStudent.id);
+      }
+      if (currentUser && currentUser.rol === 'padre') {
+        loadParentDashboard();
       }
       if (currentUser && currentUser.rol === 'admin') {
         loadAdminData();

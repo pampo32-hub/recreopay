@@ -974,4 +974,28 @@ function initSSE() {
   sseSource.addEventListener('orden_actualizada', () => {
     loadPreOrders();
   });
+
+  sseSource.addEventListener('estudiante_actualizado', (e) => {
+    try {
+      const data = JSON.parse(e.data);
+      const estId = data.id || data.estudiante_id;
+      if (scannedStudent && scannedStudent.id === estId) {
+        if (typeof data.saldo_colones === 'number') scannedStudent.saldo_colones = data.saldo_colones;
+        if (typeof data.disponible_hoy === 'number') scannedStudent.disponible_hoy = data.disponible_hoy;
+        renderScannedStudent();
+      }
+    } catch (err) {}
+  });
+
+  sseSource.addEventListener('saldo_actualizado', (e) => {
+    try {
+      const data = JSON.parse(e.data);
+      const estId = data.id || data.estudiante_id;
+      if (scannedStudent && scannedStudent.id === estId) {
+        if (typeof data.saldo_colones === 'number') scannedStudent.saldo_colones = data.saldo_colones;
+        if (typeof data.disponible_hoy === 'number') scannedStudent.disponible_hoy = data.disponible_hoy;
+        renderScannedStudent();
+      }
+    } catch (err) {}
+  });
 }
