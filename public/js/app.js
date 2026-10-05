@@ -2730,41 +2730,60 @@ function renderAdminStudents(list) {
   if (!container) return;
 
   if (!list || list.length === 0) {
-    container.innerHTML = `<div style="text-align: center; padding: 20px; color: var(--text-muted);">No hay estudiantes registrados.</div>`;
+    container.innerHTML = `<div style="text-align: center; padding: 32px 16px; color: var(--text-muted); font-size: 0.9rem;">No se encontraron estudiantes registrados.</div>`;
     return;
   }
 
   container.innerHTML = `
-    <div style="display: flex; flex-direction: column; gap: 10px;">
+    <div style="display: flex; flex-direction: column; gap: 8px;">
       ${list.map(s => {
         const isBlocked = s.tarjeta_bloqueada === 1;
         return `
-          <div class="admin-student-card" style="display: flex; flex-direction: column; gap: 10px; padding: 12px; border-radius: 12px; border: 1.5px solid ${isBlocked ? '#fca5a5' : 'var(--border)'}; background: ${isBlocked ? '#fff5f5' : 'var(--card-bg)'}; width: 100%; box-sizing: border-box;">
-            <div style="display: flex; align-items: center; gap: 10px; width: 100%;">
-              <img src="${s.foto_url || 'https://api.dicebear.com/7.x/bottts/svg?seed=est'}" style="width: 44px; height: 44px; border-radius: 50%; border: 2px solid ${isBlocked ? '#ef4444' : '#0284c7'}; background: white; flex-shrink: 0;">
-              <div style="flex: 1; min-width: 0; word-break: break-word;">
-                <div style="display: flex; align-items: center; gap: 6px; flex-wrap: wrap;">
-                  <strong style="font-size: 0.95rem; color: var(--text-main);">${s.nombre_completo}</strong>
-                  ${isBlocked ? '<span style="font-size: 0.68rem; font-weight: 900; background: #ef4444; color: white; padding: 2px 7px; border-radius: 5px;">⛔ SUSPENDIDA</span>' : '<span style="font-size: 0.68rem; font-weight: 800; background: #dcfce7; color: #166534; padding: 2px 7px; border-radius: 5px;">ACTIVA</span>'}
+          <div class="admin-student-row ${isBlocked ? 'is-blocked' : ''}">
+            <!-- DATOS PRINCIPALES DEL ESTUDIANTE -->
+            <div style="display: flex; align-items: center; gap: 12px; min-width: 0; flex: 1;">
+              <img src="${s.foto_url || 'https://api.dicebear.com/7.x/bottts/svg?seed=est'}" style="width: 42px; height: 42px; border-radius: 50%; border: 2px solid ${isBlocked ? '#fca5a5' : 'var(--border)'}; background: #ffffff; flex-shrink: 0; object-fit: cover;">
+              <div style="min-width: 0; flex: 1;">
+                <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+                  <strong style="font-size: 0.95rem; font-weight: 800; color: var(--text-main); line-height: 1.2;">${s.nombre_completo}</strong>
+                  ${isBlocked 
+                    ? '<span class="saas-status-badge saas-status-blocked"><span class="saas-dot"></span>Suspendida</span>' 
+                    : '<span class="saas-status-badge saas-status-active"><span class="saas-dot"></span>Activa</span>'
+                  }
                 </div>
-                <div style="font-size: 0.74rem; color: var(--text-muted); margin-top: 2px;">
-                  ${s.grado} • Sección ${s.seccion} • Cód: <strong>${s.codigo_estudiante}</strong> • PIN: <strong>${s.pin_seguridad || '1234'}</strong>
-                </div>
-                <div style="font-size: 0.76rem; font-weight: 800; color: #0284c7; margin-top: 3px;">
-                  Saldo: ₡${s.saldo_colones.toLocaleString('es-CR')} | Límite: ₡${s.limite_diario_colones.toLocaleString('es-CR')}/día
+                <div style="display: flex; align-items: center; gap: 8px; font-size: 0.74rem; color: var(--text-muted); margin-top: 3px; flex-wrap: wrap;">
+                  <span style="background: rgba(148, 163, 184, 0.15); padding: 1px 7px; border-radius: 5px; font-weight: 700; color: var(--text-main);">${s.grado} • ${s.seccion}</span>
+                  <span style="font-family: ui-monospace, SFMono-Regular, Menlo, monospace;">Cód: <strong style="color: var(--text-main);">${s.codigo_estudiante}</strong></span>
+                  <span>PIN: <strong style="color: var(--text-main);">${s.pin_seguridad || '1234'}</strong></span>
                 </div>
               </div>
             </div>
 
-            <div style="display: flex; gap: 8px; align-items: center; justify-content: flex-end; border-top: 1px dashed var(--border); padding-top: 8px; width: 100%; flex-wrap: wrap;">
-              <button type="button" onclick="quickGoToRecarga(${s.id})" style="padding: 7px 12px; background: #10b981; color: white; border: none; border-radius: 8px; font-size: 0.76rem; font-weight: 800; cursor: pointer; display: flex; align-items: center; gap: 4px;" title="Cargar dinero en caja a este estudiante">
-                💵 Cargar Dinero
+            <!-- MÉTRICAS FINANCIERAS -->
+            <div style="display: flex; flex-direction: column; align-items: flex-end; padding: 0 10px; flex-shrink: 0;">
+              <div style="font-size: 1.05rem; font-weight: 900; color: #10b981; line-height: 1.2;">₡${s.saldo_colones.toLocaleString('es-CR')}</div>
+              <div style="font-size: 0.7rem; color: var(--text-muted); font-weight: 600; margin-top: 2px;">Límite: ₡${s.limite_diario_colones.toLocaleString('es-CR')}/día</div>
+            </div>
+
+            <!-- BARRA DE ACCIONES SAAS ELEGANTE -->
+            <div class="admin-student-actions">
+              <button type="button" class="btn-saas btn-saas-primary" onclick="quickGoToRecarga(${s.id})" title="Cargar saldo en caja a este estudiante">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="14" x="2" y="5" rx="2"/><line x1="2" x2="22" y1="10" y2="10"/></svg>
+                <span>Abonar</span>
               </button>
-              <a href="/carnet.html?id=${s.id}" target="_blank" style="padding: 7px 12px; background: #e0f2fe; color: #0369a1; border-radius: 8px; font-size: 0.76rem; font-weight: 800; text-decoration: none;" title="Ver e Imprimir Carné Físico">
-                🖨️ Carné
+
+              <a href="/carnet.html?id=${s.id}" target="_blank" class="btn-saas btn-saas-outline" title="Ver e imprimir carné físico escolar">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="3" rx="2"/><path d="M7 7h.01"/><path d="M11 7h6"/><path d="M7 11h.01"/><path d="M11 11h6"/><path d="M7 15h.01"/><path d="M11 15h6"/></svg>
+                <span>Carné QR</span>
               </a>
-              <button type="button" onclick="toggleBlockCard(${s.id}, ${isBlocked ? 0 : 1})" style="padding: 7px 14px; background: ${isBlocked ? '#10b981' : '#ef4444'}; color: white; border: none; border-radius: 8px; font-size: 0.78rem; font-weight: 900; cursor: pointer;">
-                ${isBlocked ? '✅ Desbloquear' : '⛔ Bloquear Tarjeta'}
+
+              <button type="button" class="btn-saas ${isBlocked ? 'btn-saas-success-subtle' : 'btn-saas-danger-subtle'}" onclick="toggleBlockCard(${s.id}, ${isBlocked ? 0 : 1})" title="${isBlocked ? 'Desbloquear y restablecer tarjeta' : 'Bloquear tarjeta por extravío o reporte'}">
+                ${isBlocked 
+                  ? `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 9.9-1"/></svg>
+                     <span>Desbloquear</span>`
+                  : `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                     <span>Bloquear</span>`
+                }
               </button>
             </div>
           </div>

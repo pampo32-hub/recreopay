@@ -442,9 +442,10 @@
           </p>
         </div>
         <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
-          <input type="text" id="adminSearchStudentsTab2" placeholder="🔍 Filtrar alumnos..." oninput="filterAdminStudentsTab2(this.value)" style="padding: 8px 12px; border-radius: 10px; border: 1.5px solid var(--border); font-size: 0.85rem; width: 190px;">
-          <button onclick="openNewStudentModal()" style="padding: 9px 16px; background: linear-gradient(135deg, #10b981, #059669); color: white; border: none; border-radius: 12px; font-size: 0.85rem; font-weight: 900; cursor: pointer; display: flex; align-items: center; gap: 6px;">
-            <span>➕</span> Nuevo Estudiante
+          <input type="text" id="adminSearchStudentsTab2" placeholder="🔍 Filtrar alumnos..." oninput="filterAdminStudentsTab2(this.value)" style="padding: 8px 12px; border-radius: 8px; border: 1px solid var(--border); font-size: 0.85rem; width: 190px; background: var(--card-bg); color: var(--text-main); outline: none;">
+          <button onclick="openNewStudentModal()" class="btn-saas btn-saas-primary" style="height: 36px; padding: 0 14px; font-size: 0.84rem;">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="M12 5v14"/></svg>
+            <span>Nuevo Estudiante</span>
           </button>
         </div>
       </div>
