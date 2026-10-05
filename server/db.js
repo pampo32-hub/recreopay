@@ -104,6 +104,24 @@ if (isPg) {
 
 function initDatabase() {
   if (isPg) {
+    try {
+      db.exec(`
+        CREATE TABLE IF NOT EXISTS solicitudes_recarga_sinpe (
+          id SERIAL PRIMARY KEY,
+          estudiante_id INTEGER NOT NULL REFERENCES estudiantes(id) ON DELETE CASCADE,
+          padre_usuario_id INTEGER,
+          monto_colones INTEGER NOT NULL,
+          comprobante_sinpe TEXT NOT NULL,
+          estado TEXT DEFAULT 'pendiente',
+          notas TEXT,
+          aprobado_por_usuario_id INTEGER,
+          creado_en TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          procesado_en TIMESTAMP
+        );
+      `);
+    } catch (e) {
+      console.error('Error creando solicitudes_recarga_sinpe en PostgreSQL:', e);
+    }
     seedUsuarios();
     seedDisenosTarjetas();
     return;
