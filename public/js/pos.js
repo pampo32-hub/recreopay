@@ -81,6 +81,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   // La cámara se activa bajo demanda al cobrar o identificar, NO al entrar
   initSSE();
   initPistolScanner();
+  initQuickProductEvents();
 });
 
 // Cargar catálogo de productos
@@ -110,7 +111,10 @@ function renderPosCategories() {
   `;
 }
 
+let currentPosCatId = null;
+
 function filterPosCat(catId, btn) {
+  currentPosCatId = catId;
   document.querySelectorAll('#posCategoriesBar .pos-tab-btn').forEach(b => b.classList.remove('active'));
   if (btn) btn.classList.add('active');
   renderPosProducts(catId);
@@ -135,6 +139,116 @@ function renderPosProducts(catId) {
       </div>
     </div>
   `).join('');
+}
+
+// ==========================================
+// NUEVO PRODUCTO RÁPIDO EN CALIENTE (POS)
+// ==========================================
+
+function openQuickProductModal() {
+  const modal = document.getElementById('modalProductoRapido');
+  if (!modal) return;
+  modal.style.display = 'flex';
+  const inputNom = document.getElementById('inputQuickProdNombre');
+  const inputPre = document.getElementById('inputQuickProdPrecio');
+  if (inputNom) {
+    inputNom.value = '';
+    setTimeout(() => inputNom.focus(), 80);
+  }
+  if (inputPre) inputPre.value = '';
+}
+
+function closeQuickProductModal() {
+  const modal = document.getElementById('modalProductoRapido');
+  if (modal) modal.style.display = 'none';
+}
+
+function initQuickProductEvents() {
+  const inputNom = document.getElementById('inputQuickProdNombre');
+  const inputPre = document.getElementById('inputQuickProdPrecio');
+
+  if (inputNom) {
+    inputNom.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        if (inputPre) inputPre.focus();
+      }
+    });
+  }
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+      const modal = document.getElementById('modalProductoRapido');
+      if (modal && modal.style.display !== 'none') {
+        closeQuickProductModal();
+      }
+    }
+  });
+}
+
+async function saveQuickProduct(e) {
+  if (e) e.preventDefault();
+  const inputNom = document.getElementById('inputQuickProdNombre');
+  const inputPre = document.getElementById('inputQuickProdPrecio');
+  const btn = document.getElementById('btnSubmitQuickProd');
+
+  const nombre = inputNom ? inputNom.value.trim() : '';
+  const precio = inputPre ? parseInt(inputPre.value, 10) : 0;
+
+  if (!nombre) {
+    alert('Ingresa el nombre del producto');
+    if (inputNom) inputNom.focus();
+    return;
+  }
+  if (!precio || isNaN(precio) || precio <= 0) {
+    alert('Ingresa un precio válido en colones');
+    if (inputPre) inputPre.focus();
+    return;
+  }
+
+  if (btn) {
+    btn.disabled = true;
+    btn.innerHTML = '<span>⏳</span> Guardando...';
+  }
+
+  try {
+    const res = await fetch('/api/productos/rapido', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ nombre, precio_colones: precio })
+    });
+    const data = await res.json();
+
+    if (!res.ok || !data.success || !data.producto) {
+      throw new Error(data.error || 'No se pudo guardar el producto');
+    }
+
+    const nuevoProd = data.producto;
+
+    // Agregar al catálogo en memoria de la terminal de primero
+    const exists = posProducts.find(p => p.id === nuevoProd.id);
+    if (!exists) {
+      posProducts.unshift(nuevoProd);
+    }
+
+    // Re-renderizar productos del mostrador
+    renderPosProducts(currentPosCatId);
+
+    // Agregar de inmediato 1 unidad al carrito de cobro
+    addToPosCart(nuevoProd.id);
+
+    // Cerrar modal
+    closeQuickProductModal();
+
+    if (window.sounds) window.sounds.playCoin();
+  } catch (err) {
+    alert('Error al registrar producto: ' + err.message);
+  } finally {
+    if (btn) {
+      btn.disabled = false;
+      btn.innerHTML = '<span>💾</span> Guardar y Cobrar ➔';
+    }
+  }
 }
 
 // Carrito de mostrador

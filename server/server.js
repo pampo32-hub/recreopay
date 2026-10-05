@@ -1539,6 +1539,68 @@ app.get('/api/productos', (req, res) => {
   }
 });
 
+// Crear producto rápido en mostrador (en caliente)
+app.post('/api/productos/rapido', (req, res) => {
+  try {
+    const { nombre, precio_colones, categoria_id } = req.body;
+    const cleanNombre = (nombre || '').trim();
+    const precio = parseInt(precio_colones, 10);
+
+    if (!cleanNombre) {
+      return res.status(400).json({ error: 'El nombre del producto es obligatorio' });
+    }
+    if (isNaN(precio) || precio <= 0) {
+      return res.status(400).json({ error: 'El precio debe ser un monto válido mayor a ₡0' });
+    }
+
+    // Determinar categoría por defecto
+    let targetCatId = categoria_id;
+    if (!targetCatId) {
+      const catSnack = db.prepare("SELECT id FROM categorias WHERE LOWER(nombre) LIKE '%snack%' OR LOWER(nombre) LIKE '%fruta%' OR LOWER(nombre) LIKE '%vario%' ORDER BY id ASC LIMIT 1").get();
+      if (catSnack) {
+        targetCatId = catSnack.id;
+      } else {
+        const catFirst = db.prepare("SELECT id FROM categorias ORDER BY id ASC LIMIT 1").get();
+        targetCatId = catFirst ? catFirst.id : 1;
+      }
+    }
+
+    const insertRes = db.prepare(`
+      INSERT INTO productos (
+        categoria_id, nombre, descripcion, precio_colones,
+        icono, cumple_mep, disponible, permite_preorden, destacado
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `).run(
+      targetCatId,
+      cleanNombre,
+      'Producto rápido registrado en mostrador',
+      precio,
+      '🥪',
+      1,
+      1,
+      1,
+      0
+    );
+
+    const newId = insertRes.lastInsertRowid;
+    const nuevoProducto = db.prepare(`
+      SELECT p.*, c.nombre as categoria_nombre, c.icono as categoria_icono
+      FROM productos p
+      LEFT JOIN categorias c ON p.categoria_id = c.id
+      WHERE p.id = ?
+    `).get(newId);
+
+    res.json({
+      success: true,
+      mensaje: `Producto "${cleanNombre}" agregado al inventario`,
+      producto: nuevoProducto
+    });
+  } catch (error) {
+    console.error('Error registrando producto rápido:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // ==========================================
 // 3. ÓRDENES (MOSTRADOR Y PRE-ÓRDENES)
 // ==========================================

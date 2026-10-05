@@ -100,8 +100,13 @@
 
       <!-- VISTA 1: CATÁLOGO TÁCTIL DE PRODUCTOS (MOSTRADOR) -->
       <div id="viewPosMostrador">
-        <div style="display: flex; gap: 8px; margin-bottom: 14px; overflow-x: auto;" id="posCategoriesBar">
-          <!-- Filtros de categorías -->
+        <div style="display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: 14px; flex-wrap: wrap;">
+          <div style="display: flex; gap: 8px; overflow-x: auto; flex: 1; min-width: 200px;" id="posCategoriesBar">
+            <!-- Filtros de categorías -->
+          </div>
+          <button type="button" onclick="openQuickProductModal()" style="background: linear-gradient(135deg, #10b981, #059669); color: white; border: none; padding: 7px 14px; border-radius: 10px; font-weight: 800; font-size: 0.8rem; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; box-shadow: 0 2px 10px rgba(16, 185, 129, 0.35); flex-shrink: 0; white-space: nowrap;">
+            <span>⚡</span> + Nuevo Rápido
+          </button>
         </div>
 
         <div class="pos-products-grid" id="posProductsGrid">
@@ -196,7 +201,12 @@
         <!-- LISTA DE PRODUCTOS SELECCIONADOS EN CAJA -->
         <div style="margin-top: 14px;">
           <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.82rem; font-weight: 700; color: #94a3b8; border-bottom: 1px solid #334155; padding-bottom: 6px;">
-            <span>Ítems en Mostrador</span>
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <span>Ítems en Mostrador</span>
+              <button type="button" onclick="openQuickProductModal()" style="background: #064e3b; color: #34d399; border: 1px solid #059669; border-radius: 6px; font-size: 0.72rem; font-weight: 800; padding: 2px 8px; cursor: pointer; display: inline-flex; align-items: center; gap: 4px;">
+                <span>⚡</span> + Rápido
+              </button>
+            </div>
             <button onclick="clearPosCart()" style="background: none; border: none; color: #ef4444; font-size: 0.75rem; font-weight: 700; cursor: pointer; padding: 2px 6px;">Limpiar</button>
           </div>
           <div class="pos-cart-list" id="posCartList">
@@ -318,8 +328,54 @@
     </div>
   </div>
 
-  <script src="/js/sounds.js?v=8.5"></script>
+  <!-- MODAL: NUEVO PRODUCTO RÁPIDO EN CALIENTE -->
+  <div id="modalProductoRapido" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.82); z-index: 9999; justify-content: center; align-items: center; padding: 16px; backdrop-filter: blur(5px);">
+    <div style="background: #0f172a; border: 2px solid #10b981; border-radius: 18px; max-width: 420px; width: 100%; padding: 22px; box-shadow: 0 20px 50px rgba(0,0,0,0.8); position: relative;">
+      <button type="button" onclick="closeQuickProductModal()" style="position: absolute; top: 14px; right: 14px; background: none; border: none; color: #94a3b8; font-size: 1.4rem; cursor: pointer; padding: 4px 8px; line-height: 1;" title="Cerrar (Esc)">✕</button>
+
+      <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 16px;">
+        <span style="font-size: 1.8rem; background: #064e3b; padding: 8px; border-radius: 12px; border: 1px solid #10b981; display: inline-flex;">⚡</span>
+        <div>
+          <h3 style="font-size: 1.15rem; font-weight: 900; color: #ffffff; margin: 0;">Nuevo Producto Rápido</h3>
+          <span style="font-size: 0.76rem; color: #94a3b8;">Registro instantáneo para cobrar al vuelo</span>
+        </div>
+      </div>
+
+      <form id="formProductoRapido" onsubmit="saveQuickProduct(event)">
+        <div style="margin-bottom: 14px;">
+          <label style="display: block; font-size: 0.78rem; font-weight: 700; color: #cbd5e1; margin-bottom: 6px;">
+            Nombre del Producto:
+          </label>
+          <input type="text" id="inputQuickProdNombre" placeholder="Ej: Empanada de Pollo, Jugo Naranja..." required autocomplete="off" style="width: 100%; padding: 11px 13px; border-radius: 10px; border: 1.5px solid #334155; background: #1e293b; color: #ffffff; font-size: 0.95rem; font-weight: 700; box-sizing: border-box; outline: none;">
+        </div>
+
+        <div style="margin-bottom: 18px;">
+          <label style="display: block; font-size: 0.78rem; font-weight: 700; color: #cbd5e1; margin-bottom: 6px;">
+            Precio de Venta (₡ Colones):
+          </label>
+          <div style="position: relative;">
+            <span style="position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: #38bdf8; font-weight: 900; font-size: 1.1rem;">₡</span>
+            <input type="number" id="inputQuickProdPrecio" placeholder="1500" required min="1" step="50" style="width: 100%; padding: 11px 13px 11px 32px; border-radius: 10px; border: 1.5px solid #334155; background: #1e293b; color: #ffffff; font-size: 1.15rem; font-weight: 900; box-sizing: border-box; outline: none;">
+          </div>
+          <span style="font-size: 0.72rem; color: #34d399; margin-top: 6px; display: block;">
+            🌿 Sello MEP Saludable asignado automáticamente (sin bloqueo parental)
+          </span>
+        </div>
+
+        <div style="display: flex; gap: 10px;">
+          <button type="button" onclick="closeQuickProductModal()" style="flex: 1; padding: 12px; background: #334155; color: #cbd5e1; border: none; border-radius: 10px; font-weight: 700; font-size: 0.85rem; cursor: pointer;">
+            Cancelar (Esc)
+          </button>
+          <button type="submit" id="btnSubmitQuickProd" style="flex: 2; padding: 12px; background: linear-gradient(135deg, #10b981, #059669); color: white; border: none; border-radius: 10px; font-weight: 800; font-size: 0.92rem; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; box-shadow: 0 4px 14px rgba(16, 185, 129, 0.4);">
+            <span>💾</span> Guardar y Cobrar ➔
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script src="/js/sounds.js?v=8.6"></script>
   <script src="/js/jsQR.js"></script>
-  <script src="/js/pos.js?v=8.5"></script>
+  <script src="/js/pos.js?v=8.6"></script>
 </body>
 </html>
