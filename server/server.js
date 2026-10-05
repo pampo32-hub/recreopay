@@ -47,6 +47,344 @@ app.get('/api/events', (req, res) => {
 });
 
 // ==========================================
+// 0. AUTENTICACIÓN Y ROLES (ADMIN, PADRE, ESTUDIANTE)
+// ==========================================
+
+app.post('/api/auth/login', (req, res) => {
+  try {
+    const { username, password } = req.body;
+    if (!username || !password) {
+      return res.status(400).json({ error: 'Ingresa usuario y contraseña' });
+    }
+
+    const cleanUser = String(username).trim().toLowerCase();
+    const cleanPass = String(password).trim();
+
+    const user = db.prepare('SELECT * FROM usuarios WHERE LOWER(username) = ?').get(cleanUser);
+    if (!user || user.password_hash !== cleanPass) {
+      return res.status(401).json({ error: 'Usuario o contraseña incorrectos' });
+    }
+
+    let estudiante = null;
+    let hijos = [];
+
+    if (user.rol === 'estudiante') {
+      estudiante = db.prepare('SELECT * FROM estudiantes WHERE usuario_id = ?').get(user.id);
+      if (!estudiante) {
+        estudiante = db.prepare('SELECT * FROM estudiantes WHERE LOWER(nombre_completo) LIKE ?').get(`%${cleanUser}%`);
+      }
+      if (!estudiante) {
+        estudiante = db.prepare('SELECT * FROM estudiantes ORDER BY id ASC LIMIT 1').get();
+      }
+    } else if (user.rol === 'padre') {
+      hijos = db.prepare('SELECT * FROM estudiantes WHERE padre_usuario_id = ?').all(user.id);
+      if (hijos.length === 0) {
+        hijos = db.prepare('SELECT * FROM estudiantes WHERE id IN (1, 2)').all();
+      }
+    }
+
+    res.json({
+      success: true,
+      user: {
+        id: user.id,
+        username: user.username,
+        rol: user.rol,
+        nombre: user.nombre,
+        email: user.email,
+        telefono: user.telefono
+      },
+      estudiante,
+      hijos
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Restablecer contraseña / PIN del estudiante desde el portal de padres
+app.post('/api/padres/restablecer-acceso', (req, res) => {
+  try {
+    const { estudiante_id, nuevo_pin, nuevo_password } = req.body;
+    const est = db.prepare('SELECT * FROM estudiantes WHERE id = ?').get(estudiante_id);
+    if (!est) return res.status(404).json({ error: 'Estudiante no encontrado' });
+
+    if (nuevo_pin) {
+      db.prepare('UPDATE estudiantes SET pin_seguridad = ? WHERE id = ?').run(String(nuevo_pin).trim(), est.id);
+    }
+
+    if (nuevo_password && est.usuario_id) {
+      db.prepare('UPDATE usuarios SET password_hash = ? WHERE id = ?').run(String(nuevo_password).trim(), est.usuario_id);
+    }
+
+    res.json({ success: true, mensaje: 'Contraseña y PIN escolar actualizados con éxito' });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ==========================================
+// ENDPOINTS DE ADMINISTRACIÓN DE LA SODA
+// ==========================================
+
+// Métricas y Resumen Ejecutivo
+app.get('/api/admin/resumen', (req, res) => {
+  try {
+    const ventasHoy = db.prepare(`
+      SELECT COALESCE(SUM(total_colones), 0) as total, COUNT(*) as cantidad
+      FROM ordenes 
+      WHERE date(creado_en, 'localtime') = date('now', 'localtime')
+    `).get();
+
+    const statsEst = db.prepare(`
+      SELECT 
+        COUNT(*) as total_estudiantes,
+        COALESCE(SUM(CASE WHEN tarjeta_bloqueada = 1 THEN 1 ELSE 0 END), 0) as tarjetas_bloqueadas,
+        COALESCE(SUM(saldo_colones), 0) as saldo_total
+      FROM estudiantes WHERE activo = 1
+    `).get();
+
+    const productosBajoStock = db.prepare(`
+      SELECT COUNT(*) as count 
+      FROM productos 
+      WHERE control_stock = 1 AND (stock <= 3 OR disponible = 0)
+    `).get().count;
+
+    res.json({
+      ventas_hoy: ventasHoy.total,
+      ordenes_hoy: ventasHoy.cantidad,
+      estudiantes_activos: statsEst.total_estudiantes,
+      tarjetas_bloqueadas: statsEst.tarjetas_bloqueadas,
+      saldo_total_estudiantes: statsEst.saldo_total,
+      productos_bajo_stock: productosBajoStock
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Listado de inventario para admin
+app.get('/api/admin/productos', (req, res) => {
+  try {
+    const productos = db.prepare(`
+      SELECT p.*, c.nombre as categoria_nombre, c.icono as categoria_icono
+      FROM productos p
+      JOIN categorias c ON p.categoria_id = c.id
+      ORDER BY p.categoria_id, p.nombre
+    `).all();
+    res.json(productos);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Actualizar stock y control
+app.put('/api/admin/productos/:id/stock', (req, res) => {
+  try {
+    const { stock, control_stock, disponible, precio_colones } = req.body;
+    const prodId = req.params.id;
+
+    const prod = db.prepare('SELECT * FROM productos WHERE id = ?').get(prodId);
+    if (!prod) return res.status(404).json({ error: 'Producto no encontrado' });
+
+    const nuevoStock = stock !== undefined ? parseInt(stock, 10) : prod.stock;
+    const nuevoControl = control_stock !== undefined ? (control_stock ? 1 : 0) : prod.control_stock;
+    const nuevoPrecio = precio_colones !== undefined ? parseInt(precio_colones, 10) : prod.precio_colones;
+    
+    let nuevoDisponible = disponible !== undefined ? (disponible ? 1 : 0) : prod.disponible;
+    if (nuevoControl === 1 && nuevoStock <= 0) {
+      nuevoDisponible = 0;
+    } else if (nuevoControl === 1 && nuevoStock > 0 && disponible === undefined) {
+      nuevoDisponible = 1;
+    }
+
+    db.prepare(`
+      UPDATE productos 
+      SET stock = ?, control_stock = ?, disponible = ?, precio_colones = ?
+      WHERE id = ?
+    `).run(nuevoStock, nuevoControl, nuevoDisponible, nuevoPrecio, prodId);
+
+    const actualizado = db.prepare(`
+      SELECT p.*, c.nombre as categoria_nombre, c.icono as categoria_icono
+      FROM productos p
+      JOIN categorias c ON p.categoria_id = c.id
+      WHERE p.id = ?
+    `).get(prodId);
+
+    broadcastEvent('producto_actualizado', actualizado);
+    res.json(actualizado);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Ajuste rápido de stock (+5, +10, -1)
+app.post('/api/admin/productos/:id/ajuste-rapido', (req, res) => {
+  try {
+    const { delta } = req.body;
+    const prodId = req.params.id;
+
+    const prod = db.prepare('SELECT * FROM productos WHERE id = ?').get(prodId);
+    if (!prod) return res.status(404).json({ error: 'Producto no encontrado' });
+
+    const nuevoStock = Math.max(0, (prod.stock || 0) + parseInt(delta, 10));
+    const nuevoDisponible = nuevoStock > 0 ? 1 : 0;
+
+    db.prepare(`
+      UPDATE productos 
+      SET stock = ?, disponible = ?, control_stock = 1
+      WHERE id = ?
+    `).run(nuevoStock, nuevoDisponible, prodId);
+
+    const actualizado = db.prepare(`
+      SELECT p.*, c.nombre as categoria_nombre, c.icono as categoria_icono
+      FROM productos p
+      JOIN categorias c ON p.categoria_id = c.id
+      WHERE p.id = ?
+    `).get(prodId);
+
+    broadcastEvent('producto_actualizado', actualizado);
+    res.json(actualizado);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Crear nuevo estudiante + carné QR
+app.post('/api/admin/estudiantes', (req, res) => {
+  try {
+    const { nombre_completo, edad, grado, seccion, saldo_inicial, limite_diario_colones, alergias, pin_seguridad, padre_nombre, padre_telefono } = req.body;
+
+    if (!nombre_completo || !grado || !seccion) {
+      return res.status(400).json({ error: 'Nombre completo, grado y sección son obligatorios' });
+    }
+
+    const count = db.prepare('SELECT COUNT(*) as count FROM estudiantes').get().count + 1;
+    const codigoEstudiante = `EST-2026-${String(count).padStart(3, '0')}`;
+    
+    const primerNombre = nombre_completo.trim().split(' ')[0].toUpperCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+    const randomHex = Math.random().toString(16).substring(2, 6).toUpperCase();
+    const qrToken = `QR-${primerNombre}-2026-${randomHex}`;
+
+    const pin = pin_seguridad ? String(pin_seguridad).trim() : '1234';
+    const saldo = parseInt(saldo_inicial, 10) || 0;
+    const limite = parseInt(limite_diario_colones, 10) || 3000;
+    const edadNum = parseInt(edad, 10) || 8;
+    const foto = `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(primerNombre)}&backgroundColor=b6e3f4`;
+
+    const resEst = db.prepare(`
+      INSERT INTO estudiantes 
+      (codigo_estudiante, nombre_completo, edad, grado, seccion, qr_token, pin_seguridad, foto_url, saldo_colones, limite_diario_colones, alergias, padre_nombre, padre_telefono, permitir_transferencias, tarjeta_bloqueada, activo)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, 0, 1)
+    `).run(
+      codigoEstudiante,
+      nombre_completo.trim(),
+      edadNum,
+      grado.trim(),
+      seccion.trim(),
+      qrToken,
+      pin,
+      foto,
+      saldo,
+      limite,
+      alergias || 'Ninguna conocida',
+      padre_nombre || '',
+      padre_telefono || ''
+    );
+
+    const nuevoId = resEst.lastInsertRowid;
+
+    // Crear cuenta de usuario estudiante
+    const usernameEst = primerNombre.toLowerCase() + count;
+    try {
+      const userRes = db.prepare(`
+        INSERT INTO usuarios (username, password_hash, rol, nombre, email, telefono)
+        VALUES (?, ?, 'estudiante', ?, '', '')
+      `).run(usernameEst, pin, nombre_completo.trim());
+      db.prepare('UPDATE estudiantes SET usuario_id = ? WHERE id = ?').run(userRes.lastInsertRowid, nuevoId);
+    } catch (e) {}
+
+    // Si tiene saldo inicial, registrar en movimientos
+    if (saldo > 0) {
+      db.prepare(`
+        INSERT INTO transacciones_saldo 
+        (estudiante_id, tipo, monto_colones, saldo_previo, saldo_posterior, descripcion)
+        VALUES (?, 'recarga_manual', ?, 0, ?, 'Saldo inicial asignado por administración')
+      `).run(nuevoId, saldo, saldo);
+    }
+
+    const creado = db.prepare('SELECT * FROM estudiantes WHERE id = ?').get(nuevoId);
+    broadcastEvent('estudiante_creado', creado);
+
+    res.status(201).json(creado);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Bloquear / Desbloquear tarjeta de estudiante
+app.put('/api/admin/estudiantes/:id/bloquear', (req, res) => {
+  try {
+    const { tarjeta_bloqueada } = req.body;
+    const estId = req.params.id;
+
+    const est = db.prepare('SELECT * FROM estudiantes WHERE id = ?').get(estId);
+    if (!est) return res.status(404).json({ error: 'Estudiante no encontrado' });
+
+    const nuevoEstado = tarjeta_bloqueada ? 1 : 0;
+    db.prepare('UPDATE estudiantes SET tarjeta_bloqueada = ? WHERE id = ?').run(nuevoEstado, estId);
+
+    const actualizado = db.prepare('SELECT * FROM estudiantes WHERE id = ?').get(estId);
+    broadcastEvent('estudiante_actualizado', actualizado);
+
+    res.json(actualizado);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Recarga manual de saldo en efectivo/soda
+app.post('/api/admin/estudiantes/:id/recarga-manual', (req, res) => {
+  try {
+    const { monto, descripcion, metodo } = req.body;
+    const estudianteId = parseInt(req.params.id, 10);
+    const montoColones = parseInt(monto, 10);
+
+    if (isNaN(montoColones) || montoColones <= 0) {
+      return res.status(400).json({ error: 'El monto a cargar debe ser mayor a ₡0' });
+    }
+
+    const est = db.prepare('SELECT * FROM estudiantes WHERE id = ?').get(estudianteId);
+    if (!est) return res.status(404).json({ error: 'Estudiante no encontrado' });
+
+    const nuevoSaldo = est.saldo_colones + montoColones;
+    db.prepare('UPDATE estudiantes SET saldo_colones = ? WHERE id = ?').run(nuevoSaldo, estudianteId);
+
+    const descFinal = descripcion || `Carga en efectivo en la soda escolar (${metodo || 'Caja'})`;
+
+    db.prepare(`
+      INSERT INTO transacciones_saldo 
+      (estudiante_id, tipo, monto_colones, saldo_previo, saldo_posterior, comprobante_sinpe, descripcion)
+      VALUES (?, 'recarga_manual', ?, ?, ?, 'CAJA-SODA', ?)
+    `).run(estudianteId, montoColones, est.saldo_colones, nuevoSaldo, descFinal);
+
+    const resultado = {
+      exito: true,
+      estudiante_id: est.id,
+      nombre: est.nombre_completo,
+      monto: montoColones,
+      saldo_anterior: est.saldo_colones,
+      saldo_nuevo: nuevoSaldo,
+      mensaje: `¡Se cargaron ₡${montoColones.toLocaleString('es-CR')} al monedero de ${est.nombre_completo}!`
+    };
+
+    broadcastEvent('recarga_exitosa', resultado);
+    res.json(resultado);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ==========================================
 // 1. ESTUDIANTES Y QR
 // ==========================================
 
@@ -251,7 +589,6 @@ app.get('/api/productos', (req, res) => {
       SELECT p.*, c.nombre as categoria_nombre, c.icono as categoria_icono
       FROM productos p
       JOIN categorias c ON p.categoria_id = c.id
-      WHERE p.disponible = 1
       ORDER BY p.categoria_id, p.nombre
     `).all();
 

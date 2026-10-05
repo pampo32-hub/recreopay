@@ -112,14 +112,41 @@ function initDatabase() {
 
   db.exec(schema);
 
-  // Migración segura para permitir_transferencias en bases de datos existentes
-  try {
-    db.exec('ALTER TABLE estudiantes ADD COLUMN permitir_transferencias INTEGER DEFAULT 1');
-  } catch (e) {
-    // Ya existe la columna
-  }
+  // Migraciones seguras para bases de datos existentes
+  try { db.exec('ALTER TABLE estudiantes ADD COLUMN permitir_transferencias INTEGER DEFAULT 1'); } catch (e) {}
+  try { db.exec('ALTER TABLE estudiantes ADD COLUMN tarjeta_bloqueada INTEGER DEFAULT 0'); } catch (e) {}
+  try { db.exec('ALTER TABLE estudiantes ADD COLUMN padre_usuario_id INTEGER'); } catch (e) {}
+  try { db.exec('ALTER TABLE productos ADD COLUMN control_stock INTEGER DEFAULT 1'); } catch (e) {}
+  try { db.exec('ALTER TABLE productos ADD COLUMN stock INTEGER DEFAULT 10'); } catch (e) {}
+  try { db.exec('UPDATE productos SET control_stock = 1 WHERE control_stock IS NULL OR control_stock = 0'); } catch (e) {}
+  try { db.exec('UPDATE productos SET stock = 10 WHERE stock IS NULL'); } catch (e) {}
 
   seedInitialData();
+  seedUsuarios();
+}
+
+function seedUsuarios() {
+  const count = db.prepare('SELECT COUNT(*) as count FROM usuarios').get().count;
+  if (count === 0) {
+    console.log('👤 Creando usuarios iniciales de demostración en RecreoPay...');
+    const insert = db.prepare('INSERT INTO usuarios (username, password_hash, rol, nombre, telefono, email) VALUES (?, ?, ?, ?, ?, ?)');
+    
+    // 1. Admin de la Soda
+    insert.run('admin', 'admin123', 'admin', 'Administrador de la Soda', '+506 8888-7632', 'admin@recreopay.cr');
+    
+    // 2. Padre de Mateo
+    const resPadre = insert.run('padre', 'padre123', 'padre', 'Carlos Alvarado (Papá)', '+506 8888-1122', 'carlos.alvarado@gmail.com');
+    
+    // 3. Estudiantes
+    const resMateo = insert.run('mateo', '1234', 'estudiante', 'Mateo Alvarado Castro', '', '');
+    const resSofia = insert.run('sofia', '1234', 'estudiante', 'Sofía Jiménez Morales', '', '');
+
+    // Vincular Mateo con su usuario y su padre
+    try {
+      db.prepare('UPDATE estudiantes SET usuario_id = ?, padre_usuario_id = ? WHERE id = 1').run(resMateo.lastInsertRowid, resPadre.lastInsertRowid);
+      db.prepare('UPDATE estudiantes SET usuario_id = ? WHERE id = 2').run(resSofia.lastInsertRowid);
+    } catch (e) {}
+  }
 }
 
 function seedInitialData() {
@@ -274,6 +301,9 @@ function debitoCompraTransaction({ estudianteId, montoTotal, ordenId, descripcio
     const est = db.prepare('SELECT * FROM estudiantes WHERE id = ?').get(estudianteId);
     if (!est) throw new Error('Estudiante no encontrado');
     if (!est.activo) throw new Error('La cuenta del estudiante se encuentra inactiva');
+    if (est.tarjeta_bloqueada) {
+      throw new Error('⛔ Tarjeta suspendida por la administración de la soda.');
+    }
 
     // 2. Verificar saldo
     if (est.saldo_colones < montoTotal) {
@@ -389,6 +419,12 @@ function crearOrdenCompleta({ estudianteId, tipoOrden, momentoEntrega, notas, it
       if (!prod.disponible) throw new Error(`El producto "${prod.nombre}" no está disponible en este momento`);
 
       const cantidad = parseInt(item.cantidad, 10) || 1;
+      if (prod.control_stock === 1) {
+        if (prod.stock < cantidad) {
+          throw new Error(`Existencias insuficientes para "${prod.nombre}". Quedan ${prod.stock} unidad(es) en inventario.`);
+        }
+      }
+
       const subtotal = prod.precio_colones * cantidad;
       totalColones += subtotal;
 
@@ -427,7 +463,7 @@ function crearOrdenCompleta({ estudianteId, tipoOrden, momentoEntrega, notas, it
 
     const ordenId = resultOrden.lastInsertRowid;
 
-    // Insertar detalle de productos
+    // Insertar detalle de productos y descontar inventario
     const insertDetalle = db.prepare(`
       INSERT INTO orden_detalles (orden_id, producto_id, cantidad, precio_unitario, subtotal)
       VALUES (?, ?, ?, ?, ?)
@@ -435,6 +471,14 @@ function crearOrdenCompleta({ estudianteId, tipoOrden, momentoEntrega, notas, it
 
     for (const det of detallesParaInsertar) {
       insertDetalle.run(ordenId, det.producto_id, det.cantidad, det.precio_unitario, det.subtotal);
+
+      // Descontar inventario si tiene control de stock activo
+      const prod = db.prepare('SELECT control_stock, stock FROM productos WHERE id = ?').get(det.producto_id);
+      if (prod && prod.control_stock === 1) {
+        const nuevoStock = Math.max(0, prod.stock - det.cantidad);
+        const sigueDisponible = nuevoStock > 0 ? 1 : 0;
+        db.prepare('UPDATE productos SET stock = ?, disponible = ? WHERE id = ?').run(nuevoStock, sigueDisponible, det.producto_id);
+      }
     }
 
     // Efectuar débito financiero
@@ -471,6 +515,9 @@ function transferenciaP2PTransaction({ emisorId, qrReceptor, receptorId, monto, 
     const emisor = db.prepare('SELECT * FROM estudiantes WHERE id = ?').get(emisorId);
     if (!emisor) throw new Error('Estudiante emisor no encontrado');
     if (!emisor.activo) throw new Error('Tu cuenta se encuentra inactiva');
+    if (emisor.tarjeta_bloqueada) {
+      throw new Error('⛔ Tarjeta suspendida por la administración de la soda. No puedes transferir.');
+    }
     if (emisor.permitir_transferencias === 0) {
       throw new Error('Tus padres tienen desactivadas las transferencias entre compañeros en tu perfil');
     }
@@ -498,6 +545,9 @@ function transferenciaP2PTransaction({ emisorId, qrReceptor, receptorId, monto, 
     }
     if (!receptor.activo) {
       throw new Error(`La cuenta de ${receptor.nombre_completo} se encuentra inactiva`);
+    }
+    if (receptor.tarjeta_bloqueada) {
+      throw new Error(`⛔ La tarjeta de ${receptor.nombre_completo} está suspendida y no puede recibir transferencias.`);
     }
     if (emisor.id === receptor.id) {
       throw new Error('No puedes transferirte saldo a ti mismo');

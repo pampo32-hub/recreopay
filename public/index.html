@@ -28,7 +28,209 @@
 </head>
 <body class="">
 
-  <div class="app-container">
+  <!-- VISTA DE LOGIN Y CONTROL DE ACCESO -->
+  <div id="viewLogin" class="login-overlay" style="display: none;">
+    <div class="login-card">
+      <div class="login-brand">
+        <div class="login-logo">🥪</div>
+        <h1 class="login-title">Recreo<strong>Pay</strong></h1>
+        <p class="login-subtitle">Sistema Digital de Soda Escolar y Monedero Estudiantil</p>
+      </div>
+
+      <form id="formLogin" onsubmit="handleLoginSubmit(event)">
+        <div class="login-form-group">
+          <label for="loginUsername">Usuario o Carné:</label>
+          <input type="text" id="loginUsername" class="login-input" placeholder="Ej: admin, padre, mateo" required autocomplete="username">
+        </div>
+
+        <div class="login-form-group">
+          <label for="loginPassword">Contraseña o PIN:</label>
+          <input type="password" id="loginPassword" class="login-input" placeholder="••••••••" required autocomplete="current-password">
+        </div>
+
+        <div id="loginErrorMsg" style="display: none; background: #fee2e2; border: 1px solid #fca5a5; color: #991b1b; padding: 8px 12px; border-radius: 10px; font-size: 0.8rem; font-weight: 700; margin-bottom: 12px; text-align: center;"></div>
+
+        <button type="submit" id="btnLoginSubmit" class="login-submit-btn">
+          🚀 Iniciar Sesión
+        </button>
+      </form>
+
+      <!-- ACCESOS RÁPIDOS DE PRUEBA (1-CLICK DEMO) -->
+      <div class="login-demo-box">
+        <div class="login-demo-title">Accesos Rápidos de Prueba:</div>
+        <div class="login-demo-btns">
+          <button type="button" class="login-demo-btn" onclick="quickFillLogin('admin', 'admin123')">
+            <span style="font-size: 1.3rem;">👨‍🍳</span>
+            <span>Admin Soda</span>
+          </button>
+          <button type="button" class="login-demo-btn" onclick="quickFillLogin('padre', 'padre123')">
+            <span style="font-size: 1.3rem;">👨‍👩‍👦</span>
+            <span>Padre</span>
+          </button>
+          <button type="button" class="login-demo-btn" onclick="quickFillLogin('mateo', '1234')">
+            <span style="font-size: 1.3rem;">🎒</span>
+            <span>Estudiante</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- PANEL DE ADMINISTRACIÓN DE LA SODA (#viewAdmin) -->
+  <div id="viewAdmin" class="admin-container" style="display: none;">
+    <!-- CABECERA DE ADMINISTRADOR -->
+    <header class="admin-header">
+      <div class="admin-badge">
+        <div class="admin-icon">👨‍🍳</div>
+        <div>
+          <h2 style="font-size: 1.15rem; font-weight: 900; margin: 0; color: var(--text-main);">Administración de la Soda</h2>
+          <span id="adminLoggedName" style="font-size: 0.76rem; color: #0284c7; font-weight: 700;">Soda Escolar Central</span>
+        </div>
+      </div>
+
+      <div style="display: flex; gap: 8px; align-items: center;">
+        <button onclick="toggleTheme()" class="theme-toggle-btn" title="Alternar Modo Oscuro / Modo Claro">
+          🌙
+        </button>
+        <a href="/pos.html" target="_blank" style="padding: 7px 12px; background: #0284c7; color: white; border-radius: 10px; font-size: 0.78rem; font-weight: 800; text-decoration: none;" title="Abrir Caja / Terminal POS">
+          📟 Ir a Caja
+        </a>
+        <button onclick="logout()" class="logout-btn" title="Cerrar sesión">
+          <span>🚪</span>
+          <span class="logout-text">Salir</span>
+        </button>
+      </div>
+    </header>
+
+    <!-- MÉTRICAS DE HOY -->
+    <div class="admin-stats-grid">
+      <div class="admin-stat-card">
+        <div class="val" id="adminStatVentas">₡0</div>
+        <div class="lbl">Ventas Hoy</div>
+      </div>
+      <div class="admin-stat-card">
+        <div class="val" id="adminStatOrdenes">0</div>
+        <div class="lbl">Órdenes Despachadas</div>
+      </div>
+      <div class="admin-stat-card">
+        <div class="val" id="adminStatEstudiantes">0</div>
+        <div class="lbl">Estudiantes Activos</div>
+      </div>
+      <div class="admin-stat-card">
+        <div class="val" id="adminStatBloqueados" style="color: #ef4444;">0</div>
+        <div class="lbl">Tarjetas Bloqueadas</div>
+      </div>
+      <div class="admin-stat-card">
+        <div class="val" id="adminStatCriticos" style="color: #f59e0b;">0</div>
+        <div class="lbl">Bajo Stock / Agotados</div>
+      </div>
+    </div>
+
+    <!-- PESTAÑAS DE NAVEGACIÓN ADMIN -->
+    <div class="admin-tabs">
+      <button class="admin-tab-btn active" id="btnTabAdminInventario" onclick="switchAdminTab('inventario')">
+        📦 Control de Inventario y Stock
+      </button>
+      <button class="admin-tab-btn" id="btnTabAdminEstudiantes" onclick="switchAdminTab('estudiantes')">
+        🪪 Estudiantes, Carnés y Bloqueos
+      </button>
+      <button class="admin-tab-btn" id="btnTabAdminRecarga" onclick="switchAdminTab('recarga')">
+        💵 Cargar Dinero Manual en Caja
+      </button>
+    </div>
+
+    <!-- TAB 1: INVENTARIO Y STOCK -->
+    <div id="adminTabContentInventario" class="admin-card">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; flex-wrap: wrap; gap: 10px;">
+        <div>
+          <h3 style="margin: 0; font-size: 1.1rem; font-weight: 800; color: var(--text-main);">Inventario y Existencias</h3>
+          <p style="margin: 2px 0 0 0; font-size: 0.75rem; color: var(--text-muted);">
+            Cuando el stock llega a 0, el producto se marca automáticamente como <strong>AGOTADO (greyed out)</strong>.
+          </p>
+        </div>
+        <input type="text" id="adminSearchProduct" placeholder="🔍 Buscar alimento o bebida..." oninput="filterAdminProducts(this.value)" style="padding: 8px 12px; border-radius: 10px; border: 1.5px solid var(--border); font-size: 0.85rem; width: 220px;">
+      </div>
+
+      <div id="adminProductsList">
+        <!-- Renderizado dinámico de productos y stock -->
+      </div>
+    </div>
+
+    <!-- TAB 2: ESTUDIANTES Y CARNÉS -->
+    <div id="adminTabContentEstudiantes" class="admin-card" style="display: none;">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; flex-wrap: wrap; gap: 10px;">
+        <div>
+          <h3 style="margin: 0; font-size: 1.1rem; font-weight: 800; color: var(--text-main);">Alumnos y Tarjetas Escolares</h3>
+          <p style="margin: 2px 0 0 0; font-size: 0.75rem; color: var(--text-muted);">
+            Bloquea tarjetas perdidas, crea nuevos alumnos o genera carnés con código QR.
+          </p>
+        </div>
+        <button onclick="openNewStudentModal()" style="padding: 9px 16px; background: linear-gradient(135deg, #10b981, #059669); color: white; border: none; border-radius: 12px; font-size: 0.85rem; font-weight: 900; cursor: pointer; display: flex; align-items: center; gap: 6px;">
+          <span>➕</span> Nuevo Estudiante
+        </button>
+      </div>
+
+      <div id="adminStudentsList">
+        <!-- Renderizado dinámico de estudiantes con botones de bloqueo -->
+      </div>
+    </div>
+
+    <!-- TAB 3: CARGA MANUAL DE DINERO -->
+    <div id="adminTabContentRecarga" class="admin-card" style="display: none; max-width: 550px; margin: 0 auto;">
+      <div style="text-align: center; margin-bottom: 18px;">
+        <span style="font-size: 2.2rem;">💵</span>
+        <h3 style="margin: 6px 0 2px 0; font-size: 1.2rem; font-weight: 900; color: var(--text-main);">Carga Manual de Dinero</h3>
+        <p style="margin: 0; font-size: 0.78rem; color: var(--text-muted);">
+          Recarga de monedero estudiantil por pago en efectivo en la soda o ajuste escolar
+        </p>
+      </div>
+
+      <div style="margin-bottom: 14px;">
+        <label style="display: block; font-size: 0.8rem; font-weight: 800; color: var(--text-main); margin-bottom: 5px;">
+          Selecciona al Estudiante:
+        </label>
+        <select id="adminRecargaStudentSelect" style="width: 100%; padding: 10px; border-radius: 10px; border: 1.5px solid var(--border); font-size: 0.95rem; font-weight: 700; background: var(--card-bg); color: var(--text-main);">
+          <!-- Opciones de estudiantes -->
+        </select>
+      </div>
+
+      <div style="margin-bottom: 12px;">
+        <label style="display: block; font-size: 0.8rem; font-weight: 800; color: var(--text-main); margin-bottom: 5px;">
+          Monto a Recargar en Colones:
+        </label>
+        <div style="position: relative;">
+          <span style="position: absolute; left: 12px; top: 50%; transform: translateY(-50%); font-weight: 900; font-size: 1.1rem; color: #10b981;">₡</span>
+          <input type="tel" inputmode="numeric" pattern="[0-9]*" id="adminRecargaMonto" placeholder="Ej: 5000" style="width: 100%; padding: 11px 12px 11px 32px; border-radius: 10px; border: 2px solid #10b981; font-size: 1.15rem; font-weight: 900; color: var(--text-main); background: var(--card-bg); box-sizing: border-box;">
+        </div>
+      </div>
+
+      <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin-bottom: 14px;">
+        <button type="button" onclick="setAdminRecargaPreset(1000)" class="stock-btn-quick">₡1.000</button>
+        <button type="button" onclick="setAdminRecargaPreset(2000)" class="stock-btn-quick">₡2.000</button>
+        <button type="button" onclick="setAdminRecargaPreset(5000)" class="stock-btn-quick">₡5.000</button>
+        <button type="button" onclick="setAdminRecargaPreset(10000)" class="stock-btn-quick">₡10.000</button>
+      </div>
+
+      <div style="margin-bottom: 16px;">
+        <label style="display: block; font-size: 0.78rem; font-weight: 700; color: var(--text-muted); margin-bottom: 4px;">
+          Detalle o Recibo (Opcional):
+        </label>
+        <input type="text" id="adminRecargaDescripcion" placeholder="Ej: Pago en efectivo en mostrador" style="width: 100%; padding: 9px 12px; border-radius: 10px; border: 1px solid var(--border); font-size: 0.85rem; box-sizing: border-box; background: var(--card-bg); color: var(--text-main);">
+      </div>
+
+      <button type="button" id="btnAdminSubmitRecarga" onclick="submitAdminManualRecharge()" style="width: 100%; padding: 13px; background: linear-gradient(135deg, #10b981, #059669); color: white; border: none; border-radius: 12px; font-size: 1rem; font-weight: 900; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; box-shadow: 0 4px 12px rgba(16, 185, 129, 0.35);">
+        <span>💰</span> Aplicar Recarga Inmediata
+      </button>
+    </div>
+  </div>
+
+  <div class="app-container" id="appContainer" style="display: none;">
+    <!-- BANNER DE TARJETA SUSPENDIDA / BLOQUEADA -->
+    <div id="bannerCardBlocked" class="banner-card-blocked" style="display: none;">
+      <span>⛔</span>
+      <span><strong>TARJETA SUSPENDIDA POR LA SODA.</strong> Acércate al mostrador de la soda para reactivar tu cuenta.</span>
+    </div>
+
     <!-- BANNER DE ADVERTENCIA HTTPS PARA TELÉFONOS MÓVILES -->
     <div id="bannerHttpsWarning" style="display: none; background: linear-gradient(135deg, #f59e0b, #d97706); color: white; padding: 10px 14px; font-size: 0.78rem; font-weight: 700; text-align: center; border-radius: 12px; margin: 10px 16px 0 16px; box-shadow: 0 2px 8px rgba(245, 158, 11, 0.3);">
       🔒 Estás en HTTP. Para activar la cámara y pagos QR, tu celular requiere HTTPS:
@@ -222,6 +424,13 @@
         <button onclick="toggleParentPanel(false)" style="background: none; border: none; font-size: 1.2rem; cursor: pointer; color: #64748b;">✕</button>
       </div>
 
+      <!-- SELECTOR DE HIJO PARA PADRES -->
+      <div id="parentChildSelectorBox" style="display: none; margin-bottom: 14px; background: #e0f2fe; padding: 10px 12px; border-radius: 12px; border: 1.5px solid #bae6fd;">
+        <label for="parentChildSelect" style="display: block; font-size: 0.76rem; font-weight: 800; color: #0369a1; margin-bottom: 4px;">🧒 Viendo información de:</label>
+        <select id="parentChildSelect" onchange="onParentChildSelect(this.value)" style="width: 100%; padding: 8px 10px; border-radius: 8px; border: 1px solid #7dd3fc; font-weight: 800; color: #0c4a6e; background: white; font-size: 0.9rem;">
+        </select>
+      </div>
+
       <!-- RECARGA SINPE MÓVIL (MONTO ESCRITO Y ACCESOS RÁPIDOS) -->
       <div style="background: #f0fdf4; border: 1.5px solid #86efac; border-radius: 14px; padding: 14px; margin-bottom: 16px;">
         <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px;">
@@ -305,11 +514,103 @@
         <input type="checkbox" id="chkParentAllowTransfer" onchange="onToggleAllowTransfer(this.checked)" style="width: 22px; height: 22px; cursor: pointer; accent-color: #0284c7;" checked>
       </div>
 
+      <!-- RESTABLECER PIN Y CONTRASEÑA ESCOLAR DEL ALUMNO -->
+      <div style="background: #f8fafc; border: 1.5px dashed #cbd5e1; border-radius: 14px; padding: 14px; margin-bottom: 16px;">
+        <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+          <span style="font-size: 1.2rem;">🔐</span>
+          <div>
+            <strong style="font-size: 0.88rem; color: #1e293b; display: block;">Seguridad y Contraseña del Alumno</strong>
+            <span style="font-size: 0.72rem; color: #64748b;">Cambia el PIN de transferencias o la contraseña de acceso</span>
+          </div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 10px;">
+          <div>
+            <label style="display: block; font-size: 0.74rem; font-weight: 800; color: #475569; margin-bottom: 3px;">Nuevo PIN (4 dígitos):</label>
+            <input type="password" inputmode="numeric" maxlength="4" id="inputParentNewPin" placeholder="1234" style="width: 100%; padding: 8px; border-radius: 8px; border: 1.5px solid #cbd5e1; font-weight: 900; letter-spacing: 2px; text-align: center; box-sizing: border-box;">
+          </div>
+          <div>
+            <label style="display: block; font-size: 0.74rem; font-weight: 800; color: #475569; margin-bottom: 3px;">Nueva Contraseña:</label>
+            <input type="text" id="inputParentNewPass" placeholder="Ej: 1234" style="width: 100%; padding: 8px; border-radius: 8px; border: 1.5px solid #cbd5e1; font-weight: 800; box-sizing: border-box;">
+          </div>
+        </div>
+
+        <button type="button" onclick="saveParentChildAccess()" style="width: 100%; padding: 10px; background: #334155; color: white; border: none; border-radius: 8px; font-weight: 800; font-size: 0.82rem; cursor: pointer;">
+          💾 Guardar Nuevas Credenciales
+        </button>
+      </div>
+
       <!-- HISTORIAL RECIENTE -->
       <h4 style="font-size: 0.85rem; font-weight: 800; color: #1e293b; margin-bottom: 8px;">Consumos Recientes</h4>
       <div id="parentHistoryList" style="max-height: 140px; overflow-y: auto; font-size: 0.78rem;">
         <!-- Se llena dinámicamente -->
       </div>
+    </div>
+  </div>
+
+  <!-- MODAL: REGISTRAR NUEVO ESTUDIANTE (ADMIN) -->
+  <div class="modal-qr-backdrop" id="modalNewStudent" style="display: none;" onclick="closeNewStudentModal(event)">
+    <div class="modal-qr-card" onclick="event.stopPropagation()" style="max-width: 460px; text-align: left;">
+      <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #e2e8f0; padding-bottom: 10px; margin-bottom: 14px;">
+        <div>
+          <h3 style="color: #0f172a; font-size: 1.15rem; font-weight: 800;">Registrar Nuevo Alumno</h3>
+          <span style="font-size: 0.75rem; color: #64748b;">Genera carné oficial y código QR al instante</span>
+        </div>
+        <button onclick="closeNewStudentModal()" style="background: none; border: none; font-size: 1.2rem; cursor: pointer; color: #64748b;">✕</button>
+      </div>
+
+      <form id="formNewStudent" onsubmit="submitNewStudent(event)">
+        <div style="margin-bottom: 10px;">
+          <label style="display: block; font-size: 0.78rem; font-weight: 800; color: #334155; margin-bottom: 3px;">Nombre Completo:</label>
+          <input type="text" id="newEstNombre" placeholder="Ej: Daniel Sánchez Méndez" required style="width: 100%; padding: 8px 10px; border-radius: 8px; border: 1.5px solid #cbd5e1; font-weight: 700; box-sizing: border-box;">
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin-bottom: 10px;">
+          <div>
+            <label style="display: block; font-size: 0.75rem; font-weight: 700; color: #334155; margin-bottom: 3px;">Edad:</label>
+            <input type="number" id="newEstEdad" value="8" min="5" max="19" required style="width: 100%; padding: 8px; border-radius: 8px; border: 1.5px solid #cbd5e1; font-weight: 700; box-sizing: border-box;">
+          </div>
+          <div>
+            <label style="display: block; font-size: 0.75rem; font-weight: 700; color: #334155; margin-bottom: 3px;">Grado:</label>
+            <input type="text" id="newEstGrado" placeholder="Ej: 3° Grado" required style="width: 100%; padding: 8px; border-radius: 8px; border: 1.5px solid #cbd5e1; font-weight: 700; box-sizing: border-box;">
+          </div>
+          <div>
+            <label style="display: block; font-size: 0.75rem; font-weight: 700; color: #334155; margin-bottom: 3px;">Sección:</label>
+            <input type="text" id="newEstSeccion" placeholder="Ej: 3-B" required style="width: 100%; padding: 8px; border-radius: 8px; border: 1.5px solid #cbd5e1; font-weight: 700; box-sizing: border-box;">
+          </div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 10px;">
+          <div>
+            <label style="display: block; font-size: 0.75rem; font-weight: 700; color: #334155; margin-bottom: 3px;">Saldo Inicial (₡):</label>
+            <input type="tel" inputmode="numeric" id="newEstSaldo" value="2000" style="width: 100%; padding: 8px; border-radius: 8px; border: 1.5px solid #cbd5e1; font-weight: 700; box-sizing: border-box;">
+          </div>
+          <div>
+            <label style="display: block; font-size: 0.75rem; font-weight: 700; color: #334155; margin-bottom: 3px;">Límite Diario (₡):</label>
+            <input type="tel" inputmode="numeric" id="newEstLimite" value="2500" style="width: 100%; padding: 8px; border-radius: 8px; border: 1.5px solid #cbd5e1; font-weight: 700; box-sizing: border-box;">
+          </div>
+        </div>
+
+        <div style="margin-bottom: 10px;">
+          <label style="display: block; font-size: 0.75rem; font-weight: 700; color: #334155; margin-bottom: 3px;">Alergias o Restricciones Médicas:</label>
+          <input type="text" id="newEstAlergias" placeholder="Ej: Ninguna conocida, Alergia al gluten..." style="width: 100%; padding: 8px; border-radius: 8px; border: 1.5px solid #cbd5e1; box-sizing: border-box;">
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 14px;">
+          <div>
+            <label style="display: block; font-size: 0.75rem; font-weight: 700; color: #334155; margin-bottom: 3px;">Nombre del Padre:</label>
+            <input type="text" id="newEstPadre" placeholder="Ej: Juan Sánchez" style="width: 100%; padding: 8px; border-radius: 8px; border: 1.5px solid #cbd5e1; box-sizing: border-box;">
+          </div>
+          <div>
+            <label style="display: block; font-size: 0.75rem; font-weight: 700; color: #334155; margin-bottom: 3px;">Teléfono Padre:</label>
+            <input type="text" id="newEstTel" placeholder="+506 8888-0000" style="width: 100%; padding: 8px; border-radius: 8px; border: 1.5px solid #cbd5e1; box-sizing: border-box;">
+          </div>
+        </div>
+
+        <button type="submit" id="btnSubmitNewStudent" style="width: 100%; padding: 12px; background: linear-gradient(135deg, #0284c7, #0369a1); color: white; border: none; border-radius: 12px; font-weight: 900; font-size: 0.95rem; cursor: pointer;">
+          ✅ Guardar y Generar Carné
+        </button>
+      </form>
     </div>
   </div>
 

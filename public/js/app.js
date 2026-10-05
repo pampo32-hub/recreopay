@@ -1,12 +1,16 @@
-// RECREOPAY - LÓGICA DE CLIENTE PWA (ESTUDIANTES Y PADRES)
+// RECREOPAY - LÓGICA DE CLIENTE PWA (AUTENTICACIÓN, ADMIN, ESTUDIANTES Y PADRES)
 
-let students = [];
+let currentUser = null;
 let currentStudent = null;
+let students = [];
 let categories = [];
 let products = [];
 let activeCategoryId = null;
 let cart = [];
-let currentAppMode = 'kids';
+let currentAppMode = 'teens';
+let adminProducts = [];
+let adminStats = null;
+let adminSearchQuery = '';
 
 let CLOUDFLARE_TUNNEL_URL = 'https://recreopay.gammapos.app';
 
@@ -45,16 +49,156 @@ document.addEventListener('DOMContentLoaded', async () => {
   initTheme();
   checkHttpsEnvironment();
 
-  // Registrar Service Worker para PWA con forzado de actualizacion
+  // Registrar Service Worker para PWA
   if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('/sw.js?v=5.0').then(reg => {
+    navigator.serviceWorker.register('/sw.js?v=6.0').then(reg => {
       reg.update();
     }).catch(err => console.log('SW error:', err));
   }
 
-  await loadInitialData();
+  // Verificar si hay sesión activa guardada
+  const storedUser = localStorage.getItem('recreopay_user');
+  if (storedUser) {
+    try {
+      currentUser = JSON.parse(storedUser);
+    } catch (e) {
+      currentUser = null;
+    }
+  }
+
+  if (!currentUser) {
+    // Mostrar pantalla de Login limpia (NO auto-login)
+    showLoginView();
+  } else {
+    await applyUserRoleSession();
+  }
+
   initStudentSSE();
 });
+
+// ==========================================
+// VISTA Y MANEJO DE AUTENTICACIÓN / SESIÓN
+// ==========================================
+
+function showLoginView() {
+  const viewLogin = document.getElementById('viewLogin');
+  const viewAdmin = document.getElementById('viewAdmin');
+  const appContainer = document.getElementById('appContainer');
+
+  if (viewLogin) viewLogin.style.display = 'flex';
+  if (viewAdmin) viewAdmin.style.display = 'none';
+  if (appContainer) appContainer.style.display = 'none';
+
+  // Cerrar cualquier modal que pudiera estar abierto
+  toggleParentPanel(false);
+  closeCartModal();
+  closeQrModal();
+  closeTransferModal();
+}
+
+function quickFillLogin(username, password) {
+  document.getElementById('loginUsername').value = username;
+  document.getElementById('loginPassword').value = password;
+  handleLoginSubmit();
+}
+
+async function handleLoginSubmit(event) {
+  if (event) event.preventDefault();
+  const username = document.getElementById('loginUsername').value.trim();
+  const password = document.getElementById('loginPassword').value.trim();
+  const errorMsg = document.getElementById('loginErrorMsg');
+  const submitBtn = document.getElementById('btnLoginSubmit');
+
+  if (!username || !password) {
+    if (errorMsg) {
+      errorMsg.textContent = 'Por favor ingresa tu usuario y contraseña';
+      errorMsg.style.display = 'block';
+    }
+    return;
+  }
+
+  if (errorMsg) errorMsg.style.display = 'none';
+  submitBtn.disabled = true;
+  submitBtn.textContent = 'Verificando credenciales...';
+
+  try {
+    const res = await fetch('/api/auth/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username, password })
+    });
+
+    const data = await res.json();
+    if (!res.ok) {
+      throw new Error(data.error || 'Credenciales incorrectas');
+    }
+
+    currentUser = {
+      ...data.user,
+      estudiante: data.estudiante,
+      hijos: data.hijos || []
+    };
+    localStorage.setItem('recreopay_user', JSON.stringify(currentUser));
+
+    if (window.sounds) window.sounds.playSuccess();
+    await applyUserRoleSession();
+  } catch (err) {
+    if (errorMsg) {
+      errorMsg.textContent = `❌ ${err.message}`;
+      errorMsg.style.display = 'block';
+    }
+    if (window.sounds) window.sounds.playError();
+  } finally {
+    submitBtn.disabled = false;
+    submitBtn.innerHTML = '🚀 Iniciar Sesión';
+  }
+}
+
+async function applyUserRoleSession() {
+  if (!currentUser) return showLoginView();
+
+  const viewLogin = document.getElementById('viewLogin');
+  const viewAdmin = document.getElementById('viewAdmin');
+  const appContainer = document.getElementById('appContainer');
+
+  if (viewLogin) viewLogin.style.display = 'none';
+
+  if (currentUser.rol === 'admin') {
+    if (viewAdmin) viewAdmin.style.display = 'block';
+    if (appContainer) appContainer.style.display = 'none';
+    const adminNameEl = document.getElementById('adminLoggedName');
+    if (adminNameEl) adminNameEl.textContent = `${currentUser.nombre} (Administrador)`;
+    await loadAdminData();
+  } else if (currentUser.rol === 'padre') {
+    if (viewAdmin) viewAdmin.style.display = 'none';
+    if (appContainer) appContainer.style.display = 'block';
+    
+    await loadInitialData();
+    setupParentPortalChildren();
+    toggleParentPanel(true);
+  } else {
+    // Estudiante
+    if (viewAdmin) viewAdmin.style.display = 'none';
+    if (appContainer) appContainer.style.display = 'block';
+    
+    await loadInitialData();
+    if (currentUser.estudiante) {
+      await selectStudent(currentUser.estudiante.id);
+    } else if (students.length > 0) {
+      await selectStudent(students[0].id);
+    }
+  }
+}
+
+function logout() {
+  if (confirm('¿Deseas cerrar la sesión en RecreoPay?')) {
+    localStorage.removeItem('recreopay_user');
+    currentUser = null;
+    currentStudent = null;
+    showLoginView();
+    if (window.sounds) window.sounds.playTap();
+  }
+}
 
 async function loadInitialData() {
   try {
@@ -63,11 +207,6 @@ async function loadInitialData() {
     students = await resEst.json();
 
     populateStudentSelector();
-
-    // Seleccionar por defecto el primer estudiante (Mateo, 8 años -> Modo Kids)
-    if (students.length > 0) {
-      await selectStudent(students[0].id);
-    }
 
     // 2. Cargar productos y categorías
     const resProd = await fetch('/api/productos');
@@ -84,6 +223,7 @@ async function loadInitialData() {
 
 function populateStudentSelector() {
   const sel = document.getElementById('studentSelector');
+  if (!sel) return;
   sel.innerHTML = students.map(s => `
     <option value="${s.id}">
       ${s.nombre_completo} (${s.edad} años - ${s.grado})
@@ -114,7 +254,7 @@ function updateStudentUI() {
   document.getElementById('walletName').textContent = currentStudent.nombre_completo;
   document.getElementById('walletGrade').textContent = `${currentStudent.grado} • Sección ${currentStudent.seccion} • Cód: ${currentStudent.codigo_estudiante}`;
 
-  // Saldo en colones (Interfaz unificada estilo Teens)
+  // Saldo en colones
   document.getElementById('walletBalance').textContent = `₡${currentStudent.saldo_colones.toLocaleString('es-CR')}`;
   document.getElementById('balanceLabel').textContent = 'SALDO DISPONIBLE';
   const coin = document.getElementById('kidsCoinIcon');
@@ -127,6 +267,21 @@ function updateStudentUI() {
   // Límite diario
   document.getElementById('dailyLimitText').textContent = `₡${currentStudent.limite_diario_colones.toLocaleString('es-CR')}`;
   document.getElementById('dailyAvailableText').textContent = `Disponible hoy: ₡${currentStudent.disponible_hoy.toLocaleString('es-CR')}`;
+
+  // Alerta de Tarjeta Bloqueada
+  const bannerBlocked = document.getElementById('bannerCardBlocked');
+  if (bannerBlocked) {
+    bannerBlocked.style.display = currentStudent.tarjeta_bloqueada ? 'flex' : 'none';
+  }
+  document.querySelectorAll('.qr-toggle-btn').forEach(btn => {
+    if (currentStudent.tarjeta_bloqueada) {
+      btn.style.opacity = '0.45';
+      btn.style.pointerEvents = 'none';
+    } else {
+      btn.style.opacity = '1';
+      btn.style.pointerEvents = 'auto';
+    }
+  });
 
   // Alergias
   const allergyBox = document.getElementById('allergyWarning');
@@ -186,16 +341,10 @@ function toggleTheme() {
   if (window.sounds) window.sounds.playTap();
 }
 
-function logout() {
-  if (confirm('¿Deseas cerrar la sesión actual?')) {
-    localStorage.removeItem('recreopay_session');
-    window.location.reload();
-  }
-}
-
 // Renderizado de Categorías
 function renderCategories() {
   const bar = document.getElementById('categoriesBar');
+  if (!bar) return;
   let html = `
     <button class="cat-pill ${activeCategoryId === null ? 'active' : ''}" onclick="selectCategory(null)">
       <span>✨</span> Todos
@@ -218,10 +367,11 @@ function selectCategory(catId) {
   renderProducts();
 }
 
-// Renderizado de Productos del Menú
+// Renderizado de Productos del Menú (Con soporte para Agotado / Greyed Out)
 function renderProducts() {
   const grid = document.getElementById('productsGrid');
-  const filterMepOnly = document.getElementById('chkFilterMep').checked;
+  if (!grid) return;
+  const filterMepOnly = document.getElementById('chkFilterMep')?.checked || false;
 
   let filtered = products;
 
@@ -243,23 +393,41 @@ function renderProducts() {
     return;
   }
 
-  grid.innerHTML = filtered.map(prod => `
-    <div class="product-card">
-      <div class="product-icon-wrap">${prod.icono || '🥪'}</div>
-      <div>
-        ${prod.cumple_mep ? '<span class="badge-mep">🌿 MEP Saludable</span>' : ''}
-        <h4 class="product-name">${prod.nombre}</h4>
-        <p class="product-desc">${prod.descripcion || ''}</p>
-        ${prod.alergenos ? `<div style="font-size: 0.68rem; color: #dc2626; margin-bottom: 4px;">⚠️ Contiene: ${prod.alergenos}</div>` : ''}
+  grid.innerHTML = filtered.map(prod => {
+    const isOutOfStock = prod.control_stock === 1 && (prod.stock <= 0 || prod.disponible === 0);
+    const stockBadge = prod.control_stock === 1
+      ? (isOutOfStock 
+          ? '<span class="badge-out-of-stock">🚫 AGOTADO</span>' 
+          : `<span style="font-size: 0.68rem; font-weight: 800; color: #166534; background: #dcfce7; padding: 2px 6px; border-radius: 4px;">🟢 ${prod.stock} disponibles</span>`)
+      : '';
+
+    return `
+      <div class="product-card ${isOutOfStock ? 'out-of-stock' : ''}">
+        <div class="product-icon-wrap">${prod.icono || '🥪'}</div>
+        <div>
+          <div style="display: flex; gap: 4px; flex-wrap: wrap; margin-bottom: 4px;">
+            ${prod.cumple_mep ? '<span class="badge-mep">🌿 MEP Saludable</span>' : ''}
+            ${stockBadge}
+          </div>
+          <h4 class="product-name">${prod.nombre}</h4>
+          <p class="product-desc">${prod.descripcion || ''}</p>
+          ${prod.alergenos ? `<div style="font-size: 0.68rem; color: #dc2626; margin-bottom: 4px;">⚠️ Contiene: ${prod.alergenos}</div>` : ''}
+        </div>
+        <div class="product-footer">
+          <span class="product-price">₡${prod.precio_colones.toLocaleString('es-CR')}</span>
+          ${isOutOfStock ? `
+            <button class="add-btn" disabled style="opacity: 0.5; background: #94a3b8; cursor: not-allowed;" title="Producto Agotado">
+              🚫
+            </button>
+          ` : `
+            <button class="add-btn" onclick="addToCart(${prod.id})" title="Agregar a mi pre-orden">
+              +
+            </button>
+          `}
+        </div>
       </div>
-      <div class="product-footer">
-        <span class="product-price">₡${prod.precio_colones.toLocaleString('es-CR')}</span>
-        <button class="add-btn" onclick="addToCart(${prod.id})" title="Agregar a mi pre-orden">
-          +
-        </button>
-      </div>
-    </div>
-  `).join('');
+    `;
+  }).join('');
 }
 
 // ==========================================
@@ -270,7 +438,18 @@ function addToCart(productId) {
   const prod = products.find(p => p.id === productId);
   if (!prod) return;
 
+  if (prod.control_stock === 1 && (prod.stock <= 0 || prod.disponible === 0)) {
+    alert(`⚠️ El producto "${prod.nombre}" se encuentra agotado en la soda.`);
+    return;
+  }
+
   const existing = cart.find(item => item.product.id === productId);
+  const currentInCart = existing ? existing.cantidad : 0;
+  if (prod.control_stock === 1 && (currentInCart + 1) > prod.stock) {
+    alert(`⚠️ Solo quedan ${prod.stock} unidad(es) de "${prod.nombre}" en inventario.`);
+    return;
+  }
+
   if (existing) {
     existing.cantidad++;
   } else {
@@ -1054,7 +1233,7 @@ async function onToggleAllowTransfer(checked) {
   }
 }
 
-// SSE en tiempo real para estudiantes (notificación si le pasan plata)
+// SSE en tiempo real para eventos de la soda y monederos
 function initStudentSSE() {
   const sse = new EventSource('/api/events');
 
@@ -1068,4 +1247,456 @@ function initStudentSSE() {
       }
     } catch (err) {}
   });
+
+  sse.addEventListener('recarga_exitosa', (e) => {
+    try {
+      const data = JSON.parse(e.data);
+      if (currentStudent && data.estudiante_id === currentStudent.id) {
+        if (window.sounds) window.sounds.playCoin();
+        selectStudent(currentStudent.id);
+      }
+      if (currentUser && currentUser.rol === 'admin') {
+        loadAdminData();
+      }
+    } catch (err) {}
+  });
+
+  sse.addEventListener('producto_actualizado', (e) => {
+    try {
+      const prod = JSON.parse(e.data);
+      // Actualizar en el catálogo de estudiantes
+      const idx = products.findIndex(p => p.id === prod.id);
+      if (idx !== -1) {
+        products[idx] = { ...products[idx], ...prod };
+        renderProducts();
+      }
+      // Actualizar en admin
+      if (currentUser && currentUser.rol === 'admin') {
+        const adminIdx = adminProducts.findIndex(p => p.id === prod.id);
+        if (adminIdx !== -1) {
+          adminProducts[adminIdx] = { ...adminProducts[adminIdx], ...prod };
+          filterAdminProducts(adminSearchQuery);
+        }
+      }
+    } catch (err) {}
+  });
+
+  sse.addEventListener('estudiante_actualizado', (e) => {
+    try {
+      const data = JSON.parse(e.data);
+      if (currentStudent && currentStudent.id === data.id) {
+        selectStudent(currentStudent.id);
+      }
+      if (currentUser && currentUser.rol === 'admin') {
+        loadAdminData();
+      }
+    } catch (err) {}
+  });
+}
+
+// ==========================================
+// FUNCIONES DEL PORTAL DE PADRES (HIJOS Y CREDENCIALES)
+// ==========================================
+
+function setupParentPortalChildren() {
+  const box = document.getElementById('parentChildSelectorBox');
+  const sel = document.getElementById('parentChildSelect');
+  if (!box || !sel) return;
+
+  if (currentUser && currentUser.hijos && currentUser.hijos.length > 0) {
+    box.style.display = 'block';
+    sel.innerHTML = currentUser.hijos.map(h => `
+      <option value="${h.id}">${h.nombre_completo} (${h.grado} - Sección ${h.seccion})</option>
+    `).join('');
+
+    onParentChildSelect(currentUser.hijos[0].id);
+  } else if (students.length > 0) {
+    box.style.display = 'block';
+    sel.innerHTML = students.slice(0, 2).map(h => `
+      <option value="${h.id}">${h.nombre_completo} (${h.grado} - Sección ${h.seccion})</option>
+    `).join('');
+    onParentChildSelect(students[0].id);
+  }
+}
+
+async function onParentChildSelect(studentId) {
+  await selectStudent(studentId);
+}
+
+async function saveParentChildAccess() {
+  if (!currentStudent) return;
+  const pin = document.getElementById('inputParentNewPin').value.trim();
+  const pass = document.getElementById('inputParentNewPass').value.trim();
+
+  if (!pin && !pass) {
+    alert('Ingresa al menos un nuevo PIN o una nueva contraseña para actualizar.');
+    return;
+  }
+
+  if (pin && !/^\d{4}$/.test(pin)) {
+    alert('El PIN debe contener exactamente 4 dígitos numéricos.');
+    return;
+  }
+
+  try {
+    const res = await fetch('/api/padres/restablecer-acceso', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        estudiante_id: currentStudent.id,
+        nuevo_pin: pin || undefined,
+        nuevo_password: pass || undefined
+      })
+    });
+
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error);
+
+    if (window.sounds) window.sounds.playSuccess();
+    alert(`✅ ¡Credenciales actualizadas!\n${data.mensaje}`);
+    document.getElementById('inputParentNewPin').value = '';
+    document.getElementById('inputParentNewPass').value = '';
+  } catch (err) {
+    if (window.sounds) window.sounds.playError();
+    alert(`❌ Error actualizando credenciales: ${err.message}`);
+  }
+}
+
+// ==========================================
+// PANEL DE ADMINISTRACIÓN DE LA SODA
+// ==========================================
+
+function switchAdminTab(tabName) {
+  const tabs = ['inventario', 'estudiantes', 'recarga'];
+  tabs.forEach(t => {
+    const btn = document.getElementById(`btnTabAdmin${t.charAt(0).toUpperCase() + t.slice(1)}`);
+    const content = document.getElementById(`adminTabContent${t.charAt(0).toUpperCase() + t.slice(1)}`);
+    if (btn) btn.classList.toggle('active', t === tabName);
+    if (content) content.style.display = (t === tabName) ? 'block' : 'none';
+  });
+
+  if (window.sounds) window.sounds.playTap();
+}
+
+async function loadAdminData() {
+  try {
+    // 1. Cargar resumen y métricas
+    const resResumen = await fetch('/api/admin/resumen');
+    adminStats = await resResumen.json();
+
+    document.getElementById('adminStatVentas').textContent = `₡${adminStats.ventas_hoy.toLocaleString('es-CR')}`;
+    document.getElementById('adminStatOrdenes').textContent = adminStats.ordenes_hoy;
+    document.getElementById('adminStatEstudiantes').textContent = adminStats.estudiantes_activos;
+    document.getElementById('adminStatBloqueados').textContent = adminStats.tarjetas_bloqueadas;
+    document.getElementById('adminStatCriticos').textContent = adminStats.productos_bajo_stock;
+
+    // 2. Cargar productos de inventario
+    const resProd = await fetch('/api/admin/productos');
+    adminProducts = await resProd.json();
+    renderAdminInventory(adminProducts);
+
+    // 3. Cargar estudiantes
+    const resEst = await fetch('/api/estudiantes');
+    students = await resEst.json();
+    renderAdminStudents(students);
+    populateAdminRecargaStudents(students);
+  } catch (err) {
+    console.error('Error cargando datos de administración:', err);
+  }
+}
+
+function filterAdminProducts(query) {
+  adminSearchQuery = (query || '').toLowerCase().trim();
+  let list = adminProducts;
+  if (adminSearchQuery) {
+    list = list.filter(p => p.nombre.toLowerCase().includes(adminSearchQuery) || (p.categoria_nombre && p.categoria_nombre.toLowerCase().includes(adminSearchQuery)));
+  }
+  renderAdminInventory(list);
+}
+
+function renderAdminInventory(list) {
+  const container = document.getElementById('adminProductsList');
+  if (!container) return;
+
+  if (!list || list.length === 0) {
+    container.innerHTML = `
+      <div style="text-align: center; padding: 24px; color: var(--text-muted);">
+        No se encontraron productos en el inventario.
+      </div>
+    `;
+    return;
+  }
+
+  container.innerHTML = list.map(p => {
+    const isOutOfStock = p.control_stock === 1 && (p.stock <= 0 || p.disponible === 0);
+    const isLowStock = p.control_stock === 1 && p.stock > 0 && p.stock <= 3;
+    
+    let statusPill = '';
+    if (p.control_stock === 0) {
+      statusPill = `<span style="font-size: 0.7rem; font-weight: 800; color: #0284c7; background: #e0f2fe; padding: 3px 8px; border-radius: 6px;">Ilimitado</span>`;
+    } else if (isOutOfStock) {
+      statusPill = `<span style="font-size: 0.7rem; font-weight: 900; color: #ef4444; background: #fee2e2; padding: 3px 8px; border-radius: 6px;">🚫 AGOTADO</span>`;
+    } else if (isLowStock) {
+      statusPill = `<span style="font-size: 0.7rem; font-weight: 800; color: #d97706; background: #fef3c7; padding: 3px 8px; border-radius: 6px;">⚠️ Quedan ${p.stock}</span>`;
+    } else {
+      statusPill = `<span style="font-size: 0.7rem; font-weight: 800; color: #166534; background: #dcfce7; padding: 3px 8px; border-radius: 6px;">🟢 ${p.stock} unid.</span>`;
+    }
+
+    return `
+      <div class="inventory-item-row" style="${isOutOfStock ? 'background: #fff1f2;' : ''}">
+        <div style="font-size: 1.8rem; text-align: center;">${p.icono || '🥪'}</div>
+        <div>
+          <div style="display: flex; align-items: center; gap: 6px; flex-wrap: wrap;">
+            <strong style="font-size: 0.92rem; color: var(--text-main);">${p.nombre}</strong>
+            ${statusPill}
+          </div>
+          <div style="font-size: 0.74rem; color: var(--text-muted); margin-top: 2px;">
+            ${p.categoria_nombre || 'General'} • ₡${p.precio_colones.toLocaleString('es-CR')}
+          </div>
+        </div>
+
+        <!-- Controles rápidos de stock -->
+        <div class="inventory-stock-controls">
+          <button type="button" class="stock-btn-quick" onclick="quickAdjustStock(${p.id}, -1)" title="Restar 1">-1</button>
+          <input type="number" id="inputStock_${p.id}" value="${p.stock || 0}" min="0" style="width: 54px; text-align: center; padding: 5px; border-radius: 8px; border: 1.5px solid var(--border); font-weight: 900; font-size: 0.95rem; background: var(--card-bg); color: var(--text-main);">
+          <button type="button" class="stock-btn-quick" onclick="quickAdjustStock(${p.id}, 5)" title="Sumar 5">+5</button>
+          <button type="button" class="stock-btn-quick" onclick="quickAdjustStock(${p.id}, 10)" title="Sumar 10">+10</button>
+        </div>
+
+        <div>
+          <button type="button" onclick="saveProductStock(${p.id})" style="padding: 7px 12px; background: #0284c7; color: white; border: none; border-radius: 8px; font-size: 0.78rem; font-weight: 800; cursor: pointer;">
+            💾 Guardar
+          </button>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+async function quickAdjustStock(prodId, delta) {
+  try {
+    const res = await fetch(`/api/admin/productos/${prodId}/ajuste-rapido`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ delta })
+    });
+    if (!res.ok) throw new Error('Error ajustando stock');
+    if (window.sounds) window.sounds.playCoin();
+    await loadAdminData();
+  } catch (err) {
+    alert(`Error: ${err.message}`);
+  }
+}
+
+async function saveProductStock(prodId) {
+  const input = document.getElementById(`inputStock_${prodId}`);
+  if (!input) return;
+  const nuevoStock = parseInt(input.value, 10);
+  if (isNaN(nuevoStock) || nuevoStock < 0) {
+    alert('Ingresa una cantidad de stock válida.');
+    return;
+  }
+
+  try {
+    const res = await fetch(`/api/admin/productos/${prodId}/stock`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ stock: nuevoStock, control_stock: 1 })
+    });
+    if (!res.ok) throw new Error('Error guardando stock');
+    if (window.sounds) window.sounds.playSuccess();
+    await loadAdminData();
+  } catch (err) {
+    alert(`Error: ${err.message}`);
+  }
+}
+
+function renderAdminStudents(list) {
+  const container = document.getElementById('adminStudentsList');
+  if (!container) return;
+
+  if (!list || list.length === 0) {
+    container.innerHTML = `<div style="text-align: center; padding: 20px; color: var(--text-muted);">No hay estudiantes registrados.</div>`;
+    return;
+  }
+
+  container.innerHTML = `
+    <div style="display: flex; flex-direction: column; gap: 10px;">
+      ${list.map(s => {
+        const isBlocked = s.tarjeta_bloqueada === 1;
+        return `
+          <div style="display: flex; align-items: center; justify-content: space-between; padding: 12px; border-radius: 12px; border: 1.5px solid ${isBlocked ? '#fca5a5' : 'var(--border)'}; background: ${isBlocked ? '#fff5f5' : 'var(--card-bg)'}; flex-wrap: wrap; gap: 10px;">
+            <div style="display: flex; align-items: center; gap: 12px;">
+              <img src="${s.foto_url || 'https://api.dicebear.com/7.x/bottts/svg?seed=est'}" style="width: 44px; height: 44px; border-radius: 50%; border: 2px solid ${isBlocked ? '#ef4444' : '#0284c7'}; background: white;">
+              <div>
+                <div style="display: flex; align-items: center; gap: 8px;">
+                  <strong style="font-size: 0.95rem; color: var(--text-main);">${s.nombre_completo}</strong>
+                  ${isBlocked ? '<span style="font-size: 0.68rem; font-weight: 900; background: #ef4444; color: white; padding: 2px 7px; border-radius: 5px;">⛔ SUSPENDIDA</span>' : '<span style="font-size: 0.68rem; font-weight: 800; background: #dcfce7; color: #166534; padding: 2px 7px; border-radius: 5px;">ACTIVA</span>'}
+                </div>
+                <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 2px;">
+                  ${s.grado} • Sección ${s.seccion} • Cód: <strong>${s.codigo_estudiante}</strong> • PIN: <strong>${s.pin_seguridad || '1234'}</strong>
+                </div>
+                <div style="font-size: 0.78rem; font-weight: 800; color: #0284c7; margin-top: 3px;">
+                  Saldo: ₡${s.saldo_colones.toLocaleString('es-CR')} | Límite: ₡${s.limite_diario_colones.toLocaleString('es-CR')}/día
+                </div>
+              </div>
+            </div>
+
+            <div style="display: flex; gap: 8px; align-items: center;">
+              <a href="/carnet.html" target="_blank" style="padding: 7px 10px; background: #e0f2fe; color: #0369a1; border-radius: 8px; font-size: 0.76rem; font-weight: 800; text-decoration: none;" title="Ver e Imprimir Carné Físico">
+                🖨️ Carné
+              </a>
+              <button type="button" onclick="toggleBlockCard(${s.id}, ${isBlocked ? 0 : 1})" style="padding: 7px 12px; background: ${isBlocked ? '#10b981' : '#ef4444'}; color: white; border: none; border-radius: 8px; font-size: 0.78rem; font-weight: 900; cursor: pointer;">
+                ${isBlocked ? '✅ Desbloquear' : '⛔ Bloquear Tarjeta'}
+              </button>
+            </div>
+          </div>
+        `;
+      }).join('')}
+    </div>
+  `;
+}
+
+async function toggleBlockCard(studentId, newBlocked) {
+  const actionText = newBlocked ? 'bloquear la tarjeta de este estudiante' : 'desbloquear la tarjeta';
+  if (!confirm(`¿Estás seguro de que deseas ${actionText}?`)) return;
+
+  try {
+    const res = await fetch(`/api/admin/estudiantes/${studentId}/bloquear`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ tarjeta_bloqueada: newBlocked })
+    });
+    if (!res.ok) throw new Error('Error actualizando estado de tarjeta');
+
+    if (window.sounds) window.sounds.playCoin();
+    await loadAdminData();
+  } catch (err) {
+    alert(`Error: ${err.message}`);
+  }
+}
+
+function openNewStudentModal() {
+  const modal = document.getElementById('modalNewStudent');
+  if (modal) modal.style.display = 'flex';
+}
+
+function closeNewStudentModal(event) {
+  if (event && event.target !== event.currentTarget) return;
+  const modal = document.getElementById('modalNewStudent');
+  if (modal) modal.style.display = 'none';
+}
+
+async function submitNewStudent(event) {
+  if (event) event.preventDefault();
+
+  const nombre = document.getElementById('newEstNombre').value.trim();
+  const edad = parseInt(document.getElementById('newEstEdad').value, 10);
+  const grado = document.getElementById('newEstGrado').value.trim();
+  const seccion = document.getElementById('newEstSeccion').value.trim();
+  const saldo = parseInt(document.getElementById('newEstSaldo').value, 10) || 0;
+  const limite = parseInt(document.getElementById('newEstLimite').value, 10) || 3000;
+  const alergias = document.getElementById('newEstAlergias').value.trim();
+  const padre = document.getElementById('newEstPadre').value.trim();
+  const tel = document.getElementById('newEstTel').value.trim();
+
+  const btn = document.getElementById('btnSubmitNewStudent');
+  btn.disabled = true;
+  btn.textContent = 'Creando alumno y carné...';
+
+  try {
+    const res = await fetch('/api/admin/estudiantes', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        nombre_completo: nombre,
+        edad,
+        grado,
+        seccion,
+        saldo_inicial: saldo,
+        limite_diario_colones: limite,
+        alergias,
+        padre_nombre: padre,
+        padre_telefono: tel
+      })
+    });
+
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error);
+
+    if (window.sounds) window.sounds.playSuccess();
+    alert(`🎉 ¡Estudiante Creado con Éxito!\nNombre: ${data.nombre_completo}\nCódigo: ${data.codigo_estudiante}\nQR Token: ${data.qr_token}`);
+
+    closeNewStudentModal();
+    document.getElementById('formNewStudent').reset();
+    await loadAdminData();
+  } catch (err) {
+    if (window.sounds) window.sounds.playError();
+    alert(`❌ Error al crear estudiante: ${err.message}`);
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = '✅ Guardar y Generar Carné';
+  }
+}
+
+function populateAdminRecargaStudents(list) {
+  const sel = document.getElementById('adminRecargaStudentSelect');
+  if (!sel) return;
+  sel.innerHTML = list.map(s => `
+    <option value="${s.id}">${s.nombre_completo} (Saldo actual: ₡${s.saldo_colones.toLocaleString('es-CR')})</option>
+  `).join('');
+}
+
+function setAdminRecargaPreset(amt) {
+  const input = document.getElementById('adminRecargaMonto');
+  if (input) input.value = amt;
+}
+
+async function submitAdminManualRecharge() {
+  const sel = document.getElementById('adminRecargaStudentSelect');
+  const inputMonto = document.getElementById('adminRecargaMonto');
+  const inputDesc = document.getElementById('adminRecargaDescripcion');
+  const btn = document.getElementById('btnAdminSubmitRecarga');
+
+  if (!sel || !inputMonto) return;
+
+  const studentId = parseInt(sel.value, 10);
+  const monto = parseInt(inputMonto.value, 10);
+  const descripcion = inputDesc ? inputDesc.value.trim() : '';
+
+  if (isNaN(monto) || monto <= 0) {
+    alert('Ingresa un monto válido mayor a ₡0 para recargar.');
+    return;
+  }
+
+  btn.disabled = true;
+  btn.textContent = 'Procesando recarga en caja...';
+
+  try {
+    const res = await fetch(`/api/admin/estudiantes/${studentId}/recarga-manual`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        monto,
+        descripcion,
+        metodo: 'Efectivo en mostrador'
+      })
+    });
+
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error);
+
+    if (window.sounds) window.sounds.playSuccess();
+    alert(`💰 ${data.mensaje}\nNuevo Saldo: ₡${data.saldo_nuevo.toLocaleString('es-CR')}`);
+
+    inputMonto.value = '';
+    if (inputDesc) inputDesc.value = '';
+    await loadAdminData();
+  } catch (err) {
+    if (window.sounds) window.sounds.playError();
+    alert(`❌ Error al recargar: ${err.message}`);
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = '<span>💰</span> Aplicar Recarga Inmediata';
+  }
 }

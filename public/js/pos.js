@@ -438,7 +438,24 @@ function renderScannedStudent() {
   }
 
   document.getElementById('scannedAvatar').src = scannedStudent.foto_url;
-  document.getElementById('scannedName').textContent = scannedStudent.nombre_completo;
+  
+  const btnCobrar = document.getElementById('btnCobrarPos');
+  if (scannedStudent.tarjeta_bloqueada) {
+    document.getElementById('scannedName').innerHTML = `${scannedStudent.nombre_completo} <span style="font-size: 0.72rem; color: #fee2e2; background: #dc2626; padding: 2px 7px; border-radius: 6px; font-weight: 900; margin-left: 6px;">⛔ TARJETA SUSPENDIDA</span>`;
+    if (btnCobrar) {
+      btnCobrar.disabled = true;
+      btnCobrar.textContent = '⛔ Tarjeta Suspendida';
+      btnCobrar.style.background = '#64748b';
+    }
+  } else {
+    document.getElementById('scannedName').textContent = scannedStudent.nombre_completo;
+    if (btnCobrar) {
+      btnCobrar.disabled = false;
+      btnCobrar.textContent = 'Cobrar y Despachar ⚡';
+      btnCobrar.style.background = 'linear-gradient(135deg, #10b981, #059669)';
+    }
+  }
+
   document.getElementById('scannedGrade').textContent = `${scannedStudent.grado} • Sección ${scannedStudent.seccion} • Cód: ${scannedStudent.codigo_estudiante}`;
   document.getElementById('scannedBalance').textContent = `₡${scannedStudent.saldo_colones.toLocaleString('es-CR')}`;
   document.getElementById('scannedAvailable').textContent = `₡${scannedStudent.disponible_hoy.toLocaleString('es-CR')}`;
@@ -464,6 +481,11 @@ async function executePosDebit() {
   if (!scannedStudent) {
     if (window.sounds) window.sounds.playError();
     return alert('⚠️ Primero escanea el carné o celular del estudiante (puedes usar los botones de prueba rápida en la cámara).');
+  }
+
+  if (scannedStudent.tarjeta_bloqueada) {
+    if (window.sounds) window.sounds.playError();
+    return alert(`⛔ ¡TARJETA SUSPENDIDA!\nLa tarjeta de ${scannedStudent.nombre_completo} ha sido bloqueada por la administración de la soda. No se pueden procesar cobros.`);
   }
 
   if (posCart.length === 0) {

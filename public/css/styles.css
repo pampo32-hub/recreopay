@@ -751,3 +751,346 @@ body.dark-mode .floating-cart-bar {
     box-shadow: none;
   }
 }
+
+/* ==========================================================================
+   VISTA DE LOGIN Y AUTENTICACIÓN
+   ========================================================================== */
+.login-overlay {
+  position: fixed;
+  inset: 0;
+  background: radial-gradient(circle at 50% 10%, #0284c7 0%, #0f172a 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  z-index: 9999;
+  overflow-y: auto;
+}
+
+.login-card {
+  background: var(--card-bg, #ffffff);
+  color: var(--text-main, #0f172a);
+  border-radius: 24px;
+  padding: 28px 24px;
+  width: 100%;
+  max-width: 420px;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.45);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  animation: fadeIn 0.25s ease-out;
+}
+
+.login-brand {
+  text-align: center;
+  margin-bottom: 22px;
+}
+
+.login-logo {
+  font-size: 3rem;
+  display: inline-block;
+  background: #e0f2fe;
+  padding: 12px;
+  border-radius: 20px;
+  margin-bottom: 10px;
+}
+
+.login-title {
+  font-size: 1.6rem;
+  font-weight: 900;
+  letter-spacing: -0.5px;
+  color: #0f172a;
+  margin: 0;
+}
+
+.login-subtitle {
+  font-size: 0.8rem;
+  color: #64748b;
+  margin-top: 4px;
+  font-weight: 600;
+}
+
+.login-form-group {
+  margin-bottom: 14px;
+}
+
+.login-form-group label {
+  display: block;
+  font-size: 0.8rem;
+  font-weight: 800;
+  margin-bottom: 5px;
+  color: #334155;
+}
+
+.login-input {
+  width: 100%;
+  padding: 12px 14px;
+  border-radius: 12px;
+  border: 1.5px solid #cbd5e1;
+  font-size: 0.95rem;
+  font-weight: 700;
+  background: #f8fafc;
+  color: #0f172a;
+  transition: all 0.2s;
+  box-sizing: border-box;
+}
+
+.login-input:focus {
+  outline: none;
+  border-color: #0284c7;
+  background: #ffffff;
+  box-shadow: 0 0 0 3px rgba(2, 132, 199, 0.15);
+}
+
+.login-submit-btn {
+  width: 100%;
+  padding: 13px;
+  background: linear-gradient(135deg, #0284c7, #0369a1);
+  color: white;
+  border: none;
+  border-radius: 14px;
+  font-size: 1rem;
+  font-weight: 900;
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(2, 132, 199, 0.35);
+  transition: transform 0.1s;
+}
+
+.login-submit-btn:active {
+  transform: scale(0.98);
+}
+
+.login-demo-box {
+  margin-top: 20px;
+  padding-top: 18px;
+  border-top: 1px dashed #e2e8f0;
+  text-align: center;
+}
+
+.login-demo-title {
+  font-size: 0.76rem;
+  font-weight: 800;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 10px;
+}
+
+.login-demo-btns {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+
+.login-demo-btn {
+  background: #f1f5f9;
+  border: 1px solid #cbd5e1;
+  border-radius: 10px;
+  padding: 8px 4px;
+  font-size: 0.72rem;
+  font-weight: 800;
+  color: #1e293b;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  transition: all 0.15s;
+}
+
+.login-demo-btn:hover {
+  background: #e2e8f0;
+  border-color: #0284c7;
+}
+
+/* ==========================================================================
+   PANEL DE ADMINISTRACIÓN DE LA SODA (#viewAdmin)
+   ========================================================================== */
+.admin-container {
+  max-width: 900px;
+  margin: 0 auto;
+  min-height: 100vh;
+  background: var(--bg-main, #f8fafc);
+  padding: 16px 16px 60px 16px;
+  box-sizing: border-box;
+}
+
+.admin-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: var(--card-bg, #ffffff);
+  border: 1px solid var(--border, #e2e8f0);
+  border-radius: 18px;
+  padding: 14px 18px;
+  margin-bottom: 16px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+}
+
+.admin-badge {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.admin-icon {
+  font-size: 1.8rem;
+  background: #e0f2fe;
+  padding: 8px;
+  border-radius: 12px;
+}
+
+.admin-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+  gap: 10px;
+  margin-bottom: 18px;
+}
+
+.admin-stat-card {
+  background: var(--card-bg, #ffffff);
+  border: 1px solid var(--border, #e2e8f0);
+  border-radius: 14px;
+  padding: 12px;
+  text-align: center;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
+}
+
+.admin-stat-card .val {
+  font-size: 1.4rem;
+  font-weight: 900;
+  color: #0284c7;
+}
+
+.admin-stat-card .lbl {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--text-muted, #64748b);
+  margin-top: 2px;
+}
+
+.admin-tabs {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 16px;
+  overflow-x: auto;
+  padding-bottom: 4px;
+}
+
+.admin-tab-btn {
+  background: var(--card-bg, #ffffff);
+  border: 1.5px solid var(--border, #cbd5e1);
+  color: var(--text-main, #334155);
+  padding: 10px 16px;
+  border-radius: 12px;
+  font-size: 0.88rem;
+  font-weight: 800;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+  transition: all 0.15s;
+}
+
+.admin-tab-btn.active {
+  background: #0284c7;
+  color: white;
+  border-color: #0284c7;
+  box-shadow: 0 4px 10px rgba(2, 132, 199, 0.3);
+}
+
+.admin-card {
+  background: var(--card-bg, #ffffff);
+  border: 1px solid var(--border, #e2e8f0);
+  border-radius: 18px;
+  padding: 18px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+  margin-bottom: 16px;
+}
+
+/* Tabla / Lista de Inventario Admin */
+.inventory-item-row {
+  display: grid;
+  grid-template-columns: 44px 1fr auto auto;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  border-bottom: 1px solid var(--border, #f1f5f9);
+  transition: background 0.15s;
+}
+
+.inventory-item-row:last-child {
+  border-bottom: none;
+}
+
+.inventory-stock-controls {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.stock-btn-quick {
+  padding: 5px 9px;
+  background: #f1f5f9;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  font-size: 0.78rem;
+  font-weight: 800;
+  cursor: pointer;
+  color: #1e293b;
+}
+
+.stock-btn-quick:hover {
+  background: #e2e8f0;
+}
+
+/* ==========================================================================
+   PRODUCTO AGOTADO (GREYED OUT) Y TARJETA BLOQUEADA
+   ========================================================================== */
+.product-card.out-of-stock {
+  opacity: 0.52 !important;
+  filter: grayscale(85%) !important;
+  border-color: #fca5a5 !important;
+  background: #fef2f2 !important;
+  position: relative;
+}
+
+body.dark-mode .product-card.out-of-stock {
+  background: rgba(239, 68, 68, 0.12) !important;
+  border-color: rgba(239, 68, 68, 0.3) !important;
+}
+
+.badge-out-of-stock {
+  display: inline-block;
+  background: #ef4444;
+  color: white;
+  font-weight: 900;
+  font-size: 0.68rem;
+  padding: 3px 8px;
+  border-radius: 6px;
+  letter-spacing: 0.5px;
+  box-shadow: 0 1px 3px rgba(239, 68, 68, 0.3);
+}
+
+.banner-card-blocked {
+  background: #fee2e2;
+  border: 2px solid #ef4444;
+  color: #991b1b;
+  padding: 12px 16px;
+  border-radius: 14px;
+  margin: 10px 16px 14px 16px;
+  font-weight: 800;
+  font-size: 0.85rem;
+  text-align: center;
+  box-shadow: 0 2px 8px rgba(239, 68, 68, 0.2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+body.dark-mode .banner-card-blocked {
+  background: rgba(239, 68, 68, 0.2);
+  color: #fca5a5;
+  border-color: #ef4444;
+}
+
