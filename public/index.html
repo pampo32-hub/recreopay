@@ -347,18 +347,18 @@
 
       <!-- BARRA DE FILTROS Y BÚSQUEDA -->
       <div style="display: flex; gap: 10px; margin-bottom: 16px; flex-wrap: wrap; align-items: center; justify-content: space-between;">
-        <div style="display: flex; gap: 6px; background: #f1f5f9; padding: 4px; border-radius: 10px;">
-          <button type="button" class="mov-filter-btn active" id="btnFilterMovAll" onclick="setMovFilter('all')" style="padding: 7px 14px; border: none; border-radius: 8px; font-weight: 800; font-size: 0.78rem; cursor: pointer; background: white; color: #0284c7; box-shadow: 0 1px 3px rgba(0,0,0,0.08);">
+        <div style="display: flex; gap: 4px; background: rgba(148, 163, 184, 0.12); padding: 4px; border-radius: 12px; overflow-x: auto; max-width: 100%;">
+          <button type="button" class="mov-filter-btn active" id="btnFilterMovAll" onclick="setMovFilter('all')" style="padding: 7px 12px; border: none; border-radius: 8px; font-weight: 800; font-size: 0.78rem; cursor: pointer; background: white; color: #0284c7; box-shadow: 0 1px 3px rgba(0,0,0,0.08); white-space: nowrap;">
             Todos
           </button>
-          <button type="button" class="mov-filter-btn" id="btnFilterMovRecargas" onclick="setMovFilter('recargas')" style="padding: 7px 14px; border: none; border-radius: 8px; font-weight: 700; font-size: 0.78rem; cursor: pointer; background: transparent; color: #64748b;">
+          <button type="button" class="mov-filter-btn" id="btnFilterMovRecargas" onclick="setMovFilter('recargas')" style="padding: 7px 12px; border: none; border-radius: 8px; font-weight: 700; font-size: 0.78rem; cursor: pointer; background: transparent; color: #64748b; white-space: nowrap;">
             💵 Recargas
           </button>
-          <button type="button" class="mov-filter-btn" id="btnFilterMovCobros" onclick="setMovFilter('cobros')" style="padding: 7px 14px; border: none; border-radius: 8px; font-weight: 700; font-size: 0.78rem; cursor: pointer; background: transparent; color: #64748b;">
-            🥪 Cobros Mostrador
+          <button type="button" class="mov-filter-btn" id="btnFilterMovCobros" onclick="setMovFilter('cobros')" style="padding: 7px 12px; border: none; border-radius: 8px; font-weight: 700; font-size: 0.78rem; cursor: pointer; background: transparent; color: #64748b; white-space: nowrap;">
+            🥪 Cobros
           </button>
         </div>
-        <input type="text" id="inputSearchMovimientos" placeholder="🔍 Buscar por alumno, carné o detalle..." oninput="filterMovimientosUI(this.value)" style="flex: 1; min-width: 220px; max-width: 350px; padding: 9px 12px; border-radius: 10px; border: 1.5px solid var(--border); font-size: 0.85rem; box-sizing: border-box; background: var(--card-bg); color: var(--text-main);">
+        <input type="text" id="inputSearchMovimientos" placeholder="🔍 Buscar por alumno, carné o detalle..." oninput="filterMovimientosUI(this.value)" style="flex: 1; min-width: 180px; padding: 9px 12px; border-radius: 10px; border: 1.5px solid var(--border); font-size: 0.85rem; box-sizing: border-box; background: var(--card-bg); color: var(--text-main);">
       </div>
 
       <!-- LISTA DE MOVIMIENTOS -->
@@ -1244,8 +1244,8 @@
     </button>
   </nav>
 
-  <script src="/js/sounds.js?v=9.1"></script>
+  <script src="/js/sounds.js?v=9.2"></script>
   <script src="/js/jsQR.js"></script>
-  <script src="/js/app.js?v=9.1"></script>
+  <script src="/js/app.js?v=9.2"></script>
 </body>
 </html>

@@ -3308,17 +3308,17 @@ function renderAdminMovimientos() {
     // Determinar badge de tipo
     let tipoBadge = '';
     if (m.tipo === 'recarga_manual') {
-      tipoBadge = `<span style="background: #dcfce7; color: #166534; font-size: 0.72rem; font-weight: 800; padding: 2px 8px; border-radius: 6px;">💵 RECARGA EFECTIVO</span>`;
+      tipoBadge = `<span style="background: #dcfce7; color: #166534; font-size: 0.7rem; font-weight: 800; padding: 3px 8px; border-radius: 6px; display: inline-flex; align-items: center; gap: 4px;">💵 Recarga Efectivo</span>`;
     } else if (m.tipo === 'recarga_sinpe') {
-      tipoBadge = `<span style="background: #e0f2fe; color: #0369a1; font-size: 0.72rem; font-weight: 800; padding: 2px 8px; border-radius: 6px;">📲 RECARGA SINPE</span>`;
+      tipoBadge = `<span style="background: #e0f2fe; color: #0369a1; font-size: 0.7rem; font-weight: 800; padding: 3px 8px; border-radius: 6px; display: inline-flex; align-items: center; gap: 4px;">📲 Recarga SINPE</span>`;
     } else if (m.tipo === 'compra_mostrador' || m.tipo === 'preorden') {
-      tipoBadge = `<span style="background: #fef3c7; color: #92400e; font-size: 0.72rem; font-weight: 800; padding: 2px 8px; border-radius: 6px;">🥪 COBRO SODA</span>`;
+      tipoBadge = `<span style="background: #fef3c7; color: #92400e; font-size: 0.7rem; font-weight: 800; padding: 3px 8px; border-radius: 6px; display: inline-flex; align-items: center; gap: 4px;">🥪 Cobro Soda</span>`;
     } else if (m.tipo === 'reversion_recarga') {
-      tipoBadge = `<span style="background: #f3e8ff; color: #6b21a8; font-size: 0.72rem; font-weight: 800; padding: 2px 8px; border-radius: 6px;">↩️ REVERSIÓN RECARGA</span>`;
+      tipoBadge = `<span style="background: #f3e8ff; color: #6b21a8; font-size: 0.7rem; font-weight: 800; padding: 3px 8px; border-radius: 6px; display: inline-flex; align-items: center; gap: 4px;">↩️ Reversión Recarga</span>`;
     } else if (m.tipo === 'reembolso') {
-      tipoBadge = `<span style="background: #f3e8ff; color: #6b21a8; font-size: 0.72rem; font-weight: 800; padding: 2px 8px; border-radius: 6px;">↩️ REEMBOLSO COMPRA</span>`;
+      tipoBadge = `<span style="background: #f3e8ff; color: #6b21a8; font-size: 0.7rem; font-weight: 800; padding: 3px 8px; border-radius: 6px; display: inline-flex; align-items: center; gap: 4px;">↩️ Reembolso Compra</span>`;
     } else {
-      tipoBadge = `<span style="background: #f1f5f9; color: #475569; font-size: 0.72rem; font-weight: 800; padding: 2px 8px; border-radius: 6px;">${m.tipo.toUpperCase()}</span>`;
+      tipoBadge = `<span style="background: #f1f5f9; color: #475569; font-size: 0.7rem; font-weight: 800; padding: 3px 8px; border-radius: 6px;">${m.tipo.toUpperCase()}</span>`;
     }
 
     // Formato de hora
@@ -3341,71 +3341,83 @@ function renderAdminMovimientos() {
     let actionHtml = '';
     if (isRevertida) {
       actionHtml = `
-        <div style="text-align: right;">
-          <span style="display: inline-block; background: #fee2e2; color: #991b1b; padding: 5px 10px; border-radius: 8px; font-size: 0.74rem; font-weight: 900; border: 1px solid #fca5a5;">
+        <div style="display: flex; align-items: center; gap: 6px;">
+          <span style="display: inline-flex; align-items: center; gap: 4px; background: #fee2e2; color: #991b1b; padding: 4px 9px; border-radius: 7px; font-size: 0.72rem; font-weight: 900; border: 1px solid #fca5a5;">
             ⛔ REVERTIDO
           </span>
-          <div style="font-size: 0.68rem; color: var(--text-muted); margin-top: 3px;">
-            ${m.revertido_por_nombre ? `Por ${m.revertido_por_nombre}` : ''}
-          </div>
+          ${m.revertido_por_nombre ? `<span style="font-size: 0.68rem; color: var(--text-muted); font-weight: 700;">(${m.revertido_por_nombre})</span>` : ''}
         </div>
       `;
     } else if (isReversionOrRefund) {
       actionHtml = `
-        <span style="display: inline-block; background: #f1f5f9; color: #64748b; padding: 5px 10px; border-radius: 8px; font-size: 0.74rem; font-weight: 800;">
+        <span style="display: inline-flex; align-items: center; background: rgba(100, 116, 139, 0.12); color: var(--text-muted); padding: 4px 10px; border-radius: 7px; font-size: 0.72rem; font-weight: 800;">
           Ajuste
         </span>
       `;
     } else if (!canRevertTime) {
       actionHtml = `
-        <button type="button" disabled title="Han pasado más de 10 minutos. Esta reversión solo puede ser realizada por un Administrador." style="padding: 7px 12px; background: #e2e8f0; color: #94a3b8; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 0.74rem; font-weight: 800; cursor: not-allowed; display: flex; align-items: center; gap: 4px;">
-          ⏳ Requiere Admin (+10m)
+        <button type="button" disabled title="Han pasado más de 10 minutos. Esta reversión solo puede ser realizada por un Administrador." style="padding: 5px 10px; background: #e2e8f0; color: #64748b; border: 1px solid #cbd5e1; border-radius: 7px; font-size: 0.72rem; font-weight: 800; cursor: not-allowed; display: inline-flex; align-items: center; gap: 4px;">
+          ⏳ Admin (+10m)
         </button>
       `;
     } else {
       const cleanName = (m.estudiante_nombre || '').replace(/'/g, "\\'");
       actionHtml = `
-        <button type="button" onclick="revertirMovimientoAdmin(${m.id}, ${absMonto}, '${cleanName}', '${m.tipo}')" style="padding: 7px 14px; background: #fee2e2; color: #b91c1c; border: 1.5px solid #f87171; border-radius: 8px; font-size: 0.78rem; font-weight: 900; cursor: pointer; display: flex; align-items: center; gap: 5px; transition: all 0.2s; box-shadow: 0 1px 3px rgba(239, 68, 68, 0.15);" onmouseover="this.style.background='#fca5a5'" onmouseout="this.style.background='#fee2e2'">
+        <button type="button" onclick="revertirMovimientoAdmin(${m.id}, ${absMonto}, '${cleanName}', '${m.tipo}')" style="padding: 6px 14px; background: #fee2e2; color: #b91c1c; border: 1.5px solid #f87171; border-radius: 8px; font-size: 0.76rem; font-weight: 900; cursor: pointer; display: inline-flex; align-items: center; gap: 5px; transition: all 0.2s; box-shadow: 0 1px 3px rgba(239, 68, 68, 0.15);" onmouseover="this.style.background='#fca5a5'" onmouseout="this.style.background='#fee2e2'">
           <span>↩️</span> Revertir
         </button>
       `;
     }
 
     return `
-      <div style="background: var(--card-bg); border: 1.5px solid ${isRevertida ? '#fecaca' : 'var(--border)'}; border-radius: 14px; padding: 12px 14px; display: flex; align-items: center; justify-content: space-between; gap: 12px; opacity: ${isRevertida ? '0.75' : '1'}; transition: all 0.2s;">
-        <!-- INFO ESTUDIANTE Y MOVIMIENTO -->
-        <div style="display: flex; align-items: center; gap: 12px; min-width: 0; flex: 1;">
-          <img src="${m.estudiante_foto || '/img/avatar_default.png'}" style="width: 44px; height: 44px; border-radius: 50%; border: 2px solid ${isPositive ? '#10b981' : '#f59e0b'}; object-fit: cover; background: white; flex-shrink: 0;">
-          <div style="min-width: 0;">
-            <div style="display: flex; align-items: center; gap: 6px; flex-wrap: wrap; margin-bottom: 2px;">
-              ${tipoBadge}
-              <span style="font-size: 0.72rem; color: var(--text-muted); font-weight: 700;">#${m.id} • ${fechaHoraStr}</span>
-            </div>
-            <strong style="font-size: 0.95rem; color: var(--text-main); display: block; word-break: break-word;">
+      <div class="admin-mov-card" style="background: ${isRevertida ? 'rgba(254, 242, 242, 0.45)' : 'var(--card-bg)'}; border: 1.5px solid ${isRevertida ? '#fecaca' : 'var(--border)'}; border-radius: 14px; padding: 12px 14px; display: flex; flex-direction: column; gap: 10px; opacity: ${isRevertida ? '0.85' : '1'}; transition: all 0.2s; box-shadow: 0 1px 3px rgba(0,0,0,0.03);">
+        
+        <!-- FILA SUPERIOR: BADGE Y FECHA -->
+        <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px; border-bottom: 1px solid var(--border); padding-bottom: 8px; flex-wrap: wrap;">
+          <div style="display: flex; align-items: center; gap: 6px;">
+            ${tipoBadge}
+            <span style="font-size: 0.72rem; color: var(--text-muted); font-weight: 800;">#${m.id}</span>
+          </div>
+          <span style="font-size: 0.72rem; color: var(--text-muted); font-weight: 700; display: inline-flex; align-items: center; gap: 4px;">
+            🕒 ${fechaHoraStr}
+          </span>
+        </div>
+
+        <!-- FILA CENTRAL: ALUMNO Y DETALLES -->
+        <div style="display: flex; align-items: center; gap: 12px; min-width: 0;">
+          <img src="${m.estudiante_foto || '/img/avatar_default.png'}" style="width: 44px; height: 44px; border-radius: 50%; border: 2.5px solid ${isPositive ? '#10b981' : '#f59e0b'}; object-fit: cover; background: white; flex-shrink: 0;">
+          <div style="min-width: 0; flex: 1;">
+            <strong style="font-size: 0.98rem; color: var(--text-main); font-weight: 900; line-height: 1.25; display: block; word-break: normal; white-space: normal;">
               ${m.estudiante_nombre}
             </strong>
-            <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 1px;">
-              ${m.codigo_estudiante} • ${m.grado || ''} ${m.seccion ? '- ' + m.seccion : ''}
-              ${m.codigo_orden ? `• Ticket: <strong>${m.codigo_orden}</strong>` : ''}
-              ${m.descripcion ? `• <em>${m.descripcion}</em>` : ''}
+            <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 2px; display: flex; flex-wrap: wrap; gap: 4px; align-items: center;">
+              <span style="font-weight: 800; color: #0284c7;">${m.codigo_estudiante}</span>
+              ${(m.grado || m.seccion) ? `<span>• ${m.grado || ''} ${m.seccion ? 'Sec. ' + m.seccion : ''}</span>` : ''}
+              ${m.codigo_orden ? `<span style="background: rgba(2, 132, 199, 0.1); color: #0284c7; padding: 1px 6px; border-radius: 4px; font-weight: 800; font-size: 0.7rem;">Ticket: ${m.codigo_orden}</span>` : ''}
             </div>
+            ${m.descripcion ? `
+              <div style="font-size: 0.72rem; color: var(--text-muted); margin-top: 4px; background: rgba(148, 163, 184, 0.08); padding: 3px 8px; border-radius: 6px; line-height: 1.35; display: inline-block;">
+                📝 ${m.descripcion}
+              </div>
+            ` : ''}
           </div>
         </div>
 
-        <!-- MONTO Y BOTÓN REVERTIR -->
-        <div style="display: flex; align-items: center; gap: 14px; flex-shrink: 0;">
-          <div style="text-align: right;">
-            <div style="font-size: 1.15rem; font-weight: 900; color: ${montoColor};">
+        <!-- FILA INFERIOR: MONTO, SALDO POSTERIOR Y BOTÓN DE ACCIÓN -->
+        <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px; background: rgba(148, 163, 184, 0.07); border: 1px solid var(--border); border-radius: 10px; padding: 8px 12px; flex-wrap: wrap;">
+          <div style="display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap;">
+            <span style="font-size: 1.15rem; font-weight: 900; color: ${montoColor}; line-height: 1.1;">
               ${montoDisplay}
-            </div>
-            <div style="font-size: 0.68rem; color: var(--text-muted); font-weight: 700;">
-              Saldo: ₡${(m.saldo_posterior || 0).toLocaleString('es-CR')}
-            </div>
+            </span>
+            <span style="font-size: 0.72rem; color: var(--text-muted); font-weight: 700;">
+              Saldo posterior: <strong style="color: var(--text-main);">₡${(m.saldo_posterior || 0).toLocaleString('es-CR')}</strong>
+            </span>
           </div>
-          <div>
+          <div style="flex-shrink: 0;">
             ${actionHtml}
           </div>
         </div>
+
       </div>
     `;
   }).join('');
