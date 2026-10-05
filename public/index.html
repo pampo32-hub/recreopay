@@ -947,8 +947,18 @@
 
       <form id="formNewStudent" onsubmit="submitNewStudent(event)">
         <div style="margin-bottom: 10px;">
-          <label style="display: block; font-size: 0.78rem; font-weight: 800; color: #334155; margin-bottom: 3px;">Nombre Completo:</label>
-          <input type="text" id="newEstNombre" placeholder="Ej: Daniel Sánchez Méndez" required style="width: 100%; padding: 8px 10px; border-radius: 8px; border: 1.5px solid #cbd5e1; font-weight: 700; box-sizing: border-box;">
+          <label style="display: block; font-size: 0.78rem; font-weight: 800; color: var(--text-main); margin-bottom: 3px;">Tipo de Perfil / Negocio:</label>
+          <select id="newEstTipo" style="width: 100%; padding: 8px 10px; border-radius: 8px; border: 1.5px solid var(--border); font-weight: 800; box-sizing: border-box; background: var(--card-bg); color: var(--text-main);">
+            <option value="EST">🎒 Estudiante / Alumno (Escuela o Colegio)</option>
+            <option value="EMP">💼 Colaborador / Empleado (Empresa o Comedor)</option>
+            <option value="EVT">🎟️ Asistente / Pulsera (Evento o Feria)</option>
+            <option value="SOC">🏅 Socio / Miembro (Club o Gimnasio)</option>
+          </select>
+        </div>
+
+        <div style="margin-bottom: 10px;">
+          <label style="display: block; font-size: 0.78rem; font-weight: 800; color: var(--text-main); margin-bottom: 3px;">Nombre Completo *:</label>
+          <input type="text" id="newEstNombre" placeholder="Ej: Daniel Sánchez Méndez" required style="width: 100%; padding: 8px 10px; border-radius: 8px; border: 1.5px solid var(--border); font-weight: 700; box-sizing: border-box; background: var(--card-bg); color: var(--text-main);">
         </div>
 
         <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin-bottom: 10px;">

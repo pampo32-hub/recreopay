@@ -709,21 +709,31 @@ app.delete('/api/admin/personal/:id', (req, res) => {
   }
 });
 
-// Crear nuevo estudiante + carné QR
+// Crear nuevo estudiante / usuario + carné QR (escalable a 5 dígitos y prefijos multi-negocio)
 app.post('/api/admin/estudiantes', (req, res) => {
   try {
-    const { nombre_completo, edad, grado, seccion, saldo_inicial, limite_diario_colones, alergias, pin_seguridad, padre_nombre, padre_telefono } = req.body;
+    const {
+      nombre_completo, edad, grado, seccion, saldo_inicial,
+      limite_diario_colones, alergias, pin_seguridad, padre_nombre,
+      padre_telefono, prefijo, tipo_entidad
+    } = req.body;
 
     if (!nombre_completo || !grado || !seccion) {
       return res.status(400).json({ error: 'Nombre completo, grado y sección son obligatorios' });
     }
 
-    const count = db.prepare('SELECT COUNT(*) as count FROM estudiantes').get().count + 1;
-    const codigoEstudiante = `EST-2026-${String(count).padStart(3, '0')}`;
+    // Correlativo seguro basado en el último ID registrado (evita colisiones por borrado)
+    const maxRow = db.prepare('SELECT COALESCE(MAX(id), 0) + 1 as nextId FROM estudiantes').get();
+    const nextSeq = maxRow ? maxRow.nextId : 1;
+
+    // Prefijo configurable para expansión a otros negocios (EST, EMP, EVT, SOC, PASS)
+    const cleanPrefix = (prefijo || tipo_entidad || 'EST').toUpperCase().trim().replace(/[^A-Z0-9]/g, '').substring(0, 6) || 'EST';
+    const year = new Date().getFullYear();
+    const codigoEstudiante = `${cleanPrefix}-${year}-${String(nextSeq).padStart(5, '0')}`;
     
     const primerNombre = nombre_completo.trim().split(' ')[0].toUpperCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
     const randomHex = Math.random().toString(16).substring(2, 6).toUpperCase();
-    const qrToken = `QR-${primerNombre}-2026-${randomHex}`;
+    const qrToken = `QR-${cleanPrefix}-${primerNombre}-${year}-${String(nextSeq).padStart(5, '0')}-${randomHex}`;
 
     const pin = pin_seguridad ? String(pin_seguridad).trim() : '1234';
     const saldo = parseInt(saldo_inicial, 10) || 0;
@@ -754,11 +764,11 @@ app.post('/api/admin/estudiantes', (req, res) => {
     const nuevoId = resEst.lastInsertRowid;
 
     // Crear cuenta de usuario estudiante
-    const usernameEst = primerNombre.toLowerCase() + count;
+    const usernameEst = primerNombre.toLowerCase() + nextSeq;
     try {
       const userRes = db.prepare(`
-        INSERT INTO usuarios (username, password_hash, rol, nombre, email, telefono)
-        VALUES (?, ?, 'estudiante', ?, '', '')
+        INSERT INTO usuarios (username, password_hash, rol, nombre, email, telefono, activo)
+        VALUES (?, ?, 'estudiante', ?, '', '', 1)
       `).run(usernameEst, pin, nombre_completo.trim());
       db.prepare('UPDATE estudiantes SET usuario_id = ? WHERE id = ?').run(userRes.lastInsertRowid, nuevoId);
     } catch (e) {}

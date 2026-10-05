@@ -2716,9 +2716,12 @@ async function submitNewStudent(event) {
   const padre = document.getElementById('newEstPadre').value.trim();
   const tel = document.getElementById('newEstTel').value.trim();
 
+  const tipoEl = document.getElementById('newEstTipo');
+  const prefijo = tipoEl ? tipoEl.value : 'EST';
+
   const btn = document.getElementById('btnSubmitNewStudent');
   btn.disabled = true;
-  btn.textContent = 'Creando alumno y carné...';
+  btn.textContent = 'Creando usuario y carné...';
 
   try {
     const res = await fetch('/api/admin/estudiantes', {
@@ -2733,7 +2736,8 @@ async function submitNewStudent(event) {
         limite_diario_colones: limite,
         alergias,
         padre_nombre: padre,
-        padre_telefono: tel
+        padre_telefono: tel,
+        prefijo
       })
     });
 
