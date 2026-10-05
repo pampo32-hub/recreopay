@@ -348,21 +348,25 @@
         </div>
       </div>
 
-      <div class="admin-header-actions">
-        <button onclick="toggleTheme()" class="theme-toggle-btn" title="Alternar Modo Oscuro / Modo Claro">
+      <div class="admin-header-actions" style="display: flex; align-items: center; gap: 8px;">
+        <button onclick="toggleTheme()" class="btn-saas btn-saas-outline" style="width: 34px; height: 34px; padding: 0;" title="Alternar Modo Oscuro / Modo Claro">
           🌙
         </button>
-        <button id="btnAdminDevPanel" onclick="switchAdminToDev()" class="admin-action-btn" style="display: none; background: #8b5cf6; color: white; border-color: #7c3aed;" title="Volver al Panel Developer Master">
-          <span>🛠️</span> <span class="admin-btn-text">Panel Dev</span>
+        <button id="btnAdminDevPanel" onclick="switchAdminToDev()" class="btn-saas btn-saas-outline" style="display: none; border-color: #8b5cf6; color: #8b5cf6; height: 34px;" title="Volver al Panel Developer Master">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m18 16 4-4-4-4"/><path d="m6 8-4 4 4 4"/><path d="m14.5 4-5 16"/></svg>
+          <span class="admin-btn-text">Panel Dev</span>
         </button>
-        <button onclick="switchAdminTab('recarga')" class="admin-action-btn admin-action-btn-recarga" title="Cargar dinero a un estudiante">
-          <span>💵</span> <span class="admin-btn-text">Cargar Dinero</span>
+        <button onclick="switchAdminTab('recarga')" class="btn-saas btn-saas-primary" style="height: 34px;" title="Recargar saldo a un estudiante">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="14" x="2" y="5" rx="2"/><line x1="2" x2="22" y1="10" y2="10"/></svg>
+          <span class="admin-btn-text">Recargar Saldo</span>
         </button>
-        <a href="/pos.html" target="_blank" class="admin-action-btn admin-action-btn-caja" title="Abrir Caja / Terminal POS">
-          <span>📟</span> <span class="admin-btn-text">Ir a Caja</span>
+        <a href="/pos.html" target="_blank" class="btn-saas btn-saas-outline" style="height: 34px;" title="Abrir Caja / Terminal POS">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="14" x="2" y="3" rx="2"/><line x1="8" x2="16" y1="21" y2="21"/><line x1="12" x2="12" y1="17" y2="21"/></svg>
+          <span class="admin-btn-text">Terminal POS</span>
         </a>
-        <button onclick="logout(true)" class="admin-action-btn admin-action-btn-salir" title="Cerrar sesión y cambiar de cuenta">
-          <span>🚪</span> <span class="admin-btn-text">Salir</span>
+        <button onclick="logout(true)" class="btn-saas btn-saas-danger-subtle" style="height: 34px;" title="Cerrar sesión y cambiar de cuenta">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" x2="9" y1="12" y2="12"/></svg>
+          <span class="admin-btn-text">Salir</span>
         </button>
       </div>
     </header>
@@ -394,19 +398,24 @@
     <!-- PESTAÑAS DE NAVEGACIÓN ADMIN -->
     <div class="admin-tabs">
       <button class="admin-tab-btn active" id="btnTabAdminInventario" onclick="switchAdminTab('inventario')">
-        📦 Control de Inventario y Stock
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m7.5 4.27 9 5.15"/><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22V12"/></svg>
+        <span>Inventario & Stock</span>
       </button>
       <button class="admin-tab-btn" id="btnTabAdminEstudiantes" onclick="switchAdminTab('estudiantes')">
-        🪪 Estudiantes, Carnés y Bloqueos
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="3" rx="2"/><path d="M7 7h.01"/><path d="M11 7h6"/><path d="M7 11h.01"/><path d="M11 11h6"/><path d="M7 15h.01"/><path d="M11 15h6"/></svg>
+        <span>Estudiantes, Carnés & Bloqueos</span>
       </button>
       <button class="admin-tab-btn" id="btnTabAdminPersonal" onclick="switchAdminTab('personal')">
-        👥 Personal y Cajeros
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+        <span>Personal & Cajeros</span>
       </button>
       <button class="admin-tab-btn" id="btnTabAdminRecarga" onclick="switchAdminTab('recarga')">
-        💵 Cargar Dinero Manual (Buscador y QR)
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="14" x="2" y="5" rx="2"/><line x1="2" x2="22" y1="10" y2="10"/></svg>
+        <span>Recarga Manual</span>
       </button>
       <button class="admin-tab-btn" id="btnTabAdminMovimientos" onclick="switchAdminTab('movimientos')">
-        📜 Movimientos y Reversiones
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M16 22h2a2 2 0 0 0 2-2V7.5L14.5 2H6a2 2 0 0 0-2 2v3"/><path d="m3 12.5 3 3 6-6"/></svg>
+        <span>Movimientos & Reversiones</span>
       </button>
     </div>
 
@@ -420,9 +429,10 @@
           </p>
         </div>
         <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
-          <input type="text" id="adminSearchProduct" placeholder="🔍 Buscar alimento o bebida..." oninput="filterAdminProducts(this.value)" style="padding: 8px 12px; border-radius: 10px; border: 1.5px solid var(--border); font-size: 0.85rem; width: 190px; background: var(--card-bg); color: var(--text-main);">
-          <button type="button" onclick="openCreateProductModal()" style="padding: 8px 14px; background: linear-gradient(135deg, #0284c7, #0369a1); color: white; border: none; border-radius: 10px; font-size: 0.82rem; font-weight: 800; cursor: pointer; display: flex; align-items: center; gap: 6px; box-shadow: 0 2px 6px rgba(2, 132, 199, 0.25);">
-            <span>➕</span> <span>Nuevo Producto</span>
+          <input type="text" id="adminSearchProduct" placeholder="🔍 Buscar alimento o bebida..." oninput="filterAdminProducts(this.value)" style="padding: 8px 12px; border-radius: 8px; border: 1px solid var(--border); font-size: 0.85rem; width: 190px; background: var(--card-bg); color: var(--text-main); outline: none;">
+          <button type="button" onclick="openCreateProductModal()" class="btn-saas btn-saas-primary" style="height: 36px; padding: 0 14px; font-size: 0.84rem;">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="M12 5v14"/></svg>
+            <span>Nuevo Producto</span>
           </button>
         </div>
       </div>
@@ -483,8 +493,8 @@
               <input type="text" id="inputAdminSearchStudent" class="admin-search-input" placeholder="🔍 Escribe para buscar (ej: Mateo, EST-2026, Alvarado)..." oninput="onAdminSearchStudent(this.value)" onfocus="onAdminSearchFocus()" autocomplete="off" style="width: 100%; box-sizing: border-box; padding: 11px 36px 11px 14px; font-size: 0.95rem; font-weight: 700; border-radius: 12px; border: 2px solid #cbd5e1; outline: none; background: var(--card-bg, #ffffff); color: var(--text-main);">
               <button type="button" id="btnClearAdminSearch" onclick="clearAdminSearchStudent()" style="display: none; position: absolute; right: 10px; top: 50%; transform: translateY(-50%); background: #e2e8f0; border: none; border-radius: 50%; width: 22px; height: 22px; font-size: 0.75rem; font-weight: 900; color: #475569; cursor: pointer; align-items: center; justify-content: center;" title="Borrar búsqueda">✕</button>
             </div>
-            <button type="button" onclick="openAdminScanQrModal()" class="admin-scan-btn" title="Escanear carné físico o código QR con la cámara" style="flex-shrink: 0; padding: 11px 14px; background: linear-gradient(135deg, #0284c7, #0369a1); color: white; border: none; border-radius: 12px; font-size: 0.85rem; font-weight: 800; cursor: pointer; display: flex; align-items: center; gap: 6px; white-space: nowrap;">
-              <span>📷</span>
+            <button type="button" onclick="openAdminScanQrModal()" class="btn-saas btn-saas-primary" title="Escanear carné físico o código QR con la cámara" style="flex-shrink: 0; height: 42px; padding: 0 14px; font-size: 0.85rem; border-radius: 10px;">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="3" rx="2"/><path d="M7 7h.01"/><path d="M17 7h.01"/><path d="M7 17h.01"/><path d="M17 17h.01"/></svg>
               <span>Escanear QR</span>
             </button>
           </div>
@@ -542,10 +552,10 @@
         </div>
 
         <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin-bottom: 14px;">
-          <button type="button" onclick="setAdminRecargaPreset(1000)" class="stock-btn-quick">₡1.000</button>
-          <button type="button" onclick="setAdminRecargaPreset(2000)" class="stock-btn-quick">₡2.000</button>
-          <button type="button" onclick="setAdminRecargaPreset(5000)" class="stock-btn-quick">₡5.000</button>
-          <button type="button" onclick="setAdminRecargaPreset(10000)" class="stock-btn-quick">₡10.000</button>
+          <button type="button" onclick="setAdminRecargaPreset(1000)" class="btn-saas btn-saas-outline" style="height: 36px; font-weight: 800;">₡1.000</button>
+          <button type="button" onclick="setAdminRecargaPreset(2000)" class="btn-saas btn-saas-outline" style="height: 36px; font-weight: 800;">₡2.000</button>
+          <button type="button" onclick="setAdminRecargaPreset(5000)" class="btn-saas btn-saas-outline" style="height: 36px; font-weight: 800;">₡5.000</button>
+          <button type="button" onclick="setAdminRecargaPreset(10000)" class="btn-saas btn-saas-outline" style="height: 36px; font-weight: 800;">₡10.000</button>
         </div>
 
         <div style="margin-bottom: 16px;">
@@ -555,8 +565,9 @@
           <input type="text" id="adminRecargaDescripcion" placeholder="Ej: Pago en efectivo en mostrador" style="width: 100%; padding: 9px 12px; border-radius: 10px; border: 1px solid var(--border); font-size: 0.85rem; box-sizing: border-box; background: var(--card-bg); color: var(--text-main);">
         </div>
 
-        <button type="button" id="btnAdminSubmitRecarga" onclick="submitAdminManualRecharge()" style="width: 100%; padding: 13px; background: linear-gradient(135deg, #10b981, #059669); color: white; border: none; border-radius: 12px; font-size: 1rem; font-weight: 900; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; box-shadow: 0 4px 12px rgba(16, 185, 129, 0.35);">
-          <span>💰</span> Aplicar Recarga Inmediata
+        <button type="button" id="btnAdminSubmitRecarga" onclick="submitAdminManualRecharge()" class="btn-saas btn-saas-primary" style="width: 100%; height: 44px; font-size: 0.95rem; font-weight: 800; border-radius: 10px;">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="14" x="2" y="5" rx="2"/><line x1="2" x2="22" y1="10" y2="10"/></svg>
+          <span>Aplicar Recarga Inmediata</span>
         </button>
       </div>
     </div>
@@ -566,31 +577,33 @@
       <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; flex-wrap: wrap; gap: 10px;">
         <div>
           <h3 style="margin: 0; font-size: 1.2rem; font-weight: 900; color: var(--text-main); display: flex; align-items: center; gap: 8px;">
-            <span>📜</span> Movimientos y Reversiones
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M16 22h2a2 2 0 0 0 2-2V7.5L14.5 2H6a2 2 0 0 0-2 2v3"/><path d="m3 12.5 3 3 6-6"/></svg>
+            <span>Movimientos & Reversiones</span>
           </h3>
           <p style="margin: 3px 0 0 0; font-size: 0.78rem; color: var(--text-muted);">
             Historial de recargas de monedero y cobros de meriendas. Permite anular o revertir transacciones erróneas.
           </p>
         </div>
-        <button type="button" onclick="loadAdminMovimientos()" style="padding: 8px 14px; background: #f1f5f9; color: #475569; border: 1.5px solid var(--border); border-radius: 10px; font-weight: 800; font-size: 0.8rem; cursor: pointer; display: flex; align-items: center; gap: 6px;">
-          <span>🔄</span> Actualizar
+        <button type="button" onclick="loadAdminMovimientos()" class="btn-saas btn-saas-outline" style="height: 32px;">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/></svg>
+          <span>Actualizar</span>
         </button>
       </div>
 
       <!-- BARRA DE FILTROS Y BÚSQUEDA -->
       <div style="display: flex; gap: 10px; margin-bottom: 16px; flex-wrap: wrap; align-items: center; justify-content: space-between;">
-        <div style="display: flex; gap: 4px; background: rgba(148, 163, 184, 0.12); padding: 4px; border-radius: 12px; overflow-x: auto; max-width: 100%;">
-          <button type="button" class="mov-filter-btn active" id="btnFilterMovAll" onclick="setMovFilter('all')" style="padding: 7px 12px; border: none; border-radius: 8px; font-weight: 800; font-size: 0.78rem; cursor: pointer; background: white; color: #0284c7; box-shadow: 0 1px 3px rgba(0,0,0,0.08); white-space: nowrap;">
+        <div style="display: flex; gap: 4px; background: rgba(148, 163, 184, 0.12); padding: 4px; border-radius: 10px; overflow-x: auto; max-width: 100%;">
+          <button type="button" class="mov-filter-btn active" id="btnFilterMovAll" onclick="setMovFilter('all')" style="padding: 6px 12px; border: none; border-radius: 7px; font-weight: 800; font-size: 0.78rem; cursor: pointer; background: white; color: #0284c7; box-shadow: 0 1px 3px rgba(0,0,0,0.08); white-space: nowrap;">
             Todos
           </button>
-          <button type="button" class="mov-filter-btn" id="btnFilterMovRecargas" onclick="setMovFilter('recargas')" style="padding: 7px 12px; border: none; border-radius: 8px; font-weight: 700; font-size: 0.78rem; cursor: pointer; background: transparent; color: #64748b; white-space: nowrap;">
-            💵 Recargas
+          <button type="button" class="mov-filter-btn" id="btnFilterMovRecargas" onclick="setMovFilter('recargas')" style="padding: 6px 12px; border: none; border-radius: 7px; font-weight: 700; font-size: 0.78rem; cursor: pointer; background: transparent; color: #64748b; white-space: nowrap;">
+            Recargas
           </button>
-          <button type="button" class="mov-filter-btn" id="btnFilterMovCobros" onclick="setMovFilter('cobros')" style="padding: 7px 12px; border: none; border-radius: 8px; font-weight: 700; font-size: 0.78rem; cursor: pointer; background: transparent; color: #64748b; white-space: nowrap;">
-            🥪 Cobros
+          <button type="button" class="mov-filter-btn" id="btnFilterMovCobros" onclick="setMovFilter('cobros')" style="padding: 6px 12px; border: none; border-radius: 7px; font-weight: 700; font-size: 0.78rem; cursor: pointer; background: transparent; color: #64748b; white-space: nowrap;">
+            Cobros
           </button>
         </div>
-        <input type="text" id="inputSearchMovimientos" placeholder="🔍 Buscar por alumno, carné o detalle..." oninput="filterMovimientosUI(this.value)" style="flex: 1; min-width: 180px; padding: 9px 12px; border-radius: 10px; border: 1.5px solid var(--border); font-size: 0.85rem; box-sizing: border-box; background: var(--card-bg); color: var(--text-main);">
+        <input type="text" id="inputSearchMovimientos" placeholder="🔍 Buscar por alumno, carné o detalle..." oninput="filterMovimientosUI(this.value)" style="flex: 1; min-width: 180px; padding: 8px 12px; border-radius: 8px; border: 1px solid var(--border); font-size: 0.85rem; box-sizing: border-box; background: var(--card-bg); color: var(--text-main); outline: none;">
       </div>
 
       <!-- LISTA DE MOVIMIENTOS -->
@@ -606,14 +619,16 @@
       <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; flex-wrap: wrap; gap: 10px;">
         <div>
           <h3 style="margin: 0; font-size: 1.2rem; font-weight: 900; color: var(--text-main); display: flex; align-items: center; gap: 8px;">
-            <span>👥</span> Control de Personal y Cajeros
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+            <span>Control de Personal & Cajeros</span>
           </h3>
           <p style="margin: 3px 0 0 0; font-size: 0.78rem; color: var(--text-muted);">
             Crea cajeros, vendedores y personal. Administra contraseñas, bloquea o elimina accesos.
           </p>
         </div>
-        <button type="button" onclick="openCreateStaffModal()" style="padding: 9px 16px; background: linear-gradient(135deg, #10b981, #059669); color: white; border: none; border-radius: 10px; font-size: 0.84rem; font-weight: 800; cursor: pointer; display: flex; align-items: center; gap: 6px; box-shadow: 0 2px 6px rgba(16, 185, 129, 0.25);">
-          <span>➕</span> <span>Nuevo Empleado / Cajero</span>
+        <button type="button" onclick="openCreateStaffModal()" class="btn-saas btn-saas-primary" style="height: 36px; padding: 0 14px; font-size: 0.84rem;">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" x2="19" y1="8" y2="14"/><line x1="22" x2="16" y1="11" y2="11"/></svg>
+          <span>Nuevo Empleado / Cajero</span>
         </button>
       </div>
 

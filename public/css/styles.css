@@ -1375,26 +1375,44 @@ body.dark-mode .admin-action-btn-salir {
 
 .admin-tab-btn {
   background: var(--card-bg, #ffffff);
-  border: 1.5px solid var(--border, #cbd5e1);
-  color: var(--text-main, #334155);
-  padding: 10px 16px;
-  border-radius: 12px;
-  font-size: 0.88rem;
-  font-weight: 800;
+  border: 1px solid var(--border, #cbd5e1);
+  color: var(--text-muted, #64748b);
+  padding: 8px 14px;
+  border-radius: 9px;
+  font-size: 0.82rem;
+  font-weight: 700;
   cursor: pointer;
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 7px;
   white-space: nowrap;
-  transition: all 0.15s;
+  transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
   flex-shrink: 0;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
+}
+
+.admin-tab-btn svg {
+  flex-shrink: 0;
+  stroke: currentColor;
+}
+
+.admin-tab-btn:hover {
+  color: var(--text-main, #0f172a);
+  border-color: #94a3b8;
+  background: var(--bg-main, #f8fafc);
 }
 
 .admin-tab-btn.active {
+  background: #0f172a;
+  color: #ffffff;
+  border-color: #0f172a;
+  box-shadow: 0 2px 5px rgba(15, 23, 42, 0.2);
+}
+
+body.dark-mode .admin-tab-btn.active {
   background: #0284c7;
-  color: white;
+  color: #ffffff;
   border-color: #0284c7;
-  box-shadow: 0 4px 10px rgba(2, 132, 199, 0.3);
 }
 
 .admin-card {

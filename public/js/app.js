@@ -2661,24 +2661,26 @@ function renderAdminInventory(list) {
             </div>
           </div>
           <div style="flex-shrink: 0;">
-            <button type="button" class="btn-action-edit" onclick="openEditProductModal(${p.id})" title="Editar este producto">
-              <span>✏️</span> <span>Editar</span>
+            <button type="button" class="btn-saas btn-saas-outline" onclick="openEditProductModal(${p.id})" title="Editar este producto">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/><path d="m15 5 4 4"/></svg>
+              <span>Editar</span>
             </button>
           </div>
         </div>
 
         <!-- Controles rápidos de stock -->
         <div class="inventory-item-bottom">
-          <div class="inventory-stock-controls">
-            <button type="button" class="stock-btn-quick" onclick="quickAdjustStock(${p.id}, -1)" title="Restar 1">-1</button>
-            <input type="number" id="inputStock_${p.id}" value="${p.stock || 0}" min="0" style="width: 50px; text-align: center; padding: 5px; border-radius: 8px; border: 1.5px solid var(--border); font-weight: 900; font-size: 0.95rem; background: var(--card-bg); color: var(--text-main);">
-            <button type="button" class="stock-btn-quick" onclick="quickAdjustStock(${p.id}, 5)" title="Sumar 5">+5</button>
-            <button type="button" class="stock-btn-quick" onclick="quickAdjustStock(${p.id}, 10)" title="Sumar 10">+10</button>
+          <div class="inventory-stock-controls" style="display: flex; align-items: center; gap: 4px;">
+            <button type="button" class="btn-saas btn-saas-outline" style="height: 28px; padding: 0 8px; font-weight: 800;" onclick="quickAdjustStock(${p.id}, -1)" title="Restar 1">-1</button>
+            <input type="number" id="inputStock_${p.id}" value="${p.stock || 0}" min="0" style="width: 52px; height: 28px; text-align: center; padding: 2px 4px; border-radius: 6px; border: 1px solid var(--border); font-weight: 800; font-size: 0.9rem; background: var(--card-bg); color: var(--text-main); outline: none;">
+            <button type="button" class="btn-saas btn-saas-outline" style="height: 28px; padding: 0 8px; font-weight: 800;" onclick="quickAdjustStock(${p.id}, 5)" title="Sumar 5">+5</button>
+            <button type="button" class="btn-saas btn-saas-outline" style="height: 28px; padding: 0 8px; font-weight: 800;" onclick="quickAdjustStock(${p.id}, 10)" title="Sumar 10">+10</button>
           </div>
 
           <div>
-            <button type="button" onclick="saveProductStock(${p.id})" style="padding: 7px 14px; background: #0284c7; color: white; border: none; border-radius: 8px; font-size: 0.8rem; font-weight: 800; cursor: pointer; white-space: nowrap;">
-              💾 Guardar
+            <button type="button" onclick="saveProductStock(${p.id})" class="btn-saas btn-saas-primary" style="height: 28px; padding: 0 10px; font-size: 0.78rem;">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+              <span>Guardar</span>
             </button>
           </div>
         </div>
@@ -2769,7 +2771,7 @@ function renderAdminStudents(list) {
             <div class="admin-student-actions">
               <button type="button" class="btn-saas btn-saas-primary" onclick="quickGoToRecarga(${s.id})" title="Cargar saldo en caja a este estudiante">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="14" x="2" y="5" rx="2"/><line x1="2" x2="22" y1="10" y2="10"/></svg>
-                <span>Abonar</span>
+                <span>Recargar</span>
               </button>
 
               <a href="/carnet.html?id=${s.id}" target="_blank" class="btn-saas btn-saas-outline" title="Ver e imprimir carné físico escolar">
@@ -3698,8 +3700,9 @@ function renderAdminMovimientos() {
     } else {
       const cleanName = (m.estudiante_nombre || '').replace(/'/g, "\\'");
       actionHtml = `
-        <button type="button" onclick="revertirMovimientoAdmin(${m.id}, ${absMonto}, '${cleanName}', '${m.tipo}')" style="padding: 6px 14px; background: #fee2e2; color: #b91c1c; border: 1.5px solid #f87171; border-radius: 8px; font-size: 0.76rem; font-weight: 900; cursor: pointer; display: inline-flex; align-items: center; gap: 5px; transition: all 0.2s; box-shadow: 0 1px 3px rgba(239, 68, 68, 0.15);" onmouseover="this.style.background='#fca5a5'" onmouseout="this.style.background='#fee2e2'">
-          <span>↩️</span> Revertir
+        <button type="button" class="btn-saas btn-saas-danger-subtle" onclick="revertirMovimientoAdmin(${m.id}, ${absMonto}, '${cleanName}', '${m.tipo}')" title="Revertir este movimiento">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 5.5 5.5v0a5.5 5.5 0 0 1-5.5 5.5H11"/></svg>
+          <span>Revertir</span>
         </button>
       `;
     }
@@ -4055,19 +4058,22 @@ function renderAdminStaff(list) {
         </div>
 
         <div style="display: flex; align-items: center; gap: 6px; flex-shrink: 0; flex-wrap: wrap;">
-          <button type="button" class="btn-action-edit" onclick="openEditStaffModal(${s.id})" title="Editar datos">
-            <span>✏️</span> <span>Editar</span>
+          <button type="button" class="btn-saas btn-saas-outline" onclick="openEditStaffModal(${s.id})" title="Editar datos del personal">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/><path d="m15 5 4 4"/></svg>
+            <span>Editar</span>
           </button>
           ${!isRootAdmin ? `
-            <button type="button" class="btn-action-block" onclick="toggleBlockStaff(${s.id}, ${isBlocked ? 1 : 0})" title="${isBlocked ? 'Desbloquear acceso' : 'Bloquear acceso'}">
-              <span>${isBlocked ? '🔓' : '🔒'}</span> <span>${isBlocked ? 'Desbloquear' : 'Bloquear'}</span>
+            <button type="button" class="btn-saas ${isBlocked ? 'btn-saas-success-subtle' : 'btn-saas-danger-subtle'}" onclick="toggleBlockStaff(${s.id}, ${isBlocked ? 1 : 0})" title="${isBlocked ? 'Desbloquear acceso al sistema' : 'Bloquear acceso al sistema'}">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="${isBlocked ? 'M7 11V7a5 5 0 0 1 9.9-1' : 'M7 11V7a5 5 0 0 1 10 0v4'}"/></svg>
+              <span>${isBlocked ? 'Desbloquear' : 'Bloquear'}</span>
             </button>
-            <button type="button" class="btn-action-delete" onclick="deleteStaff(${s.id}, '${s.nombre.replace(/'/g, "\\'")}')" title="Eliminar empleado">
-              <span>🗑️</span> <span>Eliminar</span>
+            <button type="button" class="btn-saas btn-saas-danger-subtle" onclick="deleteStaff(${s.id}, '${s.nombre.replace(/'/g, "\\'")}')" title="Eliminar empleado">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>
+              <span>Eliminar</span>
             </button>
           ` : `
-            <span style="font-size: 0.72rem; color: var(--text-muted); font-weight: 700; padding: 4px 8px; background: rgba(0,0,0,0.04); border-radius: 6px;">
-              👑 Principal
+            <span class="saas-status-badge saas-status-active" style="font-size: 0.7rem;">
+              <span class="saas-dot"></span> Principal
             </span>
           `}
         </div>
