@@ -691,6 +691,161 @@ body.dark-mode .floating-cart-bar {
   color: #ffffff;
   border-color: #0f172a;
   box-shadow: 0 2px 5px rgba(15, 23, 42, 0.15);
+/* ==========================================================================
+   BUSCADOR INTELIGENTE DE PRODUCTOS EN MOSTRADOR (POS)
+   ========================================================================== */
+.pos-search-bar-wrap {
+  margin-bottom: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: 100%;
+}
+
+.pos-search-input-box {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: #ffffff;
+  border: 1.5px solid #cbd5e1;
+  border-radius: 12px;
+  padding: 0 14px;
+  height: 42px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
+  transition: all 0.15s ease;
+  position: relative;
+}
+
+.pos-search-input-box:focus-within {
+  border-color: #0284c7;
+  box-shadow: 0 0 0 3px rgba(2, 132, 199, 0.12), 0 2px 6px rgba(0, 0, 0, 0.04);
+}
+
+.pos-search-icon {
+  color: #64748b;
+  flex-shrink: 0;
+  transition: color 0.15s ease;
+}
+
+.pos-search-input-box:focus-within .pos-search-icon {
+  color: #0284c7;
+}
+
+.pos-search-input {
+  flex: 1;
+  min-width: 0;
+  border: none;
+  background: transparent;
+  color: #0f172a;
+  font-size: 0.9rem;
+  font-weight: 600;
+  padding: 0;
+  height: 100%;
+  outline: none;
+}
+
+.pos-search-input::placeholder {
+  color: #94a3b8;
+  font-weight: 500;
+}
+
+.pos-search-clear-btn {
+  background: none;
+  border: none;
+  color: #94a3b8;
+  font-size: 0.92rem;
+  font-weight: 800;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 6px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s ease;
+}
+
+.pos-search-clear-btn:hover {
+  color: #dc2626;
+  background: #fee2e2;
+}
+
+.pos-search-shortcut-pill {
+  background: #f1f5f9;
+  border: 1px solid #e2e8f0;
+  color: #64748b;
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 2px 7px;
+  border-radius: 6px;
+  line-height: 1;
+  pointer-events: none;
+  user-select: none;
+}
+
+.pos-search-stats {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.76rem;
+  color: #64748b;
+  padding: 0 4px;
+}
+
+.pos-search-stats strong {
+  color: #0f172a;
+}
+
+.pos-search-reset-link {
+  background: none;
+  border: none;
+  color: #0284c7;
+  font-size: 0.76rem;
+  font-weight: 700;
+  cursor: pointer;
+  padding: 2px 4px;
+  text-decoration: underline;
+}
+
+.pos-search-reset-link:hover {
+  color: #0369a1;
+}
+
+.pos-search-empty-state {
+  grid-column: 1 / -1;
+  background: #ffffff;
+  border: 1.5px dashed #cbd5e1;
+  border-radius: 16px;
+  padding: 36px 20px;
+  text-align: center;
+  color: #64748b;
+  margin: 10px 0;
+}
+
+.pos-search-empty-state h4 {
+  font-size: 1.05rem;
+  font-weight: 800;
+  color: #0f172a;
+  margin: 8px 0 4px 0;
+}
+
+.pos-search-empty-state p {
+  font-size: 0.82rem;
+  color: #64748b;
+  margin: 0 0 14px 0;
+}
+
+.pos-prod-card.search-match-first {
+  border-color: #0284c7;
+  box-shadow: 0 0 0 2px rgba(2, 132, 199, 0.2);
+}
+
+@media (max-width: 640px) {
+  .pos-search-shortcut-pill {
+    display: none;
+  }
+  .pos-search-input {
+    font-size: 0.85rem;
+  }
 }
 
 /* Toolbar de categorías y botón + Rápido */

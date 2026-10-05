@@ -101,6 +101,34 @@
 
       <!-- VISTA 1: CATÁLOGO TÁCTIL DE PRODUCTOS (MOSTRADOR) -->
       <div id="viewPosMostrador">
+        <!-- BUSCADOR INTELIGENTE DE PRODUCTOS EN MOSTRADOR -->
+        <div class="pos-search-bar-wrap">
+          <div class="pos-search-input-box">
+            <svg class="pos-search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+              <circle cx="11" cy="11" r="8"/>
+              <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+            </svg>
+            <input 
+              type="text" 
+              id="posProductSearch" 
+              class="pos-search-input" 
+              placeholder="Buscar por nombre, categoría o precio (ej: empanada, jugo, 1200, mep)..." 
+              autocomplete="off"
+              spellcheck="false"
+              oninput="handlePosSearchInput(this.value)"
+              onkeydown="handlePosSearchKeyDown(event)"
+            />
+            <button type="button" id="posSearchClearBtn" class="pos-search-clear-btn" onclick="clearPosSearch()" title="Borrar búsqueda" style="display: none;">
+              ✕
+            </button>
+            <div class="pos-search-shortcut-pill" title="Atajo rápido de teclado: presiona '/'">/</div >
+          </div>
+          <div id="posSearchStats" class="pos-search-stats" style="display: none;">
+            <span id="posSearchStatsText">Mostrando 0 productos</span>
+            <button type="button" class="pos-search-reset-link" onclick="clearPosSearch()">Mostrar catálogo completo</button>
+          </div>
+        </div>
+
         <div class="pos-category-toolbar">
           <div class="pos-category-scroll-container" id="posCategoriesBar">
             <!-- Filtros de categorías -->

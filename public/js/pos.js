@@ -113,28 +113,177 @@ function renderPosCategories() {
 }
 
 let currentPosCatId = null;
+let posSearchQuery = '';
+
+function normalizeSearchStr(s) {
+  if (!s) return '';
+  return String(s)
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .trim();
+}
+
+function matchesProduct(prod, query) {
+  if (!query) return true;
+  const cleanQ = normalizeSearchStr(query);
+  if (!cleanQ) return true;
+
+  // 1. Operadores de precio (ej: <1000, <=1200, >500, >=800)
+  const priceOpMatch = cleanQ.match(/^([<>]=?)(\d+)$/);
+  if (priceOpMatch) {
+    const op = priceOpMatch[1];
+    const val = parseInt(priceOpMatch[2], 10);
+    if (op === '<') return prod.precio_colones < val;
+    if (op === '<=') return prod.precio_colones <= val;
+    if (op === '>') return prod.precio_colones > val;
+    if (op === '>=') return prod.precio_colones >= val;
+  }
+
+  // 2. Filtros especiales por palabras clave
+  if (cleanQ === 'mep' || cleanQ === 'saludable') {
+    return Boolean(prod.cumple_mep || prod.es_saludable);
+  }
+  if (cleanQ === 'bloqueado' || cleanQ === 'agotado' || cleanQ === 'sin stock') {
+    return Boolean(prod.disponible === 0 || (prod.control_stock === 1 && prod.stock <= 0));
+  }
+  if (cleanQ === 'disponible' || cleanQ === 'en stock') {
+    return Boolean(prod.disponible === 1 && (!prod.control_stock || prod.stock > 0));
+  }
+
+  // 3. Coincidencia por precio numérico exacto o parcial
+  if (/^\d+$/.test(cleanQ)) {
+    const pStr = String(prod.precio_colones);
+    if (pStr === cleanQ || pStr.includes(cleanQ)) return true;
+  }
+
+  // 4. Búsqueda multi-término inteligente (nombre, categoría, descripción, emoji)
+  const tokens = cleanQ.split(/\s+/).filter(Boolean);
+  const targetStr = normalizeSearchStr(
+    `${prod.nombre || ''} ${prod.categoria_nombre || ''} ${prod.descripcion || ''} ${prod.icono || ''} ${prod.precio_colones || ''}`
+  );
+
+  return tokens.every(token => targetStr.includes(token));
+}
+
+function handlePosSearchInput(val) {
+  posSearchQuery = val || '';
+  const clearBtn = document.getElementById('posSearchClearBtn');
+  if (clearBtn) clearBtn.style.display = posSearchQuery.trim() ? 'inline-flex' : 'none';
+  renderPosProducts(currentPosCatId);
+}
+
+function clearPosSearch() {
+  posSearchQuery = '';
+  const input = document.getElementById('posProductSearch');
+  if (input) {
+    input.value = '';
+    input.focus();
+  }
+  const clearBtn = document.getElementById('posSearchClearBtn');
+  if (clearBtn) clearBtn.style.display = 'none';
+  const statsEl = document.getElementById('posSearchStats');
+  if (statsEl) statsEl.style.display = 'none';
+  renderPosProducts(currentPosCatId);
+}
+
+function handlePosSearchKeyDown(e) {
+  if (e.key === 'Escape') {
+    clearPosSearch();
+    e.target.blur();
+    return;
+  }
+
+  if (e.key === 'Enter') {
+    e.preventDefault();
+    const grid = document.getElementById('posProductsGrid');
+    if (!grid) return;
+    const firstMatchCard = grid.querySelector('.pos-prod-card:not(.out-of-stock-pos)');
+    if (firstMatchCard) {
+      firstMatchCard.click();
+      if (window.sounds) window.sounds.playCoin();
+      clearPosSearch();
+    }
+  }
+}
 
 function filterPosCat(catId, btn) {
   currentPosCatId = catId;
   document.querySelectorAll('#posCategoriesBar .pos-cat-pill').forEach(b => b.classList.remove('active'));
-  if (btn) btn.classList.add('active');
+  if (btn) {
+    btn.classList.add('active');
+  } else if (catId === null) {
+    const firstPill = document.querySelector('#posCategoriesBar .pos-cat-pill');
+    if (firstPill) firstPill.classList.add('active');
+  }
   renderPosProducts(catId);
 }
 
 function renderPosProducts(catId) {
   const grid = document.getElementById('posProductsGrid');
+  if (!grid) return;
+
+  const hasSearch = Boolean(posSearchQuery && posSearchQuery.trim());
   let list = posProducts;
-  if (catId !== null) {
+
+  // Filtrado compuesto: búsqueda inteligente y categoría
+  if (hasSearch) {
+    list = list.filter(p => matchesProduct(p, posSearchQuery));
+    if (catId !== null) {
+      list = list.filter(p => p.categoria_id === catId);
+    }
+  } else if (catId !== null) {
     list = list.filter(p => p.categoria_id === catId);
   }
 
-  grid.innerHTML = list.map(prod => {
+  // Barra informativa de estado de búsqueda
+  const statsEl = document.getElementById('posSearchStats');
+  const statsText = document.getElementById('posSearchStatsText');
+  if (statsEl && statsText) {
+    if (hasSearch) {
+      statsEl.style.display = 'flex';
+      const catLabel = catId !== null 
+        ? `en categoría "${(posCategories.find(c => c.id === catId) || {}).nombre || ''}"` 
+        : 'en todo el catálogo';
+      statsText.innerHTML = `Mostrando <strong>${list.length}</strong> de <strong>${posProducts.length}</strong> productos ${catLabel}`;
+    } else {
+      statsEl.style.display = 'none';
+    }
+  }
+
+  // Estado cuando no hay productos coincidentes
+  if (list.length === 0) {
+    if (hasSearch) {
+      const safeQuery = posSearchQuery.replace(/"/g, '&quot;').trim();
+      grid.innerHTML = `
+        <div class="pos-search-empty-state">
+          <span style="font-size: 2.2rem; display: block; margin-bottom: 8px;">🔍</span>
+          <h4>No se encontraron productos para "${safeQuery}"</h4>
+          <p>Verifica el nombre, precio o intenta buscando en otra categoría.</p>
+          <div style="display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; margin-top: 14px;">
+            <button type="button" class="btn-saas btn-saas-outline" onclick="clearPosSearch()">Limpiar búsqueda</button>
+            ${catId !== null ? `<button type="button" class="btn-saas btn-saas-outline" onclick="filterPosCat(null)">Buscar en todas las categorías</button>` : ''}
+            <button type="button" class="btn-saas btn-saas-primary" onclick="openQuickProductModal('${safeQuery}')">
+              <span>⚡</span> + Crear "${safeQuery}" como Rápido
+            </button>
+          </div>
+        </div>
+      `;
+    } else {
+      grid.innerHTML = '<p style="grid-column: 1 / -1; text-align: center; color: #64748b; padding: 40px; font-size: 0.9rem;">No hay productos disponibles en esta categoría.</p>';
+    }
+    return;
+  }
+
+  grid.innerHTML = list.map((prod, idx) => {
     const isOutOfStock = prod.disponible === 0 || (prod.control_stock === 1 && prod.stock <= 0);
+    const isFirstMatch = hasSearch && idx === 0 && !isOutOfStock;
 
     return `
-      <div class="pos-prod-card ${isOutOfStock ? 'out-of-stock-pos' : ''}" 
+      <div class="pos-prod-card ${isOutOfStock ? 'out-of-stock-pos' : ''} ${isFirstMatch ? 'search-match-first' : ''}" 
+           title="${isFirstMatch ? 'Primer resultado coincidente (pulsa Enter para cobrar)' : ''}"
            onclick="${isOutOfStock ? `alert('El producto \\'${prod.nombre.replace(/'/g, "\\'")}\\' se encuentra bloqueado o agotado.')` : `addToPosCart(${prod.id})`}">
-        ${isOutOfStock ? '<div style="position: absolute; top: 10px; right: 10px;"><span class="saas-status-badge saas-status-blocked"><span class="saas-dot"></span>BLOQUEADO</span></div>' : ''}
+        ${isOutOfStock ? '<div style="position: absolute; top: 10px; right: 10px;"><span class="saas-status-badge saas-status-blocked"><span class="saas-dot"></span>BLOQUEADO</span></div>' : (isFirstMatch ? '<div style="position: absolute; top: 8px; right: 8px;"><span class="saas-status-badge saas-status-active" style="font-size: 0.65rem; padding: 2px 6px;">Enter ↵</span></div>' : '')}
         <div style="font-size: 2.2rem; text-align: center; margin-bottom: 6px;">${prod.icono || '🥪'}</div>
         <div>
           <div class="prod-title">${prod.nombre}</div>
@@ -153,15 +302,21 @@ function renderPosProducts(catId) {
 // NUEVO PRODUCTO RÁPIDO EN CALIENTE (POS)
 // ==========================================
 
-function openQuickProductModal() {
+function openQuickProductModal(defaultName = '') {
   const modal = document.getElementById('modalProductoRapido');
   if (!modal) return;
   modal.style.display = 'flex';
   const inputNom = document.getElementById('inputQuickProdNombre');
   const inputPre = document.getElementById('inputQuickProdPrecio');
   if (inputNom) {
-    inputNom.value = '';
-    setTimeout(() => inputNom.focus(), 80);
+    inputNom.value = defaultName ? String(defaultName).trim() : '';
+    setTimeout(() => {
+      if (defaultName) {
+        if (inputPre) inputPre.focus();
+      } else {
+        inputNom.focus();
+      }
+    }, 80);
   }
   if (inputPre) inputPre.value = '';
 }
@@ -698,6 +853,18 @@ function initPistolScanner() {
     // Si presiona Escape, cerrar modal de cobro si está abierto
     if (e.key === 'Escape') {
       closePistolaModal();
+      return;
+    }
+
+    // Atajo rápido: Presionar '/' fuera de campos de texto enfoca el buscador de productos
+    if (e.key === '/' && document.activeElement && !['INPUT', 'TEXTAREA', 'SELECT'].includes(document.activeElement.tagName)) {
+      e.preventDefault();
+      switchPosTab('mostrador');
+      const searchInput = document.getElementById('posProductSearch');
+      if (searchInput) {
+        searchInput.focus();
+        searchInput.select();
+      }
       return;
     }
 
