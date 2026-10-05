@@ -29,7 +29,7 @@
     .status-listo { background: #dcfce7; color: #166534; }
     .status-entregado { background: #f1f5f9; color: #64748b; }
   </style>
-<body style="background: #0b1120; color: #f8fafc;">
+<body style="background: #0b1120; color: #f8fafc;" class="pos-mobile-view-catalog">
 
   <!-- BANNER DE ADVERTENCIA HTTPS PARA TERMINALES REMOTAS -->
   <div id="posBannerHttpsWarning" style="display: none; background: linear-gradient(135deg, #b45309, #d97706); color: white; padding: 10px 14px; font-size: 0.8rem; font-weight: 700; text-align: center;">
@@ -39,25 +39,39 @@
     </a>
   </div>
 
+  <!-- BARRA DE PESTAÑAS MÓVIL (PANTALLAS <= 900px) -->
+  <div class="pos-mobile-nav" id="posMobileNav">
+    <button class="pos-mobile-nav-btn active" id="btnMobileNavCatalog" onclick="switchPosMobileView('catalog')">
+      <span>🥪</span> Catálogo
+    </button>
+    <button class="pos-mobile-nav-btn" id="btnMobileNavCheckout" onclick="switchPosMobileView('checkout')">
+      <span>💳</span> Caja / Cobro QR
+      <span class="pos-mobile-nav-badge" id="mobileCartBadge" style="display: none;">0</span>
+    </button>
+  </div>
+
   <div class="pos-layout">
     <!-- PANEL IZQUIERDO: CATÁLOGO TÁCTIL Y COLA DE PRE-ÓRDENES -->
     <div class="pos-catalog-pane">
-      <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #334155; padding-bottom: 12px;">
+      <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #334155; padding-bottom: 12px; flex-wrap: wrap; gap: 10px;">
         <div style="display: flex; align-items: center; gap: 10px;">
           <span style="font-size: 1.8rem;">🥪</span>
           <div>
-            <h1 style="font-size: 1.25rem; font-weight: 900; color: #ffffff;">RecreoPay <span style="color: #38bdf8;">Terminal Soda</span></h1>
+            <h1 style="font-size: 1.25rem; font-weight: 900; color: #ffffff; margin: 0;">RecreoPay <span style="color: #38bdf8;">Terminal Soda</span></h1>
             <span style="font-size: 0.78rem; color: #94a3b8;">Soda Escolar • Ventana de Atención Rápida</span>
           </div>
         </div>
 
-        <div style="display: flex; align-items: center; gap: 12px;">
-          <span style="display: inline-flex; align-items: center; gap: 6px; font-size: 0.78rem; background: #064e3b; color: #34d399; padding: 4px 10px; border-radius: 20px; font-weight: 700;">
+        <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+          <span style="display: inline-flex; align-items: center; gap: 6px; font-size: 0.75rem; background: #064e3b; color: #34d399; padding: 4px 8px; border-radius: 20px; font-weight: 700;">
             <span style="width: 8px; height: 8px; background: #34d399; border-radius: 50%; display: inline-block;"></span>
-            En Línea (SSE Activo)
+            En Línea (SSE)
           </span>
-          <a href="/index.html" target="_blank" style="color: #38bdf8; font-size: 0.8rem; font-weight: 700; text-decoration: none; border: 1px solid #38bdf8; padding: 4px 10px; border-radius: 8px;">
-            Ver PWA Estudiante ↗
+          <a href="/index.html" style="color: #cbd5e1; font-size: 0.75rem; font-weight: 700; text-decoration: none; border: 1px solid #475569; padding: 4px 8px; border-radius: 8px; background: #1e293b;">
+            👨‍🍳 Admin
+          </a>
+          <a href="/index.html" target="_blank" style="color: #38bdf8; font-size: 0.75rem; font-weight: 700; text-decoration: none; border: 1px solid #38bdf8; padding: 4px 8px; border-radius: 8px;">
+            PWA Estudiante ↗
           </a>
         </div>
       </div>
@@ -99,11 +113,33 @@
           <!-- Lista de pre-órdenes -->
         </div>
       </div>
+
+      <!-- BARRA FLOTANTE DE ACCESO RÁPIDO A CAJA EN MÓVIL -->
+      <div id="posFloatingCheckoutBar" class="pos-floating-checkout-bar" onclick="switchPosMobileView('checkout')" style="display: none;">
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <span style="font-size: 1.3rem;">🛒</span>
+          <div>
+            <div style="font-weight: 800; font-size: 0.88rem; color: #ffffff;" id="posFloatingCartText">0 ítems</div>
+            <div style="font-size: 0.72rem; color: #94a3b8;">Toca para cobrar o escanear QR</div>
+          </div>
+        </div>
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <span style="font-size: 1.15rem; font-weight: 900; color: #38bdf8;" id="posFloatingCartTotal">₡0</span>
+          <span style="background: #0284c7; color: white; padding: 6px 12px; border-radius: 8px; font-weight: 800; font-size: 0.8rem;">Cobrar ➔</span>
+        </div>
+      </div>
     </div>
 
     <!-- PANEL DERECHO: SCANNER QR, IDENTIFICACIÓN Y COBRO -->
     <div class="pos-checkout-pane">
       <div>
+        <!-- BOTÓN VOLVER EN MÓVIL DENTRO DE CHECKOUT -->
+        <div class="pos-mobile-back-bar">
+          <button onclick="switchPosMobileView('catalog')" class="pos-mobile-back-btn">
+            <span>⬅</span> Volver al Catálogo de Alimentos
+          </button>
+        </div>
+
         <!-- CÁMARA / ESCÁNER DE CÓDIGO QR -->
         <div class="scanner-feed-card">
           <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
@@ -148,16 +184,16 @@
 
         <!-- TARJETA DEL ESTUDIANTE IDENTIFICADO POR QR -->
         <div id="studentScannedCard" style="display: none; margin-top: 14px;" class="student-badge-scanned">
-          <img id="scannedAvatar" src="" style="width: 46px; height: 46px; border-radius: 50%; border: 2px solid #38bdf8; background: white;">
-          <div style="flex: 1;">
-            <h4 id="scannedName" style="font-size: 0.95rem; font-weight: 800; color: #ffffff;">Nombre del Alumno</h4>
-            <div id="scannedGrade" style="font-size: 0.75rem; color: #94a3b8;">2° Grado • Sección 2-A</div>
-            <div style="display: flex; gap: 10px; margin-top: 4px; font-size: 0.76rem;">
+          <img id="scannedAvatar" src="" style="width: 44px; height: 44px; border-radius: 50%; border: 2px solid #38bdf8; background: white; flex-shrink: 0;">
+          <div style="flex: 1; min-width: 0; word-break: break-word;">
+            <h4 id="scannedName" style="font-size: 0.92rem; font-weight: 800; color: #ffffff; margin: 0; line-height: 1.2;">Nombre del Alumno</h4>
+            <div id="scannedGrade" style="font-size: 0.74rem; color: #94a3b8; margin-top: 2px;">2° Grado • Sección 2-A</div>
+            <div style="display: flex; gap: 8px; margin-top: 4px; font-size: 0.74rem; flex-wrap: wrap;">
               <span>Saldo: <strong id="scannedBalance" style="color: #34d399;">₡0</strong></span>
               <span>Disp. hoy: <strong id="scannedAvailable" style="color: #38bdf8;">₡0</strong></span>
             </div>
           </div>
-          <button onclick="clearScannedStudent()" style="background: none; border: none; color: #ef4444; font-size: 1.1rem; cursor: pointer;" title="Desconectar alumno">✕</button>
+          <button onclick="clearScannedStudent()" style="background: none; border: none; color: #ef4444; font-size: 1.2rem; cursor: pointer; padding: 4px 8px; flex-shrink: 0;" title="Desconectar alumno">✕</button>
         </div>
 
         <!-- ALERTA DE ALERGIAS AL CAJERO -->
@@ -167,9 +203,9 @@
 
         <!-- LISTA DE PRODUCTOS SELECCIONADOS EN CAJA -->
         <div style="margin-top: 14px;">
-          <div style="display: flex; justify-content: space-between; font-size: 0.8rem; font-weight: 700; color: #94a3b8; border-bottom: 1px solid #334155; padding-bottom: 6px;">
+          <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.82rem; font-weight: 700; color: #94a3b8; border-bottom: 1px solid #334155; padding-bottom: 6px;">
             <span>Ítems en Mostrador</span>
-            <button onclick="clearPosCart()" style="background: none; border: none; color: #ef4444; font-size: 0.75rem; cursor: pointer;">Limpiar</button>
+            <button onclick="clearPosCart()" style="background: none; border: none; color: #ef4444; font-size: 0.75rem; font-weight: 700; cursor: pointer; padding: 2px 6px;">Limpiar</button>
           </div>
           <div class="pos-cart-list" id="posCartList">
             <p style="text-align: center; color: #64748b; padding: 20px; font-size: 0.85rem;">Toca productos del menú para cobrar</p>
@@ -178,13 +214,13 @@
       </div>
 
       <!-- BOTÓN DE COBRO Y TOTAL -->
-      <div style="border-top: 2px solid #334155; padding-top: 14px;">
-        <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 12px;">
-          <span style="font-size: 0.9rem; font-weight: 700; color: #94a3b8;">TOTAL A DEBITAR:</span>
-          <span id="posCartTotal" style="font-size: 1.8rem; font-weight: 900; color: #38bdf8;">₡0</span>
+      <div style="border-top: 2px solid #334155; padding-top: 14px; margin-top: auto;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; gap: 10px;">
+          <span style="font-size: 0.88rem; font-weight: 800; color: #94a3b8; letter-spacing: 0.5px;">TOTAL A DEBITAR:</span>
+          <span id="posCartTotal" style="font-size: 1.7rem; font-weight: 900; color: #38bdf8;">₡0</span>
         </div>
 
-        <button id="btnCobrarPos" onclick="executePosDebit()" style="width: 100%; padding: 14px; background: linear-gradient(135deg, #0284c7, #0369a1); border: none; border-radius: 14px; color: white; font-size: 1.05rem; font-weight: 900; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 10px; box-shadow: 0 4px 14px rgba(2, 132, 199, 0.4);">
+        <button id="btnCobrarPos" onclick="executePosDebit()" style="width: 100%; padding: 14px; background: linear-gradient(135deg, #0284c7, #0369a1); border: none; border-radius: 14px; color: white; font-size: 1rem; font-weight: 900; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 10px; box-shadow: 0 4px 14px rgba(2, 132, 199, 0.4); box-sizing: border-box;">
           <span>📱</span> COBRAR CON QR DE ALUMNO
         </button>
       </div>

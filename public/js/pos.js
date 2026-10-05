@@ -8,7 +8,41 @@ let currentTab = 'mostrador';
 let sseSource = null;
 let videoStream = null;
 let isScanningActive = true;
+let posMobileActiveView = 'catalog';
 let CLOUDFLARE_TUNNEL_URL = 'https://somewhat-ships-looksmart-optical.trycloudflare.com';
+
+function switchPosMobileView(view) {
+  posMobileActiveView = view;
+  const body = document.body;
+  const tabCat = document.getElementById('btnMobileNavCatalog');
+  const tabCheck = document.getElementById('btnMobileNavCheckout');
+  const floatBar = document.getElementById('posFloatingCheckoutBar');
+
+  if (view === 'checkout') {
+    body.classList.remove('pos-mobile-view-catalog');
+    body.classList.add('pos-mobile-view-checkout');
+    if (tabCat) tabCat.classList.remove('active');
+    if (tabCheck) tabCheck.classList.add('active');
+    if (floatBar) floatBar.style.display = 'none';
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  } else {
+    body.classList.remove('pos-mobile-view-checkout');
+    body.classList.add('pos-mobile-view-catalog');
+    if (tabCat) tabCat.classList.add('active');
+    if (tabCheck) tabCheck.classList.remove('active');
+    updatePosCartUI();
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+}
+
+window.addEventListener('resize', () => {
+  if (window.innerWidth > 900) {
+    const floatBar = document.getElementById('posFloatingCheckoutBar');
+    if (floatBar) floatBar.style.display = 'none';
+  } else {
+    updatePosCartUI();
+  }
+});
 
 function checkPosHttpsEnvironment() {
   const isHttp = window.location.protocol !== 'https:' && 
@@ -121,10 +155,27 @@ function addToPosCart(prodId) {
 function updatePosCartUI() {
   const list = document.getElementById('posCartList');
   const totalEl = document.getElementById('posCartTotal');
+  const totalItems = posCart.reduce((sum, item) => sum + item.cantidad, 0);
+
+  // Actualizar badge móvil
+  const mobileBadge = document.getElementById('mobileCartBadge');
+  if (mobileBadge) {
+    if (totalItems > 0) {
+      mobileBadge.textContent = totalItems;
+      mobileBadge.style.display = 'inline-block';
+    } else {
+      mobileBadge.style.display = 'none';
+    }
+  }
+
+  const floatBar = document.getElementById('posFloatingCheckoutBar');
+  const floatText = document.getElementById('posFloatingCartText');
+  const floatTotal = document.getElementById('posFloatingCartTotal');
 
   if (posCart.length === 0) {
     list.innerHTML = '<p style="text-align: center; color: #64748b; padding: 20px; font-size: 0.85rem;">Toca productos del menú para cobrar</p>';
     totalEl.textContent = '₡0';
+    if (floatBar) floatBar.style.display = 'none';
     return;
   }
 
@@ -134,21 +185,32 @@ function updatePosCartUI() {
     total += subtotal;
     return `
       <div class="pos-cart-item">
-        <div style="flex: 1;">
-          <strong style="color: #f8fafc; font-size: 0.85rem;">${item.product.icono} ${item.product.nombre}</strong>
-          <div style="font-size: 0.75rem; color: #94a3b8;">₡${item.product.precio_colones.toLocaleString('es-CR')} c/u</div>
+        <div style="flex: 1; min-width: 0; word-break: break-word;">
+          <strong style="color: #f8fafc; font-size: 0.85rem; display: block; line-height: 1.2;">${item.product.icono} ${item.product.nombre}</strong>
+          <div style="font-size: 0.74rem; color: #94a3b8; margin-top: 2px;">₡${item.product.precio_colones.toLocaleString('es-CR')} c/u</div>
         </div>
-        <div style="display: flex; align-items: center; gap: 8px;">
-          <button onclick="changePosQty(${idx}, -1)" style="width: 24px; height: 24px; background: #334155; color: white; border: none; border-radius: 4px; font-weight: 800; cursor: pointer;">-</button>
-          <span style="font-weight: 800; min-width: 14px; text-align: center; color: #ffffff;">${item.cantidad}</span>
-          <button onclick="changePosQty(${idx}, 1)" style="width: 24px; height: 24px; background: #334155; color: white; border: none; border-radius: 4px; font-weight: 800; cursor: pointer;">+</button>
-          <span style="font-weight: 900; color: #38bdf8; min-width: 55px; text-align: right;">₡${subtotal.toLocaleString('es-CR')}</span>
+        <div style="display: flex; align-items: center; gap: 6px; flex-shrink: 0;">
+          <button onclick="changePosQty(${idx}, -1)" style="width: 26px; height: 26px; background: #334155; color: white; border: none; border-radius: 6px; font-weight: 800; cursor: pointer; display: flex; align-items: center; justify-content: center;">-</button>
+          <span style="font-weight: 800; min-width: 16px; text-align: center; color: #ffffff; font-size: 0.88rem;">${item.cantidad}</span>
+          <button onclick="changePosQty(${idx}, 1)" style="width: 26px; height: 26px; background: #334155; color: white; border: none; border-radius: 6px; font-weight: 800; cursor: pointer; display: flex; align-items: center; justify-content: center;">+</button>
+          <span style="font-weight: 900; color: #38bdf8; min-width: 58px; text-align: right; font-size: 0.88rem;">₡${subtotal.toLocaleString('es-CR')}</span>
         </div>
       </div>
     `;
   }).join('');
 
   totalEl.textContent = `₡${total.toLocaleString('es-CR')}`;
+
+  // Controlar barra flotante en móvil
+  if (floatBar && window.innerWidth <= 900) {
+    if (totalItems > 0 && posMobileActiveView === 'catalog') {
+      floatBar.style.display = 'flex';
+      if (floatText) floatText.textContent = `${totalItems} ${totalItems === 1 ? 'ítem' : 'ítems'} en mostrador`;
+      if (floatTotal) floatTotal.textContent = `₡${total.toLocaleString('es-CR')}`;
+    } else {
+      floatBar.style.display = 'none';
+    }
+  }
 }
 
 function changePosQty(idx, delta) {
@@ -469,6 +531,11 @@ function renderScannedStudent() {
   } else {
     alertBox.style.display = 'none';
   }
+
+  // En pantallas móviles, mostrar la vista de caja automáticamente
+  if (window.innerWidth <= 900) {
+    switchPosMobileView('checkout');
+  }
 }
 
 function clearScannedStudent() {
@@ -527,6 +594,11 @@ async function executePosDebit() {
     // Limpiar caja y refrescar
     clearPosCart();
     clearScannedStudent();
+
+    // En móviles, volver a la vista del catálogo para la siguiente venta
+    if (window.innerWidth <= 900) {
+      switchPosMobileView('catalog');
+    }
   } catch (err) {
     alert(`❌ Fallo en la transacción: ${err.message}`);
   } finally {
