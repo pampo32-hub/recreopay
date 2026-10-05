@@ -1,0 +1,16 @@
+UPDATE productos SET icono = '🥟' WHERE id = 1 AND (icono IS NULL OR icono = '');
+UPDATE productos SET icono = '🥟' WHERE id = 2 AND (icono IS NULL OR icono = '');
+UPDATE productos SET icono = '🥪' WHERE id = 3 AND (icono IS NULL OR icono = '');
+UPDATE productos SET icono = '🌮' WHERE id = 4 AND (icono IS NULL OR icono = '');
+UPDATE productos SET icono = '🍳' WHERE id = 5 AND (icono IS NULL OR icono = '');
+UPDATE productos SET icono = '🍗' WHERE id = 6 AND (icono IS NULL OR icono = '');
+UPDATE productos SET icono = '🍛' WHERE id = 7 AND (icono IS NULL OR icono = '');
+UPDATE productos SET icono = '🍹' WHERE id = 8 AND (icono IS NULL OR icono = '');
+UPDATE productos SET icono = '🥤' WHERE id = 9 AND (icono IS NULL OR icono = '');
+UPDATE productos SET icono = '🧃' WHERE id = 10 AND (icono IS NULL OR icono = '');
+UPDATE productos SET icono = '🥛' WHERE id = 11 AND (icono IS NULL OR icono = '');
+UPDATE productos SET icono = '🍉' WHERE id = 12 AND (icono IS NULL OR icono = '');
+UPDATE productos SET icono = '🥣' WHERE id = 13 AND (icono IS NULL OR icono = '');
+UPDATE productos SET icono = '🌾' WHERE id = 14 AND (icono IS NULL OR icono = '');
+UPDATE productos SET icono = '🍮' WHERE id = 15 AND (icono IS NULL OR icono = '');
+UPDATE productos SET icono = '🥪' WHERE icono IS NULL OR icono = '';

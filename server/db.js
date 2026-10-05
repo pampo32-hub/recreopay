@@ -671,6 +671,7 @@ function crearOrdenCompleta({ estudianteId, tipoOrden, momentoEntrega, notas, it
       VALUES (?, ?, ?, ?, ?)
     `);
 
+    const productosActualizados = [];
     for (const det of detallesParaInsertar) {
       insertDetalle.run(ordenId, det.producto_id, det.cantidad, det.precio_unitario, det.subtotal);
 
@@ -680,6 +681,16 @@ function crearOrdenCompleta({ estudianteId, tipoOrden, momentoEntrega, notas, it
         const nuevoStock = Math.max(0, prod.stock - det.cantidad);
         const sigueDisponible = nuevoStock > 0 ? 1 : 0;
         db.prepare('UPDATE productos SET stock = ?, disponible = ? WHERE id = ?').run(nuevoStock, sigueDisponible, det.producto_id);
+
+        const prodActualizado = db.prepare(`
+          SELECT p.*, c.nombre as categoria_nombre, c.icono as categoria_icono
+          FROM productos p
+          LEFT JOIN categorias c ON p.categoria_id = c.id
+          WHERE p.id = ?
+        `).get(det.producto_id);
+        if (prodActualizado) {
+          productosActualizados.push(prodActualizado);
+        }
       }
     }
 
@@ -701,6 +712,7 @@ function crearOrdenCompleta({ estudianteId, tipoOrden, momentoEntrega, notas, it
       estado: estadoInicial,
       total_colones: totalColones,
       detalles: detallesParaInsertar,
+      productosActualizados,
       financiero: resultadoDebito
     };
   });

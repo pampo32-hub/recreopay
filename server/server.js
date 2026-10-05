@@ -1592,6 +1592,8 @@ app.post('/api/productos/rapido', (req, res) => {
       WHERE p.id = ?
     `).get(newId);
 
+    broadcastEvent('producto_actualizado', nuevoProducto);
+
     res.json({
       success: true,
       mensaje: `Producto "${cleanNombre}" agregado al inventario`,
@@ -1633,6 +1635,13 @@ app.post('/api/ordenes', (req, res) => {
 
     // Notificar en tiempo real a la pantalla de cocina/caja de la soda
     broadcastEvent('nueva_orden', resultado);
+
+    // Notificar actualización de productos si su stock o disponibilidad cambió
+    if (resultado && Array.isArray(resultado.productosActualizados)) {
+      for (const prodAct of resultado.productosActualizados) {
+        broadcastEvent('producto_actualizado', prodAct);
+      }
+    }
 
     // Notificar actualización de estudiante (saldo y disponible) en tiempo real a clientes
     if (resultado && resultado.financiero && resultado.financiero.estudiante) {

@@ -105,7 +105,7 @@ function renderPosCategories() {
     <button class="pos-tab-btn active" style="padding: 6px 12px; font-size: 0.8rem;" onclick="filterPosCat(null, this)">Todos</button>
     ${posCategories.map(c => `
       <button class="pos-tab-btn" style="padding: 6px 12px; font-size: 0.8rem;" onclick="filterPosCat(${c.id}, this)">
-        ${c.icono} ${c.nombre}
+        ${c.icono || '🍽️'} ${c.nombre}
       </button>
     `).join('')}
   `;
@@ -127,18 +127,26 @@ function renderPosProducts(catId) {
     list = list.filter(p => p.categoria_id === catId);
   }
 
-  grid.innerHTML = list.map(prod => `
-    <div class="pos-prod-card" onclick="addToPosCart(${prod.id})">
-      <div style="font-size: 2.2rem; text-align: center;">${prod.icono || '🥪'}</div>
-      <div>
-        <div style="font-size: 0.88rem; font-weight: 800; color: #ffffff; line-height: 1.2;">${prod.nombre}</div>
-        ${prod.cumple_mep ? '<span style="font-size: 0.65rem; color: #34d399;">🌿 MEP Saludable</span>' : ''}
+  grid.innerHTML = list.map(prod => {
+    const isOutOfStock = prod.disponible === 0 || (prod.control_stock === 1 && prod.stock <= 0);
+
+    return `
+      <div class="pos-prod-card ${isOutOfStock ? 'out-of-stock-pos' : ''}" 
+           style="${isOutOfStock ? 'opacity: 0.45; filter: grayscale(0.85); cursor: not-allowed; position: relative; border-color: #ef4444;' : ''}"
+           onclick="${isOutOfStock ? `alert('El producto \\'${prod.nombre.replace(/'/g, "\\'")}\\' se encuentra bloqueado o agotado.')` : `addToPosCart(${prod.id})`}">
+        ${isOutOfStock ? '<div style="position: absolute; top: 8px; right: 8px; background: #dc2626; color: #ffffff; font-size: 0.65rem; font-weight: 900; padding: 2px 6px; border-radius: 4px; z-index: 2; letter-spacing: 0.5px;">BLOQUEADO</div>' : ''}
+        <div style="font-size: 2.2rem; text-align: center;">${prod.icono || '🥪'}</div>
+        <div>
+          <div style="font-size: 0.88rem; font-weight: 800; color: #ffffff; line-height: 1.2;">${prod.nombre}</div>
+          ${prod.cumple_mep ? '<span style="font-size: 0.65rem; color: #34d399;">🌿 MEP Saludable</span>' : ''}
+          ${isOutOfStock ? '<span style="font-size: 0.65rem; color: #f87171; display: block; margin-top: 2px; font-weight: 700;">No disponible</span>' : ''}
+        </div>
+        <div style="font-size: 1.1rem; font-weight: 900; color: ${isOutOfStock ? '#94a3b8' : '#38bdf8'}; margin-top: 6px;">
+          ₡${prod.precio_colones.toLocaleString('es-CR')}
+        </div>
       </div>
-      <div style="font-size: 1.1rem; font-weight: 900; color: #38bdf8; margin-top: 6px;">
-        ₡${prod.precio_colones.toLocaleString('es-CR')}
-      </div>
-    </div>
-  `).join('');
+    `;
+  }).join('');
 }
 
 // ==========================================
@@ -256,7 +264,18 @@ function addToPosCart(prodId) {
   const prod = posProducts.find(p => p.id === prodId);
   if (!prod) return;
 
+  if (prod.disponible === 0 || (prod.control_stock === 1 && prod.stock <= 0)) {
+    alert(`El producto "${prod.nombre}" no está disponible o se encuentra agotado.`);
+    return;
+  }
+
   const existing = posCart.find(i => i.product.id === prodId);
+  const currentInCart = existing ? existing.cantidad : 0;
+  if (prod.control_stock === 1 && (currentInCart + 1) > prod.stock) {
+    alert(`Solo quedan ${prod.stock} unidad(es) de "${prod.nombre}" en inventario.`);
+    return;
+  }
+
   if (existing) {
     existing.cantidad++;
   } else {
@@ -301,7 +320,7 @@ function updatePosCartUI() {
     return `
       <div class="pos-cart-item">
         <div style="flex: 1; min-width: 0; word-break: break-word;">
-          <strong style="color: #f8fafc; font-size: 0.85rem; display: block; line-height: 1.2;">${item.product.icono} ${item.product.nombre}</strong>
+          <strong style="color: #f8fafc; font-size: 0.85rem; display: block; line-height: 1.2;">${item.product.icono ? `${item.product.icono} ` : ''}${item.product.nombre}</strong>
           <div style="font-size: 0.74rem; color: #94a3b8; margin-top: 2px;">₡${item.product.precio_colones.toLocaleString('es-CR')} c/u</div>
         </div>
         <div style="display: flex; align-items: center; gap: 6px; flex-shrink: 0;">
@@ -1009,25 +1028,14 @@ async function loadPreOrders() {
             </div>
           </div>
 
-          <div style="display: flex; gap: 8px;">
-            ${ord.estado === 'pendiente' ? `
-              <button onclick="updateOrderStatus(${ord.id}, 'en_preparacion')" style="padding: 6px 12px; background: #3b82f6; color: white; border: none; border-radius: 8px; font-weight: 700; cursor: pointer;">
-                👨‍🍳 Preparar
+          <div>
+            ${ord.estado !== 'entregado' ? `
+              <button onclick="updateOrderStatus(${ord.id}, 'entregado')" style="padding: 8px 18px; background: #059669; color: white; border: none; border-radius: 8px; font-weight: 800; font-size: 0.88rem; cursor: pointer; display: flex; align-items: center; gap: 6px; box-shadow: 0 2px 4px rgba(0,0,0,0.2); transition: background 0.15s ease;" onmouseover="this.style.background='#047857'" onmouseout="this.style.background='#059669'">
+                Entregado
               </button>
-            ` : ''}
-            ${ord.estado === 'en_preparacion' ? `
-              <button onclick="updateOrderStatus(${ord.id}, 'listo')" style="padding: 6px 12px; background: #10b981; color: white; border: none; border-radius: 8px; font-weight: 700; cursor: pointer;">
-                🛍️ Listo en Bolsa
-              </button>
-            ` : ''}
-            ${ord.estado === 'listo' ? `
-              <button onclick="updateOrderStatus(${ord.id}, 'entregado')" style="padding: 6px 14px; background: #059669; color: white; border: none; border-radius: 8px; font-weight: 800; cursor: pointer;">
-                ✅ Entregar
-              </button>
-            ` : ''}
-            ${ord.estado === 'entregado' ? `
-              <span style="font-size: 0.78rem; color: #34d399; font-weight: 800;">✓ Entregado</span>
-            ` : ''}
+            ` : `
+              <span style="font-size: 0.82rem; color: #34d399; font-weight: 800; padding: 6px 12px; background: rgba(52, 211, 153, 0.1); border-radius: 6px; border: 1px solid rgba(52, 211, 153, 0.2);">✓ Entregado</span>
+            `}
           </div>
         </div>
       `;
@@ -1094,6 +1102,25 @@ function initSSE() {
 
   sseSource.addEventListener('orden_actualizada', () => {
     loadPreOrders();
+  });
+
+  sseSource.addEventListener('producto_actualizado', (e) => {
+    try {
+      const prod = JSON.parse(e.data);
+      const idx = posProducts.findIndex(p => p.id === prod.id);
+      if (idx !== -1) {
+        if (prod.eliminado) {
+          posProducts.splice(idx, 1);
+        } else {
+          posProducts[idx] = { ...posProducts[idx], ...prod };
+        }
+      } else if (!prod.eliminado) {
+        posProducts.push(prod);
+      }
+      renderPosProducts(currentPosCatId);
+    } catch (err) {
+      console.error('Error procesando producto_actualizado en POS:', err);
+    }
   });
 
   sseSource.addEventListener('estudiante_actualizado', (e) => {

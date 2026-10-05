@@ -628,7 +628,7 @@ function renderCategories() {
   for (const cat of categories) {
     html += `
       <button class="cat-pill ${activeCategoryId === cat.id ? 'active' : ''}" onclick="selectCategory(${cat.id})">
-        <span>${cat.icono}</span> ${cat.nombre}
+        <span>${cat.icono || '🍽️'}</span> ${cat.nombre}
       </button>
     `;
   }
@@ -668,8 +668,8 @@ function renderProducts() {
   }
 
   grid.innerHTML = filtered.map(prod => {
-    const isOutOfStock = prod.control_stock === 1 && (prod.stock <= 0 || prod.disponible === 0);
-    const stockBadge = (prod.control_stock === 1 && isOutOfStock)
+    const isOutOfStock = prod.disponible === 0 || (prod.control_stock === 1 && prod.stock <= 0);
+    const stockBadge = isOutOfStock
       ? '<span class="badge-out-of-stock">AGOTADO</span>'
       : '';
 
@@ -710,8 +710,8 @@ function addToCart(productId) {
   const prod = products.find(p => p.id === productId);
   if (!prod) return;
 
-  if (prod.control_stock === 1 && (prod.stock <= 0 || prod.disponible === 0)) {
-    alert(`El producto "${prod.nombre}" se encuentra agotado en la soda.`);
+  if (prod.disponible === 0 || (prod.control_stock === 1 && prod.stock <= 0)) {
+    alert(`El producto "${prod.nombre}" se encuentra agotado o no disponible en la soda.`);
     return;
   }
 
@@ -779,7 +779,7 @@ function renderCartModalItems() {
     return `
       <div style="display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid #f1f5f9;">
         <div>
-          <strong style="font-size: 0.9rem; color: #0f172a;">${item.product.icono} ${item.product.nombre}</strong>
+          <strong style="font-size: 0.9rem; color: #0f172a;">${item.product.icono ? `${item.product.icono} ` : ''}${item.product.nombre}</strong>
           <div style="font-size: 0.75rem; color: #64748b;">₡${item.product.precio_colones.toLocaleString('es-CR')} c/u</div>
         </div>
         <div style="display: flex; align-items: center; gap: 8px;">
@@ -1727,14 +1727,28 @@ function initStudentSSE() {
       // Actualizar en el catálogo de estudiantes
       const idx = products.findIndex(p => p.id === prod.id);
       if (idx !== -1) {
-        products[idx] = { ...products[idx], ...prod };
+        if (prod.eliminado) {
+          products.splice(idx, 1);
+        } else {
+          products[idx] = { ...products[idx], ...prod };
+        }
+        renderProducts();
+      } else if (!prod.eliminado) {
+        products.push(prod);
         renderProducts();
       }
       // Actualizar en admin
       if (currentUser && (currentUser.rol === 'admin' || currentUser.rol === 'cajero')) {
         const adminIdx = adminProducts.findIndex(p => p.id === prod.id);
         if (adminIdx !== -1) {
-          adminProducts[adminIdx] = { ...adminProducts[adminIdx], ...prod };
+          if (prod.eliminado) {
+            adminProducts.splice(adminIdx, 1);
+          } else {
+            adminProducts[adminIdx] = { ...adminProducts[adminIdx], ...prod };
+          }
+          filterAdminProducts(adminSearchQuery);
+        } else if (!prod.eliminado) {
+          adminProducts.unshift(prod);
           filterAdminProducts(adminSearchQuery);
         }
       }
