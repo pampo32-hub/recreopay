@@ -658,19 +658,33 @@ function crearOrdenCompleta({ estudianteId, tipoOrden, momentoEntrega, notas, it
     const estadoInicial = tipoOrden === 'mostrador' ? 'entregado' : 'pendiente';
     const entregadoEn = tipoOrden === 'mostrador' ? new Date().toISOString() : null;
 
-    // Insertar orden cabecera
+    // Consultar estudiante para registrar saldos históricos y evitar campos NULL
+    const est = db.prepare('SELECT * FROM estudiantes WHERE id = ?').get(estudianteId);
+    if (!est) throw new Error(`Estudiante #${estudianteId} no existe`);
+    const saldoAnterior = est.saldo_colones;
+    const saldoPosterior = Math.max(0, saldoAnterior - totalColones);
+    const cajeroVal = (tipoOrden === 'mostrador' ? 6 : 1);
+    const obsVal = (tipoOrden === 'mostrador' ? 'Venta realizada en mostrador' : 'Pre-orden retiro en recreo');
+    const notasVal = notas || '';
+    const momentoVal = momentoEntrega || (tipoOrden === 'mostrador' ? 'inmediato' : 'recreo_1');
+
+    // Insertar orden cabecera con todos sus campos completos
     const resultOrden = db.prepare(`
       INSERT INTO ordenes 
-      (codigo_orden, estudiante_id, tipo_orden, momento_entrega, estado, total_colones, notas, entregado_en)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+      (codigo_orden, estudiante_id, cajero_id, tipo_orden, momento_entrega, estado, total_colones, saldo_anterior, saldo_posterior, metodo_pago, notas, observaciones, entregado_en)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'monedero_qr', ?, ?, ?)
     `).run(
       codigoOrden,
       estudianteId,
+      cajeroVal,
       tipoOrden,
-      momentoEntrega || 'inmediato',
+      momentoVal,
       estadoInicial,
       totalColones,
-      notas || '',
+      saldoAnterior,
+      saldoPosterior,
+      notasVal,
+      obsVal,
       entregadoEn
     );
 

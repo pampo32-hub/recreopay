@@ -477,13 +477,13 @@ app.post('/api/admin/productos', (req, res) => {
     `).run(
       catId,
       String(nombre).trim(),
-      descripcion ? String(descripcion).trim() : null,
+      descripcion ? String(descripcion).trim() : 'Alimento de soda escolar',
       precio,
-      imagen_url || null,
+      imagen_url ? String(imagen_url).trim() : '',
       icono || '🥪',
-      calorias ? parseInt(calorias, 10) : null,
+      calorias ? parseInt(calorias, 10) : 220,
       mep,
-      alergenos ? String(alergenos).trim() : null,
+      alergenos ? String(alergenos).trim() : 'Ninguno conocido',
       disp,
       permite_preorden !== undefined ? (permite_preorden ? 1 : 0) : 1,
       ctrlStock,
@@ -1570,18 +1570,16 @@ app.post('/api/productos/rapido', (req, res) => {
     const insertRes = db.prepare(`
       INSERT INTO productos (
         categoria_id, nombre, descripcion, precio_colones,
-        icono, cumple_mep, disponible, permite_preorden, destacado
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        imagen_url, icono, calorias, cumple_mep, alergenos,
+        disponible, permite_preorden, destacado, control_stock, stock
+      ) VALUES (?, ?, ?, ?, '', ?, 220, ?, 'Ninguno conocido', 1, 1, 0, 1, 10)
     `).run(
       targetCatId,
       cleanNombre,
       'Producto rápido registrado en mostrador',
       precio,
       '🥪',
-      1,
-      1,
-      1,
-      0
+      1
     );
 
     const newId = insertRes.lastInsertRowid;
