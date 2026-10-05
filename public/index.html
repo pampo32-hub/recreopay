@@ -10,7 +10,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="RecreoPay">
   <meta name="mobile-web-app-capable" content="yes">
-  <link rel="stylesheet" href="/css/styles.css?v=8.3">
+  <link rel="stylesheet" href="/css/styles.css?v=8.4">
   <style>
     /* Transiciones suaves */
     .fade-enter { animation: fadeIn 0.2s ease-in-out; }
@@ -42,7 +42,7 @@
       <form id="formLogin" onsubmit="handleLoginSubmit(event)">
         <div class="login-form-group">
           <label for="loginUsername">Usuario o Carné:</label>
-          <input type="text" id="loginUsername" class="login-input" placeholder="Ej: admin, padre, mateo" required autocomplete="username">
+          <input type="text" id="loginUsername" class="login-input" placeholder="Ej: admin, padre, mateo, sofia" required autocomplete="username">
         </div>
 
         <div class="login-form-group">
@@ -100,7 +100,11 @@
           </button>
           <button type="button" class="login-demo-btn" onclick="quickFillLogin('mateo', '1234')">
             <span style="font-size: 1.3rem;">🎒</span>
-            <span>Estudiante</span>
+            <span>Mateo (2°)</span>
+          </button>
+          <button type="button" class="login-demo-btn" onclick="quickFillLogin('sofia', '1234')">
+            <span style="font-size: 1.3rem;">👧</span>
+            <span>Sofía (3°)</span>
           </button>
         </div>
       </div>
@@ -1094,8 +1098,8 @@
     </button>
   </nav>
 
-  <script src="/js/sounds.js?v=8.3"></script>
+  <script src="/js/sounds.js?v=8.4"></script>
   <script src="/js/jsQR.js"></script>
-  <script src="/js/app.js?v=8.3"></script>
+  <script src="/js/app.js?v=8.4"></script>
 </body>
 </html>

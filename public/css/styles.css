@@ -1178,8 +1178,14 @@ body.dark-mode .floating-cart-bar {
 
 .login-demo-btns {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(4, 1fr);
   gap: 8px;
+}
+
+@media (max-width: 480px) {
+  .login-demo-btns {
+    grid-template-columns: repeat(2, 1fr);
+  }
 }
 
 .login-demo-btn {
