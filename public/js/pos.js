@@ -80,6 +80,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   await loadPreOrders();
   initCamera();
   initSSE();
+  initPistolScanner();
 });
 
 // Cargar catálogo de productos
@@ -471,7 +472,13 @@ async function onQrCodeDetected(token) {
     return;
   }
 
-  // Si estamos en mostrador, identificamos al estudiante
+  // Si ya hay productos en el carrito, procesar cobro inmediato con este QR
+  if (posCart.length > 0) {
+    await handlePistolBarcodeScan(token);
+    return;
+  }
+
+  // Si estamos en mostrador sin productos, identificamos al estudiante
   try {
     const res = await fetch(`/api/estudiantes/qr/${encodeURIComponent(token)}`);
     const data = await res.json();
@@ -513,7 +520,7 @@ function renderScannedStudent() {
     document.getElementById('scannedName').textContent = scannedStudent.nombre_completo;
     if (btnCobrar) {
       btnCobrar.disabled = false;
-      btnCobrar.textContent = 'Cobrar y Despachar ⚡';
+      btnCobrar.innerHTML = `<span>🔫</span> COBRAR A ${scannedStudent.nombre_completo.split(' ')[0].toUpperCase()} ➔`;
       btnCobrar.style.background = 'linear-gradient(135deg, #10b981, #059669)';
     }
   }
@@ -541,70 +548,260 @@ function renderScannedStudent() {
 function clearScannedStudent() {
   scannedStudent = null;
   renderScannedStudent();
+  const btnCobrar = document.getElementById('btnCobrarPos');
+  if (btnCobrar) {
+    btnCobrar.disabled = false;
+    btnCobrar.innerHTML = '<span>🔫</span> COBRAR CON PISTOLA QR';
+    btnCobrar.style.background = 'linear-gradient(135deg, #0284c7, #0369a1)';
+  }
 }
 
-// Ejecutar cobro en mostrador
-async function executePosDebit() {
-  if (!scannedStudent) {
-    if (window.sounds) window.sounds.playError();
-    return alert('⚠️ Primero escanea el carné o celular del estudiante (puedes usar los botones de prueba rápida en la cámara).');
-  }
+// ==========================================
+// PISTOLA LECTORA DE QR (USB/BLUETOOTH) Y COBRO RÁPIDO
+// ==========================================
 
-  if (scannedStudent.tarjeta_bloqueada) {
-    if (window.sounds) window.sounds.playError();
-    return alert(`⛔ ¡TARJETA SUSPENDIDA!\nLa tarjeta de ${scannedStudent.nombre_completo} ha sido bloqueada por la administración de la soda. No se pueden procesar cobros.`);
-  }
+let barcodeBuffer = '';
+let barcodeLastTime = 0;
+let pistolaAutoCloseTimer = null;
 
+function initPistolScanner() {
+  // Listener global para capturar ráfagas rápidas de pistola USB/Bluetooth
+  window.addEventListener('keydown', (e) => {
+    // Si presiona Escape, cerrar modal de cobro si está abierto
+    if (e.key === 'Escape') {
+      closePistolaModal();
+      return;
+    }
+
+    // Si presiona Enter y el modal está en pantalla de éxito, cerrarlo para el siguiente
+    const modalSuccess = document.getElementById('pistolaStateSuccess');
+    if (e.key === 'Enter' && modalSuccess && modalSuccess.style.display !== 'none') {
+      e.preventDefault();
+      closePistolaModal();
+      return;
+    }
+
+    const now = Date.now();
+    // Si pasaron más de 80ms entre teclas, no es pistola, es un humano escribiendo
+    if (now - barcodeLastTime > 80 && barcodeBuffer.length > 0) {
+      barcodeBuffer = '';
+    }
+    barcodeLastTime = now;
+
+    if (e.key === 'Enter') {
+      if (barcodeBuffer.trim().length >= 3) {
+        e.preventDefault();
+        const code = barcodeBuffer.trim();
+        barcodeBuffer = '';
+        handlePistolBarcodeScan(code);
+        return;
+      }
+    } else if (e.key.length === 1) {
+      barcodeBuffer += e.key;
+    }
+  });
+
+  // Listener para el input de texto del modal
+  const inputScan = document.getElementById('inputPistolaDirectScan');
+  if (inputScan) {
+    inputScan.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        const val = inputScan.value.trim();
+        if (val.length >= 3) {
+          inputScan.value = '';
+          handlePistolBarcodeScan(val);
+        }
+      }
+    });
+  }
+}
+
+function openPistolaModal() {
   if (posCart.length === 0) {
     if (window.sounds) window.sounds.playError();
-    return alert('⚠️ Selecciona al menos un producto en el mostrador para cobrar.');
+    alert('⚠️ Selecciona al menos un producto en el mostrador para cobrar.');
+    return;
   }
 
-  const items = posCart.map(item => ({
-    producto_id: item.product.id,
-    cantidad: item.cantidad
-  }));
+  const modal = document.getElementById('modalPistolaCobro');
+  if (!modal) return;
 
-  const btn = document.getElementById('btnCobrarPos');
-  btn.disabled = true;
-  btn.textContent = 'Procesando débito...';
+  const total = posCart.reduce((sum, item) => sum + (item.product.precio_colones * item.cantidad), 0);
+  const totalItems = posCart.reduce((sum, item) => sum + item.cantidad, 0);
+
+  document.getElementById('pistolaModalTotal').textContent = `₡${total.toLocaleString('es-CR')}`;
+  document.getElementById('pistolaModalItemCount').textContent = `${totalItems} ${totalItems === 1 ? 'producto' : 'productos'} en mostrador`;
+
+  resetPistolaModalWaiting();
+  modal.style.display = 'flex';
+
+  setTimeout(() => {
+    const input = document.getElementById('inputPistolaDirectScan');
+    if (input) input.focus();
+  }, 100);
+
+  if (window.sounds) window.sounds.playTap();
+}
+
+function closePistolaModal(e) {
+  if (e && e.target && e.target.id !== 'modalPistolaCobro') return;
+  if (pistolaAutoCloseTimer) {
+    clearTimeout(pistolaAutoCloseTimer);
+    pistolaAutoCloseTimer = null;
+  }
+  const modal = document.getElementById('modalPistolaCobro');
+  if (modal) modal.style.display = 'none';
+}
+
+function resetPistolaModalWaiting() {
+  if (pistolaAutoCloseTimer) {
+    clearTimeout(pistolaAutoCloseTimer);
+    pistolaAutoCloseTimer = null;
+  }
+  document.getElementById('pistolaStateWaiting').style.display = 'block';
+  document.getElementById('pistolaStateProcessing').style.display = 'none';
+  document.getElementById('pistolaStateSuccess').style.display = 'none';
+  document.getElementById('pistolaStateError').style.display = 'none';
+
+  const input = document.getElementById('inputPistolaDirectScan');
+  if (input) {
+    input.value = '';
+    input.focus();
+  }
+}
+
+async function handlePistolBarcodeScan(rawToken) {
+  const token = String(rawToken).trim();
+  if (!token) return;
+
+  if (window.sounds) window.sounds.playScanChirp();
+
+  // Si no hay productos en el carrito, identificar al alumno para mostrador
+  if (posCart.length === 0) {
+    try {
+      const res = await fetch(`/api/estudiantes/qr/${encodeURIComponent(token)}`);
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+
+      scannedStudent = data;
+      renderScannedStudent();
+      if (window.sounds) window.sounds.playSuccess();
+    } catch (err) {
+      if (window.sounds) window.sounds.playError();
+      alert(`⚠️ Estudiante no reconocido: ${err.message}`);
+    }
+    return;
+  }
+
+  // SI HAY PRODUCTOS EN EL CARRITO: EJECUTAR COBRO INMEDIATO CON PISTOLA
+  const modal = document.getElementById('modalPistolaCobro');
+  if (modal && modal.style.display === 'none') {
+    openPistolaModal();
+  }
+
+  // Mostrar estado de procesamiento
+  document.getElementById('pistolaStateWaiting').style.display = 'none';
+  document.getElementById('pistolaStateError').style.display = 'none';
+  document.getElementById('pistolaStateSuccess').style.display = 'none';
+  document.getElementById('pistolaStateProcessing').style.display = 'block';
+  document.getElementById('pistolaProcessingName').textContent = 'Identificando estudiante y validando monedero...';
 
   try {
-    const res = await fetch('/api/ordenes', {
+    // 1. Buscar estudiante por token o código
+    const resEst = await fetch(`/api/estudiantes/qr/${encodeURIComponent(token)}`);
+    const student = await resEst.json();
+    if (!resEst.ok) throw new Error(student.error || 'Carné escolar no encontrado');
+
+    document.getElementById('pistolaProcessingName').textContent = `Verificando saldo para ${student.nombre_completo}...`;
+
+    // 2. Validar si la tarjeta está suspendida
+    if (student.tarjeta_bloqueada) {
+      throw new Error(`⛔ TARJETA SUSPENDIDA: La tarjeta de ${student.nombre_completo} ha sido bloqueada por la administración de la soda.`);
+    }
+
+    // 3. Validar saldo disponible y límite diario
+    const totalCompra = posCart.reduce((sum, item) => sum + (item.product.precio_colones * item.cantidad), 0);
+    
+    if (student.saldo_colones < totalCompra) {
+      throw new Error(`⚠️ SALDO INSUFICIENTE: ${student.nombre_completo} tiene ₡${student.saldo_colones.toLocaleString('es-CR')} de saldo y la compra es de ₡${totalCompra.toLocaleString('es-CR')}.`);
+    }
+
+    if (student.disponible_hoy < totalCompra) {
+      throw new Error(`⚠️ SUPERA LÍMITE DIARIO: Le quedan ₡${student.disponible_hoy.toLocaleString('es-CR')} disponibles hoy de su límite diario asignado.`);
+    }
+
+    // 4. Procesar cobro en servidor
+    const items = posCart.map(item => ({
+      producto_id: item.product.id,
+      cantidad: item.cantidad
+    }));
+
+    const resCobro = await fetch('/api/ordenes', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        estudiante_id: scannedStudent.id,
+        estudiante_id: student.id,
         tipo_orden: 'mostrador',
         momento_entrega: 'inmediato',
         items
       })
     });
 
-    const data = await res.json();
-    if (!res.ok) {
-      if (window.sounds) window.sounds.playError();
-      throw new Error(data.error);
+    const dataCobro = await resCobro.json();
+    if (!resCobro.ok) throw new Error(dataCobro.error || 'Error al procesar el débito');
+
+    // 5. Éxito: Mostrar pantalla de confirmación
+    document.getElementById('pistolaStateProcessing').style.display = 'none';
+    document.getElementById('pistolaStateSuccess').style.display = 'block';
+
+    document.getElementById('pistolaSuccessStudent').textContent = student.nombre_completo;
+    document.getElementById('pistolaSuccessTicket').textContent = dataCobro.codigo_orden;
+    document.getElementById('pistolaSuccessAmount').textContent = `₡${totalCompra.toLocaleString('es-CR')}`;
+    const nuevoSaldo = (dataCobro.financiero && dataCobro.financiero.estudiante) 
+      ? dataCobro.financiero.estudiante.saldo_nuevo 
+      : (student.saldo_colones - totalCompra);
+    document.getElementById('pistolaSuccessBalance').textContent = `₡${nuevoSaldo.toLocaleString('es-CR')}`;
+
+    if (window.sounds) {
+      window.sounds.playSuccess();
+      window.sounds.playCoin();
     }
 
-    if (window.sounds) window.sounds.playSuccess();
-
-    alert(`✅ ¡COBRO EXITOSO!\nTicket: ${data.codigo_orden}\nEstudiante: ${scannedStudent.nombre_completo}\nMonto: ₡${data.total_colones.toLocaleString('es-CR')}\nNuevo Saldo: ₡${data.financiero.estudiante.saldo_nuevo.toLocaleString('es-CR')}`);
-
-    // Limpiar caja y refrescar
+    // Limpiar carrito de mostrador
     clearPosCart();
     clearScannedStudent();
 
-    // En móviles, volver a la vista del catálogo para la siguiente venta
-    if (window.innerWidth <= 900) {
-      switchPosMobileView('catalog');
-    }
+    // Auto-cerrar el modal en 2.5 segundos para quedar listo para el siguiente alumno
+    pistolaAutoCloseTimer = setTimeout(() => {
+      closePistolaModal();
+    }, 2500);
+
   } catch (err) {
-    alert(`❌ Fallo en la transacción: ${err.message}`);
-  } finally {
-    btn.disabled = false;
-    btn.innerHTML = '<span>📱</span> COBRAR CON QR DE ALUMNO';
+    if (window.sounds) window.sounds.playError();
+    document.getElementById('pistolaStateProcessing').style.display = 'none';
+    document.getElementById('pistolaStateError').style.display = 'block';
+    document.getElementById('pistolaErrorTitle').textContent = 'No se pudo realizar el cobro';
+    document.getElementById('pistolaErrorDesc').textContent = err.message;
   }
+}
+
+// Ejecutar cobro en mostrador (desde botón principal)
+async function executePosDebit() {
+  if (posCart.length === 0) {
+    if (window.sounds) window.sounds.playError();
+    alert('⚠️ Selecciona al menos un producto en el mostrador para cobrar.');
+    return;
+  }
+
+  // Si ya tenemos un estudiante identificado previamente, cobramos directamente
+  if (scannedStudent) {
+    await handlePistolBarcodeScan(scannedStudent.qr_token || scannedStudent.codigo_estudiante);
+    return;
+  }
+
+  // Si no hay estudiante previo, abrir modal esperando el disparo de la pistola QR
+  openPistolaModal();
 }
 
 // ==========================================
