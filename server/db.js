@@ -145,28 +145,49 @@ function initDatabase() {
   try { db.exec('ALTER TABLE transacciones_saldo ADD COLUMN revertido_por_usuario_id INTEGER REFERENCES usuarios(id)'); } catch (e) {}
   try { db.exec('ALTER TABLE transacciones_saldo ADD COLUMN revertido_en DATETIME'); } catch (e) {}
 
+  // 10. Diseños de Tarjetas Virtuales para Estudiantes
+  try {
+    db.exec(`
+      CREATE TABLE IF NOT EXISTS disenos_tarjetas (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        theme_id TEXT UNIQUE NOT NULL,
+        nombre TEXT NOT NULL,
+        categoria TEXT DEFAULT 'uni', -- 'fem', 'masc', 'uni'
+        imagen_url TEXT NOT NULL,
+        estilo_texto TEXT DEFAULT 'dark', -- 'dark' (texto blanco) o 'light' (texto oscuro)
+        es_predeterminado INTEGER DEFAULT 0,
+        activo INTEGER DEFAULT 1,
+        creado_en DATETIME DEFAULT CURRENT_TIMESTAMP
+      );
+    `);
+  } catch (e) {}
+
   seedInitialData();
   seedUsuarios();
+  seedDisenosTarjetas();
 }
 
 function seedUsuarios() {
   const count = db.prepare('SELECT COUNT(*) as count FROM usuarios').get().count;
   if (count === 0) {
     console.log('👤 Creando usuarios iniciales de demostración en RecreoPay...');
-    const insert = db.prepare('INSERT INTO usuarios (username, password_hash, rol, nombre, telefono, email) VALUES (?, ?, ?, ?, ?, ?)');
+    const insert = db.prepare('INSERT INTO usuarios (username, password_hash, rol, nombre, telefono, email, activo) VALUES (?, ?, ?, ?, ?, ?, ?)');
     
+    // 0. Developer Master
+    insert.run('dev', 'dev123', 'developer', 'Master Developer', '+506 8888-9999', 'dev@recreopay.cr', 1);
+
     // 1. Admin de la Soda
-    insert.run('admin', 'admin123', 'admin', 'Administrador de la Soda', '+506 8888-7632', 'admin@recreopay.cr');
+    insert.run('admin', 'admin123', 'admin', 'Administrador de la Soda', '+506 8888-7632', 'admin@recreopay.cr', 1);
     
     // 2. Cajero de la Soda
-    insert.run('cajero', 'cajero123', 'cajero', 'Cajero de la Soda', '+506 8888-0000', 'caja@recreopay.cr');
+    insert.run('cajero', 'cajero123', 'cajero', 'Cajero de la Soda', '+506 8888-0000', 'caja@recreopay.cr', 1);
 
     // 3. Padre de Mateo
-    const resPadre = insert.run('padre', 'padre123', 'padre', 'Carlos Alvarado (Papá)', '+506 8888-1122', 'carlos.alvarado@gmail.com');
+    const resPadre = insert.run('padre', 'padre123', 'padre', 'Carlos Alvarado (Papá)', '+506 8888-1122', 'carlos.alvarado@gmail.com', 1);
     
     // 4. Estudiantes
-    const resMateo = insert.run('mateo', '1234', 'estudiante', 'Mateo Alvarado Castro', '', '');
-    const resSofia = insert.run('sofia', '1234', 'estudiante', 'Sofía Jiménez Morales', '', '');
+    const resMateo = insert.run('mateo', '1234', 'estudiante', 'Mateo Alvarado Castro', '', '', 1);
+    const resSofia = insert.run('sofia', '1234', 'estudiante', 'Sofía Jiménez Morales', '', '', 1);
 
     // Vincular Mateo con su usuario y su padre
     try {
@@ -174,13 +195,58 @@ function seedUsuarios() {
       db.prepare('UPDATE estudiantes SET usuario_id = ? WHERE id = 2').run(resSofia.lastInsertRowid);
     } catch (e) {}
   } else {
+    // Asegurar que el usuario developer 'dev' exista
+    try {
+      const dev = db.prepare("SELECT id FROM usuarios WHERE username = 'dev'").get();
+      if (!dev) {
+        db.prepare("INSERT INTO usuarios (username, password_hash, rol, nombre, telefono, email, activo) VALUES ('dev', 'dev123', 'developer', 'Master Developer', '+506 8888-9999', 'dev@recreopay.cr', 1)").run();
+      }
+    } catch (e) {}
+
     // Asegurar que el usuario cajero exista en bases de datos ya pobladas
     try {
       const cajero = db.prepare("SELECT id FROM usuarios WHERE username = 'cajero'").get();
       if (!cajero) {
-        db.prepare("INSERT INTO usuarios (username, password_hash, rol, nombre, telefono, email) VALUES ('cajero', 'cajero123', 'cajero', 'Cajero de la Soda', '+506 8888-0000', 'caja@recreopay.cr')").run();
+        db.prepare("INSERT INTO usuarios (username, password_hash, rol, nombre, telefono, email, activo) VALUES ('cajero', 'cajero123', 'cajero', 'Cajero de la Soda', '+506 8888-0000', 'caja@recreopay.cr', 1)").run();
       }
     } catch (e) {}
+  }
+}
+
+function seedDisenosTarjetas() {
+  try {
+    const count = db.prepare('SELECT COUNT(*) as count FROM disenos_tarjetas').get().count;
+    if (count > 0) return;
+
+    console.log('🎨 Inicializando colección de 16 diseños de tarjetas en RecreoPay...');
+    const insert = db.prepare(`
+      INSERT INTO disenos_tarjetas (theme_id, nombre, categoria, imagen_url, estilo_texto, es_predeterminado, activo)
+      VALUES (?, ?, ?, ?, ?, ?, 1)
+    `);
+
+    // 6 Femeninos
+    insert.run('card_fem_gatito', 'Gatito Tierno (Kitten Love)', 'fem', '/img/cards/card_fem_gatito.jpg', 'light', 0);
+    insert.run('card_fem_unicornio', 'Unicornio de Ensueño', 'fem', '/img/cards/card_fem_unicornio.svg', 'light', 0);
+    insert.run('card_fem_sirena', 'Océano de Sirena', 'fem', '/img/cards/card_fem_sirena.svg', 'light', 0);
+    insert.run('card_fem_gamer', 'Gamer Girl Pastel', 'fem', '/img/cards/card_fem_gamer.svg', 'light', 0);
+    insert.run('card_fem_ballet', 'Ballet & Danza', 'fem', '/img/cards/card_fem_ballet.svg', 'light', 0);
+    insert.run('card_fem_mariposas', 'Jardín Botánico & Mariposas', 'fem', '/img/cards/card_fem_mariposas.svg', 'light', 0);
+
+    // 6 Masculinos
+    insert.run('card_estrellas_futbol', 'Estrellas del Campo (Fútbol)', 'masc', '/img/cards/card_estrellas_futbol.jpg', 'dark', 0);
+    insert.run('card_eco_aventura', 'Eco-Aventura', 'masc', '/img/cards/card_eco_aventura.jpg', 'light', 0);
+    insert.run('card_pixel_quest', 'Pixel Quest (Videojuegos)', 'masc', '/img/cards/card_pixel_quest.jpg', 'dark', 0);
+    insert.run('card_exploracion_galactica', 'Exploración Galáctica', 'masc', '/img/cards/card_exploracion_galactica.jpg', 'dark', 0);
+    insert.run('card_masc_skate', 'Skate Park & Street Art', 'masc', '/img/cards/card_masc_skate.svg', 'light', 0);
+    insert.run('card_masc_carreras', 'Velocidad Super Carreras', 'masc', '/img/cards/card_masc_carreras.svg', 'dark', 0);
+
+    // 4 Unisex
+    insert.run('card_robo_lab', 'Robo-Lab Tech', 'uni', '/img/cards/card_robo_lab.jpg', 'dark', 1);
+    insert.run('card_mundo_arte', 'Mundo de Arte', 'uni', '/img/cards/card_mundo_arte.jpg', 'light', 0);
+    insert.run('card_uni_musica', 'Ritmo & Beats (DJ)', 'uni', '/img/cards/card_uni_musica.svg', 'dark', 0);
+    insert.run('card_uni_titanium', 'Titanium Metal Edition', 'uni', '/img/cards/card_uni_titanium.svg', 'dark', 0);
+  } catch (err) {
+    console.error('Error inicializando diseños de tarjetas:', err.message);
   }
 }
 

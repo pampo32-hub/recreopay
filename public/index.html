@@ -90,6 +90,10 @@
       <div class="login-demo-box">
         <div class="login-demo-title">Accesos Rápidos de Prueba:</div>
         <div class="login-demo-btns">
+          <button type="button" class="login-demo-btn" onclick="quickFillLogin('dev', 'dev123')" style="border: 1.5px solid #8b5cf6; background: rgba(139, 92, 246, 0.08);">
+            <span style="font-size: 1.3rem;">🛠️</span>
+            <span style="color: #8b5cf6; font-weight: 800;">Developer</span>
+          </button>
           <button type="button" class="login-demo-btn" onclick="quickFillLogin('admin', 'admin123')">
             <span style="font-size: 1.3rem;">👨‍🍳</span>
             <span>Admin Soda</span>
@@ -115,6 +119,223 @@
     </div>
   </div>
 
+  <!-- PANEL MASTER DEVELOPER (#viewDeveloper) -->
+  <div id="viewDeveloper" class="dev-container" style="display: none;">
+    <!-- CABECERA DE DEVELOPER -->
+    <header class="dev-header">
+      <div class="dev-badge">
+        <div class="dev-icon">🛠️</div>
+        <div>
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <h2 style="font-size: 1.18rem; font-weight: 900; margin: 0; color: var(--text-main);">Developer Master Suite</h2>
+            <span style="background: #fdf2f8; color: #db2777; border: 1px solid #f472b6; font-size: 0.68rem; font-weight: 800; padding: 2px 7px; border-radius: 6px;">ROOT MASTER</span>
+          </div>
+          <span id="devLoggedName" style="font-size: 0.78rem; color: #8b5cf6; font-weight: 700;">Master Developer (dev)</span>
+        </div>
+      </div>
+
+      <div class="dev-header-actions">
+        <button onclick="toggleTheme()" class="theme-toggle-btn" title="Alternar Modo Oscuro / Claro">
+          🌙
+        </button>
+        <button onclick="switchDevToView('admin')" class="dev-action-btn" title="Ir al Panel de Soda">
+          <span>👨‍🍳</span> <span>Soda Admin</span>
+        </button>
+        <a href="/pos.html" target="_blank" class="dev-action-btn" title="Ir al Terminal de Caja POS">
+          <span>📟</span> <span>Caja POS</span>
+        </a>
+        <button onclick="switchDevToView('student')" class="dev-action-btn" title="Probar Vista de Alumno">
+          <span>🎒</span> <span>App Alumno</span>
+        </button>
+        <button onclick="logout(true)" class="dev-action-btn" style="color: #ef4444; border-color: rgba(239, 68, 68, 0.3);" title="Cerrar Sesión">
+          <span>🚪</span> <span>Salir</span>
+        </button>
+      </div>
+    </header>
+
+    <!-- NAVEGACIÓN DE PESTAÑAS DEVELOPER -->
+    <nav class="dev-tabs-nav">
+      <button class="dev-tab-btn active" id="btnDevTabUsuarios" onclick="switchDevTab('usuarios')">
+        <span>👥</span> <span>Usuarios & Administradores</span>
+      </button>
+      <button class="dev-tab-btn" id="btnDevTabDisenos" onclick="switchDevTab('disenos')">
+        <span>🎨</span> <span>Diseños de Tarjetas (Subir & Gestionar)</span>
+      </button>
+      <button class="dev-tab-btn" id="btnDevTabDiagnostico" onclick="switchDevTab('diagnostico')">
+        <span>📊</span> <span>Diagnóstico del Sistema & BD</span>
+      </button>
+    </nav>
+
+    <!-- 1. PESTAÑA: USUARIOS Y ADMINISTRADORES -->
+    <div id="devTabContentUsuarios" class="dev-tab-content">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; flex-wrap: wrap; gap: 12px;">
+        <div style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center;">
+          <input type="text" id="devUserSearchInput" placeholder="🔍 Buscar por nombre, usuario, rol..." oninput="filterDevUsuarios()" style="padding: 9px 14px; border-radius: 10px; border: 1.5px solid var(--border); background: var(--card-bg); color: var(--text-main); font-size: 0.85rem; width: 260px; max-width: 100%;">
+          <select id="devUserRoleFilter" onchange="filterDevUsuarios()" style="padding: 9px 12px; border-radius: 10px; border: 1.5px solid var(--border); background: var(--card-bg); color: var(--text-main); font-size: 0.85rem; font-weight: 700;">
+            <option value="all">Todos los Roles</option>
+            <option value="admin">Administradores</option>
+            <option value="developer">Developers</option>
+            <option value="cajero">Cajeros</option>
+            <option value="vendedor">Vendedores</option>
+            <option value="padre">Padres de Familia</option>
+            <option value="estudiante">Estudiantes</option>
+          </select>
+        </div>
+        <button onclick="openModalDevUser()" class="dev-action-btn dev-action-btn-primary" style="padding: 10px 18px; font-size: 0.88rem;">
+          <span>➕</span> <span>Crear Nuevo Usuario / Admin</span>
+        </button>
+      </div>
+
+      <!-- Resumen rápido de usuarios -->
+      <div id="devUserStatsStrip" style="display: flex; gap: 10px; overflow-x: auto; margin-bottom: 18px; padding-bottom: 4px;">
+        <!-- Inyectado dinámicamente -->
+      </div>
+
+      <!-- Tabla de usuarios -->
+      <div style="background: var(--card-bg); border: 1px solid var(--border); border-radius: 16px; overflow: hidden; box-shadow: 0 4px 15px rgba(0,0,0,0.05);">
+        <div style="overflow-x: auto;">
+          <table style="width: 100%; border-collapse: collapse; font-size: 0.86rem; text-align: left;">
+            <thead>
+              <tr style="background: var(--bg-main); border-bottom: 1.5px solid var(--border); color: var(--text-muted); font-size: 0.74rem; text-transform: uppercase; letter-spacing: 0.5px;">
+                <th style="padding: 12px 14px;">ID</th>
+                <th style="padding: 12px 14px;">Usuario</th>
+                <th style="padding: 12px 14px;">Nombre</th>
+                <th style="padding: 12px 14px;">Rol</th>
+                <th style="padding: 12px 14px;">Contacto</th>
+                <th style="padding: 12px 14px;">Estado</th>
+                <th style="padding: 12px 14px; text-align: right;">Acciones</th>
+              </tr>
+            </thead>
+            <tbody id="devUsersTableBody">
+              <!-- Inyectado por JS -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- 2. PESTAÑA: DISEÑOS DE TARJETAS (SUBIR & GESTIONAR) -->
+    <div id="devTabContentDisenos" class="dev-tab-content" style="display: none;">
+      <!-- FORMULARIO DE SUBIDA DE NUEVO DISEÑO -->
+      <div style="background: var(--card-bg); border: 1.5px solid var(--border); border-radius: 18px; padding: 22px; margin-bottom: 30px; box-shadow: 0 6px 20px rgba(0,0,0,0.05);">
+        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; flex-wrap: wrap; gap: 8px;">
+          <div>
+            <h3 style="font-size: 1.15rem; font-weight: 900; margin: 0; color: var(--text-main);">➕ Subir Nuevo Diseño de Tarjeta</h3>
+            <p style="font-size: 0.84rem; color: var(--text-muted); margin: 3px 0 0;">Sube una imagen personalizada. Quedará disponible inmediatamente para que los estudiantes la elijan.</p>
+          </div>
+          <span style="font-size: 0.78rem; font-weight: 800; background: rgba(139, 92, 246, 0.15); color: #8b5cf6; padding: 4px 10px; border-radius: 8px;">Recomendado: 1200x756 (3:2)</span>
+        </div>
+
+        <form id="formDevCardDesign" onsubmit="saveDevCardDesign(event)" style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+          <!-- Columna Izquierda: Input de archivo y campos -->
+          <div>
+            <!-- Zona de subida -->
+            <label for="devCardFileInput" class="dev-card-uploader-box" id="devUploadDropZone" style="display: block;">
+              <input type="file" id="devCardFileInput" accept="image/*" style="display: none;" onchange="handleDevCardFileSelect(event)">
+              <div id="devUploadPrompt">
+                <div style="font-size: 2.4rem; margin-bottom: 8px;">🖼️</div>
+                <div style="font-weight: 800; font-size: 0.95rem; color: var(--text-main); margin-bottom: 4px;">Toca o arrastra una imagen de tarjeta aquí</div>
+                <div style="font-size: 0.78rem; color: var(--text-muted);">Soporta JPG, PNG, WEBP o SVG (hasta 20MB)</div>
+              </div>
+              <div id="devUploadSuccess" style="display: none; color: #10b981; font-weight: 800; font-size: 0.88rem;">
+                <span>✅ Imagen seleccionada con éxito</span>
+                <div id="devUploadFileName" style="font-size: 0.75rem; color: var(--text-muted); margin-top: 4px;"></div>
+              </div>
+            </label>
+
+            <div style="margin-bottom: 12px;">
+              <label style="font-size: 0.82rem; font-weight: 800; color: var(--text-main); display: block; margin-bottom: 5px;">Nombre del Diseño:</label>
+              <input type="text" id="devCardName" placeholder="Ej: Cyber Dragón, Galaxia Púrpura..." required style="width: 100%; padding: 10px 12px; border-radius: 10px; border: 1.5px solid var(--border); background: var(--bg-main); color: var(--text-main); font-weight: 700; box-sizing: border-box;" oninput="updateDevCardLivePreview()">
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 16px;">
+              <div>
+                <label style="font-size: 0.82rem; font-weight: 800; color: var(--text-main); display: block; margin-bottom: 5px;">Categoría:</label>
+                <select id="devCardCategory" style="width: 100%; padding: 10px 12px; border-radius: 10px; border: 1.5px solid var(--border); background: var(--bg-main); color: var(--text-main); font-weight: 700; box-sizing: border-box;" onchange="updateDevCardLivePreview()">
+                  <option value="uni">🌐 Unisex / Universal</option>
+                  <option value="fem">🌸 Femenino</option>
+                  <option value="masc">🚀 Masculino</option>
+                </select>
+              </div>
+
+              <div>
+                <label style="font-size: 0.82rem; font-weight: 800; color: var(--text-main); display: block; margin-bottom: 5px;">Contraste de Texto:</label>
+                <select id="devCardTextStyle" style="width: 100%; padding: 10px 12px; border-radius: 10px; border: 1.5px solid var(--border); background: var(--bg-main); color: var(--text-main); font-weight: 700; box-sizing: border-box;" onchange="updateDevCardLivePreview()">
+                  <option value="dark">Texto Blanco (Fondo Oscuro)</option>
+                  <option value="light">Texto Oscuro (Fondo Claro)</option>
+                </select>
+              </div>
+            </div>
+
+            <button type="submit" id="btnDevSubmitCard" class="dev-action-btn dev-action-btn-primary" style="width: 100%; padding: 12px; justify-content: center; font-size: 0.95rem; border-radius: 12px;">
+              <span>🚀</span> <span>Guardar y Publicar Diseño</span>
+            </button>
+          </div>
+
+          <!-- Columna Derecha: Previsualizador en vivo con datos reales de estudiante -->
+          <div>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+              <span style="font-size: 0.82rem; font-weight: 800; color: var(--text-main);">👁️ Previsualización en Vivo de la Tarjeta</span>
+              <span style="font-size: 0.72rem; color: #10b981; font-weight: 800;">✓ Sin asteriscos</span>
+            </div>
+
+            <!-- Contenedor de la tarjeta simulada -->
+            <div id="devLiveCardPreviewWrapper" style="position: relative; width: 100%; aspect-ratio: 1.586; border-radius: 18px; overflow: hidden; background: #0f172a; border: 1.5px solid var(--border); box-shadow: 0 10px 25px rgba(0,0,0,0.25);">
+              <img id="devLiveCardBgImg" src="/img/cards/card_robo_lab.jpg" alt="Fondo" style="width: 100%; height: 100%; object-fit: cover; display: block;">
+              <div id="devLiveCardOverlay" class="card-overlay" style="opacity: 1; position: absolute; inset: 0; padding: 16px 18px; display: flex; flex-direction: column; justify-content: space-between; pointer-events: none;">
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                  <div class="card-emv-chip" style="width: 34px; height: 25px; margin: 0;">
+                    <div class="chip-inner-circuit"></div>
+                  </div>
+                  <span id="devLiveCardBrand" style="font-weight: 900; font-size: 0.85rem; letter-spacing: 0.5px; text-transform: uppercase; color: #ffffff; text-shadow: 0 2px 8px rgba(0,0,0,0.8);">⚡ RECREOPAY</span>
+                </div>
+                <div style="margin-top: auto; margin-bottom: 6px;">
+                  <div id="devLiveCardName" style="font-size: 1.05rem; font-weight: 900; color: #ffffff; text-shadow: 0 2px 8px rgba(0,0,0,0.9);">MATEO ALVARADO CASTRO</div>
+                  <div id="devLiveCardGrade" style="font-size: 0.74rem; font-weight: 700; color: #cbd5e1; text-shadow: 0 2px 6px rgba(0,0,0,0.9);">2° Grado · Sección 2-A</div>
+                </div>
+                <div style="display: flex; justify-content: space-between; align-items: flex-end;">
+                  <div>
+                    <div id="devLiveCardBalLabel" style="font-size: 0.65rem; font-weight: 800; text-transform: uppercase; color: #cbd5e1; letter-spacing: 0.5px;">Saldo Disponible</div>
+                    <div id="devLiveCardBalValue" style="font-size: 1.25rem; font-weight: 900; color: #4ade80; text-shadow: 0 2px 10px rgba(0,0,0,0.95);">₡5.300</div>
+                  </div>
+                  <div id="devLiveCardCode" style="font-size: 0.72rem; font-weight: 800; color: #ffffff; background: rgba(0,0,0,0.5); padding: 3px 8px; border-radius: 6px; backdrop-filter: blur(4px); border: 1px solid rgba(255,255,255,0.2);">EST-2026-00001</div>
+                </div>
+              </div>
+            </div>
+            <div id="devLiveCardThemeTitle" style="font-size: 0.85rem; font-weight: 800; color: var(--text-main); margin-top: 8px; text-align: center;">
+              Robo-Lab Tech (Vista Previa)
+            </div>
+          </div>
+        </form>
+      </div>
+
+      <!-- GALERÍA DE DISEÑOS DISPONIBLES EN EL SISTEMA -->
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; flex-wrap: wrap; gap: 10px;">
+        <div>
+          <h3 style="font-size: 1.15rem; font-weight: 900; margin: 0; color: var(--text-main);">🖼️ Catálogo de Diseños Publicados (<span id="devDisenosCount">0</span>)</h3>
+          <p style="font-size: 0.82rem; color: var(--text-muted); margin: 3px 0 0;">Estos son los diseños que pueden elegir los estudiantes en su carrusel.</p>
+        </div>
+        <div style="display: flex; gap: 6px;">
+          <button class="dev-action-btn" onclick="filterDevDisenosGrid('all', this)">Todos</button>
+          <button class="dev-action-btn" onclick="filterDevDisenosGrid('fem', this)">🌸 Femenino</button>
+          <button class="dev-action-btn" onclick="filterDevDisenosGrid('masc', this)">🚀 Masculino</button>
+          <button class="dev-action-btn" onclick="filterDevDisenosGrid('uni', this)">🌐 Unisex</button>
+        </div>
+      </div>
+
+      <div id="devDisenosGrid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 18px;">
+        <!-- Inyectado dinámicamente -->
+      </div>
+    </div>
+
+    <!-- 3. PESTAÑA: DIAGNÓSTICO DEL SISTEMA & BD -->
+    <div id="devTabContentDiagnostico" class="dev-tab-content" style="display: none;">
+      <div id="devStatsContainer" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; margin-bottom: 24px;">
+        <!-- Inyectado dinámicamente -->
+      </div>
+    </div>
+  </div>
+
   <!-- PANEL DE ADMINISTRACIÓN DE LA SODA (#viewAdmin) -->
   <div id="viewAdmin" class="admin-container" style="display: none;">
     <!-- CABECERA DE ADMINISTRADOR -->
@@ -130,6 +351,9 @@
       <div class="admin-header-actions">
         <button onclick="toggleTheme()" class="theme-toggle-btn" title="Alternar Modo Oscuro / Modo Claro">
           🌙
+        </button>
+        <button id="btnAdminDevPanel" onclick="switchAdminToDev()" class="admin-action-btn" style="display: none; background: #8b5cf6; color: white; border-color: #7c3aed;" title="Volver al Panel Developer Master">
+          <span>🛠️</span> <span class="admin-btn-text">Panel Dev</span>
         </button>
         <button onclick="switchAdminTab('recarga')" class="admin-action-btn admin-action-btn-recarga" title="Cargar dinero a un estudiante">
           <span>💵</span> <span class="admin-btn-text">Cargar Dinero</span>
@@ -1463,6 +1687,109 @@
         </button>
       </div>
 
+    </div>
+  </div>
+
+  <!-- MODAL: CREAR / EDITAR USUARIO (DEVELOPER) -->
+  <div class="modal-qr-backdrop" id="modalDevUser" style="display: none;" onclick="closeModalDevUser(event)">
+    <div class="modal-qr-card" onclick="event.stopPropagation()" style="max-width: 500px; text-align: left; padding: 22px;">
+      <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1.5px solid var(--border); padding-bottom: 12px; margin-bottom: 16px;">
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <span style="font-size: 1.4rem;">👤</span>
+          <div>
+            <h3 id="modalDevUserTitle" style="margin: 0; font-size: 1.15rem; font-weight: 900; color: var(--text-main);">Crear Nuevo Usuario</h3>
+            <span style="font-size: 0.76rem; color: var(--text-muted); font-weight: 600;">Control total de cuentas y permisos</span>
+          </div>
+        </div>
+        <button type="button" onclick="closeModalDevUser()" style="background: none; border: none; font-size: 1.3rem; cursor: pointer; color: var(--text-muted); padding: 4px;">✕</button>
+      </div>
+
+      <form id="formDevUser" onsubmit="saveDevUser(event)">
+        <input type="hidden" id="devUserId" value="">
+        
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px;">
+          <div>
+            <label style="font-size: 0.8rem; font-weight: 800; color: var(--text-main); display: block; margin-bottom: 4px;">Usuario (Login):</label>
+            <input type="text" id="devInputUsername" required placeholder="ej: admin2, carlos" style="width: 100%; padding: 9px 12px; border-radius: 10px; border: 1.5px solid var(--border); background: var(--bg-main); color: var(--text-main); font-weight: 700; box-sizing: border-box;">
+          </div>
+          <div>
+            <label style="font-size: 0.8rem; font-weight: 800; color: var(--text-main); display: block; margin-bottom: 4px;">Rol en el Sistema:</label>
+            <select id="devInputRol" required style="width: 100%; padding: 9px 12px; border-radius: 10px; border: 1.5px solid var(--border); background: var(--bg-main); color: var(--text-main); font-weight: 700; box-sizing: border-box;">
+              <option value="admin">Administrador (Soda/Escuela)</option>
+              <option value="developer">Developer Master</option>
+              <option value="cajero">Cajero POS</option>
+              <option value="vendedor">Vendedor</option>
+              <option value="padre">Padre de Familia</option>
+              <option value="estudiante">Estudiante</option>
+            </select>
+          </div>
+        </div>
+
+        <div style="margin-bottom: 12px;">
+          <label style="font-size: 0.8rem; font-weight: 800; color: var(--text-main); display: block; margin-bottom: 4px;">Nombre Completo:</label>
+          <input type="text" id="devInputNombre" required placeholder="ej: Juan Pérez Rojas" style="width: 100%; padding: 9px 12px; border-radius: 10px; border: 1.5px solid var(--border); background: var(--bg-main); color: var(--text-main); font-weight: 700; box-sizing: border-box;">
+        </div>
+
+        <div id="devPasswordRow" style="margin-bottom: 12px;">
+          <label id="devPasswordLabel" style="font-size: 0.8rem; font-weight: 800; color: var(--text-main); display: block; margin-bottom: 4px;">Contraseña:</label>
+          <input type="password" id="devInputPassword" placeholder="Contraseña de acceso" style="width: 100%; padding: 9px 12px; border-radius: 10px; border: 1.5px solid var(--border); background: var(--bg-main); color: var(--text-main); font-weight: 700; box-sizing: border-box;">
+          <small id="devPasswordHelp" style="font-size: 0.72rem; color: var(--text-muted); display: none;">Dejar en blanco si no deseas cambiar la contraseña actual.</small>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 16px;">
+          <div>
+            <label style="font-size: 0.8rem; font-weight: 800; color: var(--text-main); display: block; margin-bottom: 4px;">Teléfono:</label>
+            <input type="text" id="devInputTelefono" placeholder="ej: 8888-8888" style="width: 100%; padding: 9px 12px; border-radius: 10px; border: 1.5px solid var(--border); background: var(--bg-main); color: var(--text-main); font-weight: 700; box-sizing: border-box;">
+          </div>
+          <div>
+            <label style="font-size: 0.8rem; font-weight: 800; color: var(--text-main); display: block; margin-bottom: 4px;">Email:</label>
+            <input type="email" id="devInputEmail" placeholder="correo@ejemplo.com" style="width: 100%; padding: 9px 12px; border-radius: 10px; border: 1.5px solid var(--border); background: var(--bg-main); color: var(--text-main); font-weight: 700; box-sizing: border-box;">
+          </div>
+        </div>
+
+        <div style="display: flex; justify-content: flex-end; gap: 10px; border-top: 1.5px solid var(--border); padding-top: 14px;">
+          <button type="button" onclick="closeModalDevUser()" style="padding: 10px 18px; border-radius: 10px; border: 1.5px solid var(--border); background: var(--bg-main); color: var(--text-main); font-weight: 800; font-size: 0.85rem; cursor: pointer;">
+            Cancelar
+          </button>
+          <button type="submit" class="dev-action-btn dev-action-btn-primary" style="padding: 10px 22px; font-size: 0.9rem;">
+            💾 Guardar Usuario
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL: CAMBIO RÁPIDO DE CONTRASEÑA (DEVELOPER) -->
+  <div class="modal-qr-backdrop" id="modalDevPassword" style="display: none;" onclick="closeModalDevPassword(event)">
+    <div class="modal-qr-card" onclick="event.stopPropagation()" style="max-width: 420px; text-align: left; padding: 22px;">
+      <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1.5px solid var(--border); padding-bottom: 12px; margin-bottom: 16px;">
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <span style="font-size: 1.4rem;">🔑</span>
+          <div>
+            <h3 style="margin: 0; font-size: 1.15rem; font-weight: 900; color: var(--text-main);">Cambiar Contraseña</h3>
+            <span id="devPwdTargetUser" style="font-size: 0.78rem; color: #8b5cf6; font-weight: 700;">Usuario</span>
+          </div>
+        </div>
+        <button type="button" onclick="closeModalDevPassword()" style="background: none; border: none; font-size: 1.3rem; cursor: pointer; color: var(--text-muted); padding: 4px;">✕</button>
+      </div>
+
+      <form id="formDevPassword" onsubmit="saveDevPassword(event)">
+        <input type="hidden" id="devPwdUserId" value="">
+        
+        <div style="margin-bottom: 16px;">
+          <label style="font-size: 0.82rem; font-weight: 800; color: var(--text-main); display: block; margin-bottom: 6px;">Nueva Contraseña:</label>
+          <input type="password" id="devInputNewPassword" required minlength="4" placeholder="Mínimo 4 caracteres" style="width: 100%; padding: 11px 12px; border-radius: 10px; border: 1.5px solid var(--border); background: var(--bg-main); color: var(--text-main); font-weight: 700; box-sizing: border-box; font-size: 0.95rem;">
+        </div>
+
+        <div style="display: flex; justify-content: flex-end; gap: 10px; border-top: 1.5px solid var(--border); padding-top: 14px;">
+          <button type="button" onclick="closeModalDevPassword()" style="padding: 10px 18px; border-radius: 10px; border: 1.5px solid var(--border); background: var(--bg-main); color: var(--text-main); font-weight: 800; font-size: 0.85rem; cursor: pointer;">
+            Cancelar
+          </button>
+          <button type="submit" class="dev-action-btn dev-action-btn-primary" style="padding: 10px 22px; font-size: 0.9rem;">
+            🔒 Actualizar Contraseña
+          </button>
+        </div>
+      </form>
     </div>
   </div>
 

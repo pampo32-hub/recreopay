@@ -127,12 +127,14 @@ function showLoginView() {
   const viewLogin = document.getElementById('viewLogin');
   const viewAdmin = document.getElementById('viewAdmin');
   const viewPadres = document.getElementById('viewPadres');
+  const viewDeveloper = document.getElementById('viewDeveloper');
   const appContainer = document.getElementById('appContainer');
   const bottomNav = document.getElementById('pwaBottomNav');
 
   if (viewLogin) viewLogin.style.display = 'flex';
   if (viewAdmin) viewAdmin.style.display = 'none';
   if (viewPadres) viewPadres.style.display = 'none';
+  if (viewDeveloper) viewDeveloper.style.display = 'none';
   if (appContainer) appContainer.style.display = 'none';
   if (bottomNav) bottomNav.style.display = 'none';
 
@@ -274,11 +276,37 @@ async function applyUserRoleSession() {
   const viewLogin = document.getElementById('viewLogin');
   const viewAdmin = document.getElementById('viewAdmin');
   const viewPadres = document.getElementById('viewPadres');
+  const viewDeveloper = document.getElementById('viewDeveloper');
   const appContainer = document.getElementById('appContainer');
   const bottomNav = document.getElementById('pwaBottomNav');
   const navPadres = document.getElementById('pwaNavPadres');
 
   if (viewLogin) viewLogin.style.display = 'none';
+
+  if (currentUser.rol === 'developer') {
+    if (viewDeveloper) viewDeveloper.style.display = 'block';
+    if (viewAdmin) viewAdmin.style.display = 'none';
+    if (viewPadres) viewPadres.style.display = 'none';
+    if (appContainer) appContainer.style.display = 'none';
+    if (bottomNav) bottomNav.style.display = 'none';
+
+    const devNameEl = document.getElementById('devLoggedName');
+    if (devNameEl) {
+      devNameEl.textContent = `${currentUser.nombre} (${currentUser.username})`;
+    }
+
+    const btnDevAdmin = document.getElementById('btnAdminDevPanel');
+    if (btnDevAdmin) btnDevAdmin.style.display = 'inline-flex';
+
+    await loadInitialData();
+    switchDevTab('usuarios');
+    await loadDevUsuarios();
+    await loadDevDisenos();
+    await loadDevStats();
+    return;
+  }
+
+  if (viewDeveloper) viewDeveloper.style.display = 'none';
 
   if (currentUser.rol === 'admin' || currentUser.rol === 'cajero' || currentUser.rol === 'vendedor') {
     if (viewAdmin) viewAdmin.style.display = 'block';
@@ -321,9 +349,66 @@ async function applyUserRoleSession() {
     if (currentUser.estudiante) {
       await selectStudent(currentUser.estudiante.id);
     } else if (students.length > 0) {
-      await selectStudent(students[0].id);
+      selectStudent(students[0].id);
     }
   }
+}
+
+function switchDevTab(tab) {
+  document.querySelectorAll('.dev-tab-btn').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.dev-tab-content').forEach(c => c.style.display = 'none');
+
+  if (tab === 'usuarios') {
+    const btn = document.getElementById('btnDevTabUsuarios');
+    const content = document.getElementById('devTabContentUsuarios');
+    if (btn) btn.classList.add('active');
+    if (content) content.style.display = 'block';
+    loadDevUsuarios();
+  } else if (tab === 'disenos') {
+    const btn = document.getElementById('btnDevTabDisenos');
+    const content = document.getElementById('devTabContentDisenos');
+    if (btn) btn.classList.add('active');
+    if (content) content.style.display = 'block';
+    loadDevDisenos();
+  } else if (tab === 'diagnostico') {
+    const btn = document.getElementById('btnDevTabDiagnostico');
+    const content = document.getElementById('devTabContentDiagnostico');
+    if (btn) btn.classList.add('active');
+    if (content) content.style.display = 'block';
+    loadDevStats();
+  }
+}
+
+function switchDevToView(view) {
+  const viewDev = document.getElementById('viewDeveloper');
+  const viewAdmin = document.getElementById('viewAdmin');
+  const appContainer = document.getElementById('appContainer');
+  const bottomNav = document.getElementById('pwaBottomNav');
+
+  if (view === 'admin') {
+    if (viewDev) viewDev.style.display = 'none';
+    if (viewAdmin) viewAdmin.style.display = 'block';
+    const btnAdminDev = document.getElementById('btnAdminDevPanel');
+    if (btnAdminDev) btnAdminDev.style.display = 'inline-flex';
+    loadAdminData();
+    setupAdminSmartSearch();
+  } else if (view === 'student') {
+    if (viewDev) viewDev.style.display = 'none';
+    if (appContainer) appContainer.style.display = 'block';
+    if (bottomNav) bottomNav.style.display = 'flex';
+    if (students && students.length > 0) {
+      selectStudent(students[0].id);
+    }
+  } else if (view === 'pos') {
+    window.open('/pos.html', '_blank');
+  }
+}
+
+function switchAdminToDev() {
+  const viewAdmin = document.getElementById('viewAdmin');
+  const viewDev = document.getElementById('viewDeveloper');
+  if (viewAdmin) viewAdmin.style.display = 'none';
+  if (viewDev) viewDev.style.display = 'block';
 }
 
 function logout(skipConfirm = false) {
@@ -387,6 +472,9 @@ async function loadInitialData() {
 
     renderCategories();
     renderProducts();
+
+    // 3. Cargar catálogo de diseños de tarjetas
+    await loadCardDesigns();
   } catch (error) {
     console.error('Error cargando datos iniciales:', error);
   }
@@ -1692,6 +1780,19 @@ function initStudentSSE() {
         if (movTab && movTab.style.display !== 'none') {
           loadAdminMovimientos();
         }
+      }
+    } catch (err) {}
+  });
+
+  sse.addEventListener('disenos_actualizados', async () => {
+    try {
+      await loadCardDesigns();
+      const modal = document.getElementById('modalCardDesigns');
+      if (modal && modal.style.display !== 'none') {
+        renderCardDesignsCarousel();
+      }
+      if (typeof loadDevDisenos === 'function' && currentUser && currentUser.rol === 'developer') {
+        loadDevDisenos();
       }
     } catch (err) {}
   });
@@ -4137,150 +4238,132 @@ async function deleteStaff(staffId, nombre) {
 // COLECCIÓN Y PERSONALIZACIÓN DE DISEÑOS DE TARJETA VIRTUAL
 // ==========================================
 
-const CARD_THEMES = [
-  {
-    id: 'classic-blue',
-    name: 'Azul RecreoPay',
-    category: 'Oficial',
-    icon: '🥪',
-    desc: 'El diseño clásico oficial de RecreoPay con tonos azul celeste y acabado cristalino.'
-  },
-  {
-    id: 'classic-premium',
-    name: 'Classic Premium',
-    category: 'Elegante',
-    icon: '👑',
-    desc: 'Azul medianoche profundo con tipografía dorada metálica, acentos de lujo y chip dorado.'
-  },
-  {
-    id: 'tech-metal',
-    name: 'Technological Metal',
-    category: 'Titanio',
-    icon: '⚡',
-    desc: 'Titanio oscuro cepillado con líneas láser plateadas y chip de alta tecnología.'
-  },
-  {
-    id: 'eco-aventura',
-    name: 'Eco-Aventura',
-    category: 'Exploración',
-    icon: '🌲',
-    desc: 'Bosques de pino, cumbres montañosas y espíritu de explorador en la naturaleza.'
-  },
-  {
-    id: 'robo-lab',
-    name: 'Robo-Lab Cyber',
-    category: 'Robótica',
-    icon: '🤖',
-    desc: 'Circuitos cibernéticos de neón cian y el amigable robot del laboratorio del futuro.'
-  },
-  {
-    id: 'mundo-arte',
-    name: 'Mundo de Arte',
-    category: 'Creativo',
-    icon: '🎨',
-    desc: 'Lienzo blanco con salpicaduras vibrantes de acuarela multicolor y paleta de pintura.'
-  },
-  {
-    id: 'futbol',
-    name: 'Estrellas del Campo',
-    category: 'Deportes',
-    icon: '⚽',
-    desc: 'Cancha de césped de estadio con líneas reglamentarias y balón a máxima velocidad.'
-  },
-  {
-    id: 'mascotas',
-    name: 'Club de Mascotas',
-    category: 'Tierno',
-    icon: '🐶',
-    desc: 'Tonos cálidos miel y un adorable cachorrito golden retriever con tiernas huellas.'
-  },
-  {
-    id: 'galactica',
-    name: 'Exploración Galáctica',
-    category: 'Espacio',
-    icon: '🚀',
-    desc: 'Nebulosa cósmica en violeta y polvo estelar con luna y astronauta explorador.'
-  },
-  {
-    id: 'pixel-quest',
-    name: 'Pixel Quest',
-    category: 'Videojuegos',
-    icon: '👾',
-    desc: 'Aventura arcade de plataformas de 8 bits con bloques retro, nubes y caballero pixel.'
-  },
-  {
-    id: 'ritmo-dj',
-    name: 'Ritmo y DJ Neón',
-    category: 'Música',
-    icon: '🎧',
-    desc: 'Barras de espectro ecualizador en neón brillante, audífonos DJ y sintetizadores.'
-  },
-  {
-    id: 'skate-park',
-    name: 'Skate Park',
-    category: 'Urbano',
-    icon: '🛹',
-    desc: 'Estilo street art urbano con textura de tabla de skate y graffitis llenos de energía.'
-  },
-  {
-    id: 'tecno-comic',
-    name: 'Tecno Cómic',
-    category: 'Superhéroe',
-    icon: '🦸',
-    desc: 'Estilo cómic pop-art con rayos de acción, textura halftone y superhéroe escolar.'
-  },
-  {
-    id: 'ecologica',
-    name: 'Ecológica Texturizada',
-    category: 'Sostenible',
-    icon: '🌿',
-    desc: 'Textura natural tipo corcho y papel kraft reciclado con sello ambiental.'
-  },
-  {
-    id: 'ludica',
-    name: 'Lúdica Ilustrada',
-    category: 'Fantasía',
-    icon: '🏰',
-    desc: 'Horizonte ilustrado de fantasía infantil con cielo despejado y robot volador.'
+function escapeHtml(str) {
+  if (str === null || str === undefined) return '';
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+}
+
+let systemCardDesigns = [];
+
+async function loadCardDesigns() {
+  try {
+    const res = await fetch('/api/disenos-tarjetas');
+    if (res.ok) {
+      const data = await res.json();
+      if (Array.isArray(data) && data.length > 0) {
+        systemCardDesigns = data;
+      }
+    }
+  } catch (err) {
+    console.warn('Usando catálogo base de diseños de tarjetas:', err);
   }
-];
+}
+
+function getActiveCardThemesList() {
+  if (systemCardDesigns && systemCardDesigns.length > 0) {
+    return systemCardDesigns.map(d => {
+      let icon = '🌐';
+      let catName = 'Unisex';
+      if (d.categoria === 'fem') { icon = '🌸'; catName = 'Femenino'; }
+      else if (d.categoria === 'masc') { icon = '🚀'; catName = 'Masculino'; }
+      return {
+        id: d.theme_id,
+        name: d.nombre,
+        category: catName,
+        icon: icon,
+        desc: `Diseño oficial RecreoPay (${catName})`,
+        imagen_url: d.imagen_url,
+        estilo_texto: d.estilo_texto || 'dark',
+        es_predeterminado: d.es_predeterminado ? 1 : 0
+      };
+    });
+  }
+
+  // Fallback a los 16 iniciales si la API aún no ha respondido
+  return [
+    { id: 'card_robo_lab', name: 'Robo-Lab Tech', category: 'Unisex', icon: '🤖', desc: 'Circuitos y robótica futurista', imagen_url: '/img/cards/card_robo_lab.jpg', estilo_texto: 'dark', es_predeterminado: 1 },
+    { id: 'card_fem_gatito', name: 'Gatito Tierno', category: 'Femenino', icon: '🐱', desc: 'Tierno gatito kawaii', imagen_url: '/img/cards/card_fem_gatito.jpg', estilo_texto: 'light' },
+    { id: 'card_fem_unicornio', name: 'Unicornio Ensueño', category: 'Femenino', icon: '🦄', desc: 'Unicornio mágico pastel', imagen_url: '/img/cards/card_fem_unicornio.svg', estilo_texto: 'light' },
+    { id: 'card_fem_sirena', name: 'Océano Sirena', category: 'Femenino', icon: '🧜‍♀️', desc: 'Fantasía marina', imagen_url: '/img/cards/card_fem_sirena.svg', estilo_texto: 'light' },
+    { id: 'card_fem_gamer', name: 'Gamer Pastel', category: 'Femenino', icon: '🎮', desc: 'Gamer girl estética pastel', imagen_url: '/img/cards/card_fem_gamer.svg', estilo_texto: 'light' },
+    { id: 'card_fem_ballet', name: 'Ballet Danza', category: 'Femenino', icon: '🩰', desc: 'Elegancia y danza', imagen_url: '/img/cards/card_fem_ballet.svg', estilo_texto: 'light' },
+    { id: 'card_fem_mariposas', name: 'Jardín Mariposas', category: 'Femenino', icon: '🦋', desc: 'Naturaleza primaveral', imagen_url: '/img/cards/card_fem_mariposas.svg', estilo_texto: 'light' },
+    { id: 'card_estrellas_futbol', name: 'Estrellas de Fútbol', category: 'Masculino', icon: '⚽', desc: 'Pasión por el fútbol', imagen_url: '/img/cards/card_estrellas_futbol.jpg', estilo_texto: 'dark' },
+    { id: 'card_eco_aventura', name: 'Eco-Aventura', category: 'Masculino', icon: '🌲', desc: 'Exploración y aire libre', imagen_url: '/img/cards/card_eco_aventura.jpg', estilo_texto: 'light' },
+    { id: 'card_pixel_quest', name: 'Pixel Quest', category: 'Masculino', icon: '👾', desc: 'Arcade 8 bits retro', imagen_url: '/img/cards/card_pixel_quest.jpg', estilo_texto: 'dark' },
+    { id: 'card_exploracion_galactica', name: 'Exploración Galáctica', category: 'Masculino', icon: '🚀', desc: 'Viaje a través del cosmos', imagen_url: '/img/cards/card_exploracion_galactica.jpg', estilo_texto: 'dark' },
+    { id: 'card_masc_skate', name: 'Skate Park', category: 'Masculino', icon: '🛹', desc: 'Estilo urbano street', imagen_url: '/img/cards/card_masc_skate.svg', estilo_texto: 'light' },
+    { id: 'card_masc_carreras', name: 'Super Carreras', category: 'Masculino', icon: '🏎️', desc: 'Velocidad y motores', imagen_url: '/img/cards/card_masc_carreras.svg', estilo_texto: 'dark' },
+    { id: 'card_mundo_arte', name: 'Mundo de Arte', category: 'Unisex', icon: '🎨', desc: 'Creatividad y pintura', imagen_url: '/img/cards/card_mundo_arte.jpg', estilo_texto: 'light' },
+    { id: 'card_uni_musica', name: 'Ritmo & Beats (DJ)', category: 'Unisex', icon: '🎧', desc: 'Música electrónica y neón', imagen_url: '/img/cards/card_uni_musica.svg', estilo_texto: 'dark' },
+    { id: 'card_uni_titanium', name: 'Titanium Edition', category: 'Unisex', icon: '⚡', desc: 'Minimalismo de titanio', imagen_url: '/img/cards/card_uni_titanium.svg', estilo_texto: 'dark' }
+  ];
+}
 
 function getSavedCardTheme() {
+  const themes = getActiveCardThemesList();
   if (currentStudent && currentStudent.id) {
     const studentTheme = localStorage.getItem(`recreopay_card_theme_${currentStudent.id}`);
-    if (studentTheme && CARD_THEMES.some(t => t.id === studentTheme)) {
+    if (studentTheme && themes.some(t => t.id === studentTheme)) {
       return studentTheme;
     }
   }
   const globalTheme = localStorage.getItem('recreopay_card_theme');
-  if (globalTheme && CARD_THEMES.some(t => t.id === globalTheme)) {
+  if (globalTheme && themes.some(t => t.id === globalTheme)) {
     return globalTheme;
   }
-  return 'classic-blue';
+  const defaultTheme = themes.find(t => t.es_predeterminado) || themes[0];
+  return defaultTheme ? defaultTheme.id : 'card_robo_lab';
 }
 
 function applyCardTheme(themeId) {
   const card = document.getElementById('mainWalletCard');
   if (!card) return;
 
-  const validTheme = CARD_THEMES.some(t => t.id === themeId) ? themeId : 'classic-blue';
+  const themes = getActiveCardThemesList();
+  let chosen = themes.find(t => t.id === themeId);
+  if (!chosen) {
+    chosen = themes.find(t => t.es_predeterminado) || themes[0];
+  }
+  const validThemeId = chosen ? chosen.id : 'card_robo_lab';
 
-  CARD_THEMES.forEach(t => {
+  // Quitar clases previas de tema
+  themes.forEach(t => {
     card.classList.remove(`theme-${t.id}`);
   });
-  card.classList.add(`theme-${validTheme}`);
+  card.classList.remove('has-custom-bg', 'card-style-light', 'card-style-dark');
+
+  if (chosen && chosen.imagen_url) {
+    card.classList.add('has-custom-bg');
+    card.style.backgroundImage = `url('${chosen.imagen_url}')`;
+    if (chosen.estilo_texto === 'light') {
+      card.classList.add('card-style-light');
+    } else {
+      card.classList.add('card-style-dark');
+    }
+  } else {
+    card.style.backgroundImage = '';
+    card.classList.add(`theme-${validThemeId}`);
+  }
 }
 
-function openCardDesignModal() {
+async function openCardDesignModal() {
   const modal = document.getElementById('modalCardDesigns');
   if (!modal) return;
 
+  await loadCardDesigns();
   renderCardDesignsCarousel();
   setupCarouselScrollListener();
   modal.style.display = 'flex';
 
+  const themes = getActiveCardThemesList();
   const currentTheme = getSavedCardTheme();
-  const currentIdx = CARD_THEMES.findIndex(t => t.id === currentTheme);
+  const currentIdx = themes.findIndex(t => t.id === currentTheme);
   if (currentIdx >= 0) {
     setTimeout(() => {
       jumpToCardSlide(currentIdx);
@@ -4302,18 +4385,22 @@ function renderCardDesignsCarousel() {
   const strip = document.getElementById('themeQuickStrip');
   if (!container) return;
 
+  const themes = getActiveCardThemesList();
   const currentTheme = getSavedCardTheme();
   const avatarUrl = (currentStudent && currentStudent.foto_url) ? currentStudent.foto_url : 'https://api.dicebear.com/7.x/bottts/svg?seed=est';
   const studentName = (currentStudent && currentStudent.nombre_completo) ? currentStudent.nombre_completo : 'Mateo Alvarado Castro';
   const studentGrade = (currentStudent && currentStudent.grado) ? `${currentStudent.grado} • Sección ${currentStudent.seccion || 'A'} • Cód: ${currentStudent.codigo_estudiante || 'EST-001'}` : '2° Grado • Sección 2-A • Cód: EST-2026-001';
   const studentBalance = (currentStudent && currentStudent.saldo_colones !== undefined) ? currentStudent.saldo_colones.toLocaleString('es-CR') : '5.300';
 
-  container.innerHTML = CARD_THEMES.map((t, idx) => {
+  container.innerHTML = themes.map((t, idx) => {
     const isSelected = (t.id === currentTheme);
+    const bgStyle = t.imagen_url ? `background-image: url('${t.imagen_url}');` : '';
+    const contrastClass = t.estilo_texto === 'light' ? 'card-style-light' : 'card-style-dark';
+
     return `
       <div class="card-carousel-slide" data-index="${idx}" data-theme="${t.id}">
         <!-- Vista previa de la tarjeta real (SIN ASTERISCOS) -->
-        <div class="wallet-card theme-${t.id}" style="margin: 0; cursor: pointer; transition: transform 0.2s;" onclick="selectCardTheme('${t.id}')">
+        <div class="wallet-card has-custom-bg ${contrastClass}" style="margin: 0; cursor: pointer; transition: transform 0.2s; ${bgStyle}" onclick="selectCardTheme('${t.id}')">
           <div class="card-chip-container">
             <div class="card-emv-chip">
               <div class="chip-inner-circuit"></div>
@@ -4361,13 +4448,13 @@ function renderCardDesignsCarousel() {
   }).join('');
 
   if (dotsContainer) {
-    dotsContainer.innerHTML = CARD_THEMES.map((t, idx) => `
+    dotsContainer.innerHTML = themes.map((t, idx) => `
       <div class="carousel-dot ${t.id === currentTheme ? 'active' : ''}" id="dotSlide_${idx}" onclick="jumpToCardSlide(${idx})" title="${t.name}"></div>
     `).join('');
   }
 
   if (strip) {
-    strip.innerHTML = CARD_THEMES.map((t, idx) => `
+    strip.innerHTML = themes.map((t, idx) => `
       <button type="button" class="theme-pill-btn ${t.id === currentTheme ? 'active' : ''}" id="pillTheme_${t.id}" onclick="jumpToCardSlide(${idx})">
         <span>${t.icon}</span> <span>${t.name}</span>
       </button>
@@ -4390,12 +4477,12 @@ function jumpToCardSlide(index) {
     slide.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
   }
 
-  // Actualizar dots y pills
+  const themes = getActiveCardThemesList();
   document.querySelectorAll('.carousel-dot').forEach((d, idx) => {
     d.classList.toggle('active', idx === index);
   });
-  if (CARD_THEMES[index]) {
-    const themeId = CARD_THEMES[index].id;
+  if (themes[index]) {
+    const themeId = themes[index].id;
     document.querySelectorAll('.theme-pill-btn').forEach(p => {
       p.classList.toggle('active', p.id === `pillTheme_${themeId}`);
     });
@@ -4411,17 +4498,18 @@ function setupCarouselScrollListener() {
   container.addEventListener('scroll', () => {
     clearTimeout(scrollTimeout);
     scrollTimeout = setTimeout(() => {
+      const themes = getActiveCardThemesList();
       const scrollLeft = container.scrollLeft;
       const slideWidth = container.clientWidth;
       if (slideWidth > 0) {
-        const activeIdx = Math.max(0, Math.min(CARD_THEMES.length - 1, Math.round(scrollLeft / slideWidth)));
+        const activeIdx = Math.max(0, Math.min(themes.length - 1, Math.round(scrollLeft / slideWidth)));
 
         document.querySelectorAll('.carousel-dot').forEach((d, idx) => {
           d.classList.toggle('active', idx === activeIdx);
         });
 
-        if (CARD_THEMES[activeIdx]) {
-          const themeId = CARD_THEMES[activeIdx].id;
+        if (themes[activeIdx]) {
+          const themeId = themes[activeIdx].id;
           document.querySelectorAll('.theme-pill-btn').forEach(p => {
             p.classList.toggle('active', p.id === `pillTheme_${themeId}`);
           });
@@ -4434,6 +4522,7 @@ function setupCarouselScrollListener() {
 function selectCardTheme(themeId) {
   if (!themeId) return;
 
+  const themes = getActiveCardThemesList();
   localStorage.setItem('recreopay_card_theme', themeId);
   if (currentStudent && currentStudent.id) {
     localStorage.setItem(`recreopay_card_theme_${currentStudent.id}`, themeId);
@@ -4441,8 +4530,7 @@ function selectCardTheme(themeId) {
 
   applyCardTheme(themeId);
 
-  // Actualizar botones de selección
-  CARD_THEMES.forEach(t => {
+  themes.forEach(t => {
     const btn = document.getElementById(`btnSelectTheme_${t.id}`);
     if (btn) {
       if (t.id === themeId) {
@@ -4462,5 +4550,602 @@ function selectCardTheme(themeId) {
 
   if (window.sounds) window.sounds.playCoin();
 }
+
+
+// ==========================================
+// DEVELOPER MASTER SUITE: CONTROL TOTAL DE USUARIOS, DISEÑOS Y DIAGNÓSTICO
+// ==========================================
+
+let devAllUsers = [];
+let devUploadedBase64 = null;
+let devAllDisenos = [];
+
+// 1. GESTIÓN DE USUARIOS & ADMINISTRADORES
+async function loadDevUsuarios() {
+  const tbody = document.getElementById('devUsersTableBody');
+  if (!tbody) return;
+
+  try {
+    tbody.innerHTML = `<tr><td colspan="7" style="padding: 24px; text-align: center; color: var(--text-muted);">Cargando usuarios del sistema...</td></tr>`;
+    const res = await fetch('/api/developer/usuarios');
+    if (!res.ok) throw new Error('Error al cargar usuarios');
+    devAllUsers = await res.json();
+    renderDevUsuarios(devAllUsers);
+    renderDevUserStats(devAllUsers);
+  } catch (err) {
+    console.error('Error cargando usuarios dev:', err);
+    tbody.innerHTML = `<tr><td colspan="7" style="padding: 24px; text-align: center; color: #ef4444;">Error: ${escapeHtml(err.message)}</td></tr>`;
+  }
+}
+
+function renderDevUserStats(users) {
+  const strip = document.getElementById('devUserStatsStrip');
+  if (!strip) return;
+  const counts = { total: users.length, admin: 0, developer: 0, cajero: 0, vendedor: 0, padre: 0, estudiante: 0 };
+  users.forEach(u => {
+    if (counts[u.rol] !== undefined) counts[u.rol]++;
+  });
+
+  strip.innerHTML = `
+    <div style="background: var(--card-bg); border: 1px solid var(--border); border-radius: 10px; padding: 6px 12px; font-size: 0.78rem; font-weight: 800; white-space: nowrap;">
+      Total: <span style="color: #0284c7;">${counts.total}</span>
+    </div>
+    <div style="background: var(--card-bg); border: 1px solid var(--border); border-radius: 10px; padding: 6px 12px; font-size: 0.78rem; font-weight: 800; white-space: nowrap;">
+      👨‍🍳 Admins: <span style="color: #3b82f6;">${counts.admin}</span>
+    </div>
+    <div style="background: var(--card-bg); border: 1px solid var(--border); border-radius: 10px; padding: 6px 12px; font-size: 0.78rem; font-weight: 800; white-space: nowrap;">
+      🛠️ Devs: <span style="color: #8b5cf6;">${counts.developer}</span>
+    </div>
+    <div style="background: var(--card-bg); border: 1px solid var(--border); border-radius: 10px; padding: 6px 12px; font-size: 0.78rem; font-weight: 800; white-space: nowrap;">
+      📟 Cajeros: <span style="color: #10b981;">${counts.cajero}</span>
+    </div>
+    <div style="background: var(--card-bg); border: 1px solid var(--border); border-radius: 10px; padding: 6px 12px; font-size: 0.78rem; font-weight: 800; white-space: nowrap;">
+      👨‍👩‍👦 Padres: <span style="color: #f59e0b;">${counts.padre}</span>
+    </div>
+    <div style="background: var(--card-bg); border: 1px solid var(--border); border-radius: 10px; padding: 6px 12px; font-size: 0.78rem; font-weight: 800; white-space: nowrap;">
+      🎒 Estudiantes: <span style="color: #ec4899;">${counts.estudiante}</span>
+    </div>
+  `;
+}
+
+function filterDevUsuarios() {
+  const query = (document.getElementById('devUserSearchInput')?.value || '').toLowerCase().trim();
+  const role = document.getElementById('devUserRoleFilter')?.value || 'all';
+
+  const filtered = devAllUsers.filter(u => {
+    const matchRole = (role === 'all' || u.rol === role);
+    const matchQuery = !query || 
+      (u.username && u.username.toLowerCase().includes(query)) ||
+      (u.nombre && u.nombre.toLowerCase().includes(query)) ||
+      (u.email && u.email.toLowerCase().includes(query)) ||
+      (u.rol && u.rol.toLowerCase().includes(query)) ||
+      (u.estudiante_codigo && u.estudiante_codigo.toLowerCase().includes(query));
+    return matchRole && matchQuery;
+  });
+
+  renderDevUsuarios(filtered);
+}
+
+function renderDevUsuarios(users) {
+  const tbody = document.getElementById('devUsersTableBody');
+  if (!tbody) return;
+
+  if (users.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="7" style="padding: 24px; text-align: center; color: var(--text-muted);">No se encontraron usuarios</td></tr>`;
+    return;
+  }
+
+  tbody.innerHTML = users.map(u => {
+    let roleBadge = '';
+    if (u.rol === 'developer') roleBadge = '<span class="dev-role-badge role-dev">🛠️ Developer</span>';
+    else if (u.rol === 'admin') roleBadge = '<span class="dev-role-badge role-admin">👨‍🍳 Admin Soda</span>';
+    else if (u.rol === 'cajero') roleBadge = '<span class="dev-role-badge role-cajero">📟 Cajero</span>';
+    else if (u.rol === 'vendedor') roleBadge = '<span class="dev-role-badge role-vendedor">📦 Vendedor</span>';
+    else if (u.rol === 'padre') roleBadge = '<span class="dev-role-badge role-padre">👨‍👩‍👦 Padre</span>';
+    else if (u.rol === 'estudiante') roleBadge = '<span class="dev-role-badge role-estudiante">🎒 Estudiante</span>';
+    else roleBadge = `<span class="dev-role-badge">${escapeHtml(u.rol)}</span>`;
+
+    const statusBadge = u.activo ? 
+      `<span style="color: #10b981; font-weight: 800; background: rgba(16, 185, 129, 0.1); padding: 3px 8px; border-radius: 6px; font-size: 0.72rem;">● Activo</span>` :
+      `<span style="color: #ef4444; font-weight: 800; background: rgba(239, 68, 68, 0.1); padding: 3px 8px; border-radius: 6px; font-size: 0.72rem;">✕ Bloqueado</span>`;
+
+    let extraInfo = '';
+    if (u.rol === 'estudiante' && u.estudiante_codigo) {
+      extraInfo = `<div style="font-size: 0.72rem; color: #0284c7; font-weight: 700;">Carné: ${escapeHtml(u.estudiante_codigo)} · ${escapeHtml(u.estudiante_grado || '')}</div>`;
+    } else if (u.rol === 'padre' && u.hijos_vinculados) {
+      extraInfo = `<div style="font-size: 0.72rem; color: #f59e0b; font-weight: 700;">Hijos: ${escapeHtml(u.hijos_vinculados)}</div>`;
+    }
+
+    return `
+      <tr style="border-bottom: 1px solid var(--border); transition: background 0.15s;" onmouseover="this.style.background='var(--bg-main)'" onmouseout="this.style.background='transparent'">
+        <td style="padding: 10px 14px; font-weight: 800; color: var(--text-muted); font-size: 0.76rem;">#${u.id}</td>
+        <td style="padding: 10px 14px; font-weight: 800; color: var(--text-main);">
+          ${escapeHtml(u.username)}
+          ${extraInfo}
+        </td>
+        <td style="padding: 10px 14px; color: var(--text-main); font-weight: 600;">${escapeHtml(u.nombre || '-')}</td>
+        <td style="padding: 10px 14px;">${roleBadge}</td>
+        <td style="padding: 10px 14px; font-size: 0.76rem; color: var(--text-muted);">
+          ${u.telefono ? `📞 ${escapeHtml(u.telefono)}<br>` : ''}
+          ${u.email ? `✉️ ${escapeHtml(u.email)}` : (!u.telefono ? '-' : '')}
+        </td>
+        <td style="padding: 10px 14px;">${statusBadge}</td>
+        <td style="padding: 10px 14px; text-align: right; white-space: nowrap;">
+          <div style="display: inline-flex; gap: 4px;">
+            <button onclick="openModalDevUser(${u.id})" class="dev-action-btn" style="padding: 4px 8px; font-size: 0.75rem;" title="Modificar datos del usuario">
+              ✏️ Editar
+            </button>
+            <button onclick="openModalDevPassword(${u.id}, '${escapeHtml(u.username)}')" class="dev-action-btn" style="padding: 4px 8px; font-size: 0.75rem; color: #8b5cf6;" title="Cambiar contraseña directamente">
+              🔑 Clave
+            </button>
+            <button onclick="toggleDevUserStatus(${u.id}, ${u.activo ? 0 : 1})" class="dev-action-btn" style="padding: 4px 8px; font-size: 0.75rem; color: ${u.activo ? '#eab308' : '#10b981'};" title="${u.activo ? 'Bloquear usuario' : 'Desbloquear usuario'}">
+              ${u.activo ? '⏸️ Bloquear' : '▶️ Desbloquear'}
+            </button>
+            <button onclick="deleteDevUser(${u.id}, '${escapeHtml(u.username)}')" class="dev-action-btn dev-action-btn-danger" style="padding: 4px 8px; font-size: 0.75rem;" title="Eliminar usuario">
+              🗑️
+            </button>
+          </div>
+        </td>
+      </tr>
+    `;
+  }).join('');
+}
+
+function openModalDevUser(userId = null) {
+  const modal = document.getElementById('modalDevUser');
+  const title = document.getElementById('modalDevUserTitle');
+  const idInput = document.getElementById('devUserId');
+  const userInput = document.getElementById('devInputUsername');
+  const rolInput = document.getElementById('devInputRol');
+  const nombreInput = document.getElementById('devInputNombre');
+  const pwdInput = document.getElementById('devInputPassword');
+  const pwdHelp = document.getElementById('devPasswordHelp');
+  const telInput = document.getElementById('devInputTelefono');
+  const emailInput = document.getElementById('devInputEmail');
+
+  if (userId) {
+    const user = devAllUsers.find(u => u.id === userId);
+    if (!user) return;
+    title.textContent = `Editar Usuario: ${user.username}`;
+    idInput.value = user.id;
+    userInput.value = user.username;
+    rolInput.value = user.rol;
+    nombreInput.value = user.nombre;
+    pwdInput.value = '';
+    pwdInput.required = false;
+    if (pwdHelp) pwdHelp.style.display = 'block';
+    telInput.value = user.telefono || '';
+    emailInput.value = user.email || '';
+  } else {
+    title.textContent = 'Crear Nuevo Usuario / Admin';
+    idInput.value = '';
+    userInput.value = '';
+    rolInput.value = 'admin';
+    nombreInput.value = '';
+    pwdInput.value = '';
+    pwdInput.required = true;
+    if (pwdHelp) pwdHelp.style.display = 'none';
+    telInput.value = '';
+    emailInput.value = '';
+  }
+
+  modal.style.display = 'flex';
+}
+
+function closeModalDevUser(event) {
+  if (event && event.target !== event.currentTarget) return;
+  const modal = document.getElementById('modalDevUser');
+  if (modal) modal.style.display = 'none';
+}
+
+async function saveDevUser(e) {
+  e.preventDefault();
+  const userId = document.getElementById('devUserId').value;
+  const username = document.getElementById('devInputUsername').value.trim();
+  const rol = document.getElementById('devInputRol').value;
+  const nombre = document.getElementById('devInputNombre').value.trim();
+  const password = document.getElementById('devInputPassword').value;
+  const telefono = document.getElementById('devInputTelefono').value.trim();
+  const email = document.getElementById('devInputEmail').value.trim();
+
+  try {
+    let url = '/api/developer/usuarios';
+    let method = 'POST';
+    const payload = { username, rol, nombre, telefono, email };
+
+    if (userId) {
+      url = `/api/developer/usuarios/${userId}`;
+      method = 'PUT';
+      if (password) payload.password = password;
+    } else {
+      if (!password) {
+        alert('Debes ingresar una contraseña para el nuevo usuario');
+        return;
+      }
+      payload.password = password;
+    }
+
+    const res = await fetch(url, {
+      method,
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Error al guardar usuario');
+
+    closeModalDevUser();
+    await loadDevUsuarios();
+    if (window.sounds) window.sounds.playSuccess();
+    alert(userId ? '✅ Usuario actualizado con éxito' : '✅ Usuario creado con éxito');
+  } catch (err) {
+    console.error('Error guardando usuario:', err);
+    if (window.sounds) window.sounds.playError();
+    alert('❌ ' + err.message);
+  }
+}
+
+function openModalDevPassword(userId, username) {
+  const modal = document.getElementById('modalDevPassword');
+  const targetLabel = document.getElementById('devPwdTargetUser');
+  const idInput = document.getElementById('devPwdUserId');
+  const pwdInput = document.getElementById('devInputNewPassword');
+
+  idInput.value = userId;
+  targetLabel.textContent = `Usuario: ${username}`;
+  pwdInput.value = '';
+  modal.style.display = 'flex';
+}
+
+function closeModalDevPassword(event) {
+  if (event && event.target !== event.currentTarget) return;
+  const modal = document.getElementById('modalDevPassword');
+  if (modal) modal.style.display = 'none';
+}
+
+async function saveDevPassword(e) {
+  e.preventDefault();
+  const userId = document.getElementById('devPwdUserId').value;
+  const password = document.getElementById('devInputNewPassword').value;
+
+  if (!password || password.length < 4) {
+    alert('La contraseña debe tener al menos 4 caracteres');
+    return;
+  }
+
+  try {
+    const res = await fetch(`/api/developer/usuarios/${userId}/password`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ password })
+    });
+
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Error al cambiar contraseña');
+
+    closeModalDevPassword();
+    if (window.sounds) window.sounds.playSuccess();
+    alert('🔒 Contraseña actualizada correctamente');
+  } catch (err) {
+    console.error('Error cambiando contraseña:', err);
+    if (window.sounds) window.sounds.playError();
+    alert('❌ ' + err.message);
+  }
+}
+
+async function toggleDevUserStatus(userId, activo) {
+  try {
+    const res = await fetch(`/api/developer/usuarios/${userId}/estado`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ activo })
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Error cambiando estado');
+    await loadDevUsuarios();
+  } catch (err) {
+    alert('❌ ' + err.message);
+  }
+}
+
+async function deleteDevUser(userId, username) {
+  if (!confirm(`¿Estás seguro de que deseas eliminar permanentemente al usuario "${username}"?`)) {
+    return;
+  }
+
+  try {
+    const res = await fetch(`/api/developer/usuarios/${userId}`, { method: 'DELETE' });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Error eliminando usuario');
+    await loadDevUsuarios();
+    if (window.sounds) window.sounds.playTrash();
+  } catch (err) {
+    alert('❌ ' + err.message);
+  }
+}
+
+// 2. GESTIÓN Y SUBIDA DE DISEÑOS DE TARJETAS
+function handleDevCardFileSelect(e) {
+  const file = e.target.files && e.target.files[0];
+  if (!file) return;
+
+  if (file.size > 20 * 1024 * 1024) {
+    alert('El archivo es demasiado grande (máximo 20MB)');
+    return;
+  }
+
+  const reader = new FileReader();
+  reader.onload = (event) => {
+    devUploadedBase64 = event.target.result;
+    document.getElementById('devUploadPrompt').style.display = 'none';
+    const successEl = document.getElementById('devUploadSuccess');
+    successEl.style.display = 'block';
+    document.getElementById('devUploadFileName').textContent = file.name;
+    
+    // Auto-sugerir nombre si está vacío
+    const nameInput = document.getElementById('devCardName');
+    if (!nameInput.value) {
+      const cleanName = file.name.replace(/\.[^/.]+$/, '').replace(/[-_]/g, ' ');
+      nameInput.value = cleanName.charAt(0).toUpperCase() + cleanName.slice(1);
+    }
+
+    updateDevCardLivePreview();
+  };
+  reader.readAsDataURL(file);
+}
+
+function updateDevCardLivePreview() {
+  const name = document.getElementById('devCardName').value || 'Nombre del Diseño';
+  const textStyle = document.getElementById('devCardTextStyle').value;
+  const previewImg = document.getElementById('devLiveCardBgImg');
+  const title = document.getElementById('devLiveCardThemeTitle');
+  const cardName = document.getElementById('devLiveCardName');
+  const cardGrade = document.getElementById('devLiveCardGrade');
+  const cardBalVal = document.getElementById('devLiveCardBalValue');
+  const cardBalLbl = document.getElementById('devLiveCardBalLabel');
+  const cardBrand = document.getElementById('devLiveCardBrand');
+
+  if (title) title.textContent = `${name} (Vista Previa)`;
+  if (devUploadedBase64 && previewImg) {
+    previewImg.src = devUploadedBase64;
+  }
+
+  // Ajustar contraste dinámico de la vista previa
+  if (textStyle === 'light') {
+    if (cardName) { cardName.style.color = '#0f172a'; cardName.style.textShadow = '0 1px 2px rgba(255,255,255,0.9)'; }
+    if (cardGrade) { cardGrade.style.color = '#334155'; cardGrade.style.textShadow = 'none'; }
+    if (cardBalVal) { cardBalVal.style.color = '#047857'; cardBalVal.style.textShadow = '0 1px 2px rgba(255,255,255,0.8)'; }
+    if (cardBalLbl) { cardBalLbl.style.color = '#334155'; }
+    if (cardBrand) { cardBrand.style.color = '#0f172a'; cardBrand.style.textShadow = '0 1px 2px rgba(255,255,255,0.8)'; }
+  } else {
+    if (cardName) { cardName.style.color = '#ffffff'; cardName.style.textShadow = '0 2px 8px rgba(0,0,0,0.9)'; }
+    if (cardGrade) { cardGrade.style.color = '#cbd5e1'; cardGrade.style.textShadow = '0 2px 6px rgba(0,0,0,0.9)'; }
+    if (cardBalVal) { cardBalVal.style.color = '#4ade80'; cardBalVal.style.textShadow = '0 2px 10px rgba(0,0,0,0.95)'; }
+    if (cardBalLbl) { cardBalLbl.style.color = '#cbd5e1'; }
+    if (cardBrand) { cardBrand.style.color = '#ffffff'; cardBrand.style.textShadow = '0 2px 8px rgba(0,0,0,0.8)'; }
+  }
+}
+
+async function saveDevCardDesign(e) {
+  e.preventDefault();
+  const name = document.getElementById('devCardName').value.trim();
+  const categoria = document.getElementById('devCardCategory').value;
+  const estilo_texto = document.getElementById('devCardTextStyle').value;
+  const submitBtn = document.getElementById('btnDevSubmitCard');
+
+  if (!devUploadedBase64) {
+    alert('Por favor selecciona una imagen para el diseño de la tarjeta');
+    return;
+  }
+
+  submitBtn.disabled = true;
+  submitBtn.textContent = 'Guardando y publicando...';
+
+  try {
+    const res = await fetch('/api/developer/disenos-tarjetas', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        nombre: name,
+        categoria: categoria,
+        estilo_texto: estilo_texto,
+        image_base64: devUploadedBase64
+      })
+    });
+
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Error al guardar diseño');
+
+    // Limpiar formulario
+    devUploadedBase64 = null;
+    document.getElementById('formDevCardDesign').reset();
+    document.getElementById('devUploadPrompt').style.display = 'block';
+    document.getElementById('devUploadSuccess').style.display = 'none';
+    document.getElementById('devLiveCardBgImg').src = '/img/cards/card_robo_lab.jpg';
+
+    if (window.sounds) window.sounds.playSuccess();
+    alert('🎉 ¡Diseño guardado y publicado con éxito! Ya está disponible para todos los estudiantes.');
+
+    await loadDevDisenos();
+    await loadCardDesigns();
+  } catch (err) {
+    console.error('Error guardando tarjeta:', err);
+    if (window.sounds) window.sounds.playError();
+    alert('❌ ' + err.message);
+  } finally {
+    submitBtn.disabled = false;
+    submitBtn.innerHTML = '<span>🚀</span> <span>Guardar y Publicar Diseño</span>';
+  }
+}
+
+async function loadDevDisenos() {
+  const grid = document.getElementById('devDisenosGrid');
+  const countEl = document.getElementById('devDisenosCount');
+  if (!grid) return;
+
+  try {
+    grid.innerHTML = '<div style="grid-column: 1/-1; text-align: center; padding: 24px; color: var(--text-muted);">Cargando catálogo de diseños...</div>';
+    const res = await fetch('/api/developer/disenos-tarjetas');
+    if (!res.ok) throw new Error('Error al cargar diseños');
+    devAllDisenos = await res.json();
+    if (countEl) countEl.textContent = devAllDisenos.length;
+    renderDevDisenosGrid(devAllDisenos);
+  } catch (err) {
+    console.error('Error cargando diseños dev:', err);
+    grid.innerHTML = `<div style="grid-column: 1/-1; text-align: center; padding: 24px; color: #ef4444;">Error: ${escapeHtml(err.message)}</div>`;
+  }
+}
+
+function filterDevDisenosGrid(category, btn) {
+  if (btn) {
+    btn.parentElement.querySelectorAll('.dev-action-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+  }
+
+  const filtered = (category === 'all') ? devAllDisenos : devAllDisenos.filter(d => d.categoria === category);
+  renderDevDisenosGrid(filtered);
+}
+
+function renderDevDisenosGrid(disenos) {
+  const grid = document.getElementById('devDisenosGrid');
+  if (!grid) return;
+
+  if (disenos.length === 0) {
+    grid.innerHTML = '<div style="grid-column: 1/-1; text-align: center; padding: 24px; color: var(--text-muted);">No hay diseños en esta categoría</div>';
+    return;
+  }
+
+  grid.innerHTML = disenos.map(d => {
+    let catLabel = '🌐 Unisex';
+    if (d.categoria === 'fem') catLabel = '🌸 Femenino';
+    if (d.categoria === 'masc') catLabel = '🚀 Masculino';
+
+    const statusBadge = d.activo ?
+      `<span style="color: #10b981; font-weight: 800; font-size: 0.72rem; background: rgba(16, 185, 129, 0.1); padding: 2px 7px; border-radius: 6px;">● Activo</span>` :
+      `<span style="color: #ef4444; font-weight: 800; font-size: 0.72rem; background: rgba(239, 68, 68, 0.1); padding: 2px 7px; border-radius: 6px;">✕ Inactivo</span>`;
+
+    const textColorLabel = (d.estilo_texto === 'light') ? 'Texto Oscuro' : 'Texto Blanco';
+
+    return `
+      <div style="background: var(--card-bg); border: 1.5px solid var(--border); border-radius: 14px; overflow: hidden; box-shadow: 0 4px 14px rgba(0,0,0,0.06); display: flex; flex-direction: column;">
+        <div style="position: relative; aspect-ratio: 1.586; overflow: hidden; background: #0f172a;">
+          <img src="${escapeHtml(d.imagen_url)}" alt="${escapeHtml(d.nombre)}" style="width: 100%; height: 100%; object-fit: cover; display: block;" onerror="this.src='/img/cards/card_robo_lab.jpg'">
+          <div style="position: absolute; top: 8px; left: 8px; background: rgba(0,0,0,0.6); color: white; font-size: 0.68rem; font-weight: 800; padding: 2px 6px; border-radius: 5px; backdrop-filter: blur(4px);">
+            ${catLabel}
+          </div>
+          <div style="position: absolute; top: 8px; right: 8px;">
+            ${statusBadge}
+          </div>
+        </div>
+        <div style="padding: 12px; flex: 1; display: flex; flex-direction: column; justify-content: space-between;">
+          <div>
+            <div style="font-weight: 900; font-size: 0.92rem; color: var(--text-main); margin-bottom: 3px;">
+              ${escapeHtml(d.nombre)}
+            </div>
+            <div style="font-size: 0.72rem; color: var(--text-muted); display: flex; gap: 8px;">
+              <span>👁️ ${textColorLabel}</span>
+              ${d.es_predeterminado ? '<span style="color: #8b5cf6; font-weight: 800;">★ Predeterminado</span>' : ''}
+            </div>
+          </div>
+          <div style="margin-top: 10px; display: flex; gap: 6px; justify-content: flex-end;">
+            <button onclick="toggleDevCardStatus(${d.id}, ${d.activo ? 0 : 1})" class="dev-action-btn" style="padding: 5px 9px; font-size: 0.74rem;">
+              ${d.activo ? 'Desactivar' : 'Activar'}
+            </button>
+            <button onclick="deleteDevCardDesign(${d.id}, '${escapeHtml(d.nombre)}')" class="dev-action-btn dev-action-btn-danger" style="padding: 5px 9px; font-size: 0.74rem;">
+              🗑️
+            </button>
+          </div>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+async function toggleDevCardStatus(id, activo) {
+  try {
+    const res = await fetch(`/api/developer/disenos-tarjetas/${id}/estado`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ activo })
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Error cambiando estado');
+    await loadDevDisenos();
+    await loadCardDesigns();
+  } catch (err) {
+    alert('❌ ' + err.message);
+  }
+}
+
+async function deleteDevCardDesign(id, nombre) {
+  if (!confirm(`¿Eliminar el diseño "${nombre}"? Los estudiantes ya no podrán seleccionarlo.`)) {
+    return;
+  }
+
+  try {
+    const res = await fetch(`/api/developer/disenos-tarjetas/${id}`, { method: 'DELETE' });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Error eliminando diseño');
+    await loadDevDisenos();
+    await loadCardDesigns();
+    if (window.sounds) window.sounds.playTrash();
+  } catch (err) {
+    alert('❌ ' + err.message);
+  }
+}
+
+// 3. DIAGNÓSTICO Y MÉTRICAS DEL SISTEMA & BD
+async function loadDevStats() {
+  const container = document.getElementById('devStatsContainer');
+  if (!container) return;
+
+  try {
+    const res = await fetch('/api/developer/stats');
+    if (!res.ok) throw new Error('Error al obtener estadísticas');
+    const s = await res.json();
+
+    const sec = s.sistema?.uptime_segundos || 0;
+    const hrs = Math.floor(sec / 3600);
+    const mins = Math.floor((sec % 3600) / 60);
+    const uptimeStr = hrs > 0 ? `${hrs}h ${mins}m` : `${mins} min (${sec % 60}s)`;
+
+    container.innerHTML = `
+      <div style="background: var(--card-bg); border: 1.5px solid var(--border); border-radius: 14px; padding: 18px;">
+        <div style="font-size: 0.74rem; font-weight: 800; color: var(--text-muted); text-transform: uppercase;">⏱️ Tiempo Activo (Uptime)</div>
+        <div style="font-size: 1.35rem; font-weight: 900; color: #0284c7; margin-top: 6px;">${uptimeStr}</div>
+        <div style="font-size: 0.72rem; color: var(--text-muted); margin-top: 2px;">Node.js ${escapeHtml(s.sistema?.node_version || '')}</div>
+      </div>
+      <div style="background: var(--card-bg); border: 1.5px solid var(--border); border-radius: 14px; padding: 18px;">
+        <div style="font-size: 0.74rem; font-weight: 800; color: var(--text-muted); text-transform: uppercase;">🧠 Memoria RAM (Heap)</div>
+        <div style="font-size: 1.35rem; font-weight: 900; color: #8b5cf6; margin-top: 6px;">${s.sistema?.memoria_mb || 0} MB</div>
+        <div style="font-size: 0.72rem; color: var(--text-muted); margin-top: 2px;">Consumo de Proceso Node</div>
+      </div>
+      <div style="background: var(--card-bg); border: 1.5px solid var(--border); border-radius: 14px; padding: 18px;">
+        <div style="font-size: 0.74rem; font-weight: 800; color: var(--text-muted); text-transform: uppercase;">💾 Base de Datos SQLite</div>
+        <div style="font-size: 1.35rem; font-weight: 900; color: #10b981; margin-top: 6px;">${s.sistema?.db_size_kb || 0} KB</div>
+        <div style="font-size: 0.72rem; color: var(--text-muted); margin-top: 2px;">WAL Mode Activado</div>
+      </div>
+      <div style="background: var(--card-bg); border: 1.5px solid var(--border); border-radius: 14px; padding: 18px;">
+        <div style="font-size: 0.74rem; font-weight: 800; color: var(--text-muted); text-transform: uppercase;">👥 Usuarios Registrados</div>
+        <div style="font-size: 1.35rem; font-weight: 900; color: #f59e0b; margin-top: 6px;">${s.usuarios?.total || 0} Cuentas</div>
+        <div style="font-size: 0.72rem; color: var(--text-muted); margin-top: 2px;">${s.estudiantes?.total || 0} Alumnos vinculados</div>
+      </div>
+      <div style="background: var(--card-bg); border: 1.5px solid var(--border); border-radius: 14px; padding: 18px;">
+        <div style="font-size: 0.74rem; font-weight: 800; color: var(--text-muted); text-transform: uppercase;">🎨 Diseños de Tarjetas</div>
+        <div style="font-size: 1.35rem; font-weight: 900; color: #ec4899; margin-top: 6px;">${s.negocio?.disenos_tarjetas_activas || 0} Activos</div>
+        <div style="font-size: 0.72rem; color: var(--text-muted); margin-top: 2px;">Disponibles para alumnos</div>
+      </div>
+      <div style="background: var(--card-bg); border: 1.5px solid var(--border); border-radius: 14px; padding: 18px;">
+        <div style="font-size: 0.74rem; font-weight: 800; color: var(--text-muted); text-transform: uppercase;">🧾 Pedidos en Soda</div>
+        <div style="font-size: 1.35rem; font-weight: 900; color: #06b6d4; margin-top: 6px;">${s.negocio?.ordenes_totales || 0} Órdenes</div>
+        <div style="font-size: 0.72rem; color: var(--text-muted); margin-top: 2px;">${s.negocio?.transacciones_totales || 0} Transacciones totales</div>
+      </div>
+    `;
+  } catch (err) {
+    console.error('Error cargando stats dev:', err);
+    container.innerHTML = `<div style="grid-column: 1/-1; color: #ef4444;">Error cargando métricas: ${escapeHtml(err.message)}</div>`;
+  }
+}
+
 
 

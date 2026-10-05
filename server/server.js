@@ -1,6 +1,7 @@
 const express = require('express');
 const cors = require('cors');
 const path = require('path');
+const fs = require('fs');
 const QRCode = require('qrcode');
 const { db, initDatabase, debitoCompraTransaction, recargaSaldoTransaction, crearOrdenCompleta, transferenciaP2PTransaction, revertirTransaccionSaldoTransaction } = require('./db');
 
@@ -11,7 +12,8 @@ const PORT = process.env.PORT || 3030;
 initDatabase();
 
 app.use(cors());
-app.use(express.json());
+app.use(express.json({ limit: '25mb' }));
+app.use(express.urlencoded({ extended: true, limit: '25mb' }));
 app.use(express.static(path.join(__dirname, '../public'), {
   etag: false,
   setHeaders: (res, filePath) => {
@@ -704,6 +706,332 @@ app.delete('/api/admin/personal/:id', (req, res) => {
 
     db.prepare('DELETE FROM usuarios WHERE id = ?').run(staffId);
     res.json({ exito: true, mensaje: `Empleado "${user.nombre}" eliminado correctamente.` });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ==========================================
+// DEVELOPER MASTER SUITE & DISEÑOS DE TARJETAS
+// ==========================================
+
+// Endpoint público para obtener diseños de tarjetas activas (utilizado por el carrusel y app de estudiantes)
+app.get('/api/disenos-tarjetas', (req, res) => {
+  try {
+    const disenos = db.prepare('SELECT * FROM disenos_tarjetas WHERE activo = 1 ORDER BY id ASC').all();
+    res.json(disenos);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Listar todos los usuarios del sistema (Acceso Developer)
+app.get('/api/developer/usuarios', (req, res) => {
+  try {
+    const usuarios = db.prepare(`
+      SELECT u.id, u.username, u.password_hash, u.rol, u.nombre, u.telefono, u.email, u.activo, u.creado_en,
+        (SELECT COUNT(*) FROM estudiantes e WHERE e.usuario_id = u.id) as es_estudiante,
+        (SELECT COUNT(*) FROM padres_estudiantes pe WHERE pe.padre_usuario_id = u.id) as hijos_vinculados
+      FROM usuarios u
+      ORDER BY 
+        CASE u.rol 
+          WHEN 'developer' THEN 1 
+          WHEN 'admin' THEN 2 
+          WHEN 'cajero' THEN 3 
+          WHEN 'vendedor' THEN 4 
+          WHEN 'padre' THEN 5 
+          ELSE 6 
+        END, u.id ASC
+    `).all();
+    res.json(usuarios);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Crear cualquier usuario con cualquier rol (Admin, Developer, Cajero, etc.)
+app.post('/api/developer/usuarios', (req, res) => {
+  try {
+    const { username, password, rol, nombre, telefono, email, activo } = req.body;
+    if (!username || !password || !nombre || !rol) {
+      return res.status(400).json({ error: 'Usuario, contraseña, nombre y rol son obligatorios.' });
+    }
+
+    const cleanUser = String(username).trim().toLowerCase();
+    const cleanPass = String(password).trim();
+    const cleanRol = String(rol).trim().toLowerCase();
+    const cleanActivo = activo === 0 ? 0 : 1;
+
+    const existe = db.prepare('SELECT id FROM usuarios WHERE LOWER(username) = ?').get(cleanUser);
+    if (existe) {
+      return res.status(400).json({ error: `El nombre de usuario "${cleanUser}" ya se encuentra registrado.` });
+    }
+
+    const result = db.prepare(`
+      INSERT INTO usuarios (username, password_hash, rol, nombre, telefono, email, activo)
+      VALUES (?, ?, ?, ?, ?, ?, ?)
+    `).run(cleanUser, cleanPass, cleanRol, String(nombre).trim(), telefono || '', email || '', cleanActivo);
+
+    res.status(201).json({
+      exito: true,
+      mensaje: `Usuario "${nombre}" (${cleanRol}) creado exitosamente con privilegios.`,
+      usuario: { id: result.lastInsertRowid, username: cleanUser, rol: cleanRol, nombre, activo: cleanActivo }
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Modificar datos completos de cualquier usuario (incluyendo administradores)
+app.put('/api/developer/usuarios/:id', (req, res) => {
+  try {
+    const userId = parseInt(req.params.id, 10);
+    const { username, nombre, rol, telefono, email, password, activo } = req.body;
+
+    const user = db.prepare('SELECT * FROM usuarios WHERE id = ?').get(userId);
+    if (!user) return res.status(404).json({ error: 'Usuario no encontrado.' });
+
+    // Validar nombre de usuario único si cambió
+    if (username && username.trim().toLowerCase() !== user.username.toLowerCase()) {
+      const existe = db.prepare('SELECT id FROM usuarios WHERE LOWER(username) = ? AND id != ?').get(username.trim().toLowerCase(), userId);
+      if (existe) {
+        return res.status(400).json({ error: 'Ese nombre de usuario ya pertenece a otra cuenta.' });
+      }
+    }
+
+    const nuevoUser = username ? username.trim().toLowerCase() : user.username;
+    const nuevoNombre = nombre ? nombre.trim() : user.nombre;
+    const nuevoRol = rol ? rol.trim().toLowerCase() : user.rol;
+    const nuevoPass = (password && String(password).trim().length > 0) ? String(password).trim() : user.password_hash;
+    const nuevoTel = telefono !== undefined ? telefono : user.telefono;
+    const nuevoEmail = email !== undefined ? email : user.email;
+    const nuevoActivo = activo !== undefined ? (activo ? 1 : 0) : user.activo;
+
+    db.prepare(`
+      UPDATE usuarios 
+      SET username = ?, nombre = ?, rol = ?, password_hash = ?, telefono = ?, email = ?, activo = ?
+      WHERE id = ?
+    `).run(nuevoUser, nuevoNombre, nuevoRol, nuevoPass, nuevoTel, nuevoEmail, nuevoActivo, userId);
+
+    res.json({
+      exito: true,
+      mensaje: `Usuario "${nuevoNombre}" actualizado con éxito.`,
+      usuario: { id: userId, username: nuevoUser, nombre: nuevoNombre, rol: nuevoRol, activo: nuevoActivo }
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Cambio directo de contraseña de cualquier usuario
+app.put('/api/developer/usuarios/:id/password', (req, res) => {
+  try {
+    const userId = parseInt(req.params.id, 10);
+    const { password } = req.body;
+    if (!password || String(password).trim().length === 0) {
+      return res.status(400).json({ error: 'La nueva contraseña no puede estar vacía.' });
+    }
+
+    const user = db.prepare('SELECT id, nombre, username FROM usuarios WHERE id = ?').get(userId);
+    if (!user) return res.status(404).json({ error: 'Usuario no encontrado.' });
+
+    db.prepare('UPDATE usuarios SET password_hash = ? WHERE id = ?').run(String(password).trim(), userId);
+    res.json({ exito: true, mensaje: `Contraseña de "${user.nombre}" cambiada correctamente.` });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Bloquear / Desbloquear usuario
+app.put('/api/developer/usuarios/:id/estado', (req, res) => {
+  try {
+    const userId = parseInt(req.params.id, 10);
+    const { activo } = req.body;
+    const nuevoEstado = activo ? 1 : 0;
+
+    const user = db.prepare('SELECT * FROM usuarios WHERE id = ?').get(userId);
+    if (!user) return res.status(404).json({ error: 'Usuario no encontrado.' });
+
+    if (user.username === 'dev' && nuevoEstado === 0) {
+      return res.status(400).json({ error: 'No es posible bloquear la cuenta Developer Master principal.' });
+    }
+
+    db.prepare('UPDATE usuarios SET activo = ? WHERE id = ?').run(nuevoEstado, userId);
+    res.json({
+      exito: true,
+      mensaje: `El usuario "${user.nombre}" ahora está ${nuevoEstado ? 'activo' : 'bloqueado'}.`,
+      activo: nuevoEstado
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Eliminar usuario
+app.delete('/api/developer/usuarios/:id', (req, res) => {
+  try {
+    const userId = parseInt(req.params.id, 10);
+    const user = db.prepare('SELECT * FROM usuarios WHERE id = ?').get(userId);
+    if (!user) return res.status(404).json({ error: 'Usuario no encontrado.' });
+
+    if (user.username === 'dev') {
+      return res.status(400).json({ error: 'No es posible eliminar la cuenta Developer Master del sistema.' });
+    }
+
+    db.prepare('DELETE FROM usuarios WHERE id = ?').run(userId);
+    res.json({ exito: true, mensaje: `Usuario "${user.nombre}" eliminado definitivamente.` });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Listar todos los diseños de tarjetas (panel developer)
+app.get('/api/developer/disenos-tarjetas', (req, res) => {
+  try {
+    const disenos = db.prepare('SELECT * FROM disenos_tarjetas ORDER BY id ASC').all();
+    res.json(disenos);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Subir nuevo diseño de tarjeta (soporta Base64 o URL directa)
+app.post('/api/developer/disenos-tarjetas', (req, res) => {
+  try {
+    const { nombre, categoria, estilo_texto, image_base64, image_url, es_predeterminado } = req.body;
+    if (!nombre) {
+      return res.status(400).json({ error: 'El nombre del diseño es obligatorio.' });
+    }
+
+    let finalImageUrl = image_url;
+
+    // Si viene imagen en base64, guardarla en disco en public/img/cards/
+    if (image_base64 && image_base64.startsWith('data:image/')) {
+      const matches = image_base64.match(/^data:image\/([a-zA-Z0-9\+\-]+);base64,(.+)$/);
+      if (!matches) {
+        return res.status(400).json({ error: 'Formato de imagen base64 no válido.' });
+      }
+
+      let ext = matches[1].toLowerCase();
+      if (ext === 'jpeg') ext = 'jpg';
+      if (ext === 'svg+xml') ext = 'svg';
+
+      const base64Data = matches[2];
+      const buffer = Buffer.from(base64Data, 'base64');
+
+      const cardsDir = path.join(__dirname, '../public/img/cards');
+      if (!fs.existsSync(cardsDir)) {
+        fs.mkdirSync(cardsDir, { recursive: true });
+      }
+
+      const filename = `card_custom_${Date.now()}.${ext}`;
+      const filePath = path.join(cardsDir, filename);
+      fs.writeFileSync(filePath, buffer);
+
+      finalImageUrl = `/img/cards/${filename}`;
+    }
+
+    if (!finalImageUrl) {
+      return res.status(400).json({ error: 'Debes subir una imagen o indicar una URL válida.' });
+    }
+
+    const themeId = `card_custom_${Date.now()}`;
+    const cleanCat = ['fem', 'masc', 'uni'].includes(categoria) ? categoria : 'uni';
+    const cleanEstilo = estilo_texto === 'light' ? 'light' : 'dark';
+    const cleanPred = es_predeterminado ? 1 : 0;
+
+    const result = db.prepare(`
+      INSERT INTO disenos_tarjetas (theme_id, nombre, categoria, imagen_url, estilo_texto, es_predeterminado, activo)
+      VALUES (?, ?, ?, ?, ?, ?, 1)
+    `).run(themeId, String(nombre).trim(), cleanCat, finalImageUrl, cleanEstilo, cleanPred);
+
+    const nuevoDiseno = db.prepare('SELECT * FROM disenos_tarjetas WHERE id = ?').get(result.lastInsertRowid);
+    broadcastEvent('disenos_actualizados', nuevoDiseno);
+
+    res.status(201).json({
+      exito: true,
+      mensaje: `¡Diseño "${nombre}" guardado y publicado con éxito para todos los estudiantes!`,
+      diseno: nuevoDiseno
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Activar / Desactivar diseño de tarjeta
+app.put('/api/developer/disenos-tarjetas/:id/estado', (req, res) => {
+  try {
+    const id = parseInt(req.params.id, 10);
+    const { activo } = req.body;
+    const nuevoEstado = activo ? 1 : 0;
+
+    db.prepare('UPDATE disenos_tarjetas SET activo = ? WHERE id = ?').run(nuevoEstado, id);
+    const diseno = db.prepare('SELECT * FROM disenos_tarjetas WHERE id = ?').get(id);
+
+    broadcastEvent('disenos_actualizados', diseno);
+    res.json({ exito: true, diseno, activo: nuevoEstado });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Eliminar diseño de tarjeta
+app.delete('/api/developer/disenos-tarjetas/:id', (req, res) => {
+  try {
+    const id = parseInt(req.params.id, 10);
+    const diseno = db.prepare('SELECT * FROM disenos_tarjetas WHERE id = ?').get(id);
+    if (!diseno) return res.status(404).json({ error: 'Diseño no encontrado.' });
+
+    db.prepare('DELETE FROM disenos_tarjetas WHERE id = ?').run(id);
+    broadcastEvent('disenos_actualizados', { id, eliminado: true });
+
+    res.json({ exito: true, mensaje: `Diseño "${diseno.nombre}" eliminado.` });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Métricas de Diagnóstico del Sistema y Base de Datos (Developer)
+app.get('/api/developer/stats', (req, res) => {
+  try {
+    const totalUsuarios = db.prepare('SELECT COUNT(*) as count FROM usuarios').get().count;
+    const rolesCount = db.prepare('SELECT rol, COUNT(*) as count FROM usuarios GROUP BY rol').all();
+    const totalEstudiantes = db.prepare('SELECT COUNT(*) as count FROM estudiantes').get().count;
+    const saldoTotal = db.prepare('SELECT COALESCE(SUM(saldo_colones), 0) as total FROM estudiantes').get().total;
+    const totalProductos = db.prepare('SELECT COUNT(*) as count FROM productos WHERE disponible = 1').get().count;
+    const totalOrdenes = db.prepare('SELECT COUNT(*) as count FROM ordenes').get().count;
+    const totalTransacciones = db.prepare('SELECT COUNT(*) as count FROM transacciones_saldo').get().count;
+    const totalDisenos = db.prepare('SELECT COUNT(*) as count FROM disenos_tarjetas WHERE activo = 1').get().count;
+
+    let dbSizeBytes = 0;
+    try {
+      const stats = fs.statSync(path.join(__dirname, 'recreopay.db'));
+      dbSizeBytes = stats.size;
+    } catch (e) {}
+
+    res.json({
+      usuarios: {
+        total: totalUsuarios,
+        por_rol: rolesCount
+      },
+      estudiantes: {
+        total: totalEstudiantes,
+        saldo_circulante_colones: saldoTotal
+      },
+      negocio: {
+        productos_activos: totalProductos,
+        ordenes_totales: totalOrdenes,
+        transacciones_totales: totalTransacciones,
+        disenos_tarjetas_activas: totalDisenos
+      },
+      sistema: {
+        node_version: process.version,
+        uptime_segundos: Math.floor(process.uptime()),
+        memoria_mb: (process.memoryUsage().rss / 1024 / 1024).toFixed(2),
+        db_size_kb: (dbSizeBytes / 1024).toFixed(1),
+        sse_clientes_conectados: sseClients.size
+      }
+    });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

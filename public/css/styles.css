@@ -2553,4 +2553,270 @@ body.dark-mode .carousel-nav-btn {
   gap: 4px;
 }
 
+/* ==========================================================================
+   DEVELOPER MASTER SUITE (#viewDeveloper)
+   ========================================================================== */
+.dev-container {
+  max-width: 980px;
+  margin: 0 auto;
+  min-height: 100vh;
+  background: var(--bg-main, #f8fafc);
+  padding: calc(16px + var(--safe-top)) 16px calc(60px + var(--safe-bottom)) 16px;
+  box-sizing: border-box;
+  width: 100%;
+}
+
+.dev-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: var(--card-bg, #ffffff);
+  border: 1.5px solid #8b5cf6;
+  border-radius: 18px;
+  padding: 14px 18px;
+  margin-bottom: 20px;
+  box-shadow: 0 4px 20px -2px rgba(139, 92, 246, 0.15);
+}
+
+.dev-badge {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.dev-icon {
+  font-size: 2rem;
+  background: linear-gradient(135deg, rgba(139, 92, 246, 0.2), rgba(16, 185, 129, 0.2));
+  width: 48px;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 14px;
+  border: 1px solid rgba(139, 92, 246, 0.4);
+}
+
+.dev-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.dev-action-btn {
+  padding: 8px 14px;
+  border-radius: 10px;
+  font-size: 0.82rem;
+  font-weight: 800;
+  border: 1px solid var(--border);
+  background: var(--card-bg);
+  color: var(--text-main);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  text-decoration: none;
+  transition: all 0.2s ease;
+}
+
+.dev-action-btn:hover {
+  transform: translateY(-1px);
+  border-color: #8b5cf6;
+}
+
+.dev-action-btn-primary {
+  background: linear-gradient(135deg, #8b5cf6, #7c3aed);
+  color: white;
+  border-color: #7c3aed;
+}
+
+.dev-tabs-nav {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  margin-bottom: 20px;
+  padding-bottom: 4px;
+}
+
+.dev-tab-btn {
+  padding: 10px 18px;
+  border-radius: 12px;
+  font-size: 0.88rem;
+  font-weight: 800;
+  border: 1.5px solid var(--border);
+  background: var(--card-bg);
+  color: var(--text-muted);
+  cursor: pointer;
+  white-space: nowrap;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transition: all 0.2s;
+}
+
+.dev-tab-btn.active {
+  background: #8b5cf6;
+  color: white;
+  border-color: #7c3aed;
+  box-shadow: 0 4px 14px rgba(139, 92, 246, 0.35);
+}
+
+.dev-card-uploader-box {
+  background: var(--card-bg);
+  border: 2px dashed #8b5cf6;
+  border-radius: 16px;
+  padding: 24px;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  margin-bottom: 20px;
+}
+
+.dev-card-uploader-box:hover {
+  background: rgba(139, 92, 246, 0.05);
+  border-color: #7c3aed;
+}
+
+.dev-role-badge {
+  font-size: 0.72rem;
+  font-weight: 800;
+  padding: 3px 8px;
+  border-radius: 6px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  text-transform: uppercase;
+}
+
+.role-developer {
+  background: #fdf2f8;
+  color: #db2777;
+  border: 1px solid #f472b6;
+}
+
+.role-admin {
+  background: #f5f3ff;
+  color: #7c3aed;
+  border: 1px solid #c4b5fd;
+}
+
+.role-cajero {
+  background: #e0f2fe;
+  color: #0284c7;
+  border: 1px solid #7dd3fc;
+}
+
+.role-vendedor {
+  background: #fef3c7;
+  color: #d97706;
+  border: 1px solid #fcd34d;
+}
+
+.role-padre {
+  background: #dcfce7;
+  color: #166534;
+  border: 1px solid #86efac;
+}
+
+.role-estudiante {
+  background: #f3f4f6;
+  color: #4b5563;
+  border: 1px solid #d1d5db;
+}
+
+/* Soporte de contraste dinámico para fondos de tarjetas en vivo */
+.wallet-card.has-custom-bg {
+  background-size: cover !important;
+  background-position: center !important;
+  background-repeat: no-repeat !important;
+}
+
+.wallet-card.card-text-light-bg,
+.wallet-card.card-style-light {
+  color: #0f172a !important;
+}
+
+.wallet-card.card-text-light-bg h2,
+.wallet-card.card-style-light h2,
+.wallet-card.card-text-light-bg #walletName,
+.wallet-card.card-style-light #walletName {
+  color: #0f172a !important;
+  text-shadow: 0 1px 2px rgba(255, 255, 255, 0.9) !important;
+}
+
+.wallet-card.card-text-light-bg .student-grade,
+.wallet-card.card-style-light .student-grade,
+.wallet-card.card-text-light-bg .label,
+.wallet-card.card-style-light .label {
+  color: #334155 !important;
+  font-weight: 700 !important;
+}
+
+.wallet-card.card-text-light-bg .amount span,
+.wallet-card.card-style-light .amount span,
+.wallet-card.card-text-light-bg #walletBalance,
+.wallet-card.card-style-light #walletBalance {
+  color: #047857 !important;
+  font-weight: 900 !important;
+  text-shadow: 0 1px 2px rgba(255, 255, 255, 0.8) !important;
+}
+
+.wallet-card.card-text-light-bg .qr-toggle-btn,
+.wallet-card.card-style-light .qr-toggle-btn {
+  background: rgba(255, 255, 255, 0.85) !important;
+  color: #0f172a !important;
+  border: 1px solid rgba(0, 0, 0, 0.15) !important;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.1) !important;
+}
+
+.wallet-card.card-text-dark-bg,
+.wallet-card.card-style-dark {
+  color: #ffffff !important;
+}
+
+.wallet-card.card-text-dark-bg h2,
+.wallet-card.card-style-dark h2,
+.wallet-card.card-text-dark-bg #walletName,
+.wallet-card.card-style-dark #walletName {
+  color: #ffffff !important;
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.9) !important;
+}
+
+.wallet-card.card-text-dark-bg .student-grade,
+.wallet-card.card-style-dark .student-grade,
+.wallet-card.card-text-dark-bg .label,
+.wallet-card.card-style-dark .label {
+  color: #cbd5e1 !important;
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.9) !important;
+}
+
+.wallet-card.card-text-dark-bg .amount span,
+.wallet-card.card-style-dark .amount span,
+.wallet-card.card-text-dark-bg #walletBalance,
+.wallet-card.card-style-dark #walletBalance {
+  color: #4ade80 !important;
+  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.95) !important;
+}
+
+.wallet-card.card-text-dark-bg .qr-toggle-btn,
+.wallet-card.card-style-dark .qr-toggle-btn {
+  background: rgba(0, 0, 0, 0.6) !important;
+  color: #ffffff !important;
+  border: 1px solid rgba(255, 255, 255, 0.25) !important;
+  backdrop-filter: blur(6px) !important;
+}
+
+@media (max-width: 650px) {
+  .dev-header {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+  }
+  .dev-header-actions {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+
 
