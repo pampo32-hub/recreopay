@@ -173,13 +173,20 @@ async function applyUserRoleSession() {
     if (viewAdmin) viewAdmin.style.display = 'none';
     if (appContainer) appContainer.style.display = 'block';
     
+    // Mostrar botón de acceso al portal de padres
+    const btnPadres = document.getElementById('btnModePadres');
+    if (btnPadres) btnPadres.style.display = 'inline-block';
+
     await loadInitialData();
     setupParentPortalChildren();
     toggleParentPanel(true);
   } else {
-    // Estudiante
+    // Estudiante: SEGURIDAD ESTRICTA - Ocultar botón de padres
     if (viewAdmin) viewAdmin.style.display = 'none';
     if (appContainer) appContainer.style.display = 'block';
+
+    const btnPadres = document.getElementById('btnModePadres');
+    if (btnPadres) btnPadres.style.display = 'none';
     
     await loadInitialData();
     if (currentUser.estudiante) {
@@ -600,11 +607,22 @@ function closeQrModal(e) {
 // ==========================================
 
 function toggleParentPanel(show, e) {
+  // SEGURIDAD: Un estudiante no tiene acceso al portal de padres
+  if (currentUser && currentUser.rol === 'estudiante') {
+    const modalPadres = document.getElementById('modalPadres');
+    if (modalPadres) modalPadres.style.display = 'none';
+    return;
+  }
   if (e && e.target !== e.currentTarget) return;
-  document.getElementById('modalPadres').style.display = show ? 'flex' : 'none';
+  const modalPadres = document.getElementById('modalPadres');
+  if (modalPadres) modalPadres.style.display = show ? 'flex' : 'none';
 }
 
 function openDailyLimitEditor() {
+  // SEGURIDAD: Los estudiantes no pueden modificar su límite diario
+  if (!currentUser || currentUser.rol === 'estudiante') {
+    return;
+  }
   toggleParentPanel(true);
   setTimeout(() => {
     const input = document.getElementById('inputCustomDailyLimit');
