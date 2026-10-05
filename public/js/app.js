@@ -2226,6 +2226,10 @@ function switchAdminTab(tabName) {
 
   if (tabName === 'movimientos') {
     loadAdminMovimientos();
+  } else if (tabName === 'recarga') {
+    if (!adminSelectedStudent) {
+      clearAdminSelectedStudent();
+    }
   }
 
   if (window.sounds) window.sounds.playTap();
@@ -2506,23 +2510,20 @@ async function submitNewStudent(event) {
 function setupAdminSmartSearch() {
   if (students && students.length > 0) {
     populateAdminRecargaStudents(students);
-    if (!adminSelectedStudent) {
-      // Pre-seleccionar pero NO rellenar el input de búsqueda para que el placeholder sea visible
-      selectAdminStudent(students[0].id, false);
-    }
   }
 }
 
 function populateAdminRecargaStudents(list) {
   const sel = document.getElementById('adminRecargaStudentSelect');
   if (sel) {
-    sel.innerHTML = (list || []).map(s => `
+    sel.innerHTML = '<option value="">-- Seleccionar estudiante --</option>' + (list || []).map(s => `
       <option value="${s.id}">${s.nombre_completo} (Saldo actual: ₡${(s.saldo_colones || 0).toLocaleString('es-CR')})</option>
     `).join('');
-  }
-
-  if (list && list.length > 0 && !adminSelectedStudent) {
-    selectAdminStudent(list[0].id, false);
+    if (adminSelectedStudent) {
+      sel.value = String(adminSelectedStudent.id);
+    } else {
+      sel.value = '';
+    }
   }
 }
 
@@ -2660,6 +2661,32 @@ function onAdminSelectChange(studentId) {
   selectAdminStudent(parseInt(studentId, 10), true);
 }
 
+function clearAdminSelectedStudent() {
+  adminSelectedStudent = null;
+  const sel = document.getElementById('adminRecargaStudentSelect');
+  if (sel) sel.value = '';
+
+  const wrap = document.getElementById('adminSelectedStudentWrap');
+  const notice = document.getElementById('adminEmptyStudentNotice');
+  const fields = document.getElementById('adminRecargaFormFields');
+  const searchInput = document.getElementById('inputAdminSearchStudent');
+  const btnClear = document.getElementById('btnClearAdminSearch');
+
+  if (wrap) wrap.style.display = 'none';
+  if (notice) notice.style.display = 'block';
+  if (fields) {
+    fields.style.opacity = '0.45';
+    fields.style.pointerEvents = 'none';
+  }
+  if (searchInput) searchInput.value = '';
+  if (btnClear) btnClear.style.display = 'none';
+
+  const montoInput = document.getElementById('adminRecargaMonto');
+  if (montoInput) montoInput.value = '';
+  const descInput = document.getElementById('adminRecargaDescripcion');
+  if (descInput) descInput.value = '';
+}
+
 function selectAdminStudent(studentId, updateSearchInput = false) {
   const id = parseInt(studentId, 10);
   const student = (students || []).find(s => s.id === id);
@@ -2670,7 +2697,17 @@ function selectAdminStudent(studentId, updateSearchInput = false) {
   const sel = document.getElementById('adminRecargaStudentSelect');
   if (sel) sel.value = String(student.id);
 
-  const banner = document.getElementById('adminSelectedStudentBanner');
+  const wrap = document.getElementById('adminSelectedStudentWrap');
+  const notice = document.getElementById('adminEmptyStudentNotice');
+  const fields = document.getElementById('adminRecargaFormFields');
+
+  if (wrap) wrap.style.display = 'block';
+  if (notice) notice.style.display = 'none';
+  if (fields) {
+    fields.style.opacity = '1';
+    fields.style.pointerEvents = 'auto';
+  }
+
   const avatar = document.getElementById('adminSelectedAvatar');
   const name = document.getElementById('adminSelectedName');
   const statusBadge = document.getElementById('adminSelectedStatusBadge');
@@ -2680,7 +2717,6 @@ function selectAdminStudent(studentId, updateSearchInput = false) {
   const dropdown = document.getElementById('adminSearchResultsDropdown');
   const btnClear = document.getElementById('btnClearAdminSearch');
 
-  if (banner) banner.style.display = 'flex';
   if (avatar) avatar.src = student.foto_url || '/img/avatar_default.png';
   if (name) name.textContent = student.nombre_completo;
   if (statusBadge) {
@@ -2702,7 +2738,6 @@ function selectAdminStudent(studentId, updateSearchInput = false) {
       searchInput.value = student.nombre_completo;
       if (btnClear) btnClear.style.display = 'flex';
     } else {
-      // Mantener vacío para que el placeholder "🔍 Escribe para buscar..." sea completamente visible
       searchInput.value = '';
       if (btnClear) btnClear.style.display = 'none';
     }
@@ -2887,6 +2922,7 @@ async function submitAdminManualRecharge() {
 
     await loadAdminData();
     populateAdminRecargaStudents(students);
+    clearAdminSelectedStudent();
   } catch (err) {
     if (window.sounds) window.sounds.playError();
     alert(`❌ Error al recargar: ${err.message}`);

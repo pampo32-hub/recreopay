@@ -10,7 +10,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="RecreoPay">
   <meta name="mobile-web-app-capable" content="yes">
-  <link rel="stylesheet" href="/css/styles.css?v=8.7">
+  <link rel="stylesheet" href="/css/styles.css?v=8.8">
   <style>
     /* Transiciones suaves */
     .fade-enter { animation: fadeIn 0.2s ease-in-out; }
@@ -263,64 +263,86 @@
         </div>
       </div>
 
-      <!-- FICHA DEL ESTUDIANTE SELECCIONADO -->
-      <div style="margin-bottom: 6px; display: flex; justify-content: space-between; align-items: center;">
-        <span style="font-size: 0.75rem; font-weight: 800; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;">
-          Estudiante seleccionado:
-        </span>
-        <button type="button" onclick="focusAdminSearch()" style="background: none; border: none; color: #0284c7; font-size: 0.74rem; font-weight: 800; cursor: pointer; text-decoration: underline;">
-          🔍 Cambiar / Buscar otro
-        </button>
+      <!-- ESTADO 1: AVISO VACÍO (NINGÚN ESTUDIANTE SELECCIONADO) -->
+      <div id="adminEmptyStudentNotice" style="display: block; text-align: center; padding: 22px 16px; background: #f8fafc; border: 2px dashed #cbd5e1; border-radius: 16px; margin-bottom: 16px;">
+        <div style="font-size: 2.2rem; margin-bottom: 4px;">📷</div>
+        <strong style="font-size: 0.95rem; color: var(--text-main); display: block;">Ningún estudiante seleccionado</strong>
+        <p style="font-size: 0.78rem; color: var(--text-muted); margin: 4px 0 12px 0;">
+          Escanea el carné QR del alumno o selecciónalo en el buscador de arriba para cargarle saldo.
+        </p>
+        <div style="display: flex; gap: 8px; justify-content: center; flex-wrap: wrap;">
+          <button type="button" onclick="openAdminScanQrModal()" style="padding: 8px 16px; background: #0284c7; color: white; border: none; border-radius: 8px; font-weight: 800; font-size: 0.8rem; cursor: pointer; display: flex; align-items: center; gap: 5px; box-shadow: 0 2px 6px rgba(2, 132, 199, 0.25);">
+            <span>📷</span> Escanear Carné QR
+          </button>
+          <button type="button" onclick="focusAdminSearch()" style="padding: 8px 14px; background: #ffffff; color: #475569; border: 1.5px solid var(--border); border-radius: 8px; font-weight: 800; font-size: 0.8rem; cursor: pointer; display: flex; align-items: center; gap: 5px;">
+            <span>🔍</span> Buscar por Nombre
+          </button>
+        </div>
       </div>
-      <div id="adminSelectedStudentBanner" class="selected-student-banner" style="display: none;">
-        <div style="display: flex; align-items: center; gap: 10px; min-width: 0; flex: 1;">
-          <img id="adminSelectedAvatar" src="" style="width: 46px; height: 46px; border-radius: 50%; border: 2.5px solid #0284c7; background: white; flex-shrink: 0; object-fit: cover;">
-          <div style="min-width: 0;">
-            <div style="display: flex; align-items: center; gap: 6px; flex-wrap: wrap;">
-              <strong id="adminSelectedName" style="font-size: 0.98rem; color: var(--text-main); word-break: break-word;">Selecciona un alumno</strong>
-              <span id="adminSelectedStatusBadge" style="font-size: 0.65rem; font-weight: 800; background: #dcfce7; color: #166534; padding: 2px 6px; border-radius: 4px;">ACTIVA</span>
-            </div>
-            <div id="adminSelectedMeta" style="font-size: 0.75rem; color: var(--text-muted); margin-top: 2px;">
-              Grado y Sección • Cód: EST-2026-000
+
+      <!-- ESTADO 2: FICHA DEL ESTUDIANTE SELECCIONADO TRAS ESCANEO O BÚSQUEDA -->
+      <div id="adminSelectedStudentWrap" style="display: none; margin-bottom: 16px;">
+        <div style="margin-bottom: 6px; display: flex; justify-content: space-between; align-items: center;">
+          <span style="font-size: 0.75rem; font-weight: 800; color: #166534; text-transform: uppercase; letter-spacing: 0.5px; display: flex; align-items: center; gap: 4px;">
+            <span>✅</span> Estudiante Seleccionado:
+          </span>
+          <button type="button" onclick="clearAdminSelectedStudent()" style="background: none; border: none; color: #ef4444; font-size: 0.74rem; font-weight: 800; cursor: pointer; display: flex; align-items: center; gap: 3px;">
+            ✕ Cambiar / Quitar
+          </button>
+        </div>
+        <div id="adminSelectedStudentBanner" class="selected-student-banner" style="display: flex;">
+          <div style="display: flex; align-items: center; gap: 10px; min-width: 0; flex: 1;">
+            <img id="adminSelectedAvatar" src="" style="width: 48px; height: 48px; border-radius: 50%; border: 2.5px solid #0284c7; background: white; flex-shrink: 0; object-fit: cover;">
+            <div style="min-width: 0;">
+              <div style="display: flex; align-items: center; gap: 6px; flex-wrap: wrap;">
+                <strong id="adminSelectedName" style="font-size: 1rem; color: var(--text-main); word-break: break-word;">Selecciona un alumno</strong>
+                <span id="adminSelectedStatusBadge" style="font-size: 0.65rem; font-weight: 800; background: #dcfce7; color: #166534; padding: 2px 6px; border-radius: 4px;">ACTIVA</span>
+              </div>
+              <div id="adminSelectedMeta" style="font-size: 0.75rem; color: var(--text-muted); margin-top: 2px;">
+                Grado y Sección • Cód: EST-2026-000
+              </div>
             </div>
           </div>
-        </div>
-        <div style="text-align: right; flex-shrink: 0;">
-          <div style="font-size: 0.68rem; font-weight: 800; color: var(--text-muted); text-transform: uppercase;">Saldo Actual</div>
-          <div id="adminSelectedBalance" style="font-size: 1.2rem; font-weight: 900; color: #10b981;">₡0</div>
+          <div style="text-align: right; flex-shrink: 0;">
+            <div style="font-size: 0.68rem; font-weight: 800; color: var(--text-muted); text-transform: uppercase;">Saldo Actual</div>
+            <div id="adminSelectedBalance" style="font-size: 1.25rem; font-weight: 900; color: #10b981;">₡0</div>
+          </div>
         </div>
       </div>
 
       <!-- SELECT OCULTO PARA COMPATIBILIDAD CON FUNCIONES JS -->
       <select id="adminRecargaStudentSelect" style="display: none;" onchange="onAdminSelectChange(this.value)"></select>
 
-      <div style="margin-bottom: 12px;">
-        <label style="display: block; font-size: 0.8rem; font-weight: 800; color: var(--text-main); margin-bottom: 5px;">
-          Monto a Recargar en Colones:
-        </label>
-        <div style="position: relative;">
-          <span style="position: absolute; left: 12px; top: 50%; transform: translateY(-50%); font-weight: 900; font-size: 1.1rem; color: #10b981;">₡</span>
-          <input type="tel" inputmode="numeric" pattern="[0-9]*" id="adminRecargaMonto" placeholder="Ej: 5000" style="width: 100%; padding: 11px 12px 11px 32px; border-radius: 10px; border: 2px solid #10b981; font-size: 1.15rem; font-weight: 900; color: var(--text-main); background: var(--card-bg); box-sizing: border-box;">
+      <!-- SECCIÓN DE MONTO Y RECARGA (HABILITADA TRAS ESCANEO) -->
+      <div id="adminRecargaFormFields" style="opacity: 0.45; pointer-events: none; transition: all 0.25s ease;">
+        <div style="margin-bottom: 12px;">
+          <label style="display: block; font-size: 0.8rem; font-weight: 800; color: var(--text-main); margin-bottom: 5px;">
+            Monto a Recargar en Colones:
+          </label>
+          <div style="position: relative;">
+            <span style="position: absolute; left: 12px; top: 50%; transform: translateY(-50%); font-weight: 900; font-size: 1.1rem; color: #10b981;">₡</span>
+            <input type="tel" inputmode="numeric" pattern="[0-9]*" id="adminRecargaMonto" placeholder="Ej: 5000" style="width: 100%; padding: 11px 12px 11px 32px; border-radius: 10px; border: 2px solid #10b981; font-size: 1.15rem; font-weight: 900; color: var(--text-main); background: var(--card-bg); box-sizing: border-box;">
+          </div>
         </div>
-      </div>
 
-      <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin-bottom: 14px;">
-        <button type="button" onclick="setAdminRecargaPreset(1000)" class="stock-btn-quick">₡1.000</button>
-        <button type="button" onclick="setAdminRecargaPreset(2000)" class="stock-btn-quick">₡2.000</button>
-        <button type="button" onclick="setAdminRecargaPreset(5000)" class="stock-btn-quick">₡5.000</button>
-        <button type="button" onclick="setAdminRecargaPreset(10000)" class="stock-btn-quick">₡10.000</button>
-      </div>
+        <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin-bottom: 14px;">
+          <button type="button" onclick="setAdminRecargaPreset(1000)" class="stock-btn-quick">₡1.000</button>
+          <button type="button" onclick="setAdminRecargaPreset(2000)" class="stock-btn-quick">₡2.000</button>
+          <button type="button" onclick="setAdminRecargaPreset(5000)" class="stock-btn-quick">₡5.000</button>
+          <button type="button" onclick="setAdminRecargaPreset(10000)" class="stock-btn-quick">₡10.000</button>
+        </div>
 
-      <div style="margin-bottom: 16px;">
-        <label style="display: block; font-size: 0.78rem; font-weight: 700; color: var(--text-muted); margin-bottom: 4px;">
-          Detalle o Recibo (Opcional):
-        </label>
-        <input type="text" id="adminRecargaDescripcion" placeholder="Ej: Pago en efectivo en mostrador" style="width: 100%; padding: 9px 12px; border-radius: 10px; border: 1px solid var(--border); font-size: 0.85rem; box-sizing: border-box; background: var(--card-bg); color: var(--text-main);">
-      </div>
+        <div style="margin-bottom: 16px;">
+          <label style="display: block; font-size: 0.78rem; font-weight: 700; color: var(--text-muted); margin-bottom: 4px;">
+            Detalle o Recibo (Opcional):
+          </label>
+          <input type="text" id="adminRecargaDescripcion" placeholder="Ej: Pago en efectivo en mostrador" style="width: 100%; padding: 9px 12px; border-radius: 10px; border: 1px solid var(--border); font-size: 0.85rem; box-sizing: border-box; background: var(--card-bg); color: var(--text-main);">
+        </div>
 
-      <button type="button" id="btnAdminSubmitRecarga" onclick="submitAdminManualRecharge()" style="width: 100%; padding: 13px; background: linear-gradient(135deg, #10b981, #059669); color: white; border: none; border-radius: 12px; font-size: 1rem; font-weight: 900; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; box-shadow: 0 4px 12px rgba(16, 185, 129, 0.35);">
-        <span>💰</span> Aplicar Recarga Inmediata
-      </button>
+        <button type="button" id="btnAdminSubmitRecarga" onclick="submitAdminManualRecharge()" style="width: 100%; padding: 13px; background: linear-gradient(135deg, #10b981, #059669); color: white; border: none; border-radius: 12px; font-size: 1rem; font-weight: 900; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; box-shadow: 0 4px 12px rgba(16, 185, 129, 0.35);">
+          <span>💰</span> Aplicar Recarga Inmediata
+        </button>
+      </div>
     </div>
 
     <!-- TAB 4: MOVIMIENTOS Y REVERSIONES -->
@@ -1211,8 +1233,8 @@
     </button>
   </nav>
 
-  <script src="/js/sounds.js?v=8.7"></script>
+  <script src="/js/sounds.js?v=8.8"></script>
   <script src="/js/jsQR.js"></script>
-  <script src="/js/app.js?v=8.7"></script>
+  <script src="/js/app.js?v=8.8"></script>
 </body>
 </html>
