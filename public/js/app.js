@@ -2090,7 +2090,10 @@ function renderAdminStudents(list) {
               </div>
             </div>
 
-            <div style="display: flex; gap: 8px; align-items: center; justify-content: flex-end; border-top: 1px dashed var(--border); padding-top: 8px; width: 100%;">
+            <div style="display: flex; gap: 8px; align-items: center; justify-content: flex-end; border-top: 1px dashed var(--border); padding-top: 8px; width: 100%; flex-wrap: wrap;">
+              <button type="button" onclick="quickGoToRecarga(${s.id})" style="padding: 7px 12px; background: #10b981; color: white; border: none; border-radius: 8px; font-size: 0.76rem; font-weight: 800; cursor: pointer; display: flex; align-items: center; gap: 4px;" title="Cargar dinero en caja a este estudiante">
+                💵 Cargar Dinero
+              </button>
               <a href="/carnet.html?id=${s.id}" target="_blank" style="padding: 7px 12px; background: #e0f2fe; color: #0369a1; border-radius: 8px; font-size: 0.76rem; font-weight: 800; text-decoration: none;" title="Ver e Imprimir Carné Físico">
                 🖨️ Carné
               </a>
@@ -2195,20 +2198,33 @@ function setupAdminSmartSearch() {
   if (students && students.length > 0) {
     populateAdminRecargaStudents(students);
     if (!adminSelectedStudent) {
-      selectAdminStudent(students[0].id);
+      // Pre-seleccionar pero NO rellenar el input de búsqueda para que el placeholder sea visible
+      selectAdminStudent(students[0].id, false);
     }
   }
 }
 
 function populateAdminRecargaStudents(list) {
   const sel = document.getElementById('adminRecargaStudentSelect');
-  if (!sel) return;
-  sel.innerHTML = (list || []).map(s => `
-    <option value="${s.id}">${s.nombre_completo} (Saldo actual: ₡${(s.saldo_colones || 0).toLocaleString('es-CR')})</option>
-  `).join('');
+  if (sel) {
+    sel.innerHTML = (list || []).map(s => `
+      <option value="${s.id}">${s.nombre_completo} (Saldo actual: ₡${(s.saldo_colones || 0).toLocaleString('es-CR')})</option>
+    `).join('');
+  }
 
   if (list && list.length > 0 && !adminSelectedStudent) {
-    selectAdminStudent(list[0].id);
+    selectAdminStudent(list[0].id, false);
+  }
+}
+
+function onAdminSearchFocus() {
+  const input = document.getElementById('inputAdminSearchStudent');
+  const q = (input ? input.value : '').trim();
+  if (q.length > 0) {
+    onAdminSearchStudent(q);
+  } else {
+    // Al hacer clic o focus, mostrar la lista de estudiantes disponibles de inmediato
+    renderAdminSearchDropdown(students || []);
   }
 }
 
@@ -2217,12 +2233,11 @@ function onAdminSearchStudent(query) {
   const dropdown = document.getElementById('adminSearchResultsDropdown');
   const btnClear = document.getElementById('btnClearAdminSearch');
 
-  if (btnClear) btnClear.style.display = q.length > 0 ? 'block' : 'none';
+  if (btnClear) btnClear.style.display = q.length > 0 ? 'flex' : 'none';
   if (!dropdown) return;
 
   if (q.length === 0) {
-    dropdown.style.display = 'none';
-    dropdown.innerHTML = '';
+    renderAdminSearchDropdown(students || []);
     return;
   }
 
@@ -2235,27 +2250,49 @@ function onAdminSearchStudent(query) {
 
   if (results.length === 0) {
     dropdown.innerHTML = `
-      <div style="padding: 12px; text-align: center; color: var(--text-muted); font-size: 0.8rem;">
-        No se encontró ningún estudiante con "<strong>${query}</strong>"
+      <div style="padding: 16px 12px; text-align: center; color: var(--text-muted); font-size: 0.85rem;">
+        ❌ No se encontró ningún estudiante con "<strong>${query}</strong>"
+        <div style="margin-top: 6px; font-size: 0.74rem;">Intenta con el primer nombre, apellidos o carné (ej: EST-2026-001)</div>
       </div>
     `;
     dropdown.style.display = 'block';
     return;
   }
 
-  dropdown.innerHTML = results.map(s => `
-    <div class="admin-search-item" onclick="selectAdminStudent(${s.id})">
-      <img src="${s.foto_url || '/img/avatar_default.png'}" style="width: 36px; height: 36px; border-radius: 50%; object-fit: cover; border: 1.5px solid #0284c7; flex-shrink: 0;">
-      <div style="min-width: 0; flex: 1;">
-        <strong style="font-size: 0.88rem; color: var(--text-main); display: block; word-break: break-word;">${s.nombre_completo}</strong>
-        <span style="font-size: 0.72rem; color: var(--text-muted);">${s.grado} - Sec. ${s.seccion} • Cód: ${s.codigo_estudiante}</span>
-      </div>
-      <div style="text-align: right; flex-shrink: 0;">
-        <span style="font-size: 0.65rem; color: var(--text-muted); display: block; text-transform: uppercase;">Saldo</span>
-        <strong style="font-size: 0.95rem; color: #10b981;">₡${(s.saldo_colones || 0).toLocaleString('es-CR')}</strong>
-      </div>
+  renderAdminSearchDropdown(results, q);
+}
+
+function renderAdminSearchDropdown(list, query = '') {
+  const dropdown = document.getElementById('adminSearchResultsDropdown');
+  if (!dropdown) return;
+
+  const displayList = (list || []).slice(0, 12);
+  dropdown.innerHTML = `
+    <div style="padding: 6px 12px; background: #f8fafc; border-bottom: 1px solid var(--border); font-size: 0.72rem; font-weight: 800; color: var(--text-muted); display: flex; justify-content: space-between; align-items: center;">
+      <span>${query ? `🔍 Resultados para "${query}" (${list.length})` : `👥 Estudiantes Registrados (${list.length})`}:</span>
+      <span style="color: #0284c7;">${displayList.length < list.length ? `Mostrando primeros ${displayList.length}` : 'Todos'}</span>
     </div>
-  `).join('');
+    ${displayList.map(s => {
+      const isSelected = adminSelectedStudent && adminSelectedStudent.id === s.id;
+      return `
+        <div class="admin-search-item ${isSelected ? 'selected' : ''}" onclick="selectAdminStudent(${s.id}, true)">
+          <img src="${s.foto_url || '/img/avatar_default.png'}" style="width: 38px; height: 38px; border-radius: 50%; object-fit: cover; border: 2px solid ${isSelected ? '#0284c7' : '#cbd5e1'}; flex-shrink: 0;">
+          <div style="min-width: 0; flex: 1;">
+            <div style="display: flex; align-items: center; gap: 6px;">
+              <strong style="font-size: 0.9rem; color: var(--text-main); display: block; word-break: break-word;">${s.nombre_completo}</strong>
+              ${isSelected ? '<span style="font-size: 0.62rem; font-weight: 900; background: #0284c7; color: white; padding: 1px 5px; border-radius: 4px;">ACTUAL</span>' : ''}
+              ${s.tarjeta_bloqueada ? '<span style="font-size: 0.62rem; font-weight: 900; background: #fee2e2; color: #dc2626; padding: 1px 5px; border-radius: 4px;">BLOQUEADA</span>' : ''}
+            </div>
+            <span style="font-size: 0.73rem; color: var(--text-muted);">${s.grado} - Sec. ${s.seccion} • Cód: <strong style="color: #0284c7;">${s.codigo_estudiante}</strong></span>
+          </div>
+          <div style="text-align: right; flex-shrink: 0;">
+            <span style="font-size: 0.65rem; color: var(--text-muted); display: block; text-transform: uppercase;">Saldo</span>
+            <strong style="font-size: 0.95rem; color: #10b981;">₡${(s.saldo_colones || 0).toLocaleString('es-CR')}</strong>
+          </div>
+        </div>
+      `;
+    }).join('')}
+  `;
   dropdown.style.display = 'block';
 }
 
@@ -2263,7 +2300,10 @@ function clearAdminSearchStudent() {
   const input = document.getElementById('inputAdminSearchStudent');
   const btnClear = document.getElementById('btnClearAdminSearch');
   const dropdown = document.getElementById('adminSearchResultsDropdown');
-  if (input) input.value = '';
+  if (input) {
+    input.value = '';
+    input.focus();
+  }
   if (btnClear) btnClear.style.display = 'none';
   if (dropdown) {
     dropdown.style.display = 'none';
@@ -2271,11 +2311,47 @@ function clearAdminSearchStudent() {
   }
 }
 
-function onAdminSelectChange(studentId) {
-  selectAdminStudent(parseInt(studentId, 10));
+function focusAdminSearch() {
+  const input = document.getElementById('inputAdminSearchStudent');
+  if (input) {
+    input.value = '';
+    input.focus();
+    input.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    onAdminSearchFocus();
+  }
 }
 
-function selectAdminStudent(studentId) {
+function quickGoToRecarga(studentId) {
+  switchAdminTab('recarga');
+  selectAdminStudent(studentId, true);
+  const montoInput = document.getElementById('adminRecargaMonto');
+  if (montoInput) {
+    setTimeout(() => {
+      montoInput.focus();
+      montoInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }, 120);
+  }
+}
+
+function filterAdminStudentsTab2(query) {
+  const q = (query || '').toLowerCase().trim();
+  if (!q) {
+    renderAdminStudents(students);
+    return;
+  }
+  const filtered = (students || []).filter(s => {
+    return (s.nombre_completo || '').toLowerCase().includes(q) ||
+           (s.codigo_estudiante || '').toLowerCase().includes(q) ||
+           `${s.grado || ''} ${s.seccion || ''}`.toLowerCase().includes(q);
+  });
+  renderAdminStudents(filtered);
+}
+
+function onAdminSelectChange(studentId) {
+  selectAdminStudent(parseInt(studentId, 10), true);
+}
+
+function selectAdminStudent(studentId, updateSearchInput = false) {
   const id = parseInt(studentId, 10);
   const student = (students || []).find(s => s.id === id);
   if (!student) return;
@@ -2293,6 +2369,7 @@ function selectAdminStudent(studentId) {
   const balance = document.getElementById('adminSelectedBalance');
   const searchInput = document.getElementById('inputAdminSearchStudent');
   const dropdown = document.getElementById('adminSearchResultsDropdown');
+  const btnClear = document.getElementById('btnClearAdminSearch');
 
   if (banner) banner.style.display = 'flex';
   if (avatar) avatar.src = student.foto_url || '/img/avatar_default.png';
@@ -2311,12 +2388,32 @@ function selectAdminStudent(studentId) {
   if (meta) meta.textContent = `${student.grado} - Sección ${student.seccion} • Cód: ${student.codigo_estudiante}`;
   if (balance) balance.textContent = `₡${(student.saldo_colones || 0).toLocaleString('es-CR')}`;
 
-  if (searchInput) searchInput.value = student.nombre_completo;
+  if (searchInput) {
+    if (updateSearchInput) {
+      searchInput.value = student.nombre_completo;
+      if (btnClear) btnClear.style.display = 'flex';
+    } else {
+      // Mantener vacío para que el placeholder "🔍 Escribe para buscar..." sea completamente visible
+      searchInput.value = '';
+      if (btnClear) btnClear.style.display = 'none';
+    }
+  }
   if (dropdown) dropdown.style.display = 'none';
 
-  const montoInput = document.getElementById('adminRecargaMonto');
-  if (montoInput) montoInput.focus();
+  if (updateSearchInput) {
+    const montoInput = document.getElementById('adminRecargaMonto');
+    if (montoInput) montoInput.focus();
+  }
 }
+
+// Cierre automático del dropdown al hacer clic fuera del buscador
+document.addEventListener('click', (e) => {
+  const container = document.querySelector('.admin-search-container');
+  const dropdown = document.getElementById('adminSearchResultsDropdown');
+  if (container && dropdown && !container.contains(e.target)) {
+    dropdown.style.display = 'none';
+  }
+});
 
 // ESCANEO QR CON CÁMARA EN MOSTRADOR DE SODA (ADMIN)
 function openAdminScanQrModal() {
@@ -2398,7 +2495,7 @@ async function handleAdminQrDetected(token) {
   );
 
   if (student) {
-    selectAdminStudent(student.id);
+    selectAdminStudent(student.id, true);
     if (window.sounds) window.sounds.playSuccess();
     return;
   }
@@ -2415,7 +2512,7 @@ async function handleAdminQrDetected(token) {
     else students.push(student);
 
     populateAdminRecargaStudents(students);
-    selectAdminStudent(student.id);
+    selectAdminStudent(student.id, true);
     if (window.sounds) window.sounds.playSuccess();
   } catch (err) {
     if (window.sounds) window.sounds.playError();

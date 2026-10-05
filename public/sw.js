@@ -1,5 +1,5 @@
-// RecreoPay PWA Service Worker v8.2 - Pistola QR POS & Cobro Rápido
-const CACHE_NAME = 'recreopay-v8.2';
+// RecreoPay PWA Service Worker v8.3 - Buscador Inteligente Carga Manual
+const CACHE_NAME = 'recreopay-v8.3';
 const STATIC_ASSETS = [
   '/',
   '/index.html',

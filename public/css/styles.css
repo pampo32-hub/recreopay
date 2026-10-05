@@ -1739,8 +1739,9 @@ body.dark-mode .parent-child-card.selected {
 }
 
 .admin-search-input {
-  flex: 1;
-  padding: 11px 14px;
+  width: 100%;
+  display: block;
+  padding: 11px 36px 11px 14px;
   border-radius: 12px;
   border: 1.5px solid var(--border, #cbd5e1);
   font-size: 0.95rem;
@@ -1748,13 +1749,13 @@ body.dark-mode .parent-child-card.selected {
   background: var(--card-bg, #ffffff);
   color: var(--text-main, #0f172a);
   outline: none;
-  transition: border 0.15s;
+  transition: border 0.15s, box-shadow 0.15s;
   box-sizing: border-box;
 }
 
 .admin-search-input:focus {
   border-color: #0284c7;
-  box-shadow: 0 0 0 3px rgba(2, 132, 199, 0.15);
+  box-shadow: 0 0 0 3px rgba(2, 132, 199, 0.2);
 }
 
 .admin-scan-btn {
@@ -1784,13 +1785,13 @@ body.dark-mode .parent-child-card.selected {
   left: 0;
   right: 0;
   background: var(--card-bg, #ffffff);
-  border: 1.5px solid #0284c7;
+  border: 2px solid #0284c7;
   border-radius: 14px;
-  max-height: 250px;
+  max-height: 290px;
   overflow-y: auto;
-  z-index: 50;
-  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.18);
-  margin-top: 4px;
+  z-index: 100;
+  box-shadow: 0 14px 35px rgba(0, 0, 0, 0.22);
+  margin-top: 6px;
 }
 
 .admin-search-item {
@@ -1807,11 +1808,11 @@ body.dark-mode .parent-child-card.selected {
   border-bottom: none;
 }
 
-.admin-search-item:hover, .admin-search-item:active {
+.admin-search-item:hover, .admin-search-item:active, .admin-search-item.selected {
   background: #f0f9ff;
 }
 
-body.dark-mode .admin-search-item:hover {
+body.dark-mode .admin-search-item:hover, body.dark-mode .admin-search-item.selected {
   background: rgba(2, 132, 199, 0.15);
 }
 

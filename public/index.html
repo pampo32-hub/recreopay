@@ -10,7 +10,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="RecreoPay">
   <meta name="mobile-web-app-capable" content="yes">
-  <link rel="stylesheet" href="/css/styles.css?v=8.1">
+  <link rel="stylesheet" href="/css/styles.css?v=8.3">
   <style>
     /* Transiciones suaves */
     .fade-enter { animation: fadeIn 0.2s ease-in-out; }
@@ -123,6 +123,9 @@
         <button onclick="toggleTheme()" class="theme-toggle-btn" title="Alternar Modo Oscuro / Modo Claro">
           🌙
         </button>
+        <button onclick="switchAdminTab('recarga')" style="padding: 8px 14px; background: linear-gradient(135deg, #10b981, #059669); color: white; border: none; border-radius: 10px; font-size: 0.82rem; font-weight: 800; cursor: pointer; display: flex; align-items: center; gap: 6px; box-shadow: 0 2px 6px rgba(16, 185, 129, 0.3);" title="Cargar dinero a un estudiante">
+          <span>💵</span> Cargar Dinero
+        </button>
         <a href="/pos.html" target="_blank" class="admin-action-btn-caja" title="Abrir Caja / Terminal POS">
           📟 Ir a Caja
         </a>
@@ -166,7 +169,7 @@
         🪪 Estudiantes, Carnés y Bloqueos
       </button>
       <button class="admin-tab-btn" id="btnTabAdminRecarga" onclick="switchAdminTab('recarga')">
-        💵 Cargar Dinero Manual en Caja
+        💵 Cargar Dinero Manual (Buscador y QR)
       </button>
     </div>
 
@@ -196,9 +199,12 @@
             Bloquea tarjetas perdidas, crea nuevos alumnos o genera carnés con código QR.
           </p>
         </div>
-        <button onclick="openNewStudentModal()" style="padding: 9px 16px; background: linear-gradient(135deg, #10b981, #059669); color: white; border: none; border-radius: 12px; font-size: 0.85rem; font-weight: 900; cursor: pointer; display: flex; align-items: center; gap: 6px;">
-          <span>➕</span> Nuevo Estudiante
-        </button>
+        <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+          <input type="text" id="adminSearchStudentsTab2" placeholder="🔍 Filtrar alumnos..." oninput="filterAdminStudentsTab2(this.value)" style="padding: 8px 12px; border-radius: 10px; border: 1.5px solid var(--border); font-size: 0.85rem; width: 190px;">
+          <button onclick="openNewStudentModal()" style="padding: 9px 16px; background: linear-gradient(135deg, #10b981, #059669); color: white; border: none; border-radius: 12px; font-size: 0.85rem; font-weight: 900; cursor: pointer; display: flex; align-items: center; gap: 6px;">
+            <span>➕</span> Nuevo Estudiante
+          </button>
+        </div>
       </div>
 
       <div id="adminStudentsList">
@@ -210,49 +216,67 @@
     <div id="adminTabContentRecarga" class="admin-card" style="display: none; max-width: 550px; margin: 0 auto;">
       <div style="text-align: center; margin-bottom: 18px;">
         <span style="font-size: 2.2rem;">💵</span>
-        <h3 style="margin: 6px 0 2px 0; font-size: 1.2rem; font-weight: 900; color: var(--text-main);">Carga Manual de Dinero</h3>
+        <h3 style="margin: 6px 0 2px 0; font-size: 1.25rem; font-weight: 900; color: var(--text-main);">Carga Manual de Dinero</h3>
         <p style="margin: 0; font-size: 0.78rem; color: var(--text-muted);">
           Recarga de monedero estudiantil por pago en efectivo en la soda o ajuste escolar
         </p>
       </div>
 
       <!-- BUSCADOR INTELIGENTE Y BOTÓN ESCANEAR QR -->
-      <div style="margin-bottom: 14px;">
-        <label style="display: block; font-size: 0.8rem; font-weight: 800; color: var(--text-main); margin-bottom: 6px;">
-          Buscar Estudiante por Nombre, Apellidos o Carné:
-        </label>
-        <div class="admin-search-container">
-          <div class="admin-search-input-wrap">
-            <div style="position: relative; flex: 1;">
-              <input type="text" id="inputAdminSearchStudent" class="admin-search-input" placeholder="🔍 Escribe para buscar (ej: Mateo, EST-2026, Alvarado)..." oninput="onAdminSearchStudent(this.value)" autocomplete="off">
-              <button type="button" id="btnClearAdminSearch" onclick="clearAdminSearchStudent()" style="display: none; position: absolute; right: 10px; top: 50%; transform: translateY(-50%); background: none; border: none; font-size: 1rem; color: #94a3b8; cursor: pointer;">✕</button>
+      <div style="background: rgba(2, 132, 199, 0.05); border: 2px solid #0284c7; border-radius: 16px; padding: 14px; margin-bottom: 16px; box-shadow: 0 3px 12px rgba(2, 132, 199, 0.08);">
+        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; flex-wrap: wrap; gap: 6px;">
+          <label for="inputAdminSearchStudent" style="font-size: 0.88rem; font-weight: 900; color: var(--text-main); display: flex; align-items: center; gap: 6px; margin: 0;">
+            <span style="font-size: 1.1rem;">🔍</span>
+            <span>Buscador Inteligente de Estudiante:</span>
+          </label>
+          <span style="font-size: 0.68rem; font-weight: 800; background: #0284c7; color: white; padding: 2px 8px; border-radius: 6px;">
+            ⚡ Búsqueda en vivo
+          </span>
+        </div>
+
+        <div class="admin-search-container" style="position: relative;">
+          <div class="admin-search-input-wrap" style="display: flex; gap: 8px; align-items: center;">
+            <div style="position: relative; flex: 1; width: 100%;">
+              <input type="text" id="inputAdminSearchStudent" class="admin-search-input" placeholder="🔍 Escribe para buscar (ej: Mateo, EST-2026, Alvarado)..." oninput="onAdminSearchStudent(this.value)" onfocus="onAdminSearchFocus()" autocomplete="off" style="width: 100%; box-sizing: border-box; padding: 11px 36px 11px 14px; font-size: 0.95rem; font-weight: 700; border-radius: 12px; border: 2px solid #cbd5e1; outline: none; background: var(--card-bg, #ffffff); color: var(--text-main);">
+              <button type="button" id="btnClearAdminSearch" onclick="clearAdminSearchStudent()" style="display: none; position: absolute; right: 10px; top: 50%; transform: translateY(-50%); background: #e2e8f0; border: none; border-radius: 50%; width: 22px; height: 22px; font-size: 0.75rem; font-weight: 900; color: #475569; cursor: pointer; align-items: center; justify-content: center;" title="Borrar búsqueda">✕</button>
             </div>
-            <button type="button" onclick="openAdminScanQrModal()" class="admin-scan-btn" title="Escanear carné físico o código QR con la cámara">
+            <button type="button" onclick="openAdminScanQrModal()" class="admin-scan-btn" title="Escanear carné físico o código QR con la cámara" style="flex-shrink: 0; padding: 11px 14px; background: linear-gradient(135deg, #0284c7, #0369a1); color: white; border: none; border-radius: 12px; font-size: 0.85rem; font-weight: 800; cursor: pointer; display: flex; align-items: center; gap: 6px; white-space: nowrap;">
               <span>📷</span>
               <span>Escanear QR</span>
             </button>
           </div>
           <div id="adminSearchResultsDropdown" class="admin-search-dropdown" style="display: none;"></div>
         </div>
+        <div style="font-size: 0.72rem; color: var(--text-muted); margin-top: 6px;">
+          💡 <em>Toca el buscador para ver alumnos o escribe nombre, apellidos o carné para filtrar al instante.</em>
+        </div>
       </div>
 
       <!-- FICHA DEL ESTUDIANTE SELECCIONADO -->
+      <div style="margin-bottom: 6px; display: flex; justify-content: space-between; align-items: center;">
+        <span style="font-size: 0.75rem; font-weight: 800; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;">
+          Estudiante seleccionado:
+        </span>
+        <button type="button" onclick="focusAdminSearch()" style="background: none; border: none; color: #0284c7; font-size: 0.74rem; font-weight: 800; cursor: pointer; text-decoration: underline;">
+          🔍 Cambiar / Buscar otro
+        </button>
+      </div>
       <div id="adminSelectedStudentBanner" class="selected-student-banner" style="display: none;">
         <div style="display: flex; align-items: center; gap: 10px; min-width: 0; flex: 1;">
-          <img id="adminSelectedAvatar" src="" style="width: 44px; height: 44px; border-radius: 50%; border: 2px solid #0284c7; background: white; flex-shrink: 0; object-fit: cover;">
+          <img id="adminSelectedAvatar" src="" style="width: 46px; height: 46px; border-radius: 50%; border: 2.5px solid #0284c7; background: white; flex-shrink: 0; object-fit: cover;">
           <div style="min-width: 0;">
             <div style="display: flex; align-items: center; gap: 6px; flex-wrap: wrap;">
-              <strong id="adminSelectedName" style="font-size: 0.95rem; color: var(--text-main); word-break: break-word;">Selecciona un alumno</strong>
+              <strong id="adminSelectedName" style="font-size: 0.98rem; color: var(--text-main); word-break: break-word;">Selecciona un alumno</strong>
               <span id="adminSelectedStatusBadge" style="font-size: 0.65rem; font-weight: 800; background: #dcfce7; color: #166534; padding: 2px 6px; border-radius: 4px;">ACTIVA</span>
             </div>
-            <div id="adminSelectedMeta" style="font-size: 0.74rem; color: var(--text-muted); margin-top: 2px;">
+            <div id="adminSelectedMeta" style="font-size: 0.75rem; color: var(--text-muted); margin-top: 2px;">
               Grado y Sección • Cód: EST-2026-000
             </div>
           </div>
         </div>
         <div style="text-align: right; flex-shrink: 0;">
           <div style="font-size: 0.68rem; font-weight: 800; color: var(--text-muted); text-transform: uppercase;">Saldo Actual</div>
-          <div id="adminSelectedBalance" style="font-size: 1.15rem; font-weight: 900; color: #10b981;">₡0</div>
+          <div id="adminSelectedBalance" style="font-size: 1.2rem; font-weight: 900; color: #10b981;">₡0</div>
         </div>
       </div>
 
@@ -1070,8 +1094,8 @@
     </button>
   </nav>
 
-  <script src="/js/sounds.js?v=8.1"></script>
+  <script src="/js/sounds.js?v=8.3"></script>
   <script src="/js/jsQR.js"></script>
-  <script src="/js/app.js?v=8.1"></script>
+  <script src="/js/app.js?v=8.3"></script>
 </body>
 </html>
