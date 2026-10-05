@@ -173,6 +173,8 @@ async function handleRegisterPadreSubmit(event) {
   if (event) event.preventDefault();
   const nombre = document.getElementById('regNombre').value.trim();
   const telefono = document.getElementById('regTelefono').value.trim();
+  const emailInput = document.getElementById('regEmail');
+  const email = emailInput ? emailInput.value.trim() : '';
   const username = document.getElementById('regUsername').value.trim();
   const password = document.getElementById('regPassword').value.trim();
   const errorMsg = document.getElementById('registerErrorMsg');
@@ -186,7 +188,7 @@ async function handleRegisterPadreSubmit(event) {
     const res = await fetch('/api/auth/register-padre', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ nombre, telefono, username, password })
+      body: JSON.stringify({ nombre, telefono, email, username, password })
     });
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || 'Error al registrar la cuenta');
