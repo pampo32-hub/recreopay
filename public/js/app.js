@@ -2248,23 +2248,23 @@ function renderParentDashboardView() {
       const initials = getStudentInitials(h.nombre_completo);
       return `
         <div class="parent-child-card ${isSelected ? 'active selected' : ''}" onclick="selectParentChild(${h.id})">
-          <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 8px;">
+          <div style="display: flex; align-items: center; gap: 10px; min-width: 0; width: 100%;">
             <div class="child-initials-badge ${isSelected ? 'active' : ''}">
               ${initials}
             </div>
             <div style="min-width: 0; flex: 1;">
-              <strong style="font-size: 0.9rem; color: var(--text-main); display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+              <strong style="font-size: 0.92rem; color: var(--text-main); display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; line-height: 1.25;">
                 ${h.nombre_completo}
               </strong>
-              <span style="font-size: 0.72rem; color: var(--text-muted); font-weight: 600;">
+              <span style="font-size: 0.74rem; color: var(--text-muted); font-weight: 600; display: block; margin-top: 2px;">
                 ${h.grado} - Sec. ${h.seccion}
               </span>
             </div>
-            ${isBlocked ? '<span style="font-size: 0.65rem; background: #fee2e2; color: #dc2626; padding: 2px 6px; border-radius: 4px; font-weight: 800;">BLOQUEADO</span>' : ''}
+            ${isBlocked ? '<span style="font-size: 0.65rem; background: #fee2e2; color: #dc2626; padding: 2px 6px; border-radius: 4px; font-weight: 800; flex-shrink: 0;">BLOQUEADO</span>' : ''}
           </div>
-          <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1px solid var(--border); padding-top: 6px; margin-top: 4px;">
-            <span style="font-size: 0.72rem; color: var(--text-muted); font-weight: 700;">Saldo:</span>
-            <strong style="font-size: 1.05rem; color: #0284c7; font-weight: 900;">
+          <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1px solid var(--border); padding-top: 8px; margin-top: 2px; width: 100%;">
+            <span style="font-size: 0.74rem; color: var(--text-muted); font-weight: 700;">Saldo:</span>
+            <strong style="font-size: 1.05rem; color: #0284c7; font-weight: 900; letter-spacing: -0.3px;">
               ₡${(h.saldo_colones || 0).toLocaleString('es-CR')}
             </strong>
           </div>

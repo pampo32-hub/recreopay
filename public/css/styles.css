@@ -2369,22 +2369,23 @@ body.dark-mode .login-tab-btn.active {
 /* Tarjetas de Hijos Vinculados */
 .parent-children-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-  gap: 10px;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 12px;
   margin-bottom: 16px;
 }
 
 .parent-child-card {
   border: 2px solid var(--border, #e2e8f0);
   border-radius: 16px;
-  padding: 12px;
+  padding: 12px 14px;
   background: var(--card-bg, #ffffff);
   cursor: pointer;
   transition: all 0.2s ease;
   position: relative;
   display: flex;
-  align-items: center;
-  gap: 12px;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 10px;
 }
 
 .parent-child-card:hover {
