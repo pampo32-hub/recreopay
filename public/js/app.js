@@ -793,6 +793,9 @@ function renderProducts() {
       ? window.SiboPayIcons.getFoodIconBadge(prod.icono, prod.nombre, 'card') 
       : `<div class="product-icon-wrap">${prod.icono || '🥪'}</div>`;
 
+    const hasAlergenos = prod.alergenos && 
+      !['ninguno', 'ninguno conocido', 'no', 'ninguno.', 'sin alérgenos', 'sin alergenos', 'n/a'].includes(String(prod.alergenos).trim().toLowerCase());
+
     return `
       <div class="product-card ${isOutOfStock ? 'out-of-stock' : ''}">
         <div style="display: flex; justify-content: center; align-items: center; margin-bottom: 8px;">
@@ -805,7 +808,7 @@ function renderProducts() {
           </div>
           <h4 class="product-name">${prod.nombre}</h4>
           <p class="product-desc">${prod.descripcion || ''}</p>
-          ${prod.alergenos ? `<div style="font-size: 0.68rem; color: #dc2626; margin-bottom: 4px; display: flex; align-items: center; gap: 4px;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg> Contiene: ${prod.alergenos}</div>` : ''}
+          ${hasAlergenos ? `<div style="font-size: 0.68rem; color: #dc2626; margin-bottom: 4px; display: flex; align-items: center; gap: 4px;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg> Contiene: ${prod.alergenos}</div>` : ''}
         </div>
         <div class="product-footer">
           <span class="product-price">₡${prod.precio_colones.toLocaleString('es-CR')}</span>
