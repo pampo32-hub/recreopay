@@ -2220,19 +2220,81 @@ function selectParentChild(childId) {
   const found = hijos.find(h => h.id === childId);
   if (found) {
     currentParentChild = found;
+    closeParentSubView();
     renderParentDashboardView();
     if (window.sounds) window.sounds.playTap();
   }
 }
 
-function focusParentSinpeRecharge() {
-  const sinpeInput = document.getElementById('inputParentSinpeMonto');
-  if (sinpeInput) {
-    sinpeInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    setTimeout(() => {
-      sinpeInput.focus();
-    }, 350);
+function openParentSubView(viewKey) {
+  const mainDash = document.getElementById('parentChildDashboardMain');
+  if (mainDash) mainDash.style.display = 'none';
+
+  const subViews = [
+    'parentSubViewSinpe',
+    'parentSubViewAlergias',
+    'parentSubViewLimites',
+    'parentSubViewHistorial',
+    'parentSubViewCredenciales'
+  ];
+  subViews.forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.style.display = 'none';
+  });
+
+  if (currentParentChild) {
+    document.querySelectorAll('.parentSubViewChildAvatar').forEach(img => {
+      img.src = currentParentChild.foto_url || '/img/avatar_default.png';
+    });
+    document.querySelectorAll('.parentSubViewChildName').forEach(span => {
+      span.textContent = `${currentParentChild.nombre_completo} (${currentParentChild.grado})`;
+    });
   }
+
+  let targetId = '';
+  if (viewKey === 'sinpe') targetId = 'parentSubViewSinpe';
+  else if (viewKey === 'alergias') targetId = 'parentSubViewAlergias';
+  else if (viewKey === 'limites') targetId = 'parentSubViewLimites';
+  else if (viewKey === 'historial') targetId = 'parentSubViewHistorial';
+  else if (viewKey === 'credenciales') targetId = 'parentSubViewCredenciales';
+
+  const targetEl = document.getElementById(targetId);
+  if (targetEl) {
+    targetEl.style.display = 'block';
+  }
+
+  if (viewKey === 'sinpe' && currentParentChild) {
+    loadParentSinpeRequests(currentParentChild.id);
+  } else if (viewKey === 'historial' && currentParentChild) {
+    loadActiveChildHistory(currentParentChild.id);
+  }
+
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+  if (window.sounds) window.sounds.playTap();
+}
+
+function closeParentSubView() {
+  const mainDash = document.getElementById('parentChildDashboardMain');
+  if (mainDash) mainDash.style.display = 'block';
+
+  const subViews = [
+    'parentSubViewSinpe',
+    'parentSubViewAlergias',
+    'parentSubViewLimites',
+    'parentSubViewHistorial',
+    'parentSubViewCredenciales'
+  ];
+  subViews.forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.style.display = 'none';
+  });
+
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+  if (window.sounds) window.sounds.playTap();
+}
+
+function focusParentSinpeRecharge() {
+  openParentSubView('sinpe');
 }
 
 function renderActiveChildDetails(child) {
@@ -2654,6 +2716,7 @@ function returnToParentDashboard() {
   if (viewPadres) viewPadres.style.display = 'block';
   if (appContainer) appContainer.style.display = 'none';
   if (bottomNav) bottomNav.style.display = 'none';
+  closeParentSubView();
   loadParentDashboard();
 }
 

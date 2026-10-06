@@ -4110,3 +4110,86 @@ body.dark-mode .recreopay-inapp-toast-title {
 body.dark-mode .recreopay-inapp-toast-body {
   color: #cbd5e1;
 }
+
+/* ==========================================
+   SUB-PANTALLAS DEDICADAS DEL PORTAL DE PADRES
+   ========================================== */
+.parent-subview {
+  animation: fadeInSubView 0.2s ease-out;
+}
+
+@keyframes fadeInSubView {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.parent-subview-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 14px;
+  padding: 4px 2px;
+}
+
+.parent-subview-back-btn {
+  background: var(--card-bg, #ffffff);
+  border: 1.5px solid var(--border, #e2e8f0);
+  color: var(--text-main, #0f172a);
+  font-size: 0.84rem;
+  font-weight: 800;
+  border-radius: 12px;
+  padding: 8px 14px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.15s ease;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
+}
+
+.parent-subview-back-btn:hover {
+  background: var(--bg-hover, #f1f5f9);
+  border-color: #0284c7;
+  color: #0284c7;
+  transform: translateX(-2px);
+}
+
+.parent-subview-child-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(2, 132, 199, 0.08);
+  border: 1px solid rgba(2, 132, 199, 0.2);
+  border-radius: 20px;
+  padding: 4px 10px 4px 4px;
+  color: #0284c7;
+  font-size: 0.78rem;
+  font-weight: 800;
+}
+
+.parent-subview-child-tag img {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 1.5px solid #0284c7;
+  background: white;
+}
+
+body.dark-mode .parent-subview-back-btn {
+  background: #1e293b;
+  border-color: #334155;
+  color: #f8fafc;
+}
+
+body.dark-mode .parent-subview-back-btn:hover {
+  background: #334155;
+  color: #38bdf8;
+  border-color: #38bdf8;
+}
