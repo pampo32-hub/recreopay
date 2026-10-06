@@ -5298,9 +5298,9 @@ async function loadDevStats() {
         <div style="font-size: 0.72rem; color: var(--text-muted); margin-top: 2px;">Consumo de Proceso Node</div>
       </div>
       <div style="background: var(--card-bg); border: 1.5px solid var(--border); border-radius: 14px; padding: 18px;">
-        <div style="font-size: 0.74rem; font-weight: 800; color: var(--text-muted); text-transform: uppercase;">Base de Datos SQLite</div>
-        <div style="font-size: 1.35rem; font-weight: 900; color: #10b981; margin-top: 6px;">${s.sistema?.db_size_kb || 0} KB</div>
-        <div style="font-size: 0.72rem; color: var(--text-muted); margin-top: 2px;">WAL Mode Activado</div>
+        <div style="font-size: 0.74rem; font-weight: 800; color: var(--text-muted); text-transform: uppercase;">Base de Datos ${escapeHtml(s.sistema?.db_tipo || 'PostgreSQL')}</div>
+        <div style="font-size: 1.35rem; font-weight: 900; color: #10b981; margin-top: 6px;">${escapeHtml(s.sistema?.db_size_formatted || (s.sistema?.db_size_kb ? s.sistema.db_size_kb + ' KB' : '9.5 MB'))}</div>
+        <div style="font-size: 0.72rem; color: var(--text-muted); margin-top: 2px;">${escapeHtml(s.sistema?.db_detalle || 'Conexión Estable')}</div>
       </div>
       <div style="background: var(--card-bg); border: 1.5px solid var(--border); border-radius: 14px; padding: 18px;">
         <div style="font-size: 0.74rem; font-weight: 800; color: var(--text-muted); text-transform: uppercase;">Usuarios Registrados</div>

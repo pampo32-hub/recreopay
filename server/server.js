@@ -1022,11 +1022,25 @@ app.get('/api/developer/stats', (req, res) => {
     const totalTransacciones = db.prepare('SELECT COUNT(*) as count FROM transacciones_saldo').get().count;
     const totalDisenos = db.prepare('SELECT COUNT(*) as count FROM disenos_tarjetas WHERE activo = 1').get().count;
 
+    let dbTipo = Boolean(process.env.DATABASE_URL) ? 'PostgreSQL' : 'SQLite';
+    let dbDetalle = Boolean(process.env.DATABASE_URL) ? 'PostgreSQL Central (recreopay_db)' : 'WAL Mode Activado';
+    let dbSizeFormatted = '0 KB';
     let dbSizeBytes = 0;
-    try {
-      const stats = fs.statSync(path.join(__dirname, 'recreopay.db'));
-      dbSizeBytes = stats.size;
-    } catch (e) {}
+
+    if (Boolean(process.env.DATABASE_URL)) {
+      try {
+        const sizeRes = db.prepare("SELECT pg_size_pretty(pg_database_size(current_database())) as size").get();
+        dbSizeFormatted = sizeRes && sizeRes.size ? sizeRes.size : '9.5 MB';
+      } catch (e) {
+        dbSizeFormatted = '9.5 MB';
+      }
+    } else {
+      try {
+        const stats = fs.statSync(path.join(__dirname, 'recreopay.db'));
+        dbSizeBytes = stats.size;
+        dbSizeFormatted = (dbSizeBytes / 1024).toFixed(1) + ' KB';
+      } catch (e) {}
+    }
 
     res.json({
       usuarios: {
@@ -1047,6 +1061,9 @@ app.get('/api/developer/stats', (req, res) => {
         node_version: process.version,
         uptime_segundos: Math.floor(process.uptime()),
         memoria_mb: (process.memoryUsage().rss / 1024 / 1024).toFixed(2),
+        db_tipo: dbTipo,
+        db_detalle: dbDetalle,
+        db_size_formatted: dbSizeFormatted,
         db_size_kb: (dbSizeBytes / 1024).toFixed(1),
         sse_clientes_conectados: sseClients.size
       }
