@@ -797,8 +797,11 @@ function renderProducts() {
       !['ninguno', 'ninguno conocido', 'no', 'ninguno.', 'sin alérgenos', 'sin alergenos', 'n/a'].includes(String(prod.alergenos).trim().toLowerCase());
 
     const mediaHtml = prod.imagen_url 
-      ? `<div style="width: 100%; height: 130px; border-radius: 12px; overflow: hidden; margin-bottom: 10px; background: #f8fafc; border: 1px solid var(--border, #e2e8f0); position: relative; box-shadow: 0 2px 6px rgba(0,0,0,0.03);">
-           <img src="${prod.imagen_url}" alt="${prod.nombre}" style="width: 100%; height: 100%; object-fit: cover; display: block;" onerror="this.onerror=null; this.parentElement.innerHTML=\`${iconHtml}\`;">
+      ? `<div style="width: 100%; height: 130px; border-radius: 12px; overflow: hidden; margin-bottom: 10px; background: #f8fafc; border: 1px solid var(--border, #e2e8f0); position: relative; box-shadow: 0 2px 6px rgba(0,0,0,0.03); display: flex; align-items: center; justify-content: center;">
+           <img src="${prod.imagen_url}" alt="${prod.nombre}" style="width: 100%; height: 100%; object-fit: cover; display: block;" onerror="this.style.display='none'; if(this.nextElementSibling) this.nextElementSibling.style.display='flex';">
+           <div style="display: none; width: 100%; height: 100%; align-items: center; justify-content: center;">
+             ${iconHtml}
+           </div>
          </div>`
       : `<div style="display: flex; justify-content: center; align-items: center; margin-bottom: 8px;">${iconHtml}</div>`;
 
@@ -3273,7 +3276,12 @@ function renderAdminInventory(list) {
       : `<div style="font-size: 1.8rem; text-align: center; flex-shrink: 0; min-width: 40px;">${p.icono || '🥪'}</div>`;
 
     const mediaBadge = p.imagen_url
-      ? `<img src="${p.imagen_url}" alt="${p.nombre}" style="width: 42px; height: 42px; border-radius: 9px; object-fit: cover; border: 1.2px solid var(--border, #e2e8f0); display: block;" onerror="this.onerror=null; this.parentElement.innerHTML=\`${iconBadge}\`;">`
+      ? `<div style="width: 42px; height: 42px; border-radius: 9px; overflow: hidden; border: 1.2px solid var(--border, #e2e8f0); display: flex; align-items: center; justify-content: center; background: #f8fafc; flex-shrink: 0;">
+           <img src="${p.imagen_url}" alt="${p.nombre}" style="width: 100%; height: 100%; object-fit: cover; display: block;" onerror="this.style.display='none'; if(this.nextElementSibling) this.nextElementSibling.style.display='flex';">
+           <div style="display: none; width: 100%; height: 100%; align-items: center; justify-content: center;">
+             ${iconBadge}
+           </div>
+         </div>`
       : iconBadge;
 
     return `

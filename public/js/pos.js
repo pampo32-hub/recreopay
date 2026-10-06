@@ -343,8 +343,11 @@ function renderPosProducts(catId) {
     const iconBadge = window.SiboPayIcons ? window.SiboPayIcons.getFoodIconBadge(prod.icono, prod.nombre, 'card') : `<div style="font-size: 2.2rem; text-align: center; margin-bottom: 6px;">${prod.icono || '🥪'}</div>`;
 
     const mediaHtml = prod.imagen_url
-      ? `<div style="width: 100%; height: 95px; border-radius: 9px; overflow: hidden; margin-bottom: 8px; background: #f8fafc; border: 1px solid #e2e8f0; position: relative;">
-           <img src="${prod.imagen_url}" alt="${prod.nombre}" style="width: 100%; height: 100%; object-fit: cover; display: block;" onerror="this.onerror=null; this.parentElement.innerHTML=\`${iconBadge}\`;">
+      ? `<div style="width: 100%; height: 95px; border-radius: 9px; overflow: hidden; margin-bottom: 8px; background: #f8fafc; border: 1px solid #e2e8f0; position: relative; display: flex; align-items: center; justify-content: center;">
+           <img src="${prod.imagen_url}" alt="${prod.nombre}" style="width: 100%; height: 100%; object-fit: cover; display: block;" onerror="this.style.display='none'; if(this.nextElementSibling) this.nextElementSibling.style.display='flex';">
+           <div style="display: none; width: 100%; height: 100%; align-items: center; justify-content: center;">
+             ${iconBadge}
+           </div>
          </div>`
       : iconBadge;
 
