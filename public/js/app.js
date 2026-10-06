@@ -74,7 +74,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
 
   // Verificar si hay sesión activa guardada
-  const storedUser = localStorage.getItem('recreopay_user');
+  const storedUser = localStorage.getItem('sibopay_user') || localStorage.getItem('recreopay_user');
   if (storedUser) {
     try {
       currentUser = JSON.parse(storedUser);
@@ -257,10 +257,11 @@ async function handleRegisterPadreSubmit(event) {
       ...data.user,
       hijos: []
     };
+    localStorage.setItem('sibopay_user', JSON.stringify(currentUser));
     localStorage.setItem('recreopay_user', JSON.stringify(currentUser));
 
     if (window.sounds) window.sounds.playSuccess();
-    alert(`¡Bienvenido(a) a RecreoPay, ${data.user.nombre}! Tu cuenta de padre fue creada exitosamente.`);
+    alert(`¡Bienvenido(a) a SiboPay, ${data.user.nombre}! Tu cuenta de padre fue creada exitosamente.`);
     await applyUserRoleSession();
   } catch (err) {
     if (errorMsg) {
@@ -326,6 +327,7 @@ async function handleLoginSubmit(event) {
       estudiante: data.estudiante,
       hijos: data.hijos || []
     };
+    localStorage.setItem('sibopay_user', JSON.stringify(currentUser));
     localStorage.setItem('recreopay_user', JSON.stringify(currentUser));
 
     if (window.sounds) window.sounds.playSuccess();
@@ -496,6 +498,7 @@ function switchAdminToDev() {
 
 function logout(skipConfirm = false) {
   if (skipConfirm || confirm('¿Deseas cerrar sesión para seleccionar otra cuenta?')) {
+    localStorage.removeItem('sibopay_user');
     localStorage.removeItem('recreopay_user');
     currentUser = null;
     currentStudent = null;

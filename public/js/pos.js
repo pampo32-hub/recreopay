@@ -133,7 +133,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 async function loadCatalog() {
   try {
     let url = '/api/productos';
-    const storedUser = localStorage.getItem('recreopay_user');
+    const storedUser = localStorage.getItem('sibopay_user') || localStorage.getItem('recreopay_user');
     if (storedUser) {
       try {
         const u = JSON.parse(storedUser);
@@ -1421,7 +1421,7 @@ function initSSE() {
       });
 
       // 2. Notificación PUSH del navegador / sistema operativo
-      sendPushNotification('🔔 Nueva Recarga SINPE - RecreoPay', {
+      sendPushNotification('🔔 Nueva Recarga SINPE - SiboPay', {
         body: `Se reportó una recarga de ₡${montoFmt} para ${estudianteNombre}. Comprobante: #${comp}`,
         tag: `sinpe-${sol.id || Date.now()}`,
         data: { url: '/pos.html?tab=sinpe' }
@@ -1511,7 +1511,7 @@ async function subscribeDeviceToWebPush() {
 
     let user = null;
     try {
-      const stored = localStorage.getItem('recreopay_user');
+      const stored = localStorage.getItem('sibopay_user') || localStorage.getItem('recreopay_user');
       if (stored) user = JSON.parse(stored);
     } catch (e) {}
 
@@ -1562,9 +1562,9 @@ async function enablePushNotificationsPrompt() {
     updateNotificationButtonState();
     if (perm === 'granted') {
       await subscribeDeviceToWebPush();
-      sendPushNotification('🔔 RecreoPay Terminal Soda', {
+      sendPushNotification('🔔 SiboPay Terminal Soda', {
         body: '¡Notificaciones activadas! Te avisaremos al instante con cada recarga SINPE, aun con la app cerrada.',
-        tag: 'recreopay-welcome'
+        tag: 'sibopay-welcome'
       });
       showInAppNotification({
         title: '¡Notificaciones Activadas!',
@@ -1666,7 +1666,7 @@ async function loadSinpeRequests() {
 
   try {
     let url = '/api/sinpe/solicitudes?estado=pendiente';
-    const storedUser = localStorage.getItem('recreopay_user');
+    const storedUser = localStorage.getItem('sibopay_user') || localStorage.getItem('recreopay_user');
     if (storedUser) {
       try {
         const u = JSON.parse(storedUser);

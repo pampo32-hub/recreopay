@@ -1,0 +1,741 @@
+<!DOCTYPE html>
+<html lang="es" class="scroll-smooth">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SiboPay Costa Rica - Plataforma de Pagos y Monedero Escolar Digital</title>
+  <link rel="icon" type="image/png" href="img/sibopay-emblem.png">
+  <!-- Tailwind CDN & Google Fonts -->
+  <script src="https://www.gstatic.com/antigravity/web/dev/tailwindcss.min.js"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&display=swap');
+    
+    :root {
+      --brand-celeste: #0284c7;
+      --brand-celeste-dark: #0369a1;
+      --brand-celeste-light: #e0f2fe;
+      --brand-navy: #0f172a;
+      --brand-emerald: #16a34a;
+    }
+
+    body {
+      font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+      background-color: #f8fafc;
+      color: #0f172a;
+      overflow-x: hidden;
+    }
+
+    /* Patrón de fondo sutil estilo SaaS educativo */
+    .hero-grid-pattern {
+      background-image: 
+        radial-gradient(circle at 50% 0%, rgba(2, 132, 199, 0.08) 0%, transparent 60%),
+        linear-gradient(to right, rgba(226, 232, 240, 0.6) 1px, transparent 1px),
+        linear-gradient(to bottom, rgba(226, 232, 240, 0.6) 1px, transparent 1px);
+      background-size: 100% 100%, 36px 36px, 36px 36px;
+    }
+
+    /* Tarjeta flotante simulada con gradiente y efectos */
+    .student-card-preview {
+      background: linear-gradient(135deg, #0284c7 0%, #0369a1 50%, #0f172a 100%);
+      box-shadow: 0 25px 50px -12px rgba(2, 132, 199, 0.35), 0 0 0 1px rgba(255, 255, 255, 0.15) inset;
+      transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    .student-card-preview:hover {
+      transform: translateY(-6px) rotate(1deg) scale(1.02);
+      box-shadow: 0 30px 60px -15px rgba(2, 132, 199, 0.45);
+    }
+
+    /* Glow decorativo */
+    .glow-celeste {
+      box-shadow: 0 0 40px rgba(2, 132, 199, 0.2);
+    }
+
+    /* Animación flotante suave */
+    @keyframes gentleFloat {
+      0%, 100% { transform: translateY(0px); }
+      50% { transform: translateY(-8px); }
+    }
+    .animate-float-slow {
+      animation: gentleFloat 5s ease-in-out infinite;
+    }
+    .animate-float-delayed {
+      animation: gentleFloat 6s ease-in-out infinite 2s;
+    }
+
+    /* Bento Cards */
+    .bento-card {
+      transition: all 0.3s ease;
+      border: 1px solid #e2e8f0;
+    }
+    .bento-card:hover {
+      border-color: #38bdf8;
+      transform: translateY(-4px);
+      box-shadow: 0 20px 30px -10px rgba(2, 132, 199, 0.08);
+    }
+  </style>
+</head>
+<body class="hero-grid-pattern min-h-screen selection:bg-sky-500 selection:text-white">
+
+  <!-- BANNER DE ENTORNO / MODO DE VISTA PREVIA -->
+  <div class="bg-slate-900 text-white text-xs py-2 px-4 sticky top-0 z-50 border-b border-slate-800">
+    <div class="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-3">
+      <div class="flex items-center gap-2">
+        <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-sky-500 text-white uppercase tracking-wider">
+          Propuesta Desktop PC
+        </span>
+        <span class="text-slate-300 font-medium hidden sm:inline">
+          Inspirada en OrderEAT • Adaptada con colores, moneda (₡) y funciones 100% reales de SiboPay
+        </span>
+      </div>
+      <div class="flex items-center gap-2 text-xs">
+        <button onclick="toggleLoginModal(true)" class="bg-sky-600 hover:bg-sky-500 text-white px-3 py-1 rounded-md font-semibold transition flex items-center gap-1.5">
+          <span>🔑 Probar Modal de Inicio de Sesión</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- NAVEGACIÓN SUPERIOR FIJA / GLASSMORPHISM (Estilo OrderEAT) -->
+  <nav class="sticky top-8 z-40 bg-white/85 backdrop-blur-md border-b border-slate-200/80 transition-all">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex items-center justify-between h-20">
+        <!-- Brand Logo SiboPay -->
+        <a href="#" class="flex items-center gap-3 group">
+          <img src="img/sibopay-emblem.png" alt="SiboPay Logo" class="w-12 h-12 object-contain drop-shadow-md group-hover:scale-105 transition-transform">
+          <div>
+            <div class="flex items-center gap-1.5">
+              <span class="text-2xl font-black tracking-tight text-slate-900">Sibo<span class="text-sky-600">Pay</span></span>
+            </div>
+            <p class="text-[10px] font-extrabold text-slate-400 -mt-1 tracking-wider uppercase">Pagos y Transferencias Rápidas</p>
+          </div>
+        </a>
+
+        <!-- Links Principales (Desktop) -->
+        <div class="hidden lg:flex items-center gap-8 text-sm font-bold text-slate-600">
+          <a href="#sodas" class="hover:text-sky-600 transition">Para Sodas y Colegios</a>
+          <a href="#familias" class="hover:text-sky-600 transition">Para Padres & Familias</a>
+          <a href="#estudiantes" class="hover:text-sky-600 transition">Carnés QR de Alumnos</a>
+          <a href="#mep" class="hover:text-sky-600 transition">Salud & Normativa MEP</a>
+        </div>
+
+        <!-- Botones de Acción (Derecha) -->
+        <div class="flex items-center gap-3">
+          <button onclick="toggleLoginModal(true)" class="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-black bg-sky-600 text-white hover:bg-sky-500 transition shadow-lg shadow-sky-600/25 active:scale-95">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/>
+              <polyline points="10 17 15 12 10 7"/>
+              <line x1="15" x2="3" y1="12" y2="12"/>
+            </svg>
+            <span>Iniciar Sesión / Portal</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </nav>
+
+  <!-- HERO SECTION (2 COLUMNAS ESTILO ORDER EAT) -->
+  <section class="relative pt-12 pb-20 lg:pt-20 lg:pb-28 overflow-hidden">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-8 items-center">
+        
+        <!-- COLUMNA IZQUIERDA: MENSAJE PRINCIPAL & CTAs -->
+        <div class="lg:col-span-7 space-y-8 text-center lg:text-left">
+          
+          <!-- Badge Pill de Introducción -->
+          <div class="inline-flex items-center px-3.5 py-1.5 rounded-full bg-sky-50 border border-sky-200 text-sky-700 text-xs font-extrabold shadow-sm">
+            <span>La solución escolar 100% Cashless en Costa Rica</span>
+          </div>
+
+          <!-- Título Heroico Principal (Un solo color, todas las letras negras) -->
+          <h1 class="text-4xl sm:text-5xl lg:text-6xl font-black text-black tracking-tight leading-[1.12]">
+            Digitalizá la soda de tu colegio.<br>
+            Cero efectivo en los recreos.
+          </h1>
+
+          <!-- Descripción adaptada a la realidad escolar de Costa Rica -->
+          <p class="text-base sm:text-lg text-slate-600 max-w-2xl font-medium leading-relaxed mx-auto lg:mx-0">
+            Eliminá las filas eternas en los 15 minutos de receso. Cobros en <strong class="text-slate-900">3 segundos</strong> con carnés QR físicos o directamente desde el código QR en el teléfono del estudiante, recargas inmediatas por <strong class="text-slate-900">SINPE Móvil</strong> y control de límites y alergias en la app para padres de familia.
+          </p>
+
+          <!-- Botones de Acción Directa -->
+          <div class="flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-4 pt-2">
+            <button onclick="toggleLoginModal(true)" class="w-full sm:w-auto px-8 py-4 rounded-2xl bg-sky-600 hover:bg-sky-500 text-white font-black text-base shadow-xl shadow-sky-600/30 transition flex items-center justify-center gap-3">
+              <span>Iniciar Sesión / Portal</span>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg>
+            </button>
+          </div>
+
+          <!-- Badges de confianza realistas (Solo características que sí tenemos) -->
+          <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 pt-6 border-t border-slate-200/80 text-left">
+            <div class="flex items-center gap-2.5">
+              <div class="w-7 h-7 rounded-lg bg-sky-100 text-sky-600 flex items-center justify-center text-xs font-black flex-shrink-0">✓</div>
+              <span class="text-xs font-bold text-slate-700">SINPE Móvil Inmediato</span>
+            </div>
+            <div class="flex items-center gap-2.5">
+              <div class="w-7 h-7 rounded-lg bg-sky-100 text-sky-600 flex items-center justify-center text-xs font-black flex-shrink-0">✓</div>
+              <span class="text-xs font-bold text-slate-700">Carnés QR Impresos</span>
+            </div>
+            <div class="flex items-center gap-2.5">
+              <div class="w-7 h-7 rounded-lg bg-sky-100 text-sky-600 flex items-center justify-center text-xs font-black flex-shrink-0">✓</div>
+              <span class="text-xs font-bold text-slate-700">Alertas de Alergias</span>
+            </div>
+            <div class="flex items-center gap-2.5">
+              <div class="w-7 h-7 rounded-lg bg-sky-100 text-sky-600 flex items-center justify-center text-xs font-black flex-shrink-0">✓</div>
+              <span class="text-xs font-bold text-slate-700">Filtro de Comida MEP</span>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- COLUMNA DERECHA: MOCKUP INTERACTIVO EN VIVO (Tarjeta + Alertas + Notificaciones) -->
+        <div class="lg:col-span-5 relative">
+          
+          <!-- Elemento decorativo de fondo -->
+          <div class="absolute -top-12 -right-12 w-80 h-80 bg-sky-300/30 rounded-full blur-3xl pointer-events-none"></div>
+          <div class="absolute -bottom-10 -left-10 w-72 h-72 bg-emerald-300/20 rounded-full blur-3xl pointer-events-none"></div>
+
+          <!-- Contenedor del Showcase Interactivo -->
+          <div class="relative bg-white/70 backdrop-blur-xl p-6 sm:p-8 rounded-[36px] border border-white shadow-2xl shadow-slate-300/50">
+            
+            <!-- Barra superior del mockup -->
+            <div class="flex items-center justify-between pb-5 border-b border-slate-100 mb-6">
+              <div class="flex items-center gap-2">
+                <span class="w-3 h-3 rounded-full bg-red-400"></span>
+                <span class="w-3 h-3 rounded-full bg-amber-400"></span>
+                <span class="w-3 h-3 rounded-full bg-emerald-400"></span>
+              </div>
+              <span class="text-[11px] font-extrabold uppercase tracking-wider text-slate-400">SiboPay Live Engine</span>
+              <span class="text-xs font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">En línea</span>
+            </div>
+
+            <!-- 1. TARJETA DIGITAL ESTUDIANTIL (Con Monograma de Iniciales MA) -->
+            <div class="student-card-preview p-6 rounded-2xl text-white relative overflow-hidden mb-6">
+              <!-- Círculos de agua decorativos -->
+              <div class="absolute -right-10 -bottom-10 w-36 h-36 bg-white/10 rounded-full blur-xl pointer-events-none"></div>
+              
+              <div class="flex items-center justify-between mb-6">
+                <div class="flex items-center gap-2">
+                  <img src="img/sibopay-emblem.png" alt="SiboPay" class="w-7 h-7 object-contain rounded-full shadow-sm">
+                  <span class="text-xs font-black tracking-wider text-sky-100">SIBOPAY STUDENT</span>
+                </div>
+                <!-- Chip EMV & Contactless -->
+                <div class="flex items-center gap-2">
+                  <div class="w-8 h-6 rounded bg-amber-300/90 border border-amber-400 flex items-center justify-center shadow-inner">
+                    <div class="w-4 h-3 border border-amber-600/40 rounded-sm"></div>
+                  </div>
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" class="text-sky-200"><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-2.5"/><path d="M5 18a6 6 0 0 0 6-6c0-3.3-1.5-5-2.5-6"/><path d="M2 21a9.5 9.5 0 0 0 9.5-9.5C11.5 6 9.5 3 8 2"/></svg>
+                </div>
+              </div>
+
+              <!-- Saldo Actual en Colones -->
+              <div class="mb-5">
+                <div class="text-[11px] font-bold uppercase tracking-wider text-sky-200">Saldo Disponible en Soda</div>
+                <div class="text-3xl font-black tracking-tight text-white flex items-baseline gap-1">
+                  <span>₡4.500</span>
+                  <span class="text-xs font-semibold text-sky-200">CRC</span>
+                </div>
+              </div>
+
+              <!-- Identidad del Estudiante con Monograma MA (Sin robots) -->
+              <div class="flex items-center justify-between pt-2 border-t border-white/15">
+                <div class="flex items-center gap-2.5">
+                  <div class="w-9 h-9 rounded-xl bg-white text-sky-700 font-black text-xs flex items-center justify-center shadow-md">
+                    MA
+                  </div>
+                  <div>
+                    <div class="text-sm font-black text-white leading-tight">Mateo Alvarado</div>
+                    <div class="text-[11px] font-semibold text-sky-200">2° Grado A • Código: #CR-2041</div>
+                  </div>
+                </div>
+                <!-- QR Code Simulado en Miniatura -->
+                <div class="w-9 h-9 bg-white p-1 rounded-lg shadow-sm flex items-center justify-center">
+                  <div class="w-full h-full bg-slate-900 rounded-[2px] flex items-center justify-center text-[7px] text-white font-mono font-bold">
+                    QR
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- 2. WIDGETS FLOTANTES DE SIMULACIÓN REALISTA -->
+            <div class="space-y-3">
+              
+              <!-- Alerta 1: Notificación de Recarga SINPE -->
+              <div class="bg-white border border-slate-200/90 rounded-xl p-3 flex items-center justify-between shadow-sm animate-float-slow">
+                <div class="flex items-center gap-3">
+                  <div class="w-8 h-8 rounded-lg bg-emerald-600 text-white flex items-center justify-center font-black text-xs">
+                    ₡
+                  </div>
+                  <div>
+                    <div class="text-xs font-black text-slate-800">Recarga SINPE Móvil Recibida</div>
+                    <div class="text-[11px] font-semibold text-slate-500">De: Carlos Alvarado (+506 8888-1122)</div>
+                  </div>
+                </div>
+                <span class="text-xs font-black text-slate-700 bg-slate-100 px-2 py-1 rounded-md border border-slate-200">+₡5.000</span>
+              </div>
+
+              <!-- Alerta 2: Ticket de Venta POS Rápido -->
+              <div class="bg-white border border-slate-200/90 rounded-xl p-3 flex items-center justify-between shadow-sm animate-float-delayed">
+                <div class="flex items-center gap-3">
+                  <div class="w-8 h-8 rounded-lg bg-sky-600 text-white flex items-center justify-center font-black text-xs">
+                    POS
+                  </div>
+                  <div>
+                    <div class="text-xs font-black text-slate-800">Compra Aprobada en Recreo (3 seg)</div>
+                    <div class="text-[11px] font-semibold text-slate-500">Empanada de Queso + Jugo Natural</div>
+                  </div>
+                </div>
+                <span class="text-xs font-black text-slate-700 bg-slate-100 px-2 py-1 rounded-md border border-slate-200">-₡1.500</span>
+              </div>
+
+              <!-- Alerta 3: Advertencia Clínica de Alergia a la Caja -->
+              <div class="bg-white border border-slate-200/90 rounded-xl p-3 flex items-center justify-between shadow-sm">
+                <div class="flex items-center gap-3">
+                  <div class="w-8 h-8 rounded-lg bg-amber-500 text-white flex items-center justify-center font-black text-xs">
+                    ⚠️
+                  </div>
+                  <div>
+                    <div class="text-xs font-black text-slate-800">Alerta Médica en Pantalla de Caja</div>
+                    <div class="text-[11px] font-semibold text-slate-500">Alergia Severa: Maní / Frutos Secos</div>
+                  </div>
+                </div>
+                <span class="text-[10px] font-extrabold uppercase bg-slate-100 text-slate-700 px-2 py-1 rounded-md border border-slate-200">Filtro Activo</span>
+              </div>
+
+            </div>
+
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- CIFRAS CLAVE & BENEFICIOS MEDIBLES (Estilo OrderEAT Stats Bar) -->
+  <section class="bg-slate-900 text-white py-12 border-y border-slate-800">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-8 text-center divide-y md:divide-y-0 md:divide-x divide-slate-800">
+        
+        <div class="pt-4 md:pt-0 group cursor-default transition-all">
+          <div class="text-3xl sm:text-4xl font-black text-sky-400 mb-1">3 seg</div>
+          <div class="text-xs font-bold uppercase tracking-wider text-slate-200">Cobro promedio por alumno</div>
+          <p class="text-[11px] text-slate-400 mt-1">Filas 5x más rápidas en el receso</p>
+        </div>
+
+        <div class="pt-4 md:pt-0 group cursor-default transition-all">
+          <div class="text-3xl sm:text-4xl font-black text-sky-400 mb-1">100%</div>
+          <div class="text-xs font-bold uppercase tracking-wider text-slate-200">Cero Efectivo Perdido</div>
+          <p class="text-[11px] text-slate-400 mt-1">Sin monedas ni billetes extraviados</p>
+        </div>
+
+        <div class="pt-4 md:pt-0 group cursor-default transition-all">
+          <div class="text-3xl sm:text-4xl font-black text-sky-400 mb-1">₡0</div>
+          <div class="text-xs font-bold uppercase tracking-wider text-slate-200">Comisión por Recarga SINPE</div>
+          <p class="text-[11px] text-slate-400 mt-1">Directo entre padres y concesión</p>
+        </div>
+
+        <div class="pt-4 md:pt-0 group cursor-default transition-all">
+          <div class="text-3xl sm:text-4xl font-black text-sky-400 mb-1">100%</div>
+          <div class="text-xs font-bold uppercase tracking-wider text-slate-200">Normativa Nutricional MEP</div>
+          <p class="text-[11px] text-slate-400 mt-1">Control de alergias y comida chatarra</p>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- SECCIÓN 1: PARA SODAS Y CONCESIONARIOS ESCOLARES (Bento Grid) -->
+  <section id="sodas" class="py-20 bg-white">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      
+      <!-- Encabezado de Sección -->
+      <div class="max-w-3xl mb-16">
+        <div class="inline-flex items-center px-3.5 py-1.5 rounded-full bg-sky-50 border border-sky-200 text-sky-700 text-xs font-extrabold shadow-sm mb-3">
+          Para Sodas y Concesionarios Escolares
+        </div>
+        <h2 class="text-3xl sm:text-4xl font-black text-slate-900 tracking-tight">
+          Diseñado para soportar el caos de los 15 minutos de recreo.
+        </h2>
+        <p class="text-base text-slate-600 mt-3 font-medium">
+          Sabemos que la soda no puede perder ni un segundo cobrando con datáfonos lentos o contando monedas sucias. SiboPay optimiza cada interacción en el mostrador.
+        </p>
+      </div>
+
+      <!-- Bento Grid de Sodas -->
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        
+        <!-- Bento 1: Terminal POS Ultra Veloz -->
+        <div class="bento-card md:col-span-2 bg-gradient-to-br from-slate-50 to-white rounded-3xl p-8 flex flex-col justify-between">
+          <div>
+            <div class="w-12 h-12 rounded-2xl bg-sky-600 text-white flex items-center justify-center mb-6 shadow-md shadow-sky-600/30">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="20" height="14" x="2" y="3" rx="2"/><line x1="8" x2="16" y1="21" y2="21"/><line x1="12" x2="12" y1="17" y2="21"/></svg>
+            </div>
+            <h3 class="text-2xl font-black text-slate-900 mb-2">Terminal de Caja POS con Lector QR</h3>
+            <p class="text-slate-600 text-sm leading-relaxed">
+              Compatible con cualquier laptop o tablet PC. Escaneo instantáneo de códigos QR: el alumno acerca su carné plastificado o la pantalla de su celular, el sistema carga su saldo y foto al instante, y el cobro se completa en segundos.
+            </p>
+          </div>
+          <div class="pt-6 border-t border-slate-200/80 mt-6">
+            <span class="text-xs font-black text-sky-700 bg-sky-50 px-2.5 py-1 rounded-md border border-sky-100">Cobro express en 3 segundos</span>
+          </div>
+        </div>
+
+        <!-- Bento 2: Arqueo y Cierre de Caja Automático -->
+        <div class="bento-card bg-slate-50 rounded-3xl p-8 flex flex-col justify-between">
+          <div>
+            <div class="w-12 h-12 rounded-2xl bg-sky-600 text-white flex items-center justify-center mb-6 shadow-md shadow-sky-600/30">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" x2="12" y1="2" y2="22"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+            </div>
+            <h3 class="text-xl font-black text-slate-900 mb-2">Cierre de Caja en 1 Clic</h3>
+            <p class="text-slate-600 text-xs leading-relaxed">
+              Reporte consolidado al final del turno: ventas en colones por recreo, productos más vendidos, y conciliación exacta de saldo debitado vs inventario.
+            </p>
+          </div>
+          <div class="pt-6 border-t border-slate-200/80 mt-6">
+            <span class="text-xs font-black text-sky-700 bg-sky-100 px-2.5 py-1 rounded-md">Cero faltantes de dinero</span>
+          </div>
+        </div>
+
+        <!-- Bento 3: Alertas Médicas en Pantalla -->
+        <div class="bento-card bg-slate-50 rounded-3xl p-8 flex flex-col justify-between border border-slate-200/80">
+          <div>
+            <div class="w-12 h-12 rounded-2xl bg-sky-600 text-white flex items-center justify-center mb-6 shadow-md shadow-sky-600/30">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+            </div>
+            <h3 class="text-xl font-black text-slate-900 mb-2">Escudo Clínico contra Alergias</h3>
+            <p class="text-slate-600 text-xs leading-relaxed">
+              Si un estudiante alérgico al maní o lactosa intenta comprar un producto prohibido por sus padres, el POS emite una alarma sonoro-visual bloqueando el cobro.
+            </p>
+          </div>
+          <div class="pt-6 border-t border-slate-200/80 mt-6">
+            <span class="text-xs font-black text-sky-700 bg-sky-50 px-2.5 py-1 rounded-md border border-sky-100">Protección médica infantil</span>
+          </div>
+        </div>
+
+        <!-- Bento 4: Impresión Masiva de Carnés Escolares -->
+        <div class="bento-card md:col-span-2 bg-slate-50 rounded-3xl p-8 flex flex-col justify-between border border-slate-200/80">
+          <div>
+            <div class="w-12 h-12 rounded-2xl bg-sky-600 text-white flex items-center justify-center mb-6 shadow-md shadow-sky-600/30">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect width="12" height="8" x="6" y="14"/></svg>
+            </div>
+            <h3 class="text-2xl font-black text-slate-900 mb-2">Generador de Carnés QR Listos para Imprimir</h3>
+            <p class="text-slate-600 text-sm leading-relaxed max-w-xl">
+              Generá en segundos plantillas en tamaño credencial estándar con el logo de tu escuela, nombre del alumno, grado, foto y código QR de alta resolución listo para termolaminar.
+            </p>
+          </div>
+          <div class="pt-6 border-t border-slate-200/80 mt-6">
+            <span class="text-xs font-black text-sky-700 bg-sky-50 px-2.5 py-1 rounded-md border border-sky-100">Credenciales escolares en alta definición</span>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- SECCIÓN 2: PARA PADRES Y FAMILIAS (Estilo OrderEAT Familias) -->
+  <section id="familias" class="py-20 bg-slate-50 border-t border-slate-200/80">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      
+      <!-- Encabezado de Sección -->
+      <div class="max-w-3xl mb-16">
+        <div class="inline-flex items-center px-3.5 py-1.5 rounded-full bg-sky-50 border border-sky-200 text-sky-700 text-xs font-extrabold shadow-sm mb-3">
+          Para Padres y Encargados
+        </div>
+        <h2 class="text-3xl sm:text-4xl font-black text-slate-900 tracking-tight">
+          La tranquilidad de saber qué comen y cuánto gastan tus hijos.
+        </h2>
+        <p class="text-base text-slate-600 mt-3 font-medium">
+          Se acabaron las dudas de si perdieron el vuelto o si compraron solo golosinas. Desde tu celular o computadora tenés el control total en tiempo real.
+        </p>
+      </div>
+
+      <!-- Bento Grid de Familias -->
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        
+        <!-- Tarjeta 1: Recargas SINPE Móvil Inmediatas -->
+        <div class="bento-card bg-white rounded-3xl p-8 flex flex-col justify-between border border-slate-200 hover:border-sky-400 transition-all duration-300 shadow-sm hover:shadow-xl hover:shadow-sky-500/10 hover:-translate-y-1">
+          <div>
+            <div class="w-12 h-12 rounded-2xl bg-sky-600 text-white flex items-center justify-center mb-6 font-black text-lg shadow-md shadow-sky-600/30">
+              ₡
+            </div>
+            <h3 class="text-xl font-black text-slate-900 mb-2">Recargas SINPE Móvil en Segundos</h3>
+            <p class="text-slate-600 text-xs leading-relaxed mb-4">
+              Enviá el dinero por SINPE desde la banca móvil de tu banco de preferencia (BAC, BCR, BNCR, Promerica). Ingresá el comprobante y el saldo se refleja al instante.
+            </p>
+          </div>
+          <div class="bg-sky-50 border border-sky-200 text-sky-700 rounded-xl p-3 flex items-center gap-2">
+            <span class="font-bold text-xs">🇨🇷 100% en Colones Costarricenses</span>
+          </div>
+        </div>
+
+        <!-- Tarjeta 2: Límite de Gasto Diario -->
+        <div class="bento-card bg-white rounded-3xl p-8 flex flex-col justify-between border border-slate-200 hover:border-sky-400 transition-all duration-300 shadow-sm hover:shadow-xl hover:shadow-sky-500/10 hover:-translate-y-1">
+          <div>
+            <div class="w-12 h-12 rounded-2xl bg-sky-600 text-white flex items-center justify-center mb-6 shadow-md shadow-sky-600/30">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+            </div>
+            <h3 class="text-xl font-black text-slate-900 mb-2">Límite de Gasto Diario Programable</h3>
+            <p class="text-slate-600 text-xs leading-relaxed mb-4">
+              Evitá que gasten todo el dinero de la quincena el primer día. Fijá un tope (ej. ₡1.500 al día) y la soda bloqueará cobros que superen ese monto.
+            </p>
+          </div>
+          <div class="bg-sky-50 border border-sky-200 text-sky-700 rounded-xl p-3 flex items-center justify-between">
+            <span class="text-xs font-bold">Ejemplo de tope:</span>
+            <span class="text-xs font-black">₡1.500 / día</span>
+          </div>
+        </div>
+
+        <!-- Tarjeta 3: Bloqueo de Alimentos y Chatarra -->
+        <div class="bento-card bg-white rounded-3xl p-8 flex flex-col justify-between border border-slate-200 hover:border-sky-400 transition-all duration-300 shadow-sm hover:shadow-xl hover:shadow-sky-500/10 hover:-translate-y-1">
+          <div>
+            <div class="w-12 h-12 rounded-2xl bg-sky-600 text-white flex items-center justify-center mb-6 shadow-md shadow-sky-600/30">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18.36 6.64a9 9 0 1 1-12.73 0"/><line x1="12" x2="12" y1="2" y2="12"/></svg>
+            </div>
+            <h3 class="text-xl font-black text-slate-900 mb-2">Filtro de Comida Chatarra</h3>
+            <p class="text-slate-600 text-xs leading-relaxed mb-4">
+              Bloqueá con un switch categorías específicas (gaseosas, frituras o confitería) asegurando que el dinero se invierta en frutas, almuerzos y batidos saludables.
+            </p>
+          </div>
+          <div class="bg-sky-50 border border-sky-200 text-sky-700 rounded-xl p-3 flex items-center gap-2">
+            <span class="font-bold text-xs">Hábitos saludables desde pequeños</span>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- SECCIÓN 3: PARA ESTUDIANTES (Con o sin celular) -->
+  <section id="estudiantes" class="py-20 bg-white">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      
+    <div class="max-w-4xl mx-auto text-center">
+      <div class="inline-flex items-center px-3.5 py-1.5 rounded-full bg-sky-50 border border-sky-200 text-sky-700 text-xs font-extrabold shadow-sm mb-3">
+        Inclusión Total para Primaria y Secundaria
+      </div>
+      <h2 class="text-3xl sm:text-4xl font-black text-slate-900 tracking-tight leading-tight">
+        ¿Tu hijo no lleva celular a la escuela? <br>
+        <span class="text-sky-600">No hay problema.</span>
+      </h2>
+      <p class="text-base text-slate-600 mt-4 leading-relaxed font-medium max-w-2xl mx-auto">
+        Entendemos las políticas de cada centro educativo. Para primaria o escuelas con prohibición de dispositivos móviles, los estudiantes usan su <strong class="text-slate-900">carné escolar con código QR</strong> en la faja o mochila. Para colegiales de secundaria, cuentan con su billetera web progresiva (PWA).
+      </p>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mt-10 text-left">
+        <div class="p-7 rounded-3xl bg-slate-50 border border-slate-200/90 flex flex-col justify-between">
+          <div>
+            <div class="w-12 h-12 rounded-2xl bg-sky-600 text-white flex items-center justify-center font-black text-base flex-shrink-0 mb-4 shadow-md shadow-sky-600/30">
+              1
+            </div>
+            <h4 class="text-lg font-black text-slate-900">Alumnos de Primaria (Carné Físico)</h4>
+            <p class="text-xs text-slate-600 mt-2 leading-relaxed">
+              Carné impreso en alta definición con iniciales del estudiante, grado y QR blindado. La soda lo escanea en 2 segundos con pistola láser o cámara, sin necesidad de que el niño lleve celular a clases.
+            </p>
+          </div>
+          <div class="mt-6 pt-4 border-t border-slate-200 flex items-center justify-between text-xs font-bold text-sky-700">
+            <span>✓ Cero celulares en aula</span>
+            <span>✓ Listo para plastificar</span>
+          </div>
+        </div>
+
+        <div class="p-7 rounded-3xl bg-slate-50 border border-slate-200/90 flex flex-col justify-between">
+          <div>
+            <div class="w-12 h-12 rounded-2xl bg-sky-600 text-white flex items-center justify-center font-black text-base flex-shrink-0 mb-4 shadow-md shadow-sky-600/30">
+              2
+            </div>
+            <h4 class="text-lg font-black text-slate-900">Alumnos de Secundaria (App Móvil)</h4>
+            <p class="text-xs text-slate-600 mt-2 leading-relaxed">
+              Consulta inmediata de saldo en colones, historial de meriendas y pre-órdenes para retirar rápidamente en el mostrador express durante el receso.
+            </p>
+          </div>
+          <div class="mt-6 pt-4 border-t border-slate-200 flex items-center justify-between text-xs font-bold text-sky-700">
+            <span>✓ Saldo en tiempo real</span>
+            <span>✓ Sin filas en recreo</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    </div>
+  </section>
+
+
+
+  <!-- SECCIÓN 4: SALUD Y NORMATIVA MEP (Cumplimiento de Sodas Escolares) -->
+  <section id="mep" class="py-20 bg-slate-50 border-t border-slate-200/80">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      
+      <!-- Encabezado de Sección -->
+      <div class="max-w-3xl mb-16">
+        <div class="inline-flex items-center px-3.5 py-1.5 rounded-full bg-sky-50 border border-sky-200 text-sky-700 text-xs font-extrabold shadow-sm mb-3">
+          Salud Escolar y Normativa MEP
+        </div>
+        <h2 class="text-3xl sm:text-4xl font-black text-slate-900 tracking-tight">
+          Cumplimiento del Reglamento de Sodas del MEP y Salud.
+        </h2>
+        <p class="text-base text-slate-600 mt-3 font-medium">
+          SiboPay apoya a la institución escolar y al concesionario de soda en el cumplimiento de la normativa oficial para la venta y control de alimentos en centros educativos de Costa Rica.
+        </p>
+      </div>
+
+      <!-- Grid de 3 Pilares MEP -->
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        
+        <!-- Pilar 1: Filtro Nutricional y Chatarra -->
+        <div class="bento-card bg-white rounded-3xl p-8 flex flex-col justify-between border border-slate-200 hover:border-sky-400 transition-all duration-300 shadow-sm hover:shadow-xl hover:shadow-sky-500/10 hover:-translate-y-1">
+          <div>
+            <div class="w-12 h-12 rounded-2xl bg-sky-600 text-white flex items-center justify-center mb-6 shadow-md shadow-sky-600/30">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2zm1 14.5h-2v-2h2zm0-4.5h-2V7h2z"/></svg>
+            </div>
+            <h3 class="text-xl font-black text-slate-900 mb-2">Filtro de Comida Chatarra</h3>
+            <p class="text-slate-600 text-xs leading-relaxed mb-4">
+              Bloqueo inmediato de productos no permitidos según los lineamientos del MEP: gaseosas azucaradas, frituras y golosinas ultraprocesadas.
+            </p>
+          </div>
+          <div class="bg-sky-50 border border-sky-200 text-sky-700 rounded-xl p-3 flex items-center gap-2">
+            <span class="font-bold text-xs">✓ Alineado a Guías MEP</span>
+          </div>
+        </div>
+
+        <!-- Pilar 2: Escudo Clínico de Alergias -->
+        <div class="bento-card bg-white rounded-3xl p-8 flex flex-col justify-between border border-slate-200 hover:border-sky-400 transition-all duration-300 shadow-sm hover:shadow-xl hover:shadow-sky-500/10 hover:-translate-y-1">
+          <div>
+            <div class="w-12 h-12 rounded-2xl bg-sky-600 text-white flex items-center justify-center mb-6 shadow-md shadow-sky-600/30">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+            </div>
+            <h3 class="text-xl font-black text-slate-900 mb-2">Escudo Clínico de Alergias</h3>
+            <p class="text-slate-600 text-xs leading-relaxed mb-4">
+              Registro médico preventivo configurado por los padres (maní, gluten, lactosa, etc.). Al escanear el carné en caja, el sistema emite una alarma sonoro-visual y bloquea el cobro.
+            </p>
+          </div>
+          <div class="bg-sky-50 border border-sky-200 text-sky-700 rounded-xl p-3 flex items-center gap-2">
+            <span class="font-bold text-xs">✓ Protección Médica Escolar</span>
+          </div>
+        </div>
+
+        <!-- Pilar 3: Inocuidad y Cero Efectivo -->
+        <div class="bento-card bg-white rounded-3xl p-8 flex flex-col justify-between border border-slate-200 hover:border-sky-400 transition-all duration-300 shadow-sm hover:shadow-xl hover:shadow-sky-500/10 hover:-translate-y-1">
+          <div>
+            <div class="w-12 h-12 rounded-2xl bg-sky-600 text-white flex items-center justify-center mb-6 shadow-md shadow-sky-600/30">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+            </div>
+            <h3 class="text-xl font-black text-slate-900 mb-2">Inocuidad y Cero Efectivo</h3>
+            <p class="text-slate-600 text-xs leading-relaxed mb-4">
+              Al eliminar billetes y monedas en el mostrador, el personal que despacha no contamina los alimentos con dinero sucio, cumpliendo los estándares de salud pública.
+            </p>
+          </div>
+          <div class="bg-sky-50 border border-sky-200 text-sky-700 rounded-xl p-3 flex items-center gap-2">
+            <span class="font-bold text-xs">✓ Manipulación Higiénica 100%</span>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- FOOTER PROFESIONAL (Estilo OrderEAT con identidad costarricense) -->
+  <footer class="bg-slate-950 text-slate-400 py-12 border-t border-slate-900 text-xs">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex flex-col md:flex-row items-center justify-between gap-6 pb-8 border-b border-slate-800">
+        <div class="flex items-center gap-3">
+          <img src="img/sibopay-emblem.png" alt="SiboPay Logo" class="w-8 h-8 object-contain">
+          <span class="text-lg font-black text-white">Sibo<span class="text-sky-500">Pay</span></span>
+          <span class="text-[10px] bg-slate-800 text-slate-300 px-2 py-0.5 rounded-full ml-2">Costa Rica 🇨🇷</span>
+        </div>
+        <div class="flex items-center gap-6 font-bold text-slate-300">
+          <a href="#sodas" class="hover:text-white transition">Sodas</a>
+          <a href="#familias" class="hover:text-white transition">Familias</a>
+          <a href="#mep" class="hover:text-white transition">Normativa MEP</a>
+          <button onclick="toggleLoginModal(true)" class="hover:text-white transition cursor-pointer">Iniciar Sesión</button>
+          <a href="/carnet.html" target="_blank" class="hover:text-white transition">Carnés QR</a>
+        </div>
+      </div>
+      <div class="flex flex-col sm:flex-row items-center justify-between gap-4 pt-6 text-[11px] text-slate-500">
+        <p>© 2026 SiboPay Costa Rica. Sistema digital especializado en pagos y transferencias rápidas.</p>
+        <div class="flex items-center gap-4">
+          <span>Integrado con SINPE Móvil</span>
+          <span>•</span>
+          <span>Alineado a Guías MEP</span>
+        </div>
+      </div>
+    </div>
+  </footer>
+
+  <!-- MODAL FLOTANTE DE INICIO DE SESIÓN INTEGRADO -->
+  <div id="modalLogin" class="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-sm hidden items-center justify-center p-4">
+    <div class="bg-white rounded-3xl max-w-md w-full p-6 sm:p-8 shadow-2xl relative animate-in fade-in duration-200">
+      
+      <!-- Botón Cerrar Modal -->
+      <button onclick="toggleLoginModal(false)" class="absolute top-5 right-5 text-slate-400 hover:text-slate-700 p-1.5 rounded-full hover:bg-slate-100 transition">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+
+      <div class="text-center mb-6">
+        <img src="img/sibopay-emblem.png" alt="SiboPay" class="w-16 h-16 object-contain mx-auto mb-3 drop-shadow-lg">
+        <h3 class="text-xl font-black text-slate-900">Ingresar a Sibo<span class="text-sky-600">Pay</span></h3>
+        <p class="text-xs text-slate-500 mt-1">Acceso seguro para padres, estudiantes y personal de soda</p>
+      </div>
+
+      <!-- Selector de Roles con Iconos Finos y Elegantes -->
+      <div class="space-y-2 mb-6">
+        <div class="text-[10px] font-black uppercase tracking-wider text-slate-400 mb-2">Selecciona tu perfil de acceso:</div>
+        <div class="grid grid-cols-2 gap-3">
+          <button onclick="window.location.href='/index.html'" class="group p-3.5 rounded-2xl border border-slate-200 hover:border-sky-500 bg-white hover:bg-sky-50/50 text-left transition-all shadow-xs flex items-center gap-3">
+            <div class="w-10 h-10 rounded-xl bg-sky-50 text-sky-600 border border-sky-100 flex items-center justify-center group-hover:scale-105 group-hover:bg-sky-600 group-hover:text-white transition-all flex-shrink-0">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/>
+                <circle cx="9" cy="7" r="3.5"/>
+                <path d="M22 21v-2a4 4 0 0 0-3-3.87"/>
+                <path d="M16 3.13a3.5 3.5 0 0 1 0 7.75"/>
+              </svg>
+            </div>
+            <div>
+              <div class="text-xs font-black text-slate-800 group-hover:text-sky-600 transition-colors">Padres</div>
+              <div class="text-[10px] font-medium text-slate-400">Portal familiar</div>
+            </div>
+          </button>
+
+          <button onclick="window.location.href='/index.html'" class="group p-3.5 rounded-2xl border border-slate-200 hover:border-slate-800 bg-white hover:bg-slate-50 text-left transition-all shadow-xs flex items-center gap-3">
+            <div class="w-10 h-10 rounded-xl bg-slate-100 text-slate-700 border border-slate-200 flex items-center justify-center group-hover:scale-105 group-hover:bg-slate-900 group-hover:text-white transition-all flex-shrink-0">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                <rect width="20" height="14" x="2" y="3" rx="2"/>
+                <line x1="8" x2="16" y1="21" y2="21"/>
+                <line x1="12" x2="12" y1="17" y2="21"/>
+              </svg>
+            </div>
+            <div>
+              <div class="text-xs font-black text-slate-800 group-hover:text-slate-900 transition-colors">Soda / Caja</div>
+              <div class="text-[10px] font-medium text-slate-400">Terminal y cobros</div>
+            </div>
+          </button>
+        </div>
+      </div>
+
+      <div class="pt-4 border-t border-slate-100 text-center">
+        <a href="/index.html" class="inline-flex items-center justify-center w-full py-3 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-extrabold text-xs transition">
+          Ir a la Aplicación Principal
+        </a>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- SCRIPT PARA INTERACTIVIDAD -->
+  <script>
+    function toggleLoginModal(show) {
+      const modal = document.getElementById('modalLogin');
+      if (show) {
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+      } else {
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
+      }
+    }
+
+    function quickLoginRole(role) {
+      toggleLoginModal(true);
+    }
+  </script>
+
+</body>
+</html>

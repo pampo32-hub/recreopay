@@ -1,14 +1,14 @@
 {
-  "name": "RecreoPay - Soda Escolar Costa Rica",
-  "short_name": "RecreoPay",
+  "name": "SiboPay - Plataforma de Pagos y Monedero Escolar",
+  "short_name": "SiboPay",
   "start_url": "/index.html",
   "scope": "/",
-  "id": "recreopay-pwa",
+  "id": "sibopay-pwa",
   "display": "standalone",
   "orientation": "portrait",
-  "background_color": "#0f172a",
+  "background_color": "#052036",
   "theme_color": "#0284c7",
-  "description": "Monedero Digital y Pre-órdenes para Sodas Escolares en Costa Rica",
+  "description": "Plataforma Digital de Pagos Rápidos, Transferencias y Monedero Escolar en Costa Rica",
   "icons": [
     {
       "src": "/icons/icon-192.png",

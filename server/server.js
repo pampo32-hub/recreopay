@@ -32,7 +32,7 @@ const webpush = require('web-push');
 // Configuración VAPID para Web Push en Segundo Plano (App Cerrada en iOS / Android)
 const VAPID_PUBLIC_KEY = process.env.VAPID_PUBLIC_KEY || 'BDHXXfRHdftR2qg-WV5Trz85t8hIllB7_gBdfKut747-XihlnbQgstbMc94P5SR4vGUWgKE_mE9WClaRc-Lp060';
 const VAPID_PRIVATE_KEY = process.env.VAPID_PRIVATE_KEY || 'ufOrxmh5a2ouxonOyue-ZSQJPWMN0dq6CkbDYErgZaw';
-const VAPID_SUBJECT = process.env.VAPID_SUBJECT || 'mailto:soporte@recreopay.cr';
+const VAPID_SUBJECT = process.env.VAPID_SUBJECT || 'mailto:soporte@sibopay.cr';
 
 try {
   webpush.setVapidDetails(VAPID_SUBJECT, VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY);
@@ -1735,7 +1735,7 @@ app.post('/api/sinpe/solicitar', (req, res) => {
     sendWebPushNotification({
       escuelaId: nuevaSol.escuela_id || 1,
       payload: {
-        title: '🔔 Nueva Recarga SINPE - RecreoPay',
+        title: '🔔 Nueva Recarga SINPE - SiboPay',
         body: `Recarga de ₡${montoFmt} para ${payloadNotificacion.estudiante_nombre}. Comprobante: #${payloadNotificacion.comprobante_sinpe}`,
         icon: '/icons/icon-192.png',
         badge: '/icons/icon-192.png',
@@ -1862,7 +1862,7 @@ app.post('/api/push/test', async (req, res) => {
   try {
     await sendWebPushNotification({
       payload: {
-        title: '🔔 Prueba de Notificación - RecreoPay',
+        title: '🔔 Prueba de Notificación - SiboPay',
         body: '¡Excelente! Las notificaciones funcionan en segundo plano incluso con la app cerrada.',
         icon: '/icons/icon-192.png',
         badge: '/icons/icon-192.png',
@@ -2219,9 +2219,15 @@ app.get('/api/server-info', (req, res) => {
   });
 });
 
+// Rutas amigables para landing page institucional
+app.get(['/landing', '/inicio', '/presentacion'], (req, res) => {
+  res.sendFile(path.join(__dirname, '../public/desktop-preview.html'));
+});
+
 // Iniciar servidor
 app.listen(PORT, () => {
-  console.log(`🚀 Servidor RecreoPay iniciado en http://localhost:${PORT}`);
+  console.log(`🚀 Servidor SiboPay iniciado en http://localhost:${PORT}`);
+  console.log(`🌐 Presentación Institucional: http://localhost:${PORT}/desktop-preview.html`);
   console.log(`📱 PWA Estudiantes/Padres: http://localhost:${PORT}/index.html`);
   console.log(`📟 Terminal Soda/Escáner QR: http://localhost:${PORT}/pos.html`);
   console.log(`🖨️ Generador de Carnés Físicos: http://localhost:${PORT}/carnet.html`);
