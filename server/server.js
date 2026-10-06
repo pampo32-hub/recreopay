@@ -1155,7 +1155,7 @@ app.post('/api/developer/escuelas', (req, res) => {
 
     const insertRes = db.prepare(`
       INSERT INTO escuelas (codigo, nombre, telefono_sinpe, nombre_sinpe, concesionario, activo)
-      VALUES (?, ?, ?, ?, ?, 1)
+      VALUES (?, ?, ?, ?, ?, true)
     `).run(cleanCod, cleanNom, tel, nomSinpe, conce);
 
     const newEscuelaId = insertRes.lastInsertRowid || insertRes.id;
@@ -1209,9 +1209,9 @@ app.put('/api/developer/escuelas/:id/estado', (req, res) => {
   try {
     const id = parseInt(req.params.id, 10);
     const { activo } = req.body;
-    const nuevoEstado = activo ? 1 : 0;
+    const nuevoEstado = !!activo;
     db.prepare('UPDATE escuelas SET activo = ? WHERE id = ?').run(nuevoEstado, id);
-    res.json({ success: true, activo: nuevoEstado });
+    res.json({ success: true, activo: nuevoEstado ? 1 : 0 });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
