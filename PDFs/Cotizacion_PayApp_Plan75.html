@@ -1,0 +1,778 @@
+﻿<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Cotización Oficial - RecreoPay Plan $75/mes</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&display=swap');
+
+    @page {
+      size: A4 portrait;
+      margin: 10mm 12mm 12mm 12mm;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      -webkit-print-color-adjust: exact !important;
+      print-color-adjust: exact !important;
+    }
+
+    body {
+      font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+      color: #1e293b;
+      background-color: #ffffff;
+      font-size: 8.5pt;
+      line-height: 1.45;
+    }
+
+    .page {
+      page-break-after: always;
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+      min-height: 275mm;
+    }
+
+    .page:last-child {
+      page-break-after: avoid;
+    }
+
+    /* HEADER */
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 2px solid #0284c7;
+      padding-bottom: 12px;
+      margin-bottom: 14px;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .brand-logo-badge {
+      width: 42px;
+      height: 42px;
+      background: linear-gradient(135deg, #0284c7, #0369a1);
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #ffffff;
+      font-size: 20px;
+      font-weight: 900;
+      box-shadow: 0 4px 10px rgba(2, 132, 199, 0.3);
+    }
+
+    .brand-text h1 {
+      font-size: 19pt;
+      font-weight: 900;
+      color: #0f172a;
+      letter-spacing: -0.5px;
+      line-height: 1.1;
+    }
+
+    .brand-text h1 span {
+      color: #0284c7;
+    }
+
+    .brand-text p {
+      font-size: 7.5pt;
+      font-weight: 600;
+      color: #64748b;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .meta-box {
+      text-align: right;
+    }
+
+    .meta-tag {
+      display: inline-block;
+      background: #e0f2fe;
+      color: #0369a1;
+      font-weight: 800;
+      font-size: 7.5pt;
+      padding: 3px 9px;
+      border-radius: 6px;
+      text-transform: uppercase;
+      margin-bottom: 4px;
+    }
+
+    .meta-table {
+      font-size: 7.8pt;
+      color: #475569;
+      border-collapse: collapse;
+      margin-left: auto;
+    }
+
+    .meta-table td {
+      padding: 1px 4px;
+    }
+
+    .meta-table td.strong {
+      font-weight: 700;
+      color: #0f172a;
+    }
+
+    /* RECIPIENT BOX */
+    .recipient-card {
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-left: 4px solid #0284c7;
+      border-radius: 8px;
+      padding: 8px 12px;
+      margin-bottom: 14px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .recipient-info h3 {
+      font-size: 9.5pt;
+      font-weight: 800;
+      color: #0f172a;
+    }
+
+    .recipient-info p {
+      font-size: 8pt;
+      color: #64748b;
+    }
+
+    .highlight-pill {
+      background: #ecfdf5;
+      color: #059669;
+      border: 1px solid #a7f3d0;
+      font-weight: 800;
+      font-size: 7.5pt;
+      padding: 4px 10px;
+      border-radius: 20px;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+
+    /* SECTION TITLES */
+    .section-title {
+      font-size: 10.5pt;
+      font-weight: 900;
+      color: #0f172a;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      margin-bottom: 8px;
+      border-bottom: 1px solid #e2e8f0;
+      padding-bottom: 4px;
+    }
+
+    .section-title .bullet {
+      width: 6px;
+      height: 14px;
+      background: #0284c7;
+      border-radius: 2px;
+    }
+
+    /* FEATURE GRID */
+    .features-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 9px;
+      margin-bottom: 14px;
+    }
+
+    .feature-card {
+      background: #ffffff;
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      padding: 9px 11px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.02);
+    }
+
+    .feature-header {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      margin-bottom: 5px;
+    }
+
+    .feature-icon {
+      width: 24px;
+      height: 24px;
+      border-radius: 6px;
+      background: #f0f9ff;
+      color: #0284c7;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 11pt;
+      flex-shrink: 0;
+    }
+
+    .feature-title {
+      font-size: 8.8pt;
+      font-weight: 800;
+      color: #0f172a;
+    }
+
+    .feature-desc {
+      font-size: 7.6pt;
+      color: #64748b;
+      margin-bottom: 6px;
+      line-height: 1.35;
+    }
+
+    .feature-bullets {
+      list-style: none;
+      padding-left: 0;
+      font-size: 7.4pt;
+      color: #334155;
+    }
+
+    .feature-bullets li {
+      position: relative;
+      padding-left: 12px;
+      margin-bottom: 2px;
+    }
+
+    .feature-bullets li::before {
+      content: '✓';
+      position: absolute;
+      left: 0;
+      color: #10b981;
+      font-weight: 900;
+      font-size: 7.5pt;
+    }
+
+    /* ARCHITECTURE CALLOUT */
+    .arch-callout {
+      background: linear-gradient(135deg, #0f172a, #1e293b);
+      color: #ffffff;
+      border-radius: 8px;
+      padding: 10px 14px;
+      margin-bottom: 14px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .arch-text h4 {
+      font-size: 9pt;
+      font-weight: 800;
+      color: #38bdf8;
+      margin-bottom: 2px;
+    }
+
+    .arch-text p {
+      font-size: 7.6pt;
+      color: #94a3b8;
+      line-height: 1.35;
+    }
+
+    .arch-badges {
+      display: flex;
+      gap: 6px;
+      flex-shrink: 0;
+    }
+
+    .badge-dark {
+      background: rgba(255, 255, 255, 0.1);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      padding: 4px 8px;
+      border-radius: 5px;
+      font-size: 7pt;
+      font-weight: 700;
+      color: #e2e8f0;
+      text-align: center;
+    }
+
+    /* FOOTER PAGE */
+    .page-footer {
+      margin-top: auto;
+      border-top: 1px solid #e2e8f0;
+      padding-top: 8px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 7.2pt;
+      color: #94a3b8;
+    }
+
+    /* PAGE 2: PLAN $75/MES DETALLADO */
+    .plan-hero {
+      background: linear-gradient(135deg, #0f172a, #1e293b);
+      border: 2px solid #10b981;
+      border-radius: 12px;
+      padding: 14px 18px;
+      margin-bottom: 14px;
+      color: #ffffff;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      box-shadow: 0 4px 14px rgba(16, 185, 129, 0.15);
+    }
+
+    .plan-hero-left h2 {
+      font-size: 13pt;
+      font-weight: 900;
+      color: #ffffff;
+      margin-bottom: 2px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .plan-badge-pill {
+      background: #10b981;
+      color: white;
+      font-size: 7pt;
+      font-weight: 800;
+      padding: 2px 8px;
+      border-radius: 10px;
+      text-transform: uppercase;
+    }
+
+    .plan-hero-left p {
+      font-size: 8pt;
+      color: #94a3b8;
+    }
+
+    .plan-hero-pricing {
+      text-align: right;
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      border-radius: 10px;
+      padding: 8px 16px;
+    }
+
+    .plan-hero-pricing .price-main {
+      font-size: 20pt;
+      font-weight: 900;
+      color: #34d399;
+      line-height: 1;
+    }
+
+    .plan-hero-pricing .price-cycle {
+      font-size: 7.5pt;
+      font-weight: 700;
+      color: #cbd5e1;
+      text-transform: uppercase;
+      margin-top: 2px;
+    }
+
+    .plan-hero-pricing .price-setup {
+      font-size: 7.2pt;
+      color: #4ade80;
+      font-weight: 800;
+      margin-top: 2px;
+    }
+
+    /* INCLUSIONS DETAILED GRID */
+    .inclusions-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 9px;
+      margin-bottom: 12px;
+    }
+
+    .inclusion-card {
+      background: #ffffff;
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      padding: 9px 12px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.02);
+    }
+
+    .inclusion-title {
+      font-size: 8.5pt;
+      font-weight: 800;
+      color: #0284c7;
+      margin-bottom: 5px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      border-bottom: 1px dashed #e2e8f0;
+      padding-bottom: 4px;
+    }
+
+    .inclusion-list {
+      list-style: none;
+      padding-left: 0;
+      font-size: 7.3pt;
+      color: #334155;
+    }
+
+    .inclusion-list li {
+      position: relative;
+      padding-left: 12px;
+      margin-bottom: 3px;
+      line-height: 1.35;
+    }
+
+    .inclusion-list li::before {
+      content: '✔';
+      position: absolute;
+      left: 0;
+      color: #10b981;
+      font-weight: 900;
+      font-size: 7pt;
+    }
+
+    /* ROI / VALUE PROPOSITION */
+    .roi-strip {
+      background: #f0fdf4;
+      border: 1px solid #bbf7d0;
+      border-radius: 8px;
+      padding: 8px 12px;
+      display: flex;
+      justify-content: space-around;
+      margin-bottom: 11px;
+      text-align: center;
+    }
+
+    .roi-item strong {
+      display: block;
+      font-size: 11pt;
+      font-weight: 900;
+      color: #15803d;
+    }
+
+    .roi-item span {
+      font-size: 7.2pt;
+      color: #166534;
+      font-weight: 600;
+    }
+
+    /* TERMS & SIGNATURES */
+    .terms-box {
+      font-size: 7pt;
+      color: #64748b;
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 6px;
+      padding: 7px 10px;
+      margin-bottom: 11px;
+      line-height: 1.35;
+    }
+
+    .signatures-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 25px;
+      margin-top: 8px;
+      margin-bottom: 4px;
+    }
+
+    .signature-card {
+      border-top: 1px solid #94a3b8;
+      padding-top: 5px;
+      font-size: 7.3pt;
+      color: #475569;
+    }
+
+    .signature-card strong {
+      color: #0f172a;
+      display: block;
+      font-size: 7.9pt;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- PÁGINA 1: PRESENTACIÓN & MÓDULOS DEL SISTEMA -->
+  <div class="page">
+    
+    <!-- HEADER -->
+    <div class="header">
+      <div class="brand">
+        <div class="brand-logo-badge">PA</div>
+        <div class="brand-text">
+          <h1>Pay<span>App</span></h1>
+          <p>Billetera Digital Escolar & Punto de Venta para Sodas</p>
+        </div>
+      </div>
+      <div class="meta-box">
+        <span class="meta-tag">Propuesta Comercial</span>
+        <table class="meta-table">
+          <tr><td class="strong">Cotización:</td><td>COT-2026-PA75</td></tr>
+          <tr><td class="strong">Fecha:</td><td>05 de Octubre, 2026</td></tr>
+          <tr><td class="strong">Validez:</td><td>30 Días Calendario</td></tr>
+        </table>
+      </div>
+    </div>
+
+    <!-- RECIPIENT -->
+    <div class="recipient-card">
+      <div class="recipient-info">
+        <h3>Dirigido a: Dirección Institucional y Concesionarios de Soda Escolar</h3>
+        <p>Centro Educativo / Escuela / Colegio — Costa Rica</p>
+      </div>
+      <div class="highlight-pill">
+        <span>●</span> Solución Integral 100% Costarricense
+      </div>
+    </div>
+
+    <!-- RESUMEN EJECUTIVO -->
+    <div style="margin-bottom: 12px;">
+      <div class="section-title">
+        <div class="bullet"></div>
+        <span>Resumen Ejecutivo del Proyecto</span>
+      </div>
+      <p style="font-size: 8pt; color: #334155; line-height: 1.45;">
+        <strong>PayApp</strong> es la plataforma tecnológica integral diseñada para modernizar la experiencia de compra y recaudación en sodas y cafeterías escolares. Elimina por completo el uso de dinero en efectivo en manos de niños, agiliza el despacho en los 15 minutos críticos del recreo mediante códigos QR y pre-órdenes, y brinda a los padres de familia control nutricional y recargas validadas por SINPE Móvil.
+      </p>
+    </div>
+
+    <!-- ARQUITECTURA CALLOUT -->
+    <div class="arch-callout">
+      <div class="arch-text">
+        <h4>Tecnología en Tiempo Real & Alta Disponibilidad</h4>
+        <p>Actualizaciones inmediatas vía Server-Sent Events (SSE), base de datos transaccional ACID contra saldos duplicados y compatibilidad multiplataforma instantánea (sin instalaciones complejas).</p>
+      </div>
+      <div class="arch-badges">
+        <div class="badge-dark">PWA Móvil<br>iOS / Android</div>
+        <div class="badge-dark">POS Táctil<br>Web/PC/Tablet</div>
+        <div class="badge-dark">SINPE Móvil<br>Validado</div>
+      </div>
+    </div>
+
+    <!-- CARACTERÍSTICAS PRINCIPALES -->
+    <div class="section-title">
+      <div class="bullet"></div>
+      <span>Módulos y Características Principales de PayApp</span>
+    </div>
+
+    <div class="features-grid">
+      
+      <!-- CARD 1: ESTUDIANTES -->
+      <div class="feature-card">
+        <div class="feature-header">
+          <div class="feature-icon">📱</div>
+          <div class="feature-title">Billetera Estudiantil (PWA Móvil)</div>
+        </div>
+        <div class="feature-desc">Aplicación web progresiva rápida y divertida para alumnos de 7 a 15 años.</div>
+        <ul class="feature-bullets">
+          <li><strong>Carné Digital QR:</strong> Identificación inmediata para pago en mostrador.</li>
+          <li><strong>Modo Offline Resiliente:</strong> El código QR abre aún si no hay internet.</li>
+          <li><strong>Control de Saldo:</strong> Saldo disponible en colones y límite diario visible.</li>
+          <li><strong>Pre-Órdenes:</strong> Pedido anticipado para recreos y almuerzos.</li>
+          <li><strong>Transferencias P2P Seguras:</strong> Entre compañeros con PIN de seguridad.</li>
+          <li><strong>Temas y Skins:</strong> Tarjetas personalizables (Mascotas, Deportes, Arte).</li>
+        </ul>
+      </div>
+
+      <!-- CARD 2: PADRES -->
+      <div class="feature-card">
+        <div class="feature-header">
+          <div class="feature-icon">👨‍👩‍👧</div>
+          <div class="feature-title">Portal de Padres (Control Parental)</div>
+        </div>
+        <div class="feature-desc">Supervisión total y tranquilidad sobre el presupuesto y nutrición de los hijos.</div>
+        <ul class="feature-bullets">
+          <li><strong>Recarga SINPE Móvil:</strong> Validación con monto y comprobante bancario.</li>
+          <li><strong>Límite Diario de Gasto:</strong> Control del tope máximo diario en colones (₡).</li>
+          <li><strong>Interruptor de Transferencias:</strong> Bloqueo parental con estilo gray-out.</li>
+          <li><strong>Historial Transparente:</strong> Registro exacto de qué comió y a qué hora.</li>
+          <li><strong>Gestión Multi-Hijo:</strong> Monitoreo de varios estudiantes en una sola cuenta.</li>
+          <li><strong>Gestión de Credenciales:</strong> Configuración y reseteo de PIN de seguridad.</li>
+        </ul>
+      </div>
+
+      <!-- CARD 3: POS SODA -->
+      <div class="feature-card">
+        <div class="feature-header">
+          <div class="feature-icon">📟</div>
+          <div class="feature-title">Terminal POS de Mostrador (Soda)</div>
+        </div>
+        <div class="feature-desc">Diseñado para la hora pico: cobro en 1.5 segundos con cero fricción.</div>
+        <ul class="feature-bullets">
+          <li><strong>Escáner Dual:</strong> Compatible con pistolas USB/Bluetooth y cámara web.</li>
+          <li><strong>Catálogo Táctil Rápido:</strong> Con buscador inteligente y productos frecuentes.</li>
+          <li><strong>Fila Exprés de Pre-Órdenes:</strong> Retiro inmediato de combos preparados.</li>
+          <li><strong>Validación SINPE en Caja:</strong> Aprobación y acreditación en 1 clic.</li>
+          <li><strong>Alertas Sonoras y Visuales:</strong> Feedback auditivo para rapidez del cajero.</li>
+          <li><strong>Notificaciones en Vivo:</strong> Reflejo de órdenes sin recargar pantalla.</li>
+        </ul>
+      </div>
+
+      <!-- CARD 4: CARNÉS & SEGURIDAD -->
+      <div class="feature-card">
+        <div class="feature-header">
+          <div class="feature-icon">🖨️</div>
+          <div class="feature-title">Carnés Físicos & Administración</div>
+        </div>
+        <div class="feature-desc">Inclusión garantizada para alumnos sin celular y control operativo total.</div>
+        <ul class="feature-bullets">
+          <li><strong>Generador de Carnés Físicos:</strong> Exportación a PDF para plastificado.</li>
+          <li><strong>Inclusión Digital:</strong> Todo estudiante puede pagar con su credencial QR.</li>
+          <li><strong>Roles del Sistema:</strong> Permisos para SuperAdmin, Admin, Cajero y Padres.</li>
+          <li><strong>Auditoría Transaccional:</strong> Registro de cada movimiento sin posibilidad de alteración.</li>
+          <li><strong>Cierre de Caja Diario:</strong> Cuadre de ventas de mostrador vs. recargas SINPE.</li>
+          <li><strong>Cero Efectivo en Mano:</strong> Eliminación de pérdidas o robos en recreos.</li>
+        </ul>
+      </div>
+
+    </div>
+
+    <!-- FOOTER PAGE 1 -->
+    <div class="page-footer">
+      <span>PayApp Costa Rica • Sistema de Gestión de Billetera y Soda Escolar</span>
+      <span>Página 1 de 2</span>
+    </div>
+
+  </div>
+
+
+  <!-- PÁGINA 2: PLAN MENSUAL $75 USD TODO INCLUIDO -->
+  <div class="page">
+    
+    <!-- HEADER MINI -->
+    <div class="header" style="margin-bottom: 12px; padding-bottom: 8px;">
+      <div class="brand">
+        <div class="brand-logo-badge" style="width: 32px; height: 32px; font-size: 15px;">PA</div>
+        <div class="brand-text">
+          <h1 style="font-size: 15pt;">Pay<span>App</span></h1>
+          <p style="font-size: 6.8pt;">Plan de Licencia y Suscripción Mensual</p>
+        </div>
+      </div>
+      <div class="meta-box">
+        <span class="meta-tag" style="background: #dcfce7; color: #15803d;">Plan Integral $75/mes</span>
+      </div>
+    </div>
+
+    <!-- HERO PLAN $75 -->
+    <div class="plan-hero">
+      <div class="plan-hero-left">
+        <h2>Plan Suscripción Todo Incluido <span class="plan-badge-pill">Cero Inversión Inicial</span></h2>
+        <p>Acceso total a la plataforma en la nube, servidores de alta velocidad, mantenimiento continuo y soporte permanente para el centro educativo.</p>
+      </div>
+      <div class="plan-hero-pricing">
+        <div class="price-main">$75 <span style="font-size: 11pt; color: #e2e8f0;">USD</span></div>
+        <div class="price-cycle">Por Escuela / Mes</div>
+        <div class="price-setup">Setup Inicial: $0 (Gratis)</div>
+      </div>
+    </div>
+
+    <div class="section-title">
+      <div class="bullet"></div>
+      <span>¿Qué Incluye el Plan Mensual de $75 USD?</span>
+    </div>
+
+    <!-- INCLUSIONES DETALLADAS EN 4 BLOQUES -->
+    <div class="inclusions-grid">
+      
+      <!-- BLOQUE 1 -->
+      <div class="inclusion-card">
+        <div class="inclusion-title">
+          <span>📱</span> 1. Software, Billetera y Acceso Ilimitado
+        </div>
+        <ul class="inclusion-list">
+          <li><strong>Estudiantes Ilimitados:</strong> Registro sin tope de alumnos, grados y secciones.</li>
+          <li><strong>Billetera PWA para Alumnos:</strong> Monedero móvil, saldo en vivo, pre-órdenes y temas.</li>
+          <li><strong>Menú con Fotos y Precios:</strong> Catálogo visual de productos con fotos y precios en tiempo real.</li>
+          <li><strong>Modo Offline Resiliente:</strong> El código QR abre aún si el colegio se queda sin internet.</li>
+          <li><strong>Transferencias P2P Protegidas:</strong> Envío de saldo entre alumnos con PIN de 4 dígitos.</li>
+          <li><strong>Sin Instalaciones Pesadas:</strong> Compatible con celulares Android, iPhone y PC.</li>
+        </ul>
+      </div>
+
+      <!-- BLOQUE 2 -->
+      <div class="inclusion-card">
+        <div class="inclusion-title">
+          <span>📟</span> 2. Terminal POS para la Soda & Carnés
+        </div>
+        <ul class="inclusion-list">
+          <li><strong>Punto de Venta Táctil:</strong> Cobro express en menos de 2 segundos en mostrador.</li>
+          <li><strong>Compatibilidad Dual de Escáner:</strong> Pistola lectora USB/Bluetooth o cámara web/tablet.</li>
+          <li><strong>Fila Rápida de Pre-Órdenes:</strong> Panel especial para despacho de almuerzos y recreos.</li>
+          <li><strong>Generador de Carnés Físicos:</strong> Emisión e impresión en PDF para plastificar.</li>
+          <li><strong>Alertas en Tiempo Real:</strong> Avisos sonoros inmediatos al ingresar órdenes o recargas.</li>
+        </ul>
+      </div>
+
+      <!-- BLOQUE 3 -->
+      <div class="inclusion-card">
+        <div class="inclusion-title">
+          <span>👨‍👩‍👧</span> 3. Portal de Padres & Validación SINPE
+        </div>
+        <ul class="inclusion-list">
+          <li><strong>Recarga SINPE Móvil Validada:</strong> Registro con monto y comprobante bancario.</li>
+          <li><strong>Panel de Aprobación en Soda:</strong> Verificación de fondos en cuenta bancaria en 1 clic.</li>
+          <li><strong>Control de Límite Diario:</strong> Tope de consumo diario configurable por estudiante.</li>
+          <li><strong>Bloqueo Parental con Gray-Out:</strong> Desactivación de transferencias entre niños.</li>
+          <li><strong>Historial Transparente:</strong> Qué comió, a qué hora y desglose exacto de saldos.</li>
+        </ul>
+      </div>
+
+      <!-- BLOQUE 4 -->
+      <div class="inclusion-card">
+        <div class="inclusion-title">
+          <span>☁️</span> 4. Servidor Cloud, Soporte & Mantenimiento
+        </div>
+        <ul class="inclusion-list">
+          <li><strong>Hosting y Servidor en la Nube:</strong> Servidor de alta velocidad 24/7 incluido.</li>
+          <li><strong>Base de Datos Centralizada:</strong> PostgreSQL segura con transacciones ACID.</li>
+          <li><strong>Respaldos Diarios Automáticos:</strong> Cero riesgo de pérdida de saldos o pedidos.</li>
+          <li><strong>Soporte Técnico Continuo:</strong> Asistencia prioritaria vía WhatsApp y correo.</li>
+          <li><strong>Actualizaciones de Software:</strong> Actualizaciones y parches.</li>
+          <li><strong>Requerimientos Adicionales:</strong> Implementaciones, nuevas características u otros requerimientos se cotizan por aparte.</li>
+        </ul>
+      </div>
+
+    </div>
+
+    <!-- ROI & BENEFICIOS ECONÓMICOS -->
+    <div class="roi-strip">
+      <div class="roi-item">
+        <strong>-70%</strong>
+        <span>Tiempo en filas de recreo</span>
+      </div>
+      <div class="roi-item">
+        <strong>100%</strong>
+        <span>Eliminación de efectivo perdido</span>
+      </div>
+      <div class="roi-item">
+        <strong>+25%</strong>
+        <span>Ventas por Pre-Órdenes</span>
+      </div>
+      <div class="roi-item">
+        <strong>15-22 Días</strong>
+        <span>Puesta en marcha operativa</span>
+      </div>
+    </div>
+
+    <!-- TÉRMINOS Y CONDICIONES -->
+    <div class="terms-box">
+      <strong>Términos Comerciales:</strong> Tarifa de $75.00 USD mensuales por escuela o licencia activa (o su equivalente en Colones ₡ CRC al tipo de cambio oficial del BCCR). Sin contrato de permanencia forzosa (mes a mes cancelable en cualquier momento). Formas de pago aceptadas: Transferencia Bancaria y SINPE Móvil Empresarial. La activación técnica se realiza en un plazo estimado de 15 a 22 días hábiles tras la confirmación de la orden. La soda solo requiere una computadora, laptop o tablet con acceso a internet.
+    </div>
+
+    <!-- FIRMAS DE CONFORMIDAD -->
+    <div class="signatures-grid">
+      <div class="signature-card">
+        <strong>Por PayApp Technologies:</strong>
+        <p>Departamento de Ingeniería y Soluciones Digitales</p>
+        <p>San José, Costa Rica • contacto@payapp.cr</p>
+      </div>
+      <div class="signature-card">
+        <strong>Aceptación del Cliente (Firma y Sello):</strong>
+        <p>Plan Seleccionado: [ <strong>X</strong> ] Plan Mensual Todo Incluido ($75 USD / mes)</p>
+        <p>Nombre / Institución: ___________________________________</p>
+      </div>
+    </div>
+
+    <!-- FOOTER PAGE 2 -->
+    <div class="page-footer">
+      <span>PayApp Costa Rica • Documento Confidencial de Propuesta Comercial</span>
+      <span>Página 2 de 2</span>
+    </div>
+
+  </div>
+
+</body>
+</html>
