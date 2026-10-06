@@ -271,7 +271,7 @@ async function handleRegisterPadreSubmit(event) {
     if (window.sounds) window.sounds.playError();
   } finally {
     btnSubmit.disabled = false;
-    btnSubmit.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:6px;"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M19 11v6"/><path d="M22 14h-6"/></svg> Crear Cuenta de Padre y Entrar';
+    btnSubmit.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:6px;"><circle cx="9" cy="7" r="3.5"/><path d="M3 20v-1.5A4.5 4.5 0 0 1 7.5 14h3A4.5 4.5 0 0 1 15 18.5V20"/><circle cx="17.5" cy="7.5" r="2.5"/><path d="M15 14a3.5 3.5 0 0 1 5.5 3v3"/></svg> Crear Cuenta de Padre y Entrar';
   }
 }
 
