@@ -4258,15 +4258,15 @@ function renderAdminMovimientos() {
     // Determinar badge de tipo
     let tipoBadge = '';
     if (m.tipo === 'recarga_manual') {
-      tipoBadge = `<span style="background: #dcfce7; color: #166534; font-size: 0.7rem; font-weight: 800; padding: 3px 8px; border-radius: 6px; display: inline-flex; align-items: center; gap: 4px;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="2"/></svg> Recarga Efectivo</span>`;
+      tipoBadge = `<span style="background: #dcfce7; color: #166534; border: 1px solid #bbf7d0; font-size: 0.7rem; font-weight: 800; padding: 3px 8px; border-radius: 6px; display: inline-flex; align-items: center; gap: 4px;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="2"/></svg> Recarga Efectivo</span>`;
     } else if (m.tipo === 'recarga_sinpe') {
-      tipoBadge = `<span style="background: #e0f2fe; color: #0369a1; font-size: 0.7rem; font-weight: 800; padding: 3px 8px; border-radius: 6px; display: inline-flex; align-items: center; gap: 4px;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="5" y="2" width="14" height="20" rx="2" ry="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></svg> Recarga SINPE</span>`;
+      tipoBadge = `<span style="background: #e0f2fe; color: #0369a1; border: 1px solid #bae6fd; font-size: 0.7rem; font-weight: 800; padding: 3px 8px; border-radius: 6px; display: inline-flex; align-items: center; gap: 4px;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="5" y="2" width="14" height="20" rx="2" ry="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></svg> Recarga SINPE</span>`;
     } else if (m.tipo === 'compra_mostrador' || m.tipo === 'preorden') {
-      tipoBadge = `<span style="background: #fef3c7; color: #92400e; font-size: 0.7rem; font-weight: 800; padding: 3px 8px; border-radius: 6px; display: inline-flex; align-items: center; gap: 4px;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg> Cobro Soda</span>`;
+      tipoBadge = `<span style="background: #fee2e2; color: #991b1b; border: 1px solid #fecaca; font-size: 0.7rem; font-weight: 800; padding: 3px 8px; border-radius: 6px; display: inline-flex; align-items: center; gap: 4px;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg> Cobro Soda</span>`;
     } else if (m.tipo === 'reversion_recarga') {
-      tipoBadge = `<span style="background: #f3e8ff; color: #6b21a8; font-size: 0.7rem; font-weight: 800; padding: 3px 8px; border-radius: 6px; display: inline-flex; align-items: center; gap: 4px;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 5.5 5.5v0a5.5 5.5 0 0 1-5.5 5.5H11"/></svg> Reversión Recarga</span>`;
+      tipoBadge = `<span style="background: #fee2e2; color: #991b1b; border: 1px solid #fecaca; font-size: 0.7rem; font-weight: 800; padding: 3px 8px; border-radius: 6px; display: inline-flex; align-items: center; gap: 4px;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 5.5 5.5v0a5.5 5.5 0 0 1-5.5 5.5H11"/></svg> Reversión Recarga (Eliminación)</span>`;
     } else if (m.tipo === 'reembolso') {
-      tipoBadge = `<span style="background: #f3e8ff; color: #6b21a8; font-size: 0.7rem; font-weight: 800; padding: 3px 8px; border-radius: 6px; display: inline-flex; align-items: center; gap: 4px;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 5.5 5.5v0a5.5 5.5 0 0 1-5.5 5.5H11"/></svg> Reembolso Compra</span>`;
+      tipoBadge = `<span style="background: #dcfce7; color: #166534; border: 1px solid #bbf7d0; font-size: 0.7rem; font-weight: 800; padding: 3px 8px; border-radius: 6px; display: inline-flex; align-items: center; gap: 4px;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 5.5 5.5v0a5.5 5.5 0 0 1-5.5 5.5H11"/></svg> Reembolso Compra</span>`;
     } else {
       tipoBadge = `<span style="background: #f1f5f9; color: #475569; font-size: 0.7rem; font-weight: 800; padding: 3px 8px; border-radius: 6px;">${m.tipo.toUpperCase()}</span>`;
     }
@@ -4278,10 +4278,15 @@ function renderAdminMovimientos() {
       fechaHoraStr = d.toLocaleTimeString('es-CR', { hour: '2-digit', minute: '2-digit' }) + ' • ' + d.toLocaleDateString('es-CR', { day: '2-digit', month: 'short' });
     } catch (e) {}
 
-    // Monto formateado
+    // Monto formateado: Verde al cargar (+), Rojo al cobrar o eliminar (-)
     const absMonto = Math.abs(m.monto_colones);
     const montoDisplay = isPositive ? `+₡${absMonto.toLocaleString('es-CR')}` : `-₡${absMonto.toLocaleString('es-CR')}`;
-    const montoColor = isPositive ? '#16a34a' : '#d97706';
+    const montoColor = isPositive ? '#16a34a' : '#dc2626';
+    const montoBg = isPositive ? 'rgba(22, 163, 74, 0.08)' : 'rgba(220, 38, 38, 0.08)';
+    const montoBorder = isPositive ? '#bbf7d0' : '#fecaca';
+    const montoIcon = isPositive 
+      ? '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="19" x2="12" y2="5"/><polyline points="5 12 12 5 19 12"/></svg>'
+      : '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><polyline points="19 12 12 19 5 12"/></svg>';
 
     // Regla de 10 min para Cajero
     const minutos = parseFloat(m.minutos_transcurridos) || 0;
@@ -4320,6 +4325,23 @@ function renderAdminMovimientos() {
       `;
     }
 
+    // Avatar o círculo con iniciales: SIEMPRE celeste según requerimiento
+    const initials = getStudentInitials(m.estudiante_nombre);
+    let avatarHtml = '';
+    if (m.estudiante_foto && m.estudiante_foto.trim() !== '' && !m.estudiante_foto.includes('avatar_default.png')) {
+      avatarHtml = `
+        <div style="width: 44px; height: 44px; border-radius: 50%; border: 2px solid #0284c7; overflow: hidden; flex-shrink: 0; box-shadow: 0 2px 6px rgba(2, 132, 199, 0.2);">
+          <img src="${m.estudiante_foto}" alt="${m.estudiante_nombre}" style="width: 100%; height: 100%; object-fit: cover;" onerror="this.parentElement.outerHTML='<div style=\\\'width: 44px; height: 44px; border-radius: 50%; border: 2px solid #bae6fd; background: linear-gradient(135deg, #0284c7, #0ea5e9); color: #ffffff; flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 0.95rem; box-shadow: 0 2px 6px rgba(2, 132, 199, 0.2); letter-spacing: 0.5px;\\\'>${initials}</div>'">
+        </div>
+      `;
+    } else {
+      avatarHtml = `
+        <div style="width: 44px; height: 44px; border-radius: 50%; border: 2px solid #bae6fd; background: linear-gradient(135deg, #0284c7, #0ea5e9); color: #ffffff; flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 0.95rem; box-shadow: 0 2px 6px rgba(2, 132, 199, 0.2); letter-spacing: 0.5px;">
+          ${initials}
+        </div>
+      `;
+    }
+
     return `
       <div class="admin-mov-card" style="background: ${isRevertida ? 'rgba(254, 242, 242, 0.45)' : 'var(--card-bg)'}; border: 1.5px solid ${isRevertida ? '#fecaca' : 'var(--border)'}; border-radius: 14px; padding: 12px 14px; display: flex; flex-direction: column; gap: 10px; opacity: ${isRevertida ? '0.85' : '1'}; transition: all 0.2s; box-shadow: 0 1px 3px rgba(0,0,0,0.03);">
         
@@ -4336,9 +4358,7 @@ function renderAdminMovimientos() {
 
         <!-- FILA CENTRAL: ALUMNO Y DETALLES -->
         <div style="display: flex; align-items: center; gap: 12px; min-width: 0;">
-          <div style="width: 44px; height: 44px; border-radius: 50%; border: 2.5px solid ${isPositive ? '#10b981' : '#0284c7'}; background: ${isPositive ? 'linear-gradient(135deg, #10b981, #059669)' : 'linear-gradient(135deg, #0284c7, #0369a1)'}; color: #ffffff; flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 0.95rem; box-shadow: 0 2px 6px rgba(0,0,0,0.08);">
-            ${getStudentInitials(m.estudiante_nombre)}
-          </div>
+          ${avatarHtml}
           <div style="min-width: 0; flex: 1;">
             <strong style="font-size: 0.98rem; color: var(--text-main); font-weight: 900; line-height: 1.25; display: block; word-break: normal; white-space: normal;">
               ${m.estudiante_nombre}
@@ -4358,12 +4378,14 @@ function renderAdminMovimientos() {
 
         <!-- FILA INFERIOR: MONTO, SALDO POSTERIOR Y BOTÓN DE ACCIÓN -->
         <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px; background: rgba(148, 163, 184, 0.07); border: 1px solid var(--border); border-radius: 10px; padding: 8px 12px; flex-wrap: wrap;">
-          <div style="display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap;">
-            <span style="font-size: 1.15rem; font-weight: 900; color: ${montoColor}; line-height: 1.1;">
-              ${montoDisplay}
-            </span>
-            <span style="font-size: 0.72rem; color: var(--text-muted); font-weight: 700;">
-              Saldo posterior: <strong style="color: var(--text-main);">₡${(m.saldo_posterior || 0).toLocaleString('es-CR')}</strong>
+          <div style="display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap;">
+            <div style="display: inline-flex; align-items: center; gap: 5px; padding: 3px 8px; border-radius: 8px; background: ${montoBg}; border: 1px solid ${montoBorder};">
+              <span style="font-size: 1.15rem; font-weight: 900; color: ${montoColor}; line-height: 1; display: inline-flex; align-items: center; gap: 3px; ${isRevertida ? 'text-decoration: line-through; opacity: 0.6;' : ''}">
+                ${montoIcon} ${montoDisplay}
+              </span>
+            </div>
+            <span style="font-size: 0.74rem; color: var(--text-muted); font-weight: 700;">
+              Saldo posterior: <strong style="color: var(--text-main); font-weight: 800;">₡${(m.saldo_posterior || 0).toLocaleString('es-CR')}</strong>
             </span>
           </div>
           <div style="flex-shrink: 0;">
