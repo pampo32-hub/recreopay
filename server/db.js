@@ -116,11 +116,19 @@ function initDatabase() {
           activo BOOLEAN DEFAULT TRUE,
           creado_en TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         );
+      `);
+    } catch (e) {}
 
+    try {
+      db.exec(`
         INSERT INTO escuelas (id, codigo, nombre, telefono_sinpe, nombre_sinpe, concesionario, activo)
         VALUES (1, 'ESC01', 'Soda Escolar Central', '8888-8888', 'Soda Central', 'Concesionario Central', true)
         ON CONFLICT (id) DO NOTHING;
+      `);
+    } catch (e) {}
 
+    try {
+      db.exec(`
         CREATE TABLE IF NOT EXISTS solicitudes_recarga_sinpe (
           id SERIAL PRIMARY KEY,
           estudiante_id INTEGER NOT NULL REFERENCES estudiantes(id) ON DELETE CASCADE,
@@ -134,7 +142,11 @@ function initDatabase() {
           creado_en TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
           procesado_en TIMESTAMP
         );
+      `);
+    } catch (e) {}
 
+    try {
+      db.exec(`
         CREATE TABLE IF NOT EXISTS push_subscriptions (
           id SERIAL PRIMARY KEY,
           endpoint TEXT UNIQUE NOT NULL,
@@ -147,7 +159,7 @@ function initDatabase() {
         );
       `);
     } catch (e) {
-      console.error('Error creando tablas en PostgreSQL:', e);
+      console.error('Error creando push_subscriptions en PostgreSQL:', e);
     }
     seedUsuarios();
     seedDisenosTarjetas();
