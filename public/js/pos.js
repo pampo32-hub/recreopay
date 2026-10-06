@@ -517,7 +517,13 @@ function updatePosCartUI() {
   const floatTotal = document.getElementById('posFloatingCartTotal');
 
   if (posCart.length === 0) {
-    list.innerHTML = '<p style="text-align: center; color: #64748b; padding: 20px; font-size: 0.85rem;">Toca productos del menú para cobrar</p>';
+    list.innerHTML = `
+      <div style="text-align: center; padding: 26px 16px; background: #f8fafc; border-radius: 12px; border: 1.5px dashed #cbd5e1;">
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-bottom: 6px;"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>
+        <p style="margin: 0; font-weight: 800; color: #475569; font-size: 0.85rem;">Mostrador vacío</p>
+        <span style="font-size: 0.74rem; color: #94a3b8;">Toca productos del menú para cobrar</span>
+      </div>
+    `;
     totalEl.textContent = '₡0';
     if (floatBar) floatBar.style.display = 'none';
     return;
@@ -530,14 +536,14 @@ function updatePosCartUI() {
     return `
       <div class="pos-cart-item">
         <div style="flex: 1; min-width: 0; word-break: break-word;">
-          <strong style="color: #0f172a; font-size: 0.85rem; display: block; line-height: 1.2;">${item.product.icono ? `${item.product.icono} ` : ''}${item.product.nombre}</strong>
-          <div style="font-size: 0.74rem; color: #64748b; margin-top: 2px;">₡${item.product.precio_colones.toLocaleString('es-CR')} c/u</div>
+          <strong style="color: #0f172a; font-size: 0.88rem; font-weight: 800; display: block; line-height: 1.25;">${item.product.icono ? `<span style="margin-right: 5px; font-size: 1rem;">${item.product.icono}</span>` : ''}${item.product.nombre}</strong>
+          <div style="font-size: 0.74rem; color: #64748b; font-weight: 600; margin-top: 3px;">₡${item.product.precio_colones.toLocaleString('es-CR')} c/u</div>
         </div>
-        <div style="display: flex; align-items: center; gap: 6px; flex-shrink: 0;">
-          <button onclick="changePosQty(${idx}, -1)" class="pos-qty-btn">-</button>
-          <span style="font-weight: 800; min-width: 18px; text-align: center; color: #0f172a; font-size: 0.88rem;">${item.cantidad}</span>
-          <button onclick="changePosQty(${idx}, 1)" class="pos-qty-btn">+</button>
-          <span style="font-weight: 900; color: #0284c7; min-width: 58px; text-align: right; font-size: 0.88rem;">₡${subtotal.toLocaleString('es-CR')}</span>
+        <div style="display: flex; align-items: center; gap: 8px; flex-shrink: 0;">
+          <button onclick="changePosQty(${idx}, -1)" class="pos-qty-btn" title="Disminuir">−</button>
+          <span style="font-weight: 800; min-width: 20px; text-align: center; color: #0f172a; font-size: 0.9rem;">${item.cantidad}</span>
+          <button onclick="changePosQty(${idx}, 1)" class="pos-qty-btn" title="Aumentar">+</button>
+          <span style="font-weight: 900; color: #0284c7; min-width: 65px; text-align: right; font-size: 0.92rem;">₡${subtotal.toLocaleString('es-CR')}</span>
         </div>
       </div>
     `;

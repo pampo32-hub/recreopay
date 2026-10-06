@@ -284,7 +284,11 @@
             <button onclick="clearPosCart()" style="background: none; border: none; color: #dc2626; font-size: 0.75rem; font-weight: 700; cursor: pointer; padding: 2px 6px;">Limpiar</button>
           </div>
           <div class="pos-cart-list" id="posCartList">
-            <p style="text-align: center; color: #94a3b8; padding: 20px; font-size: 0.85rem;">Toca productos del menú para cobrar</p>
+            <div style="text-align: center; padding: 26px 16px; background: #f8fafc; border-radius: 12px; border: 1.5px dashed #cbd5e1;">
+              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-bottom: 6px;"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>
+              <p style="margin: 0; font-weight: 800; color: #475569; font-size: 0.85rem;">Mostrador vacío</p>
+              <span style="font-size: 0.74rem; color: #94a3b8;">Toca productos del menú para cobrar</span>
+            </div>
           </div>
         </div>
       </div>
@@ -292,8 +296,8 @@
       <!-- BOTÓN DE COBRO Y TOTAL -->
       <div style="border-top: 1px solid #e2e8f0; padding-top: 14px; margin-top: auto;">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; gap: 10px;">
-          <span style="font-size: 0.88rem; font-weight: 700; color: #64748b; letter-spacing: 0.5px;">TOTAL A DEBITAR:</span>
-          <span id="posCartTotal" style="font-size: 1.7rem; font-weight: 900; color: #0f172a;">₡0</span>
+          <span style="font-size: 0.88rem; font-weight: 800; color: #64748b; letter-spacing: 0.5px;">TOTAL A DEBITAR:</span>
+          <span id="posCartTotal" style="font-size: 1.65rem; font-weight: 900; color: #0284c7;">₡0</span>
         </div>
 
         <button id="btnCobrarPos" onclick="executePosDebit()" style="width: 100%; padding: 13px; background: #0f172a; border: none; border-radius: 12px; color: white; font-size: 0.95rem; font-weight: 800; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; box-shadow: 0 4px 12px rgba(15, 23, 42, 0.15); box-sizing: border-box; transition: all 0.15s ease;">
