@@ -809,10 +809,7 @@ function renderProducts() {
       <div class="product-card ${isOutOfStock ? 'out-of-stock' : ''}">
         ${mediaHtml}
         <div>
-          <div style="display: flex; gap: 4px; flex-wrap: wrap; margin-bottom: 4px;">
-            ${prod.cumple_mep ? '<span class="badge-mep">MEP Saludable</span>' : ''}
-            ${stockBadge}
-          </div>
+          ${stockBadge ? `<div style="display: flex; gap: 4px; flex-wrap: wrap; margin-bottom: 4px;">${stockBadge}</div>` : ''}
           <h4 class="product-name">${prod.nombre}</h4>
           <p class="product-desc">${prod.descripcion || ''}</p>
           ${hasAlergenos ? `<div style="font-size: 0.68rem; color: #dc2626; margin-bottom: 4px; display: flex; align-items: center; gap: 4px;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg> Contiene: ${prod.alergenos}</div>` : ''}

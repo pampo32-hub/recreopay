@@ -359,7 +359,6 @@ function renderPosProducts(catId) {
         ${mediaHtml}
         <div>
           <div class="prod-title">${prod.nombre}</div>
-          ${prod.cumple_mep ? '<span style="font-size: 0.68rem; color: #166534; font-weight: 700; margin-top: 3px; display: inline-flex; align-items: center; gap: 3px;">🌿 MEP Saludable</span>' : ''}
           ${isOutOfStock ? '<span style="font-size: 0.68rem; color: #dc2626; display: block; margin-top: 2px; font-weight: 700;">No disponible</span>' : ''}
         </div>
         <div class="prod-price" style="color: ${isOutOfStock ? '#94a3b8' : '#0284c7'};">
