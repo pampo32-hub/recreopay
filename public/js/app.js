@@ -55,8 +55,10 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   // Registrar Service Worker para PWA
   if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('/sw.js?v=8.4').then(reg => {
-      // Registro limpio sin recargas forzadas
+    navigator.serviceWorker.register('/sw.js?v=8.5').then(reg => {
+      if ('Notification' in window && Notification.permission === 'granted') {
+        subscribeDeviceToWebPush().catch(() => {});
+      }
     }).catch(err => console.log('SW error:', err));
   }
 
@@ -1652,9 +1654,68 @@ function triggerBalancePulse() {
   }
 }
 
-// ==========================================
-// SISTEMA DE NOTIFICACIONES PUSH & EN-APP (ADMIN & SODA)
-// ==========================================
+function urlBase64ToUint8Array(base64String) {
+  const padding = '='.repeat((4 - base64String.length % 4) % 4);
+  const base64 = (base64String + padding)
+    .replace(/\-/g, '+')
+    .replace(/_/g, '/');
+
+  const rawData = window.atob(base64);
+  const outputArray = new Uint8Array(rawData.length);
+
+  for (let i = 0; i < rawData.length; ++i) {
+    outputArray[i] = rawData.charCodeAt(i);
+  }
+  return outputArray;
+}
+
+async function subscribeDeviceToWebPush() {
+  if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
+    return null;
+  }
+
+  try {
+    const reg = await navigator.serviceWorker.ready;
+    let sub = await reg.pushManager.getSubscription();
+
+    if (!sub) {
+      const resKey = await fetch('/api/push/vapid-public-key');
+      const dataKey = await resKey.json();
+      if (!dataKey || !dataKey.publicKey) return null;
+
+      const convertedKey = urlBase64ToUint8Array(dataKey.publicKey);
+      sub = await reg.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: convertedKey
+      });
+    }
+
+    let user = currentUser;
+    if (!user) {
+      try {
+        const stored = localStorage.getItem('recreopay_user');
+        if (stored) user = JSON.parse(stored);
+      } catch (e) {}
+    }
+
+    await fetch('/api/push/subscribe', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        subscription: sub,
+        userId: user ? user.id : null,
+        rol: user ? user.rol : 'admin',
+        escuelaId: user ? user.escuela_id : 1
+      })
+    });
+
+    return sub;
+  } catch (err) {
+    console.warn('[WebPush] Error suscribiendo dispositivo:', err);
+    return null;
+  }
+}
+
 function sendPushNotification(title, options = {}) {
   if (!('Notification' in window) || Notification.permission !== 'granted') return;
 

@@ -324,6 +324,22 @@ function initDatabase() {
     `);
   } catch (e) {}
 
+  // 12. Suscripciones Web Push (VAPID) para Alertas en Segundo Plano (App Cerrada)
+  try {
+    db.exec(`
+      CREATE TABLE IF NOT EXISTS push_subscriptions (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        endpoint TEXT UNIQUE NOT NULL,
+        p256dh TEXT NOT NULL,
+        auth TEXT NOT NULL,
+        user_id INTEGER,
+        rol TEXT,
+        escuela_id INTEGER,
+        creado_en DATETIME DEFAULT CURRENT_TIMESTAMP
+      );
+    `);
+  } catch (e) {}
+
   seedInitialData();
   seedUsuarios();
   seedDisenosTarjetas();
@@ -1187,6 +1203,43 @@ function procesarSolicitudRecargaSinpe({ solicitudId, accion, usuarioId, motivo 
   return transaction();
 }
 
+function guardarSuscripcionPush({ endpoint, p256dh, auth, userId = null, rol = 'cajero', escuelaId = 1 }) {
+  const stmt = db.prepare(`
+    INSERT INTO push_subscriptions (endpoint, p256dh, auth, user_id, rol, escuela_id)
+    VALUES (?, ?, ?, ?, ?, ?)
+    ON CONFLICT(endpoint) DO UPDATE SET
+      p256dh = excluded.p256dh,
+      auth = excluded.auth,
+      user_id = excluded.user_id,
+      rol = excluded.rol,
+      escuela_id = excluded.escuela_id,
+      creado_en = CURRENT_TIMESTAMP
+  `);
+  return stmt.run(endpoint, p256dh, auth, userId, rol, escuelaId);
+}
+
+function obtenerSuscripcionesPush({ escuelaId = null, roles = null } = {}) {
+  let query = 'SELECT * FROM push_subscriptions WHERE 1=1';
+  const params = [];
+
+  if (escuelaId) {
+    query += ' AND (escuela_id = ? OR escuela_id IS NULL)';
+    params.push(escuelaId);
+  }
+
+  if (roles && Array.isArray(roles) && roles.length > 0) {
+    const placeholders = roles.map(() => '?').join(',');
+    query += ` AND rol IN (${placeholders})`;
+    params.push(...roles);
+  }
+
+  return db.prepare(query).all(...params);
+}
+
+function eliminarSuscripcionPush(endpoint) {
+  return db.prepare('DELETE FROM push_subscriptions WHERE endpoint = ?').run(endpoint);
+}
+
 module.exports = {
   db,
   initDatabase,
@@ -1198,5 +1251,8 @@ module.exports = {
   crearSolicitudRecargaSinpe,
   obtenerSolicitudesRecargaSinpe,
   obtenerSolicitudesRecargaPorEstudiante,
-  procesarSolicitudRecargaSinpe
+  procesarSolicitudRecargaSinpe,
+  guardarSuscripcionPush,
+  obtenerSuscripcionesPush,
+  eliminarSuscripcionPush
 };

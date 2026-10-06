@@ -79,7 +79,11 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   // Registrar Service Worker para Notificaciones PWA
   if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('/sw.js?v=8.4').catch(e => console.log('SW register error:', e));
+    navigator.serviceWorker.register('/sw.js?v=8.5').then(() => {
+      if ('Notification' in window && Notification.permission === 'granted') {
+        subscribeDeviceToWebPush().catch(() => {});
+      }
+    }).catch(e => console.log('SW register error:', e));
   }
 
   await loadCatalog();
@@ -102,7 +106,10 @@ document.addEventListener('DOMContentLoaded', async () => {
   // Solicitar permiso de notificaciones con cualquier primera interacción táctil/clic
   const promptOnFirstInteraction = () => {
     if ('Notification' in window && Notification.permission === 'default') {
-      Notification.requestPermission().then(() => updateNotificationButtonState()).catch(() => {});
+      Notification.requestPermission().then((p) => {
+        updateNotificationButtonState();
+        if (p === 'granted') subscribeDeviceToWebPush().catch(() => {});
+      }).catch(() => {});
     }
     window.removeEventListener('click', promptOnFirstInteraction);
     window.removeEventListener('touchstart', promptOnFirstInteraction);
@@ -1447,16 +1454,86 @@ function updateNotificationButtonState() {
   }
 }
 
+function urlBase64ToUint8Array(base64String) {
+  const padding = '='.repeat((4 - base64String.length % 4) % 4);
+  const base64 = (base64String + padding)
+    .replace(/\-/g, '+')
+    .replace(/_/g, '/');
+
+  const rawData = window.atob(base64);
+  const outputArray = new Uint8Array(rawData.length);
+
+  for (let i = 0; i < rawData.length; ++i) {
+    outputArray[i] = rawData.charCodeAt(i);
+  }
+  return outputArray;
+}
+
+async function subscribeDeviceToWebPush() {
+  if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
+    console.log('[WebPush] PushManager no soportado en este navegador');
+    return null;
+  }
+
+  try {
+    const reg = await navigator.serviceWorker.ready;
+    let sub = await reg.pushManager.getSubscription();
+
+    if (!sub) {
+      const resKey = await fetch('/api/push/vapid-public-key');
+      const dataKey = await resKey.json();
+      if (!dataKey || !dataKey.publicKey) return null;
+
+      const convertedKey = urlBase64ToUint8Array(dataKey.publicKey);
+      sub = await reg.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: convertedKey
+      });
+    }
+
+    let user = null;
+    try {
+      const stored = localStorage.getItem('recreopay_user');
+      if (stored) user = JSON.parse(stored);
+    } catch (e) {}
+
+    await fetch('/api/push/subscribe', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        subscription: sub,
+        userId: user ? user.id : null,
+        rol: user ? user.rol : 'cajero',
+        escuelaId: user ? user.escuela_id : 1
+      })
+    });
+
+    console.log('[WebPush] Dispositivo registrado exitosamente para alertas con app cerrada');
+    return sub;
+  } catch (err) {
+    console.warn('[WebPush] Error suscribiendo dispositivo a Web Push:', err);
+    return null;
+  }
+}
+
 async function enablePushNotificationsPrompt() {
   if (!('Notification' in window)) {
     alert('Tu navegador no soporta notificaciones de sistema.');
     return;
   }
 
+  const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+  const isStandalone = window.navigator.standalone || window.matchMedia('(display-mode: standalone)').matches;
+
+  if (isIOS && !isStandalone) {
+    alert('📱 Consejo para iPhone (iOS):\nPara recibir notificaciones aun con la app cerrada, toca Compartir en Safari (icono de cuadrado con flecha arriba) y selecciona "Agregar al inicio". Desde el icono en la pantalla de inicio recibirás las alertas siempre.');
+  }
+
   if (Notification.permission === 'granted') {
+    await subscribeDeviceToWebPush();
     showInAppNotification({
       title: '¡Notificaciones Activas!',
-      message: 'Recibirás avisos sonoros y visuales cada vez que un padre envíe una recarga SINPE.',
+      message: 'Recibirás avisos sonoros y en pantalla de bloqueo incluso con la app cerrada cada vez que un padre envíe una recarga SINPE.',
       buttonText: 'Entendido'
     });
     return;
@@ -1466,13 +1543,14 @@ async function enablePushNotificationsPrompt() {
     const perm = await Notification.requestPermission();
     updateNotificationButtonState();
     if (perm === 'granted') {
+      await subscribeDeviceToWebPush();
       sendPushNotification('🔔 RecreoPay Terminal Soda', {
-        body: '¡Notificaciones activadas! Te avisaremos al instante con cada recarga SINPE.',
+        body: '¡Notificaciones activadas! Te avisaremos al instante con cada recarga SINPE, aun con la app cerrada.',
         tag: 'recreopay-welcome'
       });
       showInAppNotification({
         title: '¡Notificaciones Activadas!',
-        message: 'Avisos en pantalla y notificaciones push activadas correctamente.',
+        message: 'Avisos en pantalla y notificaciones de fondo con app cerrada activadas correctamente.',
         buttonText: 'Listo'
       });
     } else {

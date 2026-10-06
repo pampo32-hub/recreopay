@@ -1,5 +1,5 @@
-// RecreoPay PWA Service Worker v8.3 - Buscador Inteligente Carga Manual
-const CACHE_NAME = 'recreopay-v8.3';
+// RecreoPay PWA Service Worker v8.5 - Soporte Web Push VAPID en Segundo Plano
+const CACHE_NAME = 'recreopay-v8.5';
 const STATIC_ASSETS = [
   '/',
   '/index.html',
@@ -74,6 +74,32 @@ self.addEventListener('fetch', (event) => {
         });
       })
   );
+});
+
+// Manejador de Notificaciones Push de Fondo (VAPID) - Activo aun con la app CERRADA
+self.addEventListener('push', (event) => {
+  let data = {};
+  if (event.data) {
+    try {
+      data = event.data.json();
+    } catch (e) {
+      data = { title: '🔔 RecreoPay', body: event.data.text() };
+    }
+  }
+
+  const title = data.title || '🔔 RecreoPay';
+  const options = {
+    body: data.body || 'Tienes una nueva notificación de RecreoPay',
+    icon: data.icon || '/icons/icon-192.png',
+    badge: data.badge || '/icons/icon-192.png',
+    vibrate: [250, 100, 250, 100, 250],
+    data: data.data || { url: '/pos.html?tab=sinpe' },
+    tag: data.tag || `recreopay-push-${Date.now()}`,
+    renotify: true,
+    requireInteraction: true
+  };
+
+  event.waitUntil(self.registration.showNotification(title, options));
 });
 
 // Manejador de clics en Notificaciones Push

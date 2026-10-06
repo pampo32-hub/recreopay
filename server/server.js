@@ -21,8 +21,59 @@ const {
   crearSolicitudRecargaSinpe,
   obtenerSolicitudesRecargaSinpe,
   obtenerSolicitudesRecargaPorEstudiante,
-  procesarSolicitudRecargaSinpe
+  procesarSolicitudRecargaSinpe,
+  guardarSuscripcionPush,
+  obtenerSuscripcionesPush,
+  eliminarSuscripcionPush
 } = require('./db');
+
+const webpush = require('web-push');
+
+// Configuración VAPID para Web Push en Segundo Plano (App Cerrada en iOS / Android)
+const VAPID_PUBLIC_KEY = process.env.VAPID_PUBLIC_KEY || 'BDHXXfRHdftR2qg-WV5Trz85t8hIllB7_gBdfKut747-XihlnbQgstbMc94P5SR4vGUWgKE_mE9WClaRc-Lp060';
+const VAPID_PRIVATE_KEY = process.env.VAPID_PRIVATE_KEY || 'ufOrxmh5a2ouxonOyue-ZSQJPWMN0dq6CkbDYErgZaw';
+const VAPID_SUBJECT = process.env.VAPID_SUBJECT || 'mailto:soporte@recreopay.cr';
+
+try {
+  webpush.setVapidDetails(VAPID_SUBJECT, VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY);
+  console.log('🔔 VAPID Web Push configurado correctamente');
+} catch (e) {
+  console.warn('⚠️ Error configurando VAPID Web Push:', e.message);
+}
+
+async function sendWebPushNotification({ escuelaId = null, payload, roles = ['admin', 'soda', 'cajero', 'developer'] } = {}) {
+  try {
+    const subs = obtenerSuscripcionesPush({ escuelaId, roles });
+    if (!subs || subs.length === 0) return;
+
+    const payloadString = typeof payload === 'string' ? payload : JSON.stringify(payload);
+
+    const promises = subs.map(async (sub) => {
+      const pushConfig = {
+        endpoint: sub.endpoint,
+        keys: {
+          p256dh: sub.p256dh,
+          auth: sub.auth
+        }
+      };
+
+      try {
+        await webpush.sendNotification(pushConfig, payloadString);
+      } catch (err) {
+        if (err.statusCode === 404 || err.statusCode === 410) {
+          console.log('[WebPush] Suscripción expirada o removida, eliminando:', sub.endpoint);
+          eliminarSuscripcionPush(sub.endpoint);
+        } else {
+          console.warn('[WebPush] Aviso al enviar notificación:', err.message);
+        }
+      }
+    });
+
+    await Promise.allSettled(promises);
+  } catch (error) {
+    console.error('[WebPush] Error general en sendWebPushNotification:', error);
+  }
+}
 
 const app = express();
 const PORT = process.env.PORT || 3030;
@@ -1679,6 +1730,20 @@ app.post('/api/sinpe/solicitar', (req, res) => {
 
     broadcastEvent('solicitud_sinpe_nueva', payloadNotificacion);
 
+    // Enviar notificación Web Push a dispositivos suscritos (funciona con la app 100% cerrada)
+    const montoFmt = Number(payloadNotificacion.monto_colones || montoNum).toLocaleString('es-CR');
+    sendWebPushNotification({
+      escuelaId: nuevaSol.escuela_id || 1,
+      payload: {
+        title: '🔔 Nueva Recarga SINPE - RecreoPay',
+        body: `Recarga de ₡${montoFmt} para ${payloadNotificacion.estudiante_nombre}. Comprobante: #${payloadNotificacion.comprobante_sinpe}`,
+        icon: '/icons/icon-192.png',
+        badge: '/icons/icon-192.png',
+        tag: `sinpe-${payloadNotificacion.id || Date.now()}`,
+        data: { url: '/pos.html?tab=sinpe' }
+      }
+    });
+
     res.json({
       success: true,
       mensaje: 'Solicitud de recarga enviada. La soda verificará el comprobante en breve.',
@@ -1735,6 +1800,79 @@ app.post('/api/sinpe/procesar', (req, res) => {
     res.json({ success: true, resultado });
   } catch (error) {
     res.status(400).json({ error: error.message });
+  }
+});
+
+// ==========================================
+// ENDPOINTS DE SUSCRIPCIÓN WEB PUSH (VAPID)
+// ==========================================
+
+// 1. Obtener la llave pública VAPID
+app.get('/api/push/vapid-public-key', (req, res) => {
+  res.json({ publicKey: VAPID_PUBLIC_KEY });
+});
+
+// 2. Registrar o renovar suscripción del dispositivo
+app.post('/api/push/subscribe', (req, res) => {
+  try {
+    const { subscription, userId, rol, escuelaId } = req.body;
+    if (!subscription || !subscription.endpoint || !subscription.keys) {
+      return res.status(400).json({ error: 'Suscripción inválida' });
+    }
+
+    const { endpoint, keys } = subscription;
+    const { p256dh, auth } = keys;
+
+    if (!p256dh || !auth) {
+      return res.status(400).json({ error: 'Faltan llaves de cifrado en la suscripción' });
+    }
+
+    guardarSuscripcionPush({
+      endpoint,
+      p256dh,
+      auth,
+      userId: userId ? parseInt(userId, 10) : null,
+      rol: rol || 'cajero',
+      escuelaId: escuelaId ? parseInt(escuelaId, 10) : 1
+    });
+
+    console.log(`[WebPush] Dispositivo suscrito con éxito (Rol: ${rol || 'cajero'})`);
+    res.json({ success: true, message: 'Dispositivo suscrito a notificaciones push' });
+  } catch (err) {
+    console.error('Error suscribiendo push:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// 3. Cancelar suscripción
+app.post('/api/push/unsubscribe', (req, res) => {
+  try {
+    const { endpoint } = req.body;
+    if (endpoint) {
+      eliminarSuscripcionPush(endpoint);
+    }
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// 4. Enviar notificación de prueba a los dispositivos suscritos
+app.post('/api/push/test', async (req, res) => {
+  try {
+    await sendWebPushNotification({
+      payload: {
+        title: '🔔 Prueba de Notificación - RecreoPay',
+        body: '¡Excelente! Las notificaciones funcionan en segundo plano incluso con la app cerrada.',
+        icon: '/icons/icon-192.png',
+        badge: '/icons/icon-192.png',
+        tag: 'test-push',
+        data: { url: '/pos.html?tab=sinpe' }
+      }
+    });
+    res.json({ success: true, message: 'Notificación de prueba enviada' });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
   }
 });
 
