@@ -25,13 +25,9 @@
       overflow-x: hidden;
     }
 
-    /* Patrón de fondo sutil estilo SaaS educativo */
-    .hero-grid-pattern {
-      background-image: 
-        radial-gradient(circle at 50% 0%, rgba(2, 132, 199, 0.08) 0%, transparent 60%),
-        linear-gradient(to right, rgba(226, 232, 240, 0.6) 1px, transparent 1px),
-        linear-gradient(to bottom, rgba(226, 232, 240, 0.6) 1px, transparent 1px);
-      background-size: 100% 100%, 36px 36px, 36px 36px;
+    /* Fondo limpio y estilizado sin cuadrículas */
+    .hero-clean-bg {
+      background-image: radial-gradient(circle at 50% 0%, rgba(2, 132, 199, 0.04) 0%, transparent 60%);
     }
 
     /* Tarjeta flotante simulada con gradiente y efectos */
@@ -74,7 +70,7 @@
     }
   </style>
 </head>
-<body class="hero-grid-pattern min-h-screen selection:bg-sky-500 selection:text-white">
+<body class="hero-clean-bg min-h-screen bg-slate-50 selection:bg-sky-500 selection:text-white">
 
   <!-- NAVEGACIÓN SUPERIOR FIJA / GLASSMORPHISM -->
   <nav class="sticky top-0 z-40 bg-white/85 backdrop-blur-md border-b border-slate-200/80 transition-all">
