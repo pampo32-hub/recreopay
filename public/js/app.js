@@ -6,6 +6,7 @@ let students = [];
 let categories = [];
 let products = [];
 let activeCategoryId = null;
+let menuSearchQuery = '';
 let cart = [];
 let currentAppMode = 'teens';
 let adminProducts = [];
@@ -122,6 +123,20 @@ document.addEventListener('DOMContentLoaded', async () => {
         updateTransferConfirmButton(0);
       }
     });
+  }
+});
+
+// Atajo global para enfocar el buscador inteligente del menú al presionar '/'
+document.addEventListener('keydown', (e) => {
+  if (e.key === '/' && !['INPUT', 'TEXTAREA', 'SELECT'].includes(document.activeElement?.tagName)) {
+    const searchInput = document.getElementById('menuSearchInput');
+    const appContainer = document.getElementById('appContainer');
+    if (searchInput && appContainer && appContainer.style.display !== 'none') {
+      e.preventDefault();
+      searchInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      searchInput.focus();
+      searchInput.select();
+    }
   }
 });
 
@@ -766,7 +781,141 @@ function selectCategory(catId) {
   renderProducts();
 }
 
-// Renderizado de Productos del Menú (Con soporte para Agotado / Greyed Out)
+// ==========================================
+// BUSCADOR INTELIGENTE DEL MENÚ (ESTUDIANTES, NIÑOS Y PADRES)
+// ==========================================
+
+function normalizeSearchStr(s) {
+  if (!s) return '';
+  return String(s)
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .trim();
+}
+
+function matchesMenuProduct(prod, query) {
+  if (!query) return true;
+  const cleanQ = normalizeSearchStr(query);
+  if (!cleanQ) return true;
+
+  // 1. Operadores de precio (ej: <1000, <=1200, >500, >=800 o "< 1000")
+  const priceOpMatch = cleanQ.replace(/\s+/g, '').match(/^([<>]=?)(\d+)$/);
+  if (priceOpMatch) {
+    const op = priceOpMatch[1];
+    const val = parseInt(priceOpMatch[2], 10);
+    const price = Number(prod.precio_colones) || 0;
+    if (op === '<') return price < val;
+    if (op === '<=') return price <= val;
+    if (op === '>') return price > val;
+    if (op === '>=') return price >= val;
+  }
+
+  // 2. Filtros especiales por palabras clave inteligentes
+  if (cleanQ === 'saludable' || cleanQ === 'saludables' || cleanQ === 'nutritivo') {
+    return Boolean(prod.cumple_mep || prod.es_saludable || /fruta|avena|ensalada|natural/i.test((prod.nombre || '') + ' ' + (prod.descripcion || '')));
+  }
+  if (cleanQ === 'bloqueado' || cleanQ === 'agotado' || cleanQ === 'sin stock') {
+    return Boolean(prod.disponible === 0 || (prod.control_stock === 1 && prod.stock <= 0));
+  }
+  if (cleanQ === 'disponible' || cleanQ === 'en stock') {
+    return Boolean(prod.disponible === 1 && (!prod.control_stock || prod.stock > 0));
+  }
+  if (cleanQ === 'fresco' || cleanQ === 'frescos' || cleanQ === 'bebida' || cleanQ === 'bebidas' || cleanQ === 'jugo' || cleanQ === 'jugos' || cleanQ === 'batido') {
+    const catName = normalizeSearchStr(prod.categoria_nombre || '');
+    if (catName.includes('bebida') || catName.includes('fresco') || prod.categoria_id === 3) return true;
+  }
+  if (cleanQ === 'desayuno' || cleanQ === 'desayunos' || cleanQ === 'merienda' || cleanQ === 'meriendas') {
+    if (prod.categoria_id === 1) return true;
+  }
+  if (cleanQ === 'almuerzo' || cleanQ === 'almuerzos' || cleanQ === 'plato' || cleanQ === 'platos' || cleanQ === 'comida') {
+    if (prod.categoria_id === 2) return true;
+  }
+  if (cleanQ === 'snack' || cleanQ === 'snacks' || cleanQ === 'galleta' || cleanQ === 'galletas' || cleanQ === 'postre') {
+    if (prod.categoria_id === 4) return true;
+  }
+
+  // 3. Coincidencia por precio numérico exacto o parcial (ej: 750, 1000)
+  if (/^\d+$/.test(cleanQ)) {
+    const pStr = String(prod.precio_colones || '');
+    if (pStr === cleanQ || pStr.includes(cleanQ)) return true;
+  }
+
+  // 4. Búsqueda multi-término inteligente (nombre, categoría, descripción, alergenos, precio)
+  const tokens = cleanQ.split(/\s+/).filter(Boolean);
+  const targetStr = normalizeSearchStr(
+    `${prod.nombre || ''} ${prod.categoria_nombre || ''} ${prod.descripcion || ''} ${prod.alergenos || ''} ${prod.precio_colones || ''}`
+  );
+
+  return tokens.every(token => targetStr.includes(token));
+}
+
+function handleMenuSearchInput(val) {
+  menuSearchQuery = val || '';
+  const clearBtn = document.getElementById('menuSearchClearBtn');
+  if (clearBtn) {
+    clearBtn.style.display = menuSearchQuery.trim() ? 'inline-flex' : 'none';
+  }
+  renderProducts();
+}
+
+function clearMenuSearch() {
+  menuSearchQuery = '';
+  const input = document.getElementById('menuSearchInput');
+  if (input) {
+    input.value = '';
+    input.focus();
+  }
+  const clearBtn = document.getElementById('menuSearchClearBtn');
+  if (clearBtn) clearBtn.style.display = 'none';
+
+  // Desactivar chips de búsqueda
+  document.querySelectorAll('.search-chip').forEach(c => c.classList.remove('active'));
+
+  renderProducts();
+}
+
+function setMenuSearchSuggestion(term) {
+  // Al seleccionar sugerencia rápida, si el usuario busca algo general, aseguramos buscar en todo
+  if (['fresco', 'casado', 'empanada', '<1000', 'saludable'].includes(term)) {
+    activeCategoryId = null;
+    renderCategories();
+  }
+  const input = document.getElementById('menuSearchInput');
+  if (input) {
+    input.value = term;
+    handleMenuSearchInput(term);
+    input.focus();
+  }
+  document.querySelectorAll('.search-chip').forEach(chip => {
+    if (chip.getAttribute('onclick')?.includes(`'${term}'`)) {
+      chip.classList.add('active');
+    } else {
+      chip.classList.remove('active');
+    }
+  });
+}
+
+function handleMenuSearchKeyDown(e) {
+  if (e.key === 'Escape') {
+    clearMenuSearch();
+  }
+}
+
+function searchMenuFromParent(val) {
+  switchToSodaMenuAsParent();
+  setTimeout(() => {
+    const searchInput = document.getElementById('menuSearchInput');
+    if (searchInput) {
+      searchInput.value = val || '';
+      handleMenuSearchInput(val || '');
+      searchInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      searchInput.focus();
+    }
+  }, 200);
+}
+
+// Renderizado de Productos del Menú (Con soporte para Agotado / Greyed Out y Buscador Inteligente)
 function renderProducts() {
   const grid = document.getElementById('productsGrid');
   if (!grid) return;
@@ -774,6 +923,7 @@ function renderProducts() {
 
   let filtered = products;
 
+  // Filtrado por categoría si no es "Todos"
   if (activeCategoryId !== null) {
     filtered = filtered.filter(p => p.categoria_id === activeCategoryId);
   }
@@ -782,13 +932,65 @@ function renderProducts() {
     filtered = filtered.filter(p => p.cumple_mep === 1);
   }
 
+  // APLICACIÓN DEL BUSCADOR INTELIGENTE MULTI-TÉRMINO
+  const hasSearch = Boolean(menuSearchQuery && menuSearchQuery.trim());
+  if (hasSearch) {
+    filtered = filtered.filter(p => matchesMenuProduct(p, menuSearchQuery));
+  }
+
+  // Actualización de encabezado y estadísticas de resultados
+  const statsEl = document.getElementById('menuSearchStats');
+  const statsText = document.getElementById('menuSearchStatsText');
+  const catalogTitle = document.getElementById('catalogTitle');
+
+  if (statsEl && statsText) {
+    if (hasSearch) {
+      statsEl.style.display = 'flex';
+      const cleanTerm = menuSearchQuery.trim();
+      statsText.innerHTML = `Mostrando <strong>${filtered.length}</strong> de ${products.length} productos para "<strong>${escapeHtml(cleanTerm)}</strong>"`;
+      if (catalogTitle) {
+        catalogTitle.textContent = `Resultados de búsqueda (${filtered.length})`;
+      }
+    } else {
+      statsEl.style.display = 'none';
+      if (catalogTitle) {
+        if (activeCategoryId !== null) {
+          const currentCat = categories.find(c => c.id === activeCategoryId);
+          catalogTitle.textContent = currentCat ? currentCat.nombre : 'Menú del Recreo';
+        } else {
+          catalogTitle.textContent = 'Menú del Recreo';
+        }
+      }
+    }
+  }
+
+  // Estado vacío: Sin resultados
   if (filtered.length === 0) {
-    grid.innerHTML = `
-      <div style="grid-column: 1 / -1; text-align: center; padding: 30px; color: var(--text-muted);">
-        <div style="display: flex; justify-content: center; margin-bottom: 8px;"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="opacity: 0.4;"><path d="M18 8h1a4 4 0 0 1 0 8h-1"/><path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"/><line x1="6" y1="1" x2="6" y2="4"/><line x1="10" y1="1" x2="10" y2="4"/><line x1="14" y1="1" x2="14" y2="4"/></svg></div>
-        <p>No hay productos en esta categoría por ahora.</p>
-      </div>
-    `;
+    if (hasSearch) {
+      grid.innerHTML = `
+        <div class="menu-smart-search-empty">
+          <div class="menu-smart-search-empty-icon">🔍</div>
+          <h4>No encontramos productos</h4>
+          <p>No hay platillos o bebidas que coincidan con "<strong>${escapeHtml(menuSearchQuery.trim())}</strong>".</p>
+          <div class="menu-smart-search-suggestions">
+            <button type="button" class="search-chip" onclick="setMenuSearchSuggestion('fresco')">🥤 Frescos naturales</button>
+            <button type="button" class="search-chip" onclick="setMenuSearchSuggestion('casado')">🍛 Casados</button>
+            <button type="button" class="search-chip" onclick="setMenuSearchSuggestion('empanada')">🥟 Empanadas</button>
+            <button type="button" class="search-chip" onclick="setMenuSearchSuggestion('<1000')">💰 Menos de ₡1.000</button>
+          </div>
+          <button type="button" class="btn-saas btn-saas-outline" onclick="clearMenuSearch()" style="margin-top: 8px;">
+            Ver catálogo completo
+          </button>
+        </div>
+      `;
+    } else {
+      grid.innerHTML = `
+        <div style="grid-column: 1 / -1; text-align: center; padding: 30px; color: var(--text-muted);">
+          <div style="display: flex; justify-content: center; margin-bottom: 8px;"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="opacity: 0.4;"><path d="M18 8h1a4 4 0 0 1 0 8h-1"/><path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"/><line x1="6" y1="1" x2="6" y2="4"/><line x1="10" y1="1" x2="10" y2="4"/><line x1="14" y1="1" x2="14" y2="4"/></svg></div>
+          <p>No hay productos en esta categoría por ahora.</p>
+        </div>
+      `;
+    }
     return;
   }
 

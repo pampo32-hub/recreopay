@@ -485,6 +485,209 @@ body.dark-mode .wallet-card:not([class*="theme-"]) {
 }
 
 /* Navegación por Categorías */
+/* =================================================== */
+/* BUSCADOR INTELIGENTE DEL MENÚ (ESTUDIANTES Y PADRES) */
+/* =================================================== */
+.menu-smart-search-section {
+  padding: 0 16px;
+  margin-bottom: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.menu-smart-search-box {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: var(--card-bg, #ffffff);
+  border: 1.5px solid var(--border, #cbd5e1);
+  border-radius: 14px;
+  padding: 0 14px;
+  height: 44px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
+  transition: all 0.2s ease;
+}
+
+.menu-smart-search-box:focus-within {
+  border-color: #0284c7;
+  box-shadow: 0 0 0 3px rgba(2, 132, 199, 0.15), 0 3px 10px rgba(0, 0, 0, 0.05);
+}
+
+.menu-smart-search-icon {
+  color: #64748b;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: color 0.15s ease;
+}
+
+.menu-smart-search-box:focus-within .menu-smart-search-icon {
+  color: #0284c7;
+}
+
+.menu-smart-search-input {
+  flex: 1;
+  min-width: 0;
+  border: none;
+  background: transparent;
+  color: var(--text-main, #0f172a);
+  font-size: 0.92rem;
+  font-weight: 600;
+  padding: 0;
+  height: 100%;
+  outline: none;
+}
+
+.menu-smart-search-input::placeholder {
+  color: #94a3b8;
+  font-weight: 500;
+}
+
+.menu-smart-search-clear-btn {
+  background: #f1f5f9;
+  border: none;
+  color: #64748b;
+  font-size: 0.78rem;
+  font-weight: 800;
+  cursor: pointer;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: all 0.15s ease;
+}
+
+.menu-smart-search-clear-btn:hover {
+  color: #dc2626;
+  background: #fee2e2;
+}
+
+.menu-smart-search-chips {
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+  padding-bottom: 2px;
+}
+
+.menu-smart-search-chips::-webkit-scrollbar {
+  display: none;
+}
+
+.search-chip {
+  background: var(--card-bg, #ffffff);
+  border: 1px solid var(--border, #e2e8f0);
+  border-radius: 20px;
+  padding: 5px 12px;
+  font-size: 0.74rem;
+  font-weight: 700;
+  color: var(--text-muted, #64748b);
+  white-space: nowrap;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02);
+}
+
+.search-chip:hover, .search-chip.active {
+  background: #e0f2fe;
+  color: #0369a1;
+  border-color: #bae6fd;
+  transform: translateY(-1px);
+}
+
+.menu-smart-search-stats {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.75rem;
+  color: var(--text-muted, #64748b);
+  padding: 0 4px;
+}
+
+.menu-smart-search-stats strong {
+  color: var(--text-main, #0f172a);
+}
+
+.menu-smart-search-reset-link {
+  background: none;
+  border: none;
+  color: #0284c7;
+  font-size: 0.75rem;
+  font-weight: 700;
+  cursor: pointer;
+  text-decoration: underline;
+  padding: 0;
+}
+
+.menu-smart-search-empty {
+  grid-column: 1 / -1;
+  text-align: center;
+  padding: 32px 16px;
+  background: var(--card-bg, #ffffff);
+  border: 1.5px dashed var(--border, #cbd5e1);
+  border-radius: 16px;
+  margin: 6px 0;
+}
+
+.menu-smart-search-empty-icon {
+  font-size: 2.2rem;
+  margin-bottom: 8px;
+  display: inline-block;
+}
+
+.menu-smart-search-empty h4 {
+  font-size: 1.05rem;
+  font-weight: 800;
+  color: var(--text-main, #0f172a);
+  margin: 0 0 6px 0;
+}
+
+.menu-smart-search-empty p {
+  font-size: 0.82rem;
+  color: var(--text-muted, #64748b);
+  margin: 0 0 14px 0;
+}
+
+.menu-smart-search-suggestions {
+  display: flex;
+  justify-content: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-bottom: 14px;
+}
+
+body.dark-mode .menu-smart-search-box {
+  background: #1e293b;
+  border-color: #334155;
+}
+body.dark-mode .menu-smart-search-clear-btn {
+  background: #334155;
+  color: #94a3b8;
+}
+body.dark-mode .search-chip {
+  background: #1e293b;
+  border-color: #334155;
+  color: #cbd5e1;
+}
+body.dark-mode .search-chip:hover, body.dark-mode .search-chip.active {
+  background: rgba(2, 132, 199, 0.25);
+  color: #38bdf8;
+  border-color: #0284c7;
+}
+body.dark-mode .menu-smart-search-empty {
+  background: #1e293b;
+  border-color: #334155;
+}
+
 .category-scroll {
   display: flex;
   overflow-x: auto;

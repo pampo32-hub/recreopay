@@ -12,7 +12,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="SiboPay">
   <meta name="mobile-web-app-capable" content="yes">
-  <link rel="stylesheet" href="/css/styles.css?v=9.8">
+  <link rel="stylesheet" href="/css/styles.css?v=10.0">
   <style>
     /* Transiciones suaves */
     .fade-enter { animation: fadeIn 0.2s ease-in-out; }
@@ -893,6 +893,46 @@
           <span style="font-size: 0.72rem; color: #0284c7; font-weight: 800; background: #f0f9ff; padding: 3px 8px; border-radius: 6px;">● Conectada</span>
         </div>
 
+        <!-- BUSCADOR INTELIGENTE EN PORTAL DE PADRES -->
+        <div class="parent-smart-search-card" style="margin-bottom: 14px; background: var(--card-bg, #ffffff); border: 1.5px solid var(--border, #e2e8f0); border-radius: 16px; padding: 12px 14px; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);">
+          <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
+            <label for="parentMenuSearchInput" style="font-size: 0.76rem; font-weight: 800; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; display: flex; align-items: center; gap: 6px; margin: 0;">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#0284c7" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+              <span>Buscador Inteligente de Alimentos:</span>
+            </label>
+            <span style="font-size: 0.7rem; color: #0284c7; font-weight: 700; background: #f0f9ff; padding: 2px 7px; border-radius: 6px;">Catálogo Soda</span>
+          </div>
+          <div style="display: flex; gap: 8px; align-items: center;">
+            <div style="position: relative; flex: 1;">
+              <input 
+                type="text" 
+                id="parentMenuSearchInput" 
+                placeholder="Buscar platillo, fresco, snack o precio (<1000)..." 
+                onkeydown="if(event.key==='Enter') searchMenuFromParent(this.value)"
+                style="width: 100%; box-sizing: border-box; padding: 10px 12px 10px 36px; border-radius: 12px; border: 1.5px solid var(--border, #cbd5e1); font-size: 0.88rem; font-weight: 600; outline: none; background: var(--bg-main, #f8fafc); color: var(--text-main);"
+              >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="position: absolute; left: 11px; top: 50%; transform: translateY(-50%); pointer-events: none;">
+                <circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/>
+              </svg>
+            </div>
+            <button 
+              type="button" 
+              onclick="searchMenuFromParent(document.getElementById('parentMenuSearchInput').value)" 
+              class="btn-saas btn-saas-primary" 
+              style="height: 40px; padding: 0 16px; font-size: 0.84rem; border-radius: 10px; flex-shrink: 0; display: inline-flex; align-items: center; gap: 6px;"
+            >
+              <span>Buscar</span>
+            </button>
+          </div>
+          <!-- Chips de búsqueda rápida para padres -->
+          <div style="display: flex; gap: 6px; overflow-x: auto; padding-top: 8px; scrollbar-width: none;">
+            <button type="button" class="search-chip" onclick="searchMenuFromParent('fresco')">🥤 Frescos</button>
+            <button type="button" class="search-chip" onclick="searchMenuFromParent('almuerzo')">🍛 Almuerzos</button>
+            <button type="button" class="search-chip" onclick="searchMenuFromParent('saludable')">🥗 Saludables</button>
+            <button type="button" class="search-chip" onclick="searchMenuFromParent('<1000')">💰 < ₡1.000</button>
+          </div>
+        </div>
+
         <!-- MENÚ DE ACCIONES RÁPIDAS SUPERFINAS -->
         <div class="parent-refined-menu-card">
           <div onclick="switchToSodaMenuAsParent()" class="parent-refined-menu-item">
@@ -902,7 +942,7 @@
               </div>
               <div>
                 <span class="parent-refined-item-title">Pre-ordenar Merienda / Ver Menú</span>
-                <span class="parent-refined-item-desc">Alimentos saludables aprobados por el MEP</span>
+                <span class="parent-refined-item-desc">Alimentos y meriendas saludables de la soda</span>
               </div>
             </div>
             <span class="parent-refined-arrow">›</span>
@@ -1331,6 +1371,64 @@
     <div id="allergyWarning" style="display:none; margin: 0 16px 12px 16px; background: #fffbeb; border: 1px solid #fde68a; border-radius: 12px; padding: 8px 12px; font-size: 0.8rem; color: #92400e; align-items: center; gap: 6px;">
       <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#b45309" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" x2="12" y1="9" y2="13"/><line x1="12" x2="12.01" y1="17" y2="17"/></svg>
       <strong>Atención médica:</strong> <span id="allergyText"></span>
+    </div>
+
+    <!-- BUSCADOR INTELIGENTE DEL MENÚ PARA ESTUDIANTES Y PADRES -->
+    <div class="menu-smart-search-section" id="menuSmartSearchSection">
+      <div class="menu-smart-search-box">
+        <div class="menu-smart-search-icon">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="11" cy="11" r="8"/>
+            <path d="m21 21-4.3-4.3"/>
+          </svg>
+        </div>
+        <input 
+          type="text" 
+          id="menuSearchInput" 
+          class="menu-smart-search-input" 
+          placeholder="Buscar merienda, fresco, snack o precio (<1000)..." 
+          oninput="handleMenuSearchInput(this.value)"
+          onkeydown="handleMenuSearchKeyDown(event)"
+          autocomplete="off"
+          spellcheck="false"
+          aria-label="Buscador inteligente del menú"
+        >
+        <button 
+          type="button" 
+          id="menuSearchClearBtn" 
+          class="menu-smart-search-clear-btn" 
+          onclick="clearMenuSearch()" 
+          title="Borrar búsqueda" 
+          style="display: none;"
+        >
+          ✕
+        </button>
+      </div>
+
+      <!-- CHIPS INTELIGENTES DE ACCESO RÁPIDO -->
+      <div class="menu-smart-search-chips" id="menuSmartSearchChips">
+        <button type="button" class="search-chip" onclick="setMenuSearchSuggestion('fresco')">
+          <span>🥤 Frescos</span>
+        </button>
+        <button type="button" class="search-chip" onclick="setMenuSearchSuggestion('casado')">
+          <span>🍛 Casados</span>
+        </button>
+        <button type="button" class="search-chip" onclick="setMenuSearchSuggestion('empanada')">
+          <span>🥟 Empanadas</span>
+        </button>
+        <button type="button" class="search-chip" onclick="setMenuSearchSuggestion('<1000')">
+          <span>💰 Menos de ₡1.000</span>
+        </button>
+        <button type="button" class="search-chip" onclick="setMenuSearchSuggestion('saludable')">
+          <span>🥗 Saludables</span>
+        </button>
+      </div>
+
+      <!-- ESTADÍSTICAS Y RESET DE BÚSQUEDA -->
+      <div id="menuSearchStats" class="menu-smart-search-stats" style="display: none;">
+        <span id="menuSearchStatsText">Mostrando 0 productos</span>
+        <button type="button" class="menu-smart-search-reset-link" onclick="clearMenuSearch()">Mostrar menú completo</button>
+      </div>
     </div>
 
     <!-- BARRA DE CATEGORÍAS -->
@@ -2285,6 +2383,6 @@
   <script src="/js/sounds.js?v=9.6"></script>
   <script src="/js/jsQR.js"></script>
   <script src="/js/food-icons.js?v=1.1"></script>
-  <script src="/js/app.js?v=10.1"></script>
+  <script src="/js/app.js?v=10.2"></script>
 </body>
 </html>
