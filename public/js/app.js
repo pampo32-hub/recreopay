@@ -5256,23 +5256,23 @@ function renderDevUserStats(users) {
   });
 
   strip.innerHTML = `
-    <div style="background: var(--card-bg); border: 1px solid var(--border); border-radius: 10px; padding: 6px 12px; font-size: 0.78rem; font-weight: 800; white-space: nowrap;">
-      Total: <span style="color: #0284c7;">${counts.total}</span>
+    <div style="background: var(--card-bg, #ffffff); border: 1.5px solid var(--border, #e2e8f0); border-radius: 10px; padding: 7px 14px; font-size: 0.78rem; font-weight: 700; white-space: nowrap; box-shadow: 0 1px 2px rgba(0,0,0,0.03);">
+      Total: <span style="color: #0284c7; font-weight: 800;">${counts.total}</span>
     </div>
-    <div style="background: var(--card-bg); border: 1px solid var(--border); border-radius: 10px; padding: 6px 12px; font-size: 0.78rem; font-weight: 800; white-space: nowrap;">
-      Admins: <span style="color: #3b82f6;">${counts.admin}</span>
+    <div style="background: var(--card-bg, #ffffff); border: 1.5px solid var(--border, #e2e8f0); border-radius: 10px; padding: 7px 14px; font-size: 0.78rem; font-weight: 700; white-space: nowrap; box-shadow: 0 1px 2px rgba(0,0,0,0.03);">
+      Admins: <span style="color: #0f172a; font-weight: 800;">${counts.admin}</span>
     </div>
-    <div style="background: var(--card-bg); border: 1px solid var(--border); border-radius: 10px; padding: 6px 12px; font-size: 0.78rem; font-weight: 800; white-space: nowrap;">
-      Devs: <span style="color: #8b5cf6;">${counts.developer}</span>
+    <div style="background: var(--card-bg, #ffffff); border: 1.5px solid var(--border, #e2e8f0); border-radius: 10px; padding: 7px 14px; font-size: 0.78rem; font-weight: 700; white-space: nowrap; box-shadow: 0 1px 2px rgba(0,0,0,0.03);">
+      Devs: <span style="color: #0284c7; font-weight: 800;">${counts.developer}</span>
     </div>
-    <div style="background: var(--card-bg); border: 1px solid var(--border); border-radius: 10px; padding: 6px 12px; font-size: 0.78rem; font-weight: 800; white-space: nowrap;">
-      Cajeros: <span style="color: #10b981;">${counts.cajero}</span>
+    <div style="background: var(--card-bg, #ffffff); border: 1.5px solid var(--border, #e2e8f0); border-radius: 10px; padding: 7px 14px; font-size: 0.78rem; font-weight: 700; white-space: nowrap; box-shadow: 0 1px 2px rgba(0,0,0,0.03);">
+      Cajeros: <span style="color: #475569; font-weight: 800;">${counts.cajero}</span>
     </div>
-    <div style="background: var(--card-bg); border: 1px solid var(--border); border-radius: 10px; padding: 6px 12px; font-size: 0.78rem; font-weight: 800; white-space: nowrap;">
-      Padres: <span style="color: #f59e0b;">${counts.padre}</span>
+    <div style="background: var(--card-bg, #ffffff); border: 1.5px solid var(--border, #e2e8f0); border-radius: 10px; padding: 7px 14px; font-size: 0.78rem; font-weight: 700; white-space: nowrap; box-shadow: 0 1px 2px rgba(0,0,0,0.03);">
+      Padres: <span style="color: #0284c7; font-weight: 800;">${counts.padre}</span>
     </div>
-    <div style="background: var(--card-bg); border: 1px solid var(--border); border-radius: 10px; padding: 6px 12px; font-size: 0.78rem; font-weight: 800; white-space: nowrap;">
-      Estudiantes: <span style="color: #ec4899;">${counts.estudiante}</span>
+    <div style="background: var(--card-bg, #ffffff); border: 1.5px solid var(--border, #e2e8f0); border-radius: 10px; padding: 7px 14px; font-size: 0.78rem; font-weight: 700; white-space: nowrap; box-shadow: 0 1px 2px rgba(0,0,0,0.03);">
+      Estudiantes: <span style="color: #64748b; font-weight: 800;">${counts.estudiante}</span>
     </div>
   `;
 }
@@ -5306,7 +5306,7 @@ function renderDevUsuarios(users) {
 
   tbody.innerHTML = users.map(u => {
     let roleBadge = '';
-    if (u.rol === 'developer') roleBadge = '<span class="dev-role-badge role-dev">Developer</span>';
+    if (u.rol === 'developer') roleBadge = '<span class="dev-role-badge role-developer">Developer</span>';
     else if (u.rol === 'admin') roleBadge = '<span class="dev-role-badge role-admin">Admin Soda</span>';
     else if (u.rol === 'cajero') roleBadge = '<span class="dev-role-badge role-cajero">Cajero</span>';
     else if (u.rol === 'vendedor') roleBadge = '<span class="dev-role-badge role-vendedor">Vendedor</span>';
@@ -5315,14 +5315,14 @@ function renderDevUsuarios(users) {
     else roleBadge = `<span class="dev-role-badge">${escapeHtml(u.rol)}</span>`;
 
     const statusBadge = u.activo ? 
-      `<span style="color: #10b981; font-weight: 800; background: rgba(16, 185, 129, 0.1); padding: 3px 8px; border-radius: 6px; font-size: 0.72rem;">● Activo</span>` :
-      `<span style="color: #ef4444; font-weight: 800; background: rgba(239, 68, 68, 0.1); padding: 3px 8px; border-radius: 6px; font-size: 0.72rem;">Bloqueado</span>`;
+      `<span style="color: #16a34a; font-weight: 700; background: #f0fdf4; border: 1px solid #bbf7d0; padding: 3px 8px; border-radius: 6px; font-size: 0.72rem;">● Activo</span>` :
+      `<span style="color: #64748b; font-weight: 700; background: #f8fafc; border: 1px solid #e2e8f0; padding: 3px 8px; border-radius: 6px; font-size: 0.72rem;">Inactivo</span>`;
 
     let extraInfo = '';
     if (u.rol === 'estudiante' && u.estudiante_codigo) {
       extraInfo = `<div style="font-size: 0.72rem; color: #0284c7; font-weight: 700;">Carné: ${escapeHtml(u.estudiante_codigo)} · ${escapeHtml(u.estudiante_grado || '')}</div>`;
     } else if (u.rol === 'padre' && u.hijos_vinculados) {
-      extraInfo = `<div style="font-size: 0.72rem; color: #f59e0b; font-weight: 700;">Hijos: ${escapeHtml(u.hijos_vinculados)}</div>`;
+      extraInfo = `<div style="font-size: 0.72rem; color: #64748b; font-weight: 700;">Hijos: ${escapeHtml(u.hijos_vinculados)}</div>`;
     }
 
     return `
@@ -5341,16 +5341,16 @@ function renderDevUsuarios(users) {
         <td style="padding: 10px 14px;">${statusBadge}</td>
         <td style="padding: 10px 14px; text-align: right; white-space: nowrap;">
           <div style="display: inline-flex; gap: 4px;">
-            <button onclick="openModalDevUser(${u.id})" class="dev-action-btn" style="padding: 4px 8px; font-size: 0.75rem; display: inline-flex; align-items: center; gap: 4px;" title="Modificar datos del usuario">
+            <button onclick="openModalDevUser(${u.id})" class="dev-action-btn" style="padding: 5px 9px; font-size: 0.75rem; display: inline-flex; align-items: center; gap: 4px;" title="Modificar datos del usuario">
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/><path d="m15 5 4 4"/></svg> Editar
             </button>
-            <button onclick="openModalDevPassword(${u.id}, '${escapeHtml(u.username)}')" class="dev-action-btn" style="padding: 4px 8px; font-size: 0.75rem; color: #8b5cf6; display: inline-flex; align-items: center; gap: 4px;" title="Cambiar contraseña directamente">
+            <button onclick="openModalDevPassword(${u.id}, '${escapeHtml(u.username)}')" class="dev-action-btn" style="padding: 5px 9px; font-size: 0.75rem; color: #0284c7; display: inline-flex; align-items: center; gap: 4px;" title="Cambiar contraseña">
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="7.5" cy="15.5" r="5.5"/><path d="m21 2-9.6 9.6"/><path d="m15.5 7.5 3 3L22 7l-3-3"/></svg> Clave
             </button>
-            <button onclick="toggleDevUserStatus(${u.id}, ${u.activo ? 0 : 1})" class="dev-action-btn" style="padding: 4px 8px; font-size: 0.75rem; color: ${u.activo ? '#eab308' : '#10b981'}; display: inline-flex; align-items: center; gap: 4px;" title="${u.activo ? 'Bloquear usuario' : 'Desbloquear usuario'}">
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/></svg> ${u.activo ? 'Bloquear' : 'Desbloquear'}
+            <button onclick="toggleDevUserStatus(${u.id}, ${u.activo ? 0 : 1})" class="dev-action-btn" style="padding: 5px 9px; font-size: 0.75rem; color: #475569; display: inline-flex; align-items: center; gap: 4px;" title="${u.activo ? 'Desactivar usuario' : 'Activar usuario'}">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/></svg> ${u.activo ? 'Bloquear' : 'Activar'}
             </button>
-            <button onclick="deleteDevUser(${u.id}, '${escapeHtml(u.username)}')" class="dev-action-btn dev-action-btn-danger" style="padding: 4px 8px; font-size: 0.75rem; display: inline-flex; align-items: center;" title="Eliminar usuario">
+            <button onclick="deleteDevUser(${u.id}, '${escapeHtml(u.username)}')" class="dev-action-btn dev-action-btn-danger" style="padding: 5px 9px; font-size: 0.75rem; display: inline-flex; align-items: center;" title="Eliminar usuario">
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>
             </button>
           </div>
@@ -5690,37 +5690,37 @@ function renderDevDisenosGrid(disenos) {
     if (d.categoria === 'masc') catLabel = 'Masculino';
 
     const statusBadge = d.activo ?
-      `<span style="color: #10b981; font-weight: 800; font-size: 0.72rem; background: rgba(16, 185, 129, 0.1); padding: 2px 7px; border-radius: 6px;">● Activo</span>` :
-      `<span style="color: #ef4444; font-weight: 800; font-size: 0.72rem; background: rgba(239, 68, 68, 0.1); padding: 2px 7px; border-radius: 6px;">Inactivo</span>`;
+      `<span style="color: #16a34a; font-weight: 700; font-size: 0.72rem; background: #f0fdf4; border: 1px solid #bbf7d0; padding: 2px 7px; border-radius: 6px;">● Activo</span>` :
+      `<span style="color: #64748b; font-weight: 700; font-size: 0.72rem; background: #f8fafc; border: 1px solid #e2e8f0; padding: 2px 7px; border-radius: 6px;">Inactivo</span>`;
 
     const textColorLabel = (d.estilo_texto === 'light') ? 'Texto Oscuro' : 'Texto Blanco';
 
     return `
-      <div style="background: var(--card-bg); border: 1.5px solid var(--border); border-radius: 14px; overflow: hidden; box-shadow: 0 4px 14px rgba(0,0,0,0.06); display: flex; flex-direction: column;">
+      <div style="background: var(--card-bg, #ffffff); border: 1.5px solid var(--border, #e2e8f0); border-radius: 14px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.04); display: flex; flex-direction: column;">
         <div style="position: relative; aspect-ratio: 1.586; overflow: hidden; background: #0f172a;">
           <img src="${escapeHtml(d.imagen_url)}" alt="${escapeHtml(d.nombre)}" style="width: 100%; height: 100%; object-fit: cover; display: block;" onerror="this.src='/img/cards/card_robo_lab.jpg'">
-          <div style="position: absolute; top: 8px; left: 8px; background: rgba(0,0,0,0.6); color: white; font-size: 0.68rem; font-weight: 800; padding: 2px 6px; border-radius: 5px; backdrop-filter: blur(4px);">
+          <div style="position: absolute; top: 8px; left: 8px; background: rgba(15, 23, 42, 0.75); color: white; font-size: 0.68rem; font-weight: 700; padding: 2px 8px; border-radius: 6px; backdrop-filter: blur(4px);">
             ${catLabel}
           </div>
           <div style="position: absolute; top: 8px; right: 8px;">
             ${statusBadge}
           </div>
         </div>
-        <div style="padding: 12px; flex: 1; display: flex; flex-direction: column; justify-content: space-between;">
+        <div style="padding: 14px; flex: 1; display: flex; flex-direction: column; justify-content: space-between;">
           <div>
-            <div style="font-weight: 900; font-size: 0.92rem; color: var(--text-main); margin-bottom: 3px;">
+            <div style="font-weight: 800; font-size: 0.92rem; color: var(--text-main); margin-bottom: 4px;">
               ${escapeHtml(d.nombre)}
             </div>
-            <div style="font-size: 0.72rem; color: var(--text-muted); display: flex; gap: 8px;">
+            <div style="font-size: 0.72rem; color: var(--text-muted); display: flex; align-items: center; gap: 8px;">
               <span>${textColorLabel}</span>
-              ${d.es_predeterminado ? '<span style="color: #8b5cf6; font-weight: 800;">Predeterminado</span>' : ''}
+              ${d.es_predeterminado ? '<span style="color: #0284c7; font-weight: 700; background: #f0f9ff; border: 1px solid #bae6fd; padding: 1px 6px; border-radius: 4px;">Predeterminado</span>' : ''}
             </div>
           </div>
-          <div style="margin-top: 10px; display: flex; gap: 6px; justify-content: flex-end;">
-            <button onclick="toggleDevCardStatus(${d.id}, ${d.activo ? 0 : 1})" class="dev-action-btn" style="padding: 5px 9px; font-size: 0.74rem;">
+          <div style="margin-top: 12px; display: flex; gap: 6px; justify-content: flex-end;">
+            <button onclick="toggleDevCardStatus(${d.id}, ${d.activo ? 0 : 1})" class="dev-action-btn" style="padding: 5px 10px; font-size: 0.75rem;">
               ${d.activo ? 'Desactivar' : 'Activar'}
             </button>
-            <button onclick="deleteDevCardDesign(${d.id}, '${escapeHtml(d.nombre)}')" class="dev-action-btn dev-action-btn-danger" style="padding: 5px 9px; font-size: 0.74rem; display: inline-flex; align-items: center;" title="Eliminar diseño">
+            <button onclick="deleteDevCardDesign(${d.id}, '${escapeHtml(d.nombre)}')" class="dev-action-btn dev-action-btn-danger" style="padding: 5px 9px; font-size: 0.75rem; display: inline-flex; align-items: center;" title="Eliminar diseño">
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>
             </button>
           </div>
@@ -5779,35 +5779,65 @@ async function loadDevStats() {
     const uptimeStr = hrs > 0 ? `${hrs}h ${mins}m` : `${mins} min (${sec % 60}s)`;
 
     container.innerHTML = `
-      <div style="background: var(--card-bg); border: 1.5px solid var(--border); border-radius: 14px; padding: 18px;">
-        <div style="font-size: 0.74rem; font-weight: 800; color: var(--text-muted); text-transform: uppercase;">Tiempo Activo (Uptime)</div>
-        <div style="font-size: 1.35rem; font-weight: 900; color: #0284c7; margin-top: 6px;">${uptimeStr}</div>
-        <div style="font-size: 0.72rem; color: var(--text-muted); margin-top: 2px;">Node.js ${escapeHtml(s.sistema?.node_version || '')}</div>
+      <div style="background: var(--card-bg, #ffffff); border: 1.5px solid var(--border, #e2e8f0); border-radius: 14px; padding: 18px 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.03);">
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+          <span style="font-size: 0.74rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.3px;">Tiempo Activo</span>
+          <div style="width: 32px; height: 32px; border-radius: 8px; background: #f0f9ff; color: #0284c7; display: flex; align-items: center; justify-content: center;">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+          </div>
+        </div>
+        <div style="font-size: 1.35rem; font-weight: 900; color: #0284c7; margin-top: 8px;">${uptimeStr}</div>
+        <div style="font-size: 0.72rem; color: var(--text-muted); margin-top: 3px;">Node.js ${escapeHtml(s.sistema?.node_version || '')}</div>
       </div>
-      <div style="background: var(--card-bg); border: 1.5px solid var(--border); border-radius: 14px; padding: 18px;">
-        <div style="font-size: 0.74rem; font-weight: 800; color: var(--text-muted); text-transform: uppercase;">Memoria RAM (Heap)</div>
-        <div style="font-size: 1.35rem; font-weight: 900; color: #8b5cf6; margin-top: 6px;">${s.sistema?.memoria_mb || 0} MB</div>
-        <div style="font-size: 0.72rem; color: var(--text-muted); margin-top: 2px;">Consumo de Proceso Node</div>
+      <div style="background: var(--card-bg, #ffffff); border: 1.5px solid var(--border, #e2e8f0); border-radius: 14px; padding: 18px 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.03);">
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+          <span style="font-size: 0.74rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.3px;">Memoria RAM</span>
+          <div style="width: 32px; height: 32px; border-radius: 8px; background: #f8fafc; color: #475569; display: flex; align-items: center; justify-content: center; border: 1px solid #e2e8f0;">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="16" height="16" x="4" y="4" rx="2"/><rect width="6" height="6" x="9" y="9" rx="1"/><path d="M15 2v2"/><path d="M15 20v2"/><path d="M2 15h2"/><path d="M2 9h2"/><path d="M20 15h2"/><path d="M20 9h2"/><path d="M9 2v2"/><path d="M9 20v2"/></svg>
+          </div>
+        </div>
+        <div style="font-size: 1.35rem; font-weight: 900; color: #0f172a; margin-top: 8px;">${s.sistema?.memoria_mb || 0} MB</div>
+        <div style="font-size: 0.72rem; color: var(--text-muted); margin-top: 3px;">Consumo de Proceso Node</div>
       </div>
-      <div style="background: var(--card-bg); border: 1.5px solid var(--border); border-radius: 14px; padding: 18px;">
-        <div style="font-size: 0.74rem; font-weight: 800; color: var(--text-muted); text-transform: uppercase;">Base de Datos ${escapeHtml(s.sistema?.db_tipo || 'PostgreSQL')}</div>
-        <div style="font-size: 1.35rem; font-weight: 900; color: #10b981; margin-top: 6px;">${escapeHtml(s.sistema?.db_size_formatted || (s.sistema?.db_size_kb ? s.sistema.db_size_kb + ' KB' : '9.5 MB'))}</div>
-        <div style="font-size: 0.72rem; color: var(--text-muted); margin-top: 2px;">${escapeHtml(s.sistema?.db_detalle || 'Conexión Estable')}</div>
+      <div style="background: var(--card-bg, #ffffff); border: 1.5px solid var(--border, #e2e8f0); border-radius: 14px; padding: 18px 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.03);">
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+          <span style="font-size: 0.74rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.3px;">Base de Datos</span>
+          <div style="width: 32px; height: 32px; border-radius: 8px; background: #f0fdf4; color: #16a34a; display: flex; align-items: center; justify-content: center; border: 1px solid #bbf7d0;">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/><path d="M3 12c0 1.66 4 3 9 3s9-1.34 9-3"/></svg>
+          </div>
+        </div>
+        <div style="font-size: 1.35rem; font-weight: 900; color: #0f172a; margin-top: 8px;">${escapeHtml(s.sistema?.db_size_formatted || (s.sistema?.db_size_kb ? s.sistema.db_size_kb + ' KB' : '9.5 MB'))}</div>
+        <div style="font-size: 0.72rem; color: #16a34a; font-weight: 700; margin-top: 3px;">● ${escapeHtml(s.sistema?.db_tipo || 'PostgreSQL')} (Estable)</div>
       </div>
-      <div style="background: var(--card-bg); border: 1.5px solid var(--border); border-radius: 14px; padding: 18px;">
-        <div style="font-size: 0.74rem; font-weight: 800; color: var(--text-muted); text-transform: uppercase;">Usuarios Registrados</div>
-        <div style="font-size: 1.35rem; font-weight: 900; color: #f59e0b; margin-top: 6px;">${s.usuarios?.total || 0} Cuentas</div>
-        <div style="font-size: 0.72rem; color: var(--text-muted); margin-top: 2px;">${s.estudiantes?.total || 0} Alumnos vinculados</div>
+      <div style="background: var(--card-bg, #ffffff); border: 1.5px solid var(--border, #e2e8f0); border-radius: 14px; padding: 18px 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.03);">
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+          <span style="font-size: 0.74rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.3px;">Usuarios Registrados</span>
+          <div style="width: 32px; height: 32px; border-radius: 8px; background: #f0f9ff; color: #0284c7; display: flex; align-items: center; justify-content: center; border: 1px solid #bae6fd;">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+          </div>
+        </div>
+        <div style="font-size: 1.35rem; font-weight: 900; color: #0284c7; margin-top: 8px;">${s.usuarios?.total || 0} Cuentas</div>
+        <div style="font-size: 0.72rem; color: var(--text-muted); margin-top: 3px;">${s.estudiantes?.total || 0} Alumnos vinculados</div>
       </div>
-      <div style="background: var(--card-bg); border: 1.5px solid var(--border); border-radius: 14px; padding: 18px;">
-        <div style="font-size: 0.74rem; font-weight: 800; color: var(--text-muted); text-transform: uppercase;">Diseños de Tarjetas</div>
-        <div style="font-size: 1.35rem; font-weight: 900; color: #ec4899; margin-top: 6px;">${s.negocio?.disenos_tarjetas_activas || 0} Activos</div>
-        <div style="font-size: 0.72rem; color: var(--text-muted); margin-top: 2px;">Disponibles para alumnos</div>
+      <div style="background: var(--card-bg, #ffffff); border: 1.5px solid var(--border, #e2e8f0); border-radius: 14px; padding: 18px 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.03);">
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+          <span style="font-size: 0.74rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.3px;">Diseños de Tarjetas</span>
+          <div style="width: 32px; height: 32px; border-radius: 8px; background: #f8fafc; color: #475569; display: flex; align-items: center; justify-content: center; border: 1px solid #e2e8f0;">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="20" height="14" x="2" y="5" rx="2"/><line x1="2" x2="22" y1="10" y2="10"/></svg>
+          </div>
+        </div>
+        <div style="font-size: 1.35rem; font-weight: 900; color: #0f172a; margin-top: 8px;">${s.negocio?.disenos_tarjetas_activas || 0} Activos</div>
+        <div style="font-size: 0.72rem; color: var(--text-muted); margin-top: 3px;">Disponibles para alumnos</div>
       </div>
-      <div style="background: var(--card-bg); border: 1.5px solid var(--border); border-radius: 14px; padding: 18px;">
-        <div style="font-size: 0.74rem; font-weight: 800; color: var(--text-muted); text-transform: uppercase;">Pedidos en Soda</div>
-        <div style="font-size: 1.35rem; font-weight: 900; color: #06b6d4; margin-top: 6px;">${s.negocio?.ordenes_totales || 0} Órdenes</div>
-        <div style="font-size: 0.72rem; color: var(--text-muted); margin-top: 2px;">${s.negocio?.transacciones_totales || 0} Transacciones totales</div>
+      <div style="background: var(--card-bg, #ffffff); border: 1.5px solid var(--border, #e2e8f0); border-radius: 14px; padding: 18px 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.03);">
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+          <span style="font-size: 0.74rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.3px;">Pedidos en Soda</span>
+          <div style="width: 32px; height: 32px; border-radius: 8px; background: #f0f9ff; color: #0284c7; display: flex; align-items: center; justify-content: center; border: 1px solid #bae6fd;">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z"/><path d="M3 6h18"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>
+          </div>
+        </div>
+        <div style="font-size: 1.35rem; font-weight: 900; color: #0284c7; margin-top: 8px;">${s.negocio?.ordenes_totales || 0} Órdenes</div>
+        <div style="font-size: 0.72rem; color: var(--text-muted); margin-top: 3px;">${s.negocio?.transacciones_totales || 0} Transacciones totales</div>
       </div>
     `;
   } catch (err) {
@@ -5849,21 +5879,21 @@ function renderDevEscuelasSummary(escuelas) {
   const totalVentas = escuelas.reduce((sum, e) => sum + (parseFloat(e.ventas_totales) || 0), 0);
 
   strip.innerHTML = `
-    <div style="background: var(--card-bg); border: 1.5px solid var(--border); border-radius: 12px; padding: 12px 16px; flex: 1; min-width: 150px;">
-      <span style="font-size: 0.72rem; font-weight: 800; color: var(--text-muted); text-transform: uppercase;">Sedes Activas</span>
-      <div style="font-size: 1.35rem; font-weight: 900; color: #8b5cf6; margin-top: 4px;">${totalSedes}</div>
+    <div style="background: var(--card-bg, #ffffff); border: 1.5px solid var(--border, #e2e8f0); border-radius: 12px; padding: 12px 16px; flex: 1; min-width: 150px; box-shadow: 0 1px 2px rgba(0,0,0,0.03);">
+      <span style="font-size: 0.72rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Sedes Activas</span>
+      <div style="font-size: 1.35rem; font-weight: 900; color: #0284c7; margin-top: 4px;">${totalSedes}</div>
     </div>
-    <div style="background: var(--card-bg); border: 1.5px solid var(--border); border-radius: 12px; padding: 12px 16px; flex: 1; min-width: 150px;">
-      <span style="font-size: 0.72rem; font-weight: 800; color: var(--text-muted); text-transform: uppercase;">Total Estudiantes</span>
-      <div style="font-size: 1.35rem; font-weight: 900; color: #0284c7; margin-top: 4px;">${totalAlumnos}</div>
+    <div style="background: var(--card-bg, #ffffff); border: 1.5px solid var(--border, #e2e8f0); border-radius: 12px; padding: 12px 16px; flex: 1; min-width: 150px; box-shadow: 0 1px 2px rgba(0,0,0,0.03);">
+      <span style="font-size: 0.72rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Total Estudiantes</span>
+      <div style="font-size: 1.35rem; font-weight: 900; color: #0f172a; margin-top: 4px;">${totalAlumnos}</div>
     </div>
-    <div style="background: var(--card-bg); border: 1.5px solid var(--border); border-radius: 12px; padding: 12px 16px; flex: 1; min-width: 150px;">
-      <span style="font-size: 0.72rem; font-weight: 800; color: var(--text-muted); text-transform: uppercase;">Platillos en Catálogos</span>
-      <div style="font-size: 1.35rem; font-weight: 900; color: #10b981; margin-top: 4px;">${totalProds}</div>
+    <div style="background: var(--card-bg, #ffffff); border: 1.5px solid var(--border, #e2e8f0); border-radius: 12px; padding: 12px 16px; flex: 1; min-width: 150px; box-shadow: 0 1px 2px rgba(0,0,0,0.03);">
+      <span style="font-size: 0.72rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Platillos en Catálogos</span>
+      <div style="font-size: 1.35rem; font-weight: 900; color: #0284c7; margin-top: 4px;">${totalProds}</div>
     </div>
-    <div style="background: var(--card-bg); border: 1.5px solid var(--border); border-radius: 12px; padding: 12px 16px; flex: 1; min-width: 150px;">
-      <span style="font-size: 0.72rem; font-weight: 800; color: var(--text-muted); text-transform: uppercase;">Facturación Global</span>
-      <div style="font-size: 1.35rem; font-weight: 900; color: #f59e0b; margin-top: 4px;">₡${totalVentas.toLocaleString('es-CR')}</div>
+    <div style="background: var(--card-bg, #ffffff); border: 1.5px solid var(--border, #e2e8f0); border-radius: 12px; padding: 12px 16px; flex: 1; min-width: 150px; box-shadow: 0 1px 2px rgba(0,0,0,0.03);">
+      <span style="font-size: 0.72rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Facturación Global</span>
+      <div style="font-size: 1.35rem; font-weight: 900; color: #0f172a; margin-top: 4px;">₡${totalVentas.toLocaleString('es-CR')}</div>
     </div>
   `;
 }
@@ -5885,62 +5915,65 @@ function renderDevEscuelas(escuelas) {
     const ords = parseInt(e.total_ordenes, 10) || 0;
 
     return `
-      <div style="background: var(--card-bg); border: 1.5px solid ${isActivo ? 'var(--border)' : '#fca5a5'}; border-radius: 16px; padding: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.04); display: flex; flex-direction: column; justify-content: space-between; transition: all 0.2s;">
+      <div style="background: var(--card-bg, #ffffff); border: 1.5px solid ${isActivo ? 'var(--border, #e2e8f0)' : '#fecaca'}; border-radius: 16px; padding: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.04); display: flex; flex-direction: column; justify-content: space-between; transition: all 0.2s;">
         <div>
           <!-- Cabecera de la Sede -->
-          <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; margin-bottom: 12px;">
-            <div style="display: flex; align-items: center; gap: 10px;">
-              <div style="width: 44px; height: 44px; border-radius: 12px; background: rgba(139, 92, 246, 0.12); color: #8b5cf6; display: flex; align-items: center; justify-content: center; font-size: 1.3rem; flex-shrink: 0;">
-                🏫
+          <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; margin-bottom: 14px;">
+            <div style="display: flex; align-items: center; gap: 12px;">
+              <div style="width: 44px; height: 44px; border-radius: 12px; background: #f0f9ff; color: #0284c7; border: 1px solid #bae6fd; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18"/><path d="M5 21V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16"/><path d="M9 21v-4a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v4"/><line x1="9" y1="9" x2="9" y2="9.01"/><line x1="15" y1="9" x2="15" y2="9.01"/></svg>
               </div>
               <div>
-                <h4 style="margin: 0; font-size: 1.05rem; font-weight: 900; color: var(--text-main);">${escapeHtml(e.nombre)}</h4>
-                <div style="display: flex; gap: 6px; align-items: center; margin-top: 2px;">
-                  <span style="font-size: 0.72rem; font-weight: 900; background: #e0e7ff; color: #4338ca; padding: 2px 8px; border-radius: 6px;">CÓD: ${escapeHtml(e.codigo)}</span>
-                  <span style="font-size: 0.72rem; font-weight: 800; color: var(--text-muted);">ID #${e.id}</span>
+                <h4 style="margin: 0; font-size: 1.05rem; font-weight: 800; color: var(--text-main);">${escapeHtml(e.nombre)}</h4>
+                <div style="display: flex; gap: 6px; align-items: center; margin-top: 3px;">
+                  <span style="font-size: 0.72rem; font-weight: 700; background: #f0f9ff; color: #0284c7; border: 1px solid #bae6fd; padding: 2px 8px; border-radius: 6px;">CÓD: ${escapeHtml(e.codigo)}</span>
+                  <span style="font-size: 0.72rem; font-weight: 700; color: var(--text-muted);">ID #${e.id}</span>
                 </div>
               </div>
             </div>
-            <span style="font-size: 0.70rem; font-weight: 800; padding: 3px 8px; border-radius: 6px; background: ${isActivo ? '#dcfce7' : '#fee2e2'}; color: ${isActivo ? '#166534' : '#dc2626'};">
-              ${isActivo ? '● ACTIVA' : '⏸ EN PAUSA'}
+            <span style="font-size: 0.70rem; font-weight: 700; padding: 3px 8px; border-radius: 6px; background: ${isActivo ? '#f0fdf4' : '#f8fafc'}; color: ${isActivo ? '#166534' : '#64748b'}; border: 1px solid ${isActivo ? '#bbf7d0' : '#e2e8f0'};">
+              ${isActivo ? '● ACTIVA' : 'PAUSADA'}
             </span>
           </div>
 
           <!-- Datos de Operación y SINPE -->
-          <div style="background: var(--bg-main); border: 1px solid var(--border); border-radius: 10px; padding: 10px 12px; margin-bottom: 14px; font-size: 0.8rem; line-height: 1.5;">
-            <div><strong>SINPE Móvil:</strong> <span style="color: #16a34a; font-weight: 800;">${escapeHtml(e.telefono_sinpe || 'No configurado')}</span> (${escapeHtml(e.nombre_sinpe || e.nombre)})</div>
+          <div style="background: var(--bg-main, #f8fafc); border: 1px solid var(--border, #e2e8f0); border-radius: 10px; padding: 10px 12px; margin-bottom: 14px; font-size: 0.8rem; line-height: 1.5;">
+            <div><strong>SINPE Móvil:</strong> <span style="color: #0284c7; font-weight: 800;">${escapeHtml(e.telefono_sinpe || 'No configurado')}</span> (${escapeHtml(e.nombre_sinpe || e.nombre)})</div>
             <div style="margin-top: 3px; color: var(--text-muted);"><strong>Operador:</strong> ${escapeHtml(e.concesionario || 'Administración de la Soda')}</div>
           </div>
 
           <!-- Métricas de la Sede -->
           <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 16px;">
-            <div style="background: var(--bg-main); border-radius: 8px; padding: 8px 10px;">
+            <div style="background: var(--bg-main, #f8fafc); border-radius: 8px; padding: 8px 10px; border: 1px solid var(--border, #e2e8f0);">
               <span style="font-size: 0.68rem; color: var(--text-muted); font-weight: 700; text-transform: uppercase;">Alumnos</span>
               <div style="font-size: 1.05rem; font-weight: 900; color: #0284c7;">${ests}</div>
             </div>
-            <div style="background: var(--bg-main); border-radius: 8px; padding: 8px 10px;">
+            <div style="background: var(--bg-main, #f8fafc); border-radius: 8px; padding: 8px 10px; border: 1px solid var(--border, #e2e8f0);">
               <span style="font-size: 0.68rem; color: var(--text-muted); font-weight: 700; text-transform: uppercase;">Catálogo</span>
-              <div style="font-size: 1.05rem; font-weight: 900; color: #10b981;">${prods} prods</div>
+              <div style="font-size: 1.05rem; font-weight: 900; color: #0f172a;">${prods} prods</div>
             </div>
-            <div style="background: var(--bg-main); border-radius: 8px; padding: 8px 10px;">
+            <div style="background: var(--bg-main, #f8fafc); border-radius: 8px; padding: 8px 10px; border: 1px solid var(--border, #e2e8f0);">
               <span style="font-size: 0.68rem; color: var(--text-muted); font-weight: 700; text-transform: uppercase;">Órdenes</span>
-              <div style="font-size: 1.05rem; font-weight: 900; color: #8b5cf6;">${ords}</div>
+              <div style="font-size: 1.05rem; font-weight: 900; color: #0284c7;">${ords}</div>
             </div>
-            <div style="background: var(--bg-main); border-radius: 8px; padding: 8px 10px;">
+            <div style="background: var(--bg-main, #f8fafc); border-radius: 8px; padding: 8px 10px; border: 1px solid var(--border, #e2e8f0);">
               <span style="font-size: 0.68rem; color: var(--text-muted); font-weight: 700; text-transform: uppercase;">Ventas Totales</span>
-              <div style="font-size: 1.05rem; font-weight: 900; color: #f59e0b;">₡${ventas.toLocaleString('es-CR')}</div>
+              <div style="font-size: 1.05rem; font-weight: 900; color: #0f172a;">₡${ventas.toLocaleString('es-CR')}</div>
             </div>
           </div>
         </div>
 
         <!-- Acciones Operativas -->
-        <div style="display: flex; gap: 8px; border-top: 1px solid var(--border); padding-top: 12px; justify-content: space-between; align-items: center;">
+        <div style="display: flex; gap: 8px; border-top: 1px solid var(--border, #e2e8f0); padding-top: 12px; justify-content: space-between; align-items: center;">
           <button onclick="verCredencialesEscuela('${escapeHtml(e.codigo)}', '${escapeHtml(e.nombre)}')" class="dev-action-btn" style="padding: 6px 12px; font-size: 0.78rem; display: inline-flex; align-items: center; gap: 5px;">
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg> Cuentas
           </button>
           
-          <button onclick="toggleDevEscuelaEstado(${e.id}, ${isActivo ? 0 : 1})" class="dev-action-btn" style="padding: 6px 12px; font-size: 0.78rem; color: ${isActivo ? '#dc2626' : '#16a34a'}; border-color: ${isActivo ? 'rgba(220,38,38,0.3)' : 'rgba(22,163,74,0.3)'};">
-            ${isActivo ? '⏸ Pausar Sede' : '▶ Activar Sede'}
+          <button onclick="toggleDevEscuelaEstado(${e.id}, ${isActivo ? 0 : 1})" class="dev-action-btn ${isActivo ? '' : 'dev-action-btn-primary'}" style="padding: 6px 12px; font-size: 0.78rem; display: inline-flex; align-items: center; gap: 5px;">
+            ${isActivo ? 
+              `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect width="4" height="16" x="6" y="4" rx="1"/><rect width="4" height="16" x="14" y="4" rx="1"/></svg> Pausar Sede` : 
+              `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="5 3 19 12 5 21 5 3"/></svg> Activar Sede`
+            }
           </button>
         </div>
       </div>
