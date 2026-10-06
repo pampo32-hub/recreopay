@@ -2224,6 +2224,11 @@ app.get(['/landing', '/inicio', '/presentacion'], (req, res) => {
   res.sendFile(path.join(__dirname, '../public/desktop-preview.html'));
 });
 
+// Rutas para Términos y Condiciones y Política de Privacidad (Google Play & Web)
+app.get(['/legal', '/terminos', '/privacidad', '/terminos-y-condiciones', '/politica-de-privacidad'], (req, res) => {
+  res.sendFile(path.join(__dirname, '../public/legal.html'));
+});
+
 // Iniciar servidor
 app.listen(PORT, () => {
   console.log(`🚀 Servidor SiboPay iniciado en http://localhost:${PORT}`);

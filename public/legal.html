@@ -1,0 +1,416 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Marco Legal y Privacidad | SiboPay Costa Rica</title>
+  <link rel="icon" type="image/png" href="/img/sibopay-emblem.png">
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+  <meta name="theme-color" content="#0284c7">
+
+  <!-- Google Fonts: Plus Jakarta Sans -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Plus Jakarta Sans', 'system-ui', '-apple-system', 'sans-serif'],
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    body {
+      font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+      background-color: #f1f5f9;
+      color: #1e293b;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* Estilo de hoja de papel formal */
+    .paper-sheet {
+      background: #ffffff;
+      box-shadow: 0 4px 20px -2px rgba(15, 23, 42, 0.05), 0 2px 6px -1px rgba(15, 23, 42, 0.03);
+      border: 1px solid #e2e8f0;
+      border-radius: 20px;
+    }
+
+    /* Pestaña activa */
+    .legal-tab-btn.active {
+      background-color: #0284c7;
+      color: #ffffff;
+      box-shadow: 0 4px 12px rgba(2, 132, 199, 0.25);
+    }
+    .legal-tab-btn:not(.active) {
+      background-color: transparent;
+      color: #64748b;
+    }
+    .legal-tab-btn:not(.active):hover {
+      color: #0f172a;
+      background-color: #f1f5f9;
+    }
+
+    /* Impresión limpia */
+    @media print {
+      body { background: #ffffff !important; }
+      .no-print { display: none !important; }
+      .paper-sheet { border: none !important; box-shadow: none !important; padding: 0 !important; }
+    }
+  </style>
+</head>
+<body class="min-h-screen py-6 sm:py-10 px-4 sm:px-6">
+
+  <!-- NAVEGACIÓN SUPERIOR MINIMALISTA -->
+  <header class="max-w-4xl mx-auto mb-6 flex items-center justify-between no-print">
+    <a href="/landing" class="flex items-center gap-3 group">
+      <img src="/img/sibopay-emblem.png" alt="SiboPay" class="w-10 h-10 object-contain drop-shadow-sm group-hover:scale-105 transition-transform">
+      <span class="text-2xl font-black tracking-tight text-slate-900">Sibo<span class="text-sky-600">Pay</span></span>
+    </a>
+
+    <div class="flex items-center gap-3">
+      <button onclick="window.print()" class="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold text-slate-600 bg-white border border-slate-200 hover:bg-slate-50 transition shadow-sm">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+        <span>Imprimir / Guardar</span>
+      </button>
+
+      <a href="/landing" class="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-black text-slate-700 bg-white border border-slate-200 hover:border-sky-300 hover:text-sky-600 transition shadow-sm">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+        <span>Volver al inicio</span>
+      </a>
+    </div>
+  </header>
+
+  <!-- LIENZO PRINCIPAL: HOJA DE DOCUMENTO -->
+  <main class="max-w-4xl mx-auto paper-sheet p-6 sm:p-12 md:p-16">
+    
+    <!-- ENCABEZADO DE LA HOJA -->
+    <div class="border-b border-slate-200/90 pb-8 mb-8">
+      <div class="flex flex-wrap items-center justify-between gap-4">
+        <div>
+          <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-extrabold uppercase tracking-wider bg-sky-50 border border-sky-200 text-sky-700">
+            <span>🇨🇷</span> Marco Legal & Gobernanza Digital
+          </span>
+          <h1 id="docMainTitle" class="text-2xl sm:text-3xl font-black text-slate-900 mt-3 tracking-tight">
+            Términos y Condiciones de Uso
+          </h1>
+          <p class="text-xs sm:text-sm font-semibold text-slate-400 mt-1">
+            Plataforma SiboPay Costa Rica • Versión Oficial Vigente • Última revisión: Octubre 2026
+          </p>
+        </div>
+
+        <!-- SELECTOR DE DOCUMENTO (TABS ESTILO HOJA) -->
+        <div class="bg-slate-100 p-1 rounded-2xl flex items-center gap-1 no-print border border-slate-200/80">
+          <button id="tabBtnTerminos" onclick="switchLegalDoc('terminos')" class="legal-tab-btn active px-4 py-2 rounded-xl text-xs font-extrabold transition flex items-center gap-1.5">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+            <span>Términos de Uso</span>
+          </button>
+          <button id="tabBtnPrivacidad" onclick="switchLegalDoc('privacidad')" class="legal-tab-btn px-4 py-2 rounded-xl text-xs font-extrabold transition flex items-center gap-1.5">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+            <span>Privacidad y Datos</span>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ======================================================== -->
+    <!-- SECCIÓN 1: TÉRMINOS Y CONDICIONES DE USO                -->
+    <!-- ======================================================== -->
+    <article id="docTerminos" class="space-y-8 text-sm sm:text-base leading-relaxed text-slate-700">
+      
+      <!-- Introducción / Resumen Rápido -->
+      <div class="bg-sky-50/70 border border-sky-100 rounded-2xl p-4 sm:p-5 text-slate-800 text-xs sm:text-sm">
+        <p class="font-bold text-sky-950 mb-1 flex items-center gap-2">
+          <span>📌</span> Resumen para Familias y Centros Educativos
+        </p>
+        <p class="text-slate-600">
+          SiboPay es una plataforma de software diseñada para modernizar los cobros y la administración en sodas y cafeterías escolares en Costa Rica. Los padres tienen el control absoluto sobre recargas y topes de consumo, mientras que la soda escolar es la responsable directa de la preparación y entrega de los alimentos.
+        </p>
+      </div>
+
+      <!-- Cláusula 1 -->
+      <section class="space-y-3">
+        <h2 class="text-lg sm:text-xl font-extrabold text-slate-900 flex items-center gap-2">
+          <span class="text-sky-600">1.</span> Objeto y Alcance de la Plataforma
+        </h2>
+        <p>
+          El presente acuerdo regula el acceso y la utilización del ecosistema digital de <strong>SiboPay</strong> (incluyendo aplicaciones móviles, web, terminales de punto de venta en sodas y plataformas administrativas). SiboPay opera exclusivamente como un <strong>proveedor e intermediario tecnológico</strong> que facilita la digitalización del monedero escolar, la programación de pedidos y la visualización de consumos.
+        </p>
+        <p>
+          Al registrarse o utilizar cualquier servicio de SiboPay, los usuarios (padres, tutores, personal docente y concesionarios de sodas) aceptan de forma plena e incondicional estos Términos y Condiciones.
+        </p>
+      </section>
+
+      <!-- Cláusula 2 -->
+      <section class="space-y-3">
+        <h2 class="text-lg sm:text-xl font-extrabold text-slate-900 flex items-center gap-2">
+          <span class="text-sky-600">2.</span> Independencia del Servicio de Alimentación
+        </h2>
+        <p>
+          <strong>SiboPay no produce, almacena, comercializa ni manipula alimentos ni bebidas de forma directa.</strong> El servicio de alimentación escolar es prestado de forma autónoma por los concesionarios o administradores de soda de cada institución escolar.
+        </p>
+        <ul class="list-disc pl-5 space-y-1.5 text-slate-600">
+          <li><strong>Responsabilidad de la Soda:</strong> La calidad, frescura, precios, cumplimiento del menú, higiene bromatológica y la entrega física de los productos corresponden con exclusividad al concesionario correspondiente.</li>
+          <li><strong>Responsabilidad de SiboPay:</strong> Garantizar la disponibilidad operativa del software, la precisión de los saldos acreditados y la ejecución tecnológica de los controles parentales establecidos.</li>
+        </ul>
+      </section>
+
+      <!-- Cláusula 3 -->
+      <section class="space-y-3">
+        <h2 class="text-lg sm:text-xl font-extrabold text-slate-900 flex items-center gap-2">
+          <span class="text-sky-600">3.</span> Cuentas Familiares, Perfiles de Alumnos y Carnés
+        </h2>
+        <p>
+          La estructura de cuentas en SiboPay está orientada a la protección de los estudiantes y el control familiar:
+        </p>
+        <ul class="list-disc pl-5 space-y-2 text-slate-600">
+          <li><strong>Titularidad Parental:</strong> La cuenta principal corresponde al padre, madre o tutor legal, quien es la única persona habilitada para realizar recargas de fondos, establecer límites de gasto diario y activar restricciones alimentarias.</li>
+          <li><strong>Perfil del Estudiante:</strong> Los perfiles de alumnos están vinculados y supeditados a la cuenta del tutor legal. El estudiante no tiene facultades para modificar saldos ni desactivar bloqueos de seguridad.</li>
+          <li><strong>Credenciales y Carnés QR:</strong> Cada alumno cuenta con un identificador digital o carné físico con código QR y PIN personal. El resguardo de estas credenciales es responsabilidad del usuario; el carné es personal e intransferible dentro del centro educativo.</li>
+        </ul>
+      </section>
+
+      <!-- Cláusula 4 -->
+      <section class="space-y-3">
+        <h2 class="text-lg sm:text-xl font-extrabold text-slate-900 flex items-center gap-2">
+          <span class="text-sky-600">4.</span> Monedero Escolar, Recargas SINPE y Correcciones
+        </h2>
+        <p>
+          Los fondos monetarios dentro de SiboPay están expresados en <strong>Colones costarricenses (₡)</strong> y se rigen bajo los siguientes lineamientos:
+        </p>
+        <div class="bg-slate-50 border border-slate-200/80 rounded-2xl p-4 space-y-2 text-xs sm:text-sm">
+          <p><strong>• Naturaleza del Saldo:</strong> Constituye un crédito prepagado digital de afectación específica, destinado única y exclusivamente a compras de productos y servicios dentro de las sodas escolares afiliadas.</p>
+          <p><strong>• Procedimiento de Recarga:</strong> Las recargas se tramitan mediante transferencias vía SINPE Móvil o canales bancarios autorizados. La acreditación se formaliza una vez que el comprobante o notificación es contrastada y aprobada por la administración de la soda o el sistema automatizado.</p>
+          <p><strong>• Reversiones de Cobro:</strong> Ante cobros duplicados o errores humanos en mostrador, el administrador o encargado de caja está facultado para emitir la reversión inmediata de la transacción en el sistema, restituyendo el saldo en tiempo real al alumno.</p>
+        </div>
+      </section>
+
+      <!-- Cláusula 5 -->
+      <section class="space-y-3">
+        <h2 class="text-lg sm:text-xl font-extrabold text-slate-900 flex items-center gap-2">
+          <span class="text-sky-600">5.</span> Control Nutricional, Normativa MEP y Alergias Severas
+        </h2>
+        <p>
+          SiboPay apoya el cumplimiento de las guías de alimentación saludable del Ministerio de Educación Pública (MEP), proporcionando al tutor filtros para bloquear productos específicos y limitar el consumo de azúcares y grasas.
+        </p>
+        <div class="border-l-4 border-amber-500 bg-amber-50/60 p-4 rounded-r-2xl text-xs sm:text-sm text-amber-950 space-y-1">
+          <p class="font-extrabold">⚠️ Descargo de Responsabilidad Médica sobre Alérgenos Severos:</p>
+          <p class="text-amber-900">
+            Aunque el software alerta en la pantalla de cobro sobre restricciones registradas por la familia, el sistema digital no sustituye los protocolos de salud física del colegio. Ante alergias médicas graves o anafilácticas, es deber indispensable del padre de familia comunicar la situación formalmente a la dirección institucional y al personal de soda de manera directa.
+          </p>
+        </div>
+      </section>
+
+      <!-- Cláusula 6 -->
+      <section class="space-y-3">
+        <h2 class="text-lg sm:text-xl font-extrabold text-slate-900 flex items-center gap-2">
+          <span class="text-sky-600">6.</span> Uso Aceptable y Suspensión de Cuentas
+        </h2>
+        <p>
+          Queda terminantemente prohibido manipular el código QR, falsificar identidades de alumnos, realizar intentos de denegación de servicio o cualquier actividad que comprometa la integridad de los datos de la comunidad escolar. SiboPay se reserva el derecho de inhabilitar credenciales que vulneren la seguridad del sistema.
+        </p>
+      </section>
+
+      <!-- Cláusula 7 -->
+      <section class="space-y-3">
+        <h2 class="text-lg sm:text-xl font-extrabold text-slate-900 flex items-center gap-2">
+          <span class="text-sky-600">7.</span> Legislación Aplicable y Resolución de Disputas
+        </h2>
+        <p>
+          Este contrato se rige íntegramente por el ordenamiento legal de la <strong>República de Costa Rica</strong>. Cualquier discrepancia o reclamación que no pueda resolverse de forma amistosa se someterá a la jurisdicción de los tribunales competentes de San José, Costa Rica.
+        </p>
+      </section>
+    </article>
+
+
+    <!-- ======================================================== -->
+    <!-- SECCIÓN 2: POLÍTICA DE PRIVACIDAD Y PROTECCIÓN DE DATOS  -->
+    <!-- ======================================================== -->
+    <article id="docPrivacidad" class="space-y-8 text-sm sm:text-base leading-relaxed text-slate-700 hidden">
+      
+      <!-- Alerta de Compromiso de Privacidad -->
+      <div class="bg-emerald-50/70 border border-emerald-100 rounded-2xl p-4 sm:p-5 text-slate-800 text-xs sm:text-sm">
+        <p class="font-bold text-emerald-950 mb-1 flex items-center gap-2">
+          <span>🛡️</span> Principio Fundamental de Privacidad
+        </p>
+        <p class="text-emerald-900">
+          En SiboPay la privacidad escolar es sagrada: <strong>nunca vendemos, alquilamos ni comercializamos los datos de las familias ni de los estudiantes con anunciantes ni terceros</strong>. Toda la información es tratada bajo el marco de la <strong>Ley N° 8968</strong> de Costa Rica.
+        </p>
+      </div>
+
+      <!-- Privacidad 1 -->
+      <section class="space-y-3">
+        <h2 class="text-lg sm:text-xl font-extrabold text-slate-900 flex items-center gap-2">
+          <span class="text-sky-600">1.</span> Responsable del Tratamiento de Datos
+        </h2>
+        <p>
+          El responsable del tratamiento de los datos personales suministrados a través de la plataforma es el equipo operativo de <strong>SiboPay Costa Rica</strong>, con domicilio de soporte legal y técnico ubicado en San José, Costa Rica (contacto: <em>soporte@sibopay.com</em>).
+        </p>
+      </section>
+
+      <!-- Privacidad 2 -->
+      <section class="space-y-3">
+        <h2 class="text-lg sm:text-xl font-extrabold text-slate-900 flex items-center gap-2">
+          <span class="text-sky-600">2.</span> Información que Recopilamos
+        </h2>
+        <p>
+          Recopilamos únicamente la información técnica y administrativa estrictamente requerida para el funcionamiento de los pagos y el control escolar:
+        </p>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs sm:text-sm">
+          <div class="bg-slate-50 border border-slate-200/80 rounded-2xl p-4">
+            <h3 class="font-black text-slate-900 mb-2 flex items-center gap-1.5">
+              <span>👨‍👩‍👧</span> Datos del Tutor / Familia
+            </h3>
+            <ul class="list-disc pl-4 space-y-1 text-slate-600">
+              <li>Nombre y apellidos del padre o tutor.</li>
+              <li>Número de teléfono celular (para comprobación de recargas SINPE).</li>
+              <li>Correo electrónico (para credenciales y recibos digitales).</li>
+              <li>Contraseña cifrada con algoritmo criptográfico seguro.</li>
+            </ul>
+          </div>
+
+          <div class="bg-slate-50 border border-slate-200/80 rounded-2xl p-4">
+            <h3 class="font-black text-slate-900 mb-2 flex items-center gap-1.5">
+              <span>🎓</span> Datos del Estudiante
+            </h3>
+            <ul class="list-disc pl-4 space-y-1 text-slate-600">
+              <li>Nombre completo del alumno.</li>
+              <li>Grado, sección o nivel escolar en el colegio.</li>
+              <li>Identificador único para el carné QR.</li>
+              <li>Monograma de iniciales o foto de perfil con el fin exclusivo de validación visual de identidad en el mostrador.</li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      <!-- Privacidad 3 -->
+      <section class="space-y-3">
+        <h2 class="text-lg sm:text-xl font-extrabold text-slate-900 flex items-center gap-2">
+          <span class="text-sky-600">3.</span> Tratamiento Riguroso de Datos de Menores de Edad
+        </h2>
+        <p>
+          Entendemos la alta sensibilidad de la información infantil y juvenil en el ámbito educativo:
+        </p>
+        <ul class="list-disc pl-5 space-y-1.5 text-slate-600">
+          <li>Los datos de los alumnos <strong>únicamente se registran previa solicitud, autorización y consentimiento informado de su padre, madre o tutor legal</strong>.</li>
+          <li>No se recopilan datos biométricos invasivos, información de geolocalización continua en tiempo real, ni hábitos de navegación de los menores fuera de las compras escolares.</li>
+          <li>La cuenta del estudiante no posee canales abiertos de mensajería social ni interacción con personas externas a la institución.</li>
+        </ul>
+      </section>
+
+      <!-- Privacidad 4 -->
+      <section class="space-y-3">
+        <h2 class="text-lg sm:text-xl font-extrabold text-slate-900 flex items-center gap-2">
+          <span class="text-sky-600">4.</span> Finalidades del Tratamiento
+        </h2>
+        <p>Los datos almacenados tienen como fines exclusivos:</p>
+        <ol class="list-decimal pl-5 space-y-1.5 text-slate-600">
+          <li><strong>Procesamiento de consumos:</strong> Despachar alimentos rápidamente en la soda escolar mediante lectura del código QR.</li>
+          <li><strong>Auditoría familiar:</strong> Permitir al padre revisar en todo momento los movimientos, productos adquiridos, fecha, hora y saldo remanente.</li>
+          <li><strong>Control de seguridad preventiva:</strong> Validar restricciones de alimentos definidas por los padres y bloquear transacciones no autorizadas.</li>
+        </ol>
+      </section>
+
+      <!-- Privacidad 5 -->
+      <section class="space-y-3">
+        <h2 class="text-lg sm:text-xl font-extrabold text-slate-900 flex items-center gap-2">
+          <span class="text-sky-600">5.</span> Medidas de Seguridad y Cifrado
+        </h2>
+        <p>
+          Implementamos altos estándares técnicos de seguridad informática para resguardar la confidencialidad de la comunidad escolar:
+        </p>
+        <ul class="list-disc pl-5 space-y-1.5 text-slate-600">
+          <li><strong>Cifrado en tránsito:</strong> Toda comunicación entre el navegador, la aplicación y los servidores opera bajo el protocolo criptográfico seguro <strong>HTTPS con certificados TLS / SSL</strong>.</li>
+          <li><strong>Almacenamiento seguro de contraseñas:</strong> Las credenciales de acceso se guardan mediante funciones hash unidireccionales (bcrypt/argon2), impidiendo que cualquier colaborador o tercero pueda ver contraseñas en texto claro.</li>
+          <li><strong>Aislamiento de bases de datos:</strong> Cada colegio o soda opera con controles estrictos de acceso basados en roles de usuario (RBAC).</li>
+        </ul>
+      </section>
+
+      <!-- Privacidad 6 -->
+      <section class="space-y-3">
+        <h2 class="text-lg sm:text-xl font-extrabold text-slate-900 flex items-center gap-2">
+          <span class="text-sky-600">6.</span> Derechos del Titular (ARCO) y Eliminación de Cuentas
+        </h2>
+        <p>
+          De conformidad con la Ley N° 8968, los titulares de los datos tienen derecho en todo momento a ejercer sus facultades de <strong>Acceso, Rectificación, Cancelación y Oposición (ARCO)</strong>:
+        </p>
+        <p>
+          Si un padre de familia traslada a su hijo de colegio o desea eliminar su cuenta y registros históricos de la base de datos al finalizar el ciclo lectivo, puede requerirlo formalmente escribiendo a: <strong>soporte@sibopay.com</strong>. La eliminación o anonimización se efectúa en un plazo no mayor a cinco (5) días hábiles.
+        </p>
+      </section>
+
+      <!-- Privacidad 7 -->
+      <section class="space-y-3">
+        <h2 class="text-lg sm:text-xl font-extrabold text-slate-900 flex items-center gap-2">
+          <span class="text-sky-600">7.</span> Actualizaciones a esta Política
+        </h2>
+        <p>
+          Cualquier modificación sustancial a nuestras prácticas de privacidad será notificada a los usuarios a través de la aplicación o portal familiar con carácter previo a su entrada en vigencia.
+        </p>
+      </section>
+    </article>
+
+    <!-- PIE DEL DOCUMENTO / HOJA FORMAL -->
+    <div class="mt-12 pt-8 border-t border-slate-200/90 text-center text-xs text-slate-500 space-y-2">
+      <div class="flex items-center justify-center gap-3 font-semibold text-slate-600">
+        <span>SiboPay Costa Rica 🇨🇷</span>
+        <span>•</span>
+        <span>Cumplimiento Ley N° 8968</span>
+        <span>•</span>
+        <span>Google Play Verified Data Safety</span>
+      </div>
+      <p>© 2026 SiboPay. Plataforma especializada en pagos y monedero escolar digital. Todos los derechos reservados.</p>
+      <p class="text-[11px] text-slate-400">Canal oficial de atención legal y técnica: <a href="mailto:soporte@sibopay.com" class="text-sky-600 font-bold hover:underline">soporte@sibopay.com</a></p>
+    </div>
+
+  </main>
+
+  <!-- LÓGICA DE INTERCAMBIO ENTRE PESTAÑAS Y URL HASH -->
+  <script>
+    function switchLegalDoc(docType) {
+      const btnTerminos = document.getElementById('tabBtnTerminos');
+      const btnPrivacidad = document.getElementById('tabBtnPrivacidad');
+      const docTerminos = document.getElementById('docTerminos');
+      const docPrivacidad = document.getElementById('docPrivacidad');
+      const mainTitle = document.getElementById('docMainTitle');
+
+      if (docType === 'privacidad') {
+        btnTerminos.classList.remove('active');
+        btnPrivacidad.classList.add('active');
+        docTerminos.classList.add('hidden');
+        docPrivacidad.classList.remove('hidden');
+        mainTitle.textContent = 'Política de Privacidad y Protección de Datos';
+        history.replaceState(null, null, '#privacidad');
+      } else {
+        btnPrivacidad.classList.remove('active');
+        btnTerminos.classList.add('active');
+        docPrivacidad.classList.add('hidden');
+        docTerminos.classList.remove('hidden');
+        mainTitle.textContent = 'Términos y Condiciones de Uso';
+        history.replaceState(null, null, '#terminos');
+      }
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    // Inicializar según ruta o hash
+    window.addEventListener('DOMContentLoaded', () => {
+      const path = window.location.pathname.toLowerCase();
+      const hash = window.location.hash.toLowerCase();
+
+      if (path.includes('privacidad') || hash === '#privacidad') {
+        switchLegalDoc('privacidad');
+      } else {
+        switchLegalDoc('terminos');
+      }
+    });
+  </script>
+
+</body>
+</html>
