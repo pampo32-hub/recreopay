@@ -1306,7 +1306,7 @@ app.post('/api/admin/estudiantes', (req, res) => {
     const saldo = parseInt(saldo_inicial, 10) || 0;
     const limite = parseInt(limite_diario_colones, 10) || 3000;
     const edadNum = parseInt(edad, 10) || 8;
-    const foto = `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(primerNombre)}&backgroundColor=b6e3f4`;
+    const foto = null;
 
     const resEst = db.prepare(`
       INSERT INTO estudiantes 

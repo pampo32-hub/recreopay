@@ -4336,7 +4336,9 @@ function renderAdminMovimientos() {
 
         <!-- FILA CENTRAL: ALUMNO Y DETALLES -->
         <div style="display: flex; align-items: center; gap: 12px; min-width: 0;">
-          <img src="${m.estudiante_foto || '/img/avatar_default.png'}" style="width: 44px; height: 44px; border-radius: 50%; border: 2.5px solid ${isPositive ? '#10b981' : '#f59e0b'}; object-fit: cover; background: white; flex-shrink: 0;">
+          <div style="width: 44px; height: 44px; border-radius: 50%; border: 2.5px solid ${isPositive ? '#10b981' : '#0284c7'}; background: ${isPositive ? 'linear-gradient(135deg, #10b981, #059669)' : 'linear-gradient(135deg, #0284c7, #0369a1)'}; color: #ffffff; flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 0.95rem; box-shadow: 0 2px 6px rgba(0,0,0,0.08);">
+            ${getStudentInitials(m.estudiante_nombre)}
+          </div>
           <div style="min-width: 0; flex: 1;">
             <strong style="font-size: 0.98rem; color: var(--text-main); font-weight: 900; line-height: 1.25; display: block; word-break: normal; white-space: normal;">
               ${m.estudiante_nombre}

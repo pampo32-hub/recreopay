@@ -1256,7 +1256,9 @@ async function loadPreOrders() {
         <div class="pos-preorder-card">
           <div class="pos-preorder-header">
             <div class="pos-preorder-student">
-              <img src="${avatarUrl}" class="pos-preorder-avatar" alt="Foto">
+              <div class="pos-preorder-avatar" style="display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 0.9rem; background: linear-gradient(135deg, #0284c7, #0369a1); color: #ffffff;">
+                ${getStudentInitials(ord.estudiante_nombre)}
+              </div>
               <div>
                 <div class="pos-preorder-name-row">
                   <strong class="pos-preorder-name">${ord.estudiante_nombre}</strong>
@@ -1711,7 +1713,9 @@ async function loadSinpeRequests() {
         <div style="background: #ffffff; border: 1.5px solid #86efac; border-radius: 16px; padding: 14px; box-shadow: 0 2px 8px rgba(16, 185, 129, 0.08); display: flex; flex-direction: column; gap: 12px; width: 100%; box-sizing: border-box;">
           <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; width: 100%; box-sizing: border-box;">
             <div style="display: flex; align-items: center; gap: 10px; min-width: 0; flex: 1;">
-              <img src="${s.estudiante_foto || '/img/avatar_default.png'}" style="width: 44px; height: 44px; border-radius: 12px; object-fit: cover; border: 1.5px solid #cbd5e1; background: #f8fafc; flex-shrink: 0;" alt="Foto">
+              <div style="width: 44px; height: 44px; border-radius: 12px; background: linear-gradient(135deg, #0284c7, #0369a1); color: #ffffff; display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 0.95rem; border: 1.5px solid #bae6fd; flex-shrink: 0; box-shadow: 0 2px 6px rgba(2, 132, 199, 0.15);">
+                ${getStudentInitials(s.estudiante_nombre)}
+              </div>
               <div style="min-width: 0; flex: 1;">
                 <div style="font-weight: 800; font-size: 0.95rem; color: #0f172a; word-break: break-word;">${s.estudiante_nombre}</div>
                 <div style="font-size: 0.74rem; color: #64748b; margin-top: 1px;">
