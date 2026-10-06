@@ -169,6 +169,47 @@ function switchLoginTab(tab) {
   }
 }
 
+let selectedRegisterRole = 'padre';
+
+function selectRegisterRole(role) {
+  selectedRegisterRole = role;
+  const cardPadre = document.getElementById('regRoleCardPadre');
+  const cardEstudiante = document.getElementById('regRoleCardEstudiante');
+  const cardPersonal = document.getElementById('regRoleCardPersonal');
+  const errorMsg = document.getElementById('registerErrorMsg');
+
+  if (cardPadre) cardPadre.classList.toggle('selected', role === 'padre');
+  if (cardEstudiante) cardEstudiante.classList.toggle('selected', role === 'estudiante');
+  if (cardPersonal) cardPersonal.classList.toggle('selected', role === 'personal');
+
+  if (window.sounds) window.sounds.playTap();
+
+  if (role === 'estudiante') {
+    if (errorMsg) {
+      errorMsg.style.background = '#eff6ff';
+      errorMsg.style.borderColor = '#93c5fd';
+      errorMsg.style.color = '#1e40af';
+      errorMsg.innerHTML = '<strong>🎒 Cuenta de Estudiante:</strong> Tu carné y código QR son entregados directamente por el centro educativo. Si ya cuentas con carné o credenciales, toca en <a href="#" onclick="switchLoginTab(\'login\'); return false;" style="color: #0284c7; font-weight: 800; text-decoration: underline;">Iniciar Sesión</a>.';
+      errorMsg.style.display = 'block';
+    }
+  } else if (role === 'personal') {
+    if (errorMsg) {
+      errorMsg.style.background = '#fefce8';
+      errorMsg.style.borderColor = '#fde047';
+      errorMsg.style.color = '#854d0e';
+      errorMsg.innerHTML = '<strong>👨‍🍳 Personal de Soda:</strong> Las credenciales de punto de venta y administración son asignadas por la dirección escolar. Por favor ingresa en <a href="#" onclick="switchLoginTab(\'login\'); return false;" style="color: #0284c7; font-weight: 800; text-decoration: underline;">Iniciar Sesión</a>.';
+      errorMsg.style.display = 'block';
+    }
+  } else {
+    if (errorMsg) {
+      errorMsg.style.display = 'none';
+      errorMsg.style.background = '#fee2e2';
+      errorMsg.style.borderColor = '#fca5a5';
+      errorMsg.style.color = '#991b1b';
+    }
+  }
+}
+
 async function handleRegisterPadreSubmit(event) {
   if (event) event.preventDefault();
   const nombre = document.getElementById('regNombre').value.trim();
@@ -1993,6 +2034,16 @@ function selectParentChild(childId) {
   }
 }
 
+function focusParentSinpeRecharge() {
+  const sinpeInput = document.getElementById('inputParentSinpeMonto');
+  if (sinpeInput) {
+    sinpeInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    setTimeout(() => {
+      sinpeInput.focus();
+    }, 350);
+  }
+}
+
 function renderActiveChildDetails(child) {
   if (!child) return;
 
@@ -2015,6 +2066,32 @@ function renderActiveChildDetails(child) {
   if (inputCustomLimit) inputCustomLimit.value = currentLimit;
   if (rangeLimit) rangeLimit.value = currentLimit;
   if (chkTransfer) chkTransfer.checked = child.permitir_transferencias !== 0;
+
+  // Actualizar Límite Diario en tarjeta de saldo y nombre de sede activa
+  const dailyInline = document.getElementById('parentDailyLimitInlineDisplay');
+  if (dailyInline) dailyInline.textContent = `₡${currentLimit.toLocaleString('es-CR')}`;
+  const schoolBadge = document.getElementById('parentActiveSchoolNameBadge');
+  if (schoolBadge) schoolBadge.textContent = child.escuela_nombre || 'Soda Escolar Central';
+
+  // Actualizar Alergias y Restricciones
+  const inputAllergies = document.getElementById('inputParentStudentAllergies');
+  const chkJunkFood = document.getElementById('chkParentBlockJunkFood');
+  const allergiesBadge = document.getElementById('parentAllergiesStatusBadge');
+  const hasAlergias = child.alergias && child.alergias !== 'Ninguna' && child.alergias !== 'Ninguna conocida';
+
+  if (inputAllergies) inputAllergies.value = hasAlergias ? child.alergias : '';
+  if (chkJunkFood) chkJunkFood.checked = !!child.bloquear_chucherias;
+  if (allergiesBadge) {
+    if (hasAlergias || child.bloquear_chucherias) {
+      allergiesBadge.textContent = hasAlergias ? 'Alergias Activas' : 'Veto de Chatarra';
+      allergiesBadge.style.background = '#ffe4e6';
+      allergiesBadge.style.color = '#e11d48';
+    } else {
+      allergiesBadge.textContent = 'Sin alergias';
+      allergiesBadge.style.background = '#f1f5f9';
+      allergiesBadge.style.color = '#64748b';
+    }
+  }
 
   // Actualizar datos de la soda/escuela del hijo seleccionado para recargas SINPE
   const sinpeNumero = document.getElementById('parentSinpeNumero');
@@ -2243,6 +2320,77 @@ async function onToggleParentTransfer(checked) {
     if (window.sounds) window.sounds.playTap();
   } catch (err) {
     alert(`No se pudo actualizar permiso de transferencia: ${err.message}`);
+  }
+}
+
+function addParentAllergyTag(tag) {
+  const input = document.getElementById('inputParentStudentAllergies');
+  if (!input) return;
+  let currentVal = input.value.trim();
+  if (!currentVal) {
+    input.value = tag;
+  } else {
+    const items = currentVal.split(',').map(s => s.trim().toLowerCase());
+    if (!items.includes(tag.toLowerCase())) {
+      input.value = currentVal + ', ' + tag;
+    }
+  }
+  if (window.sounds) window.sounds.playTap();
+}
+
+function clearParentAllergies() {
+  const input = document.getElementById('inputParentStudentAllergies');
+  if (input) input.value = '';
+  if (window.sounds) window.sounds.playTap();
+}
+
+async function onToggleParentBlockJunkFood(checked) {
+  if (!currentParentChild) return;
+  try {
+    const res = await fetch(`/api/estudiantes/${currentParentChild.id}/limite`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ bloquear_chucherias: checked ? 1 : 0 })
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error);
+
+    currentParentChild.bloquear_chucherias = checked ? 1 : 0;
+    if (window.sounds) window.sounds.playTap();
+    renderActiveChildDetails(currentParentChild);
+  } catch (err) {
+    alert(`No se pudo actualizar restricción: ${err.message}`);
+  }
+}
+
+async function saveParentAllergiesSettings() {
+  if (!currentParentChild) return;
+  const input = document.getElementById('inputParentStudentAllergies');
+  const chkJunk = document.getElementById('chkParentBlockJunkFood');
+  const alergiasText = input ? input.value.trim() : '';
+  const bloquearJunk = chkJunk && chkJunk.checked ? 1 : 0;
+
+  try {
+    const res = await fetch(`/api/estudiantes/${currentParentChild.id}/limite`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        alergias: alergiasText || 'Ninguna conocida',
+        bloquear_chucherias: bloquearJunk
+      })
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error);
+
+    currentParentChild.alergias = alergiasText || 'Ninguna conocida';
+    currentParentChild.bloquear_chucherias = bloquearJunk;
+
+    if (window.sounds) window.sounds.playSuccess();
+    alert(`Expediente médico de ${currentParentChild.nombre_completo} guardado exitosamente.`);
+    renderActiveChildDetails(currentParentChild);
+  } catch (err) {
+    if (window.sounds) window.sounds.playError();
+    alert(`Error al guardar alergias: ${err.message}`);
   }
 }
 

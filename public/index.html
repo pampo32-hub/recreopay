@@ -64,6 +64,50 @@
 
       <!-- FORMULARIO 2: REGISTRO DE NUEVOS PADRES -->
       <form id="formRegisterPadre" onsubmit="handleRegisterPadreSubmit(event)" style="display: none;">
+        <!-- SELECTOR DE ROL: "SOY" CON ICONOS SUPERFINOS Y ELEGANTES (SIN EMOJIS) -->
+        <div class="login-role-selector-wrap">
+          <label style="font-size: 0.74rem; font-weight: 900; color: #475569; text-transform: uppercase; letter-spacing: 0.6px; display: block; margin-bottom: 8px;">Soy</label>
+          <div class="login-role-grid">
+            <div onclick="selectRegisterRole('padre')" id="regRoleCardPadre" class="login-role-card selected">
+              <div class="login-role-icon">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+                  <circle cx="9" cy="7" r="3.5"/>
+                  <path d="M3 20v-1.5A4.5 4.5 0 0 1 7.5 14h3A4.5 4.5 0 0 1 15 18.5V20"/>
+                  <circle cx="17.5" cy="7.5" r="2.5"/>
+                  <path d="M15 14a3.5 3.5 0 0 1 5.5 3v3"/>
+                </svg>
+              </div>
+              <span class="login-role-name">Padre</span>
+              <span class="login-role-desc">o Encargado</span>
+            </div>
+
+            <div onclick="selectRegisterRole('estudiante')" id="regRoleCardEstudiante" class="login-role-card">
+              <div class="login-role-icon">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1-2.5-2.5Z"/>
+                  <path d="M6 6h10"/>
+                  <path d="M6 10h10"/>
+                  <circle cx="12" cy="15" r="2"/>
+                </svg>
+              </div>
+              <span class="login-role-name">Estudiante</span>
+              <span class="login-role-desc">Carné QR</span>
+            </div>
+
+            <div onclick="selectRegisterRole('personal')" id="regRoleCardPersonal" class="login-role-card">
+              <div class="login-role-icon">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M6 13.8V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v9.8"/>
+                  <path d="M4 13.8h16a1 1 0 0 1 1 1V20a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-5.2a1 1 0 0 1 1-1Z"/>
+                  <line x1="10" y1="18" x2="14" y2="18"/>
+                </svg>
+              </div>
+              <span class="login-role-name">Personal</span>
+              <span class="login-role-desc">Soda / Caja</span>
+            </div>
+          </div>
+        </div>
+
         <div class="login-form-group">
           <label for="regNombre">Nombre y Apellidos:</label>
           <input type="text" id="regNombre" class="login-input" placeholder="Ej: Carlos Alvarado Castro" required autocomplete="name">
@@ -776,27 +820,106 @@
 
     <!-- SECCIÓN DE GESTIÓN DEL HIJO SELECCIONADO -->
     <div id="parentSelectedChildContainer" style="display: none;">
-      <!-- FICHA ACTIVA DEL HIJO SELECCIONADO -->
-      <div class="parent-card" style="border: 2px solid #0284c7; background: linear-gradient(135deg, rgba(2, 132, 199, 0.04), rgba(56, 189, 248, 0.08));">
-        <div style="display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 14px;">
-          <div style="display: flex; align-items: center; gap: 12px; min-width: 0;">
-            <img id="parentActiveChildAvatar" src="" style="width: 50px; height: 50px; border-radius: 50%; border: 3px solid #0284c7; background: white; object-fit: cover;">
+      <!-- TARJETA ELEGANTE DE SALDO EN LA CUENTA (ESTILO ORDEREAT REFINADO) -->
+      <div class="parent-balance-card-refined">
+        <div class="parent-balance-header-row">
+          <div style="display: flex; align-items: center; gap: 10px; min-width: 0;">
+            <img id="parentActiveChildAvatar" src="" style="width: 40px; height: 40px; border-radius: 50%; border: 2px solid #0284c7; background: white; object-fit: cover; flex-shrink: 0;">
             <div style="min-width: 0;">
-              <h3 id="parentActiveChildName" style="font-size: 1.1rem; font-weight: 900; margin: 0; color: var(--text-main); word-break: break-word;">Cargando...</h3>
-              <span id="parentActiveChildMeta" style="font-size: 0.76rem; color: var(--text-muted); font-weight: 600;">Grado • Carné</span>
+              <span class="parent-balance-tag-title">Saldo en la cuenta</span>
+              <div style="display: flex; align-items: center; gap: 6px; margin-top: 2px; flex-wrap: wrap;">
+                <span id="parentActiveChildName" class="parent-balance-child-pill">Cargando...</span>
+                <span id="parentActiveChildMeta" class="parent-balance-grade-pill">Grado • Carné</span>
+              </div>
             </div>
           </div>
-          <div style="text-align: right;">
-            <span style="font-size: 0.7rem; font-weight: 800; color: var(--text-muted); text-transform: uppercase; display: block;">Saldo Disponible</span>
-            <span id="parentActiveChildBalance" style="font-size: 1.35rem; font-weight: 900; color: #0284c7;">₡0</span>
-          </div>
+          <button type="button" onclick="switchToSodaMenuAsParent()" style="background: none; border: none; color: #0284c7; font-size: 0.78rem; font-weight: 800; cursor: pointer; display: flex; align-items: center; gap: 4px; padding: 4px;">
+            <span>Ver Menú</span>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+          </button>
         </div>
 
-        <div style="display: flex; gap: 8px;">
-          <button type="button" onclick="switchToSodaMenuAsParent()" style="width: 100%; padding: 11px; background: #0284c7; color: white; border: none; border-radius: 10px; font-weight: 800; font-size: 0.85rem; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px;">
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z"/><path d="M3 6h18"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>
-            <span>Pre-ordenar Merienda / Ver Menú</span>
+        <div class="parent-balance-amount-display">
+          <span id="parentActiveChildBalance">₡0</span>
+        </div>
+
+        <div class="parent-balance-footer-row">
+          <div class="parent-balance-limit-info">
+            Límite Diario: <strong id="parentDailyLimitInlineDisplay" style="color: #0284c7;">₡3.000</strong>
+          </div>
+          <button type="button" onclick="focusParentSinpeRecharge()" class="parent-balance-btn-recharge">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            <span>Recargar Saldo</span>
           </button>
+        </div>
+      </div>
+
+      <!-- SELECTOR DE SEDE ESCOLAR ACTIVA -->
+      <div class="parent-school-selector-pill">
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <div style="width: 34px; height: 34px; border-radius: 10px; background: rgba(2, 132, 199, 0.1); color: #0284c7; display: flex; align-items: center; justify-content: center; font-size: 1.1rem;">
+            🏫
+          </div>
+          <div>
+            <span style="font-size: 0.68rem; font-weight: 800; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; display: block;">Sede Escolar Activa</span>
+            <strong id="parentActiveSchoolNameBadge" style="font-size: 0.85rem; font-weight: 900; color: var(--text-main);">Soda Escolar Central</strong>
+          </div>
+        </div>
+        <span style="font-size: 0.72rem; color: #0284c7; font-weight: 800; background: #f0f9ff; padding: 3px 8px; border-radius: 6px;">● Conectada</span>
+      </div>
+
+      <!-- MENÚ DE ACCIONES RÁPIDAS SUPERFINAS (ESTILO ORDEREAT) -->
+      <div class="parent-refined-menu-card">
+        <div onclick="switchToSodaMenuAsParent()" class="parent-refined-menu-item">
+          <div class="parent-refined-item-left">
+            <div class="parent-refined-icon-box">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 2v7c0 1.1.9 2 2 2h4a2 2 0 0 0 2-2V2"/><path d="M7 2v20"/><path d="M21 15V2v0a5 5 0 0 0-5 5v6c0 1.1.9 2 2 2h3Zm0 0v7"/></svg>
+            </div>
+            <div>
+              <span class="parent-refined-item-title">Pre-ordenar Merienda / Ver Menú</span>
+              <span class="parent-refined-item-desc">Alimentos saludables aprobados por el MEP</span>
+            </div>
+          </div>
+          <span class="parent-refined-arrow">›</span>
+        </div>
+
+        <div onclick="document.getElementById('parentAllergiesCard')?.scrollIntoView({ behavior: 'smooth' })" class="parent-refined-menu-item">
+          <div class="parent-refined-item-left">
+            <div class="parent-refined-icon-box rose-halo">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+            </div>
+            <div>
+              <span class="parent-refined-item-title" style="color: #e11d48;">Alergias y Restricciones</span>
+              <span class="parent-refined-item-desc">Veto de golosinas y expediente médico</span>
+            </div>
+          </div>
+          <span class="parent-refined-arrow" style="color: #f43f5e;">›</span>
+        </div>
+
+        <div onclick="document.getElementById('parentDailyLimitCard')?.scrollIntoView({ behavior: 'smooth' })" class="parent-refined-menu-item">
+          <div class="parent-refined-item-left">
+            <div class="parent-refined-icon-box">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="14" x="2" y="5" rx="2"/><line x1="2" x2="22" y1="10" y2="10"/></svg>
+            </div>
+            <div>
+              <span class="parent-refined-item-title">Límite Diario de Gasto</span>
+              <span class="parent-refined-item-desc">Control presupuestario de compras</span>
+            </div>
+          </div>
+          <span class="parent-refined-arrow">›</span>
+        </div>
+
+        <div onclick="document.getElementById('parentHistoryCard')?.scrollIntoView({ behavior: 'smooth' })" class="parent-refined-menu-item">
+          <div class="parent-refined-item-left">
+            <div class="parent-refined-icon-box">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="4" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+            </div>
+            <div>
+              <span class="parent-refined-item-title">Historial de Compras en Soda</span>
+              <span class="parent-refined-item-desc">Revisar consumos escolares</span>
+            </div>
+          </div>
+          <span class="parent-refined-arrow">›</span>
         </div>
       </div>
 
@@ -850,8 +973,56 @@
         </div>
       </div>
 
+      <!-- TARJETA DE ALERGIAS Y RESTRICCIONES (ESTILO ORDEREAT SALUDABLE) -->
+      <div id="parentAllergiesCard" class="parent-card" style="background: #ffffff; border: 1.5px solid #fecdd3; border-radius: 20px; box-shadow: 0 4px 14px rgba(225, 29, 72, 0.05);">
+        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px;">
+          <div style="display: flex; align-items: center; gap: 10px;">
+            <div class="parent-refined-icon-box rose-halo" style="width: 36px; height: 36px;">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+            </div>
+            <div>
+              <strong style="color: #9f1239; font-size: 0.95rem; display: block;">Alergias y Restricciones</strong>
+              <span style="font-size: 0.72rem; color: #e11d48; font-weight: 600;">Expediente de salud y veto de golosinas</span>
+            </div>
+          </div>
+          <span id="parentAllergiesStatusBadge" style="font-size: 0.7rem; color: #e11d48; background: #ffe4e6; font-weight: 800; padding: 3px 8px; border-radius: 6px;">Sin alergias</span>
+        </div>
+
+        <!-- Alergias clínicas -->
+        <div style="margin-bottom: 14px; background: #fff1f2; border: 1px solid #fecdd3; padding: 12px; border-radius: 14px;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+            <label style="font-size: 0.76rem; font-weight: 800; color: #9f1239; display: block;">Alergias o Intolerancias Médicas:</label>
+            <span style="font-size: 0.68rem; color: #e11d48; font-weight: 700;">Visible en caja de soda</span>
+          </div>
+          <input type="text" id="inputParentStudentAllergies" placeholder="Ej: Maní, Gluten, Lactosa, Mariscos..." style="width: 100%; padding: 9px 12px; border-radius: 10px; border: 1.5px solid #fca5a5; font-size: 0.85rem; font-weight: 700; color: #881337; background: #ffffff; box-sizing: border-box;">
+          <div style="display: flex; gap: 5px; margin-top: 8px; flex-wrap: wrap;">
+            <button type="button" onclick="addParentAllergyTag('Maní')" class="allergy-tag-pill">+ Maní</button>
+            <button type="button" onclick="addParentAllergyTag('Gluten')" class="allergy-tag-pill">+ Gluten</button>
+            <button type="button" onclick="addParentAllergyTag('Lactosa')" class="allergy-tag-pill">+ Lactosa</button>
+            <button type="button" onclick="addParentAllergyTag('Mariscos')" class="allergy-tag-pill">+ Mariscos</button>
+            <button type="button" onclick="addParentAllergyTag('Huevo')" class="allergy-tag-pill">+ Huevo</button>
+            <button type="button" onclick="clearParentAllergies()" class="allergy-tag-pill" style="color: #64748b; background: white; border-color: #cbd5e1;">Ninguna</button>
+          </div>
+        </div>
+
+        <!-- Toggle Veto de Chucherías / Comida no saludable -->
+        <div style="display: flex; justify-content: space-between; align-items: center; background: #f8fafc; border: 1px solid #e2e8f0; padding: 12px; border-radius: 14px; margin-bottom: 12px;">
+          <div>
+            <strong style="font-size: 0.84rem; color: #1e293b; display: block;">Veto de Comida Chatarra / Golosinas</strong>
+            <span style="font-size: 0.70rem; color: #64748b; display: block; margin-top: 2px;">Bloquea confites, gaseosas y productos no avalados por el MEP en caja</span>
+          </div>
+          <input type="checkbox" id="chkParentBlockJunkFood" onchange="onToggleParentBlockJunkFood(this.checked)" style="width: 22px; height: 22px; cursor: pointer; accent-color: #e11d48;">
+        </div>
+
+        <!-- Botón Guardar Alergias -->
+        <button type="button" onclick="saveParentAllergiesSettings()" style="width: 100%; padding: 11px; background: linear-gradient(135deg, #e11d48, #be123c); color: white; border: none; border-radius: 12px; font-weight: 800; font-size: 0.86rem; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; box-shadow: 0 3px 8px rgba(225, 29, 72, 0.25);">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+          <span>Guardar Configuración de Salud</span>
+        </button>
+      </div>
+
       <!-- CONFIGURACIÓN DE LÍMITE DIARIO -->
-      <div class="parent-card" style="background: #f0f9ff; border: 2px solid #38bdf8;">
+      <div id="parentDailyLimitCard" class="parent-card" style="background: #f0f9ff; border: 2px solid #38bdf8;">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
           <div>
             <strong style="font-size: 0.95rem; color: #0369a1; display: inline-flex; align-items: center; gap: 6px;">
@@ -930,7 +1101,7 @@
       </div>
 
       <!-- HISTORIAL DE COMPRAS RECIENTES -->
-      <div class="parent-card">
+      <div id="parentHistoryCard" class="parent-card">
         <h4 style="font-size: 0.9rem; font-weight: 900; color: var(--text-main); margin-bottom: 10px; display: flex; align-items: center; gap: 6px;">
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" x2="8" y1="13" y2="13"/><line x1="16" x2="8" y1="17" y2="17"/></svg>
           <span>Historial de Compras en Soda</span>

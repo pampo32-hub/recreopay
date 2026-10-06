@@ -3620,3 +3620,323 @@ body.dark-mode .admin-student-row.is-blocked {
 .pwa-nav-item.transfer-nav-disabled svg {
   stroke: #94a3b8 !important;
 }
+
+/* ==========================================
+   REDISEÑO MODERNO (ORDEREAT STYLE - CELESTE EDITION)
+   ========================================== */
+
+/* 1. Selector de Roles Superfinos */
+.login-role-selector-wrap {
+  margin-bottom: 18px;
+}
+
+.login-role-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+}
+
+.login-role-card {
+  border: 2px solid var(--border, #f1f5f9);
+  background: var(--bg-main, #f8fafc);
+  border-radius: 18px;
+  padding: 14px 8px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  user-select: none;
+}
+
+.login-role-card:hover {
+  border-color: #cbd5e1;
+  transform: translateY(-2px);
+}
+
+.login-role-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 14px;
+  background: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #475569;
+  margin-bottom: 8px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04);
+  transition: all 0.2s ease;
+}
+
+.login-role-name {
+  font-size: 0.78rem;
+  font-weight: 900;
+  color: #334155;
+  line-height: 1.2;
+}
+
+.login-role-desc {
+  font-size: 0.65rem;
+  font-weight: 700;
+  color: #94a3b8;
+  margin-top: 2px;
+}
+
+.login-role-card.selected {
+  border-color: #0284c7;
+  background: #f0f9ff;
+  box-shadow: 0 4px 14px rgba(2, 132, 199, 0.14);
+}
+
+.login-role-card.selected .login-role-icon {
+  background: #0284c7;
+  color: #ffffff;
+  box-shadow: 0 4px 12px rgba(2, 132, 199, 0.28);
+}
+
+.login-role-card.selected .login-role-name {
+  color: #0284c7;
+}
+
+.login-role-card.selected .login-role-desc {
+  color: #0369a1;
+}
+
+/* 2. Tarjeta de Saldo Elegante (Estilo OrderEAT) */
+.parent-balance-card-refined {
+  background: #ffffff;
+  border-radius: 26px;
+  border: 1px solid var(--border, #e2e8f0);
+  padding: 22px;
+  box-shadow: 0 10px 30px -5px rgba(0, 0, 0, 0.05), 0 0 0 1px rgba(226, 232, 240, 0.8);
+  margin-bottom: 16px;
+  position: relative;
+  overflow: hidden;
+  background-image: radial-gradient(circle at 100% 0%, rgba(2, 132, 199, 0.06) 0%, transparent 60%),
+                    radial-gradient(circle at 0% 100%, rgba(2, 132, 199, 0.03) 0%, transparent 50%);
+}
+
+.parent-balance-header-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+.parent-balance-tag-title {
+  font-size: 0.72rem;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  color: #64748b;
+}
+
+.parent-balance-child-pill {
+  font-size: 0.74rem;
+  font-weight: 800;
+  background: #f0f9ff;
+  color: #0284c7;
+  border: 1px solid #bae6fd;
+  padding: 2px 10px;
+  border-radius: 20px;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.parent-balance-grade-pill {
+  font-size: 0.70rem;
+  font-weight: 800;
+  background: #f1f5f9;
+  color: #475569;
+  padding: 2px 8px;
+  border-radius: 6px;
+}
+
+.parent-balance-amount-display {
+  font-size: 2.3rem;
+  font-weight: 900;
+  color: #0f172a;
+  letter-spacing: -0.6px;
+  margin: 4px 0 12px 0;
+  display: flex;
+  align-items: baseline;
+}
+
+.parent-balance-amount-display span.decimals {
+  font-size: 1rem;
+  font-weight: 700;
+  color: #94a3b8;
+  margin-left: 2px;
+}
+
+.parent-balance-footer-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-top: 14px;
+  border-top: 1px solid #f1f5f9;
+  gap: 12px;
+}
+
+.parent-balance-limit-info {
+  font-size: 0.78rem;
+  color: #64748b;
+  font-weight: 600;
+}
+
+.parent-balance-btn-recharge {
+  background: #0284c7;
+  color: #ffffff;
+  border: none;
+  font-size: 0.85rem;
+  font-weight: 900;
+  padding: 10px 20px;
+  border-radius: 14px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  box-shadow: 0 4px 14px rgba(2, 132, 199, 0.32);
+  transition: all 0.2s ease;
+}
+
+.parent-balance-btn-recharge:hover {
+  background: #0369a1;
+  transform: translateY(-1px);
+  box-shadow: 0 6px 18px rgba(2, 132, 199, 0.38);
+}
+
+.parent-balance-btn-recharge:active {
+  transform: scale(0.97);
+}
+
+/* 3. Selector de Sede Escolar Pill */
+.parent-school-selector-pill {
+  background: #ffffff;
+  border: 1px solid var(--border, #e2e8f0);
+  border-radius: 18px;
+  padding: 10px 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.03);
+}
+
+/* 4. Menú de Opciones Superfinas Estilo OrderEAT */
+.parent-refined-menu-card {
+  background: #ffffff;
+  border: 1px solid var(--border, #e2e8f0);
+  border-radius: 24px;
+  padding: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
+  margin-bottom: 16px;
+}
+
+.parent-refined-menu-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 14px;
+  border-radius: 16px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  border-bottom: 1px solid #f8fafc;
+}
+
+.parent-refined-menu-item:last-child {
+  border-bottom: none;
+}
+
+.parent-refined-menu-item:hover {
+  background: #f8fafc;
+}
+
+.parent-refined-item-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.parent-refined-icon-box {
+  width: 38px;
+  height: 38px;
+  border-radius: 12px;
+  background: #f0f9ff;
+  color: #0284c7;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: all 0.2s ease;
+}
+
+.parent-refined-icon-box.rose-halo {
+  background: #fff1f2;
+  color: #e11d48;
+  box-shadow: 0 0 0 4px #ffe4e6;
+}
+
+.parent-refined-icon-box.gray-box {
+  background: #f1f5f9;
+  color: #64748b;
+}
+
+.parent-refined-item-title {
+  font-size: 0.85rem;
+  font-weight: 800;
+  color: #1e293b;
+}
+
+.parent-refined-item-desc {
+  font-size: 0.70rem;
+  color: #64748b;
+  font-weight: 600;
+  display: block;
+}
+
+.parent-refined-arrow {
+  color: #cbd5e1;
+  font-size: 1.1rem;
+  font-weight: 800;
+}
+
+.allergy-tag-pill {
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 4px 9px;
+  border-radius: 8px;
+  background: #ffffff;
+  border: 1px solid #fecdd3;
+  color: #e11d48;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.allergy-tag-pill:hover {
+  background: #ffe4e6;
+  transform: translateY(-1px);
+}
+
+body.dark-mode .parent-balance-card-refined,
+body.dark-mode .parent-school-selector-pill,
+body.dark-mode .parent-refined-menu-card {
+  background: #1e293b;
+  border-color: #334155;
+}
+
+body.dark-mode .parent-balance-amount-display {
+  color: #f8fafc;
+}
+
+body.dark-mode .parent-refined-menu-item:hover {
+  background: #0f172a;
+}
+
+body.dark-mode .parent-refined-item-title {
+  color: #f1f5f9;
+}
