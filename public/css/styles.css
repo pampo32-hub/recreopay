@@ -3801,7 +3801,7 @@ body.dark-mode .admin-student-row.is-blocked {
 }
 
 /* ==========================================
-   REDISEÑO MODERNO (ORDEREAT STYLE - CELESTE EDITION)
+   REDISEÑO MODERNO (SIBOPAY STYLE - CELESTE EDITION)
    ========================================== */
 
 /* 1. Selector de Roles Superfinos */
@@ -3882,7 +3882,7 @@ body.dark-mode .admin-student-row.is-blocked {
   color: #0369a1;
 }
 
-/* 2. Tarjeta de Saldo Elegante (Estilo OrderEAT) */
+/* 2. Tarjeta de Saldo Elegante (Estilo SiboPay) */
 .parent-balance-card-refined {
   background: #ffffff;
   border-radius: 26px;
@@ -4006,7 +4006,7 @@ body.dark-mode .admin-student-row.is-blocked {
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.03);
 }
 
-/* 4. Menú de Opciones Superfinas Estilo OrderEAT */
+/* 4. Menú de Opciones Superfinas Estilo SiboPay */
 .parent-refined-menu-card {
   background: #ffffff;
   border: 1px solid var(--border, #e2e8f0);
