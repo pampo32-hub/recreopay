@@ -4278,15 +4278,15 @@ function renderAdminMovimientos() {
       fechaHoraStr = d.toLocaleTimeString('es-CR', { hour: '2-digit', minute: '2-digit' }) + ' • ' + d.toLocaleDateString('es-CR', { day: '2-digit', month: 'short' });
     } catch (e) {}
 
-    // Monto formateado: Verde al cargar (+), Rojo al cobrar o eliminar (-)
+    // Monto formateado: Estilo sutil idéntico a "Revertir" / "Revertido" (rojo suave) y verde suave
     const absMonto = Math.abs(m.monto_colones);
     const montoDisplay = isPositive ? `+₡${absMonto.toLocaleString('es-CR')}` : `-₡${absMonto.toLocaleString('es-CR')}`;
-    const montoColor = isPositive ? '#16a34a' : '#dc2626';
-    const montoBg = isPositive ? 'rgba(22, 163, 74, 0.08)' : 'rgba(220, 38, 38, 0.08)';
+    const montoColor = isPositive ? '#166534' : '#991b1b';
+    const montoBg = isPositive ? '#f0fdf4' : '#fef2f2';
     const montoBorder = isPositive ? '#bbf7d0' : '#fecaca';
     const montoIcon = isPositive 
-      ? '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="19" x2="12" y2="5"/><polyline points="5 12 12 5 19 12"/></svg>'
-      : '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><polyline points="19 12 12 19 5 12"/></svg>';
+      ? '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="19" x2="12" y2="5"/><polyline points="5 12 12 5 19 12"/></svg>'
+      : '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><polyline points="19 12 12 19 5 12"/></svg>';
 
     // Regla de 10 min para Cajero
     const minutos = parseFloat(m.minutos_transcurridos) || 0;
@@ -4378,10 +4378,11 @@ function renderAdminMovimientos() {
 
         <!-- FILA INFERIOR: MONTO, SALDO POSTERIOR Y BOTÓN DE ACCIÓN -->
         <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px; background: rgba(148, 163, 184, 0.07); border: 1px solid var(--border); border-radius: 10px; padding: 8px 12px; flex-wrap: wrap;">
-          <div style="display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap;">
-            <div style="display: inline-flex; align-items: center; gap: 5px; padding: 3px 8px; border-radius: 8px; background: ${montoBg}; border: 1px solid ${montoBorder};">
-              <span style="font-size: 1.15rem; font-weight: 900; color: ${montoColor}; line-height: 1; display: inline-flex; align-items: center; gap: 3px; ${isRevertida ? 'text-decoration: line-through; opacity: 0.6;' : ''}">
-                ${montoIcon} ${montoDisplay}
+          <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+            <div style="display: inline-flex; align-items: center; gap: 5px; padding: 4px 10px; border-radius: 8px; background: ${montoBg}; border: 1px solid ${montoBorder}; color: ${montoColor}; font-weight: 800; font-size: 0.95rem; box-shadow: 0 1px 2px rgba(0,0,0,0.02);">
+              <span style="display: inline-flex; align-items: center; gap: 4px; ${isRevertida ? 'text-decoration: line-through; opacity: 0.6;' : ''}">
+                ${montoIcon}
+                <span>${montoDisplay}</span>
               </span>
             </div>
             <span style="font-size: 0.74rem; color: var(--text-muted); font-weight: 700;">
