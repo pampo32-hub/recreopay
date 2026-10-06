@@ -1960,22 +1960,17 @@ app.post('/api/transferencias', (req, res) => {
 
 app.get('/api/productos', (req, res) => {
   try {
-    const escuelaId = req.query.escuela_id ? parseInt(req.query.escuela_id, 10) : null;
+    const escuelaId = req.query.escuela_id ? parseInt(req.query.escuela_id, 10) : 1;
     const categorias = db.prepare('SELECT * FROM categorias ORDER BY orden ASC').all();
     
-    let sql = `
+    const sql = `
       SELECT p.*, c.nombre as categoria_nombre, c.icono as categoria_icono
       FROM productos p
       JOIN categorias c ON p.categoria_id = c.id
+      WHERE (p.escuela_id = ? OR p.escuela_id IS NULL)
+      ORDER BY p.categoria_id, p.id ASC
     `;
-    const params = [];
-    if (escuelaId) {
-      sql += ' WHERE (p.escuela_id = ? OR p.escuela_id IS NULL) ';
-      params.push(escuelaId);
-    }
-    sql += ' ORDER BY p.categoria_id, p.nombre';
-
-    const productos = db.prepare(sql).all(...params);
+    const productos = db.prepare(sql).all(escuelaId);
 
     res.json({ categorias, productos });
   } catch (error) {

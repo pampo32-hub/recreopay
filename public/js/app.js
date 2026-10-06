@@ -550,11 +550,20 @@ async function loadInitialData() {
 
     populateStudentSelector();
 
-    // 2. Cargar productos y categorías
-    const resProd = await fetch('/api/productos');
+    // 2. Cargar productos y categorías de la escuela activa
+    const escId = (currentUser && currentUser.escuela_id) || (currentStudent && currentStudent.escuela_id) || 1;
+    const resProd = await fetch(`/api/productos?escuela_id=${escId}`);
     const dataProd = await resProd.json();
-    categories = dataProd.categorias;
-    products = dataProd.productos;
+    categories = dataProd.categorias || [];
+    
+    // Deduplicar productos para garantizar que nunca se repita ninguno
+    const seenNames = new Set();
+    products = (dataProd.productos || []).filter(p => {
+      const key = String(p.nombre).trim().toLowerCase();
+      if (seenNames.has(key)) return false;
+      seenNames.add(key);
+      return true;
+    });
 
     renderCategories();
     renderProducts();
