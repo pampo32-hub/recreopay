@@ -157,13 +157,19 @@ async function loadCatalog() {
 function renderPosCategories() {
   const bar = document.getElementById('posCategoriesBar');
   if (!bar) return;
+  const storeIcon = window.SiboPayIcons ? window.SiboPayIcons.getFoodIconBadge('store', 'Todos', 'inline') : '';
   bar.innerHTML = `
-    <button class="pos-cat-pill active" onclick="filterPosCat(null, this)">Todos</button>
-    ${posCategories.map(c => `
-      <button class="pos-cat-pill" onclick="filterPosCat(${c.id}, this)">
-        <span>${c.icono || '🍽️'}</span> ${c.nombre}
-      </button>
-    `).join('')}
+    <button class="pos-cat-pill active" onclick="filterPosCat(null, this)">
+      ${storeIcon}Todos
+    </button>
+    ${posCategories.map(c => {
+      const catIcon = window.SiboPayIcons ? window.SiboPayIcons.getFoodIconBadge(c.icono, c.nombre, 'inline') : `<span>${c.icono || '🍽️'}</span> `;
+      return `
+        <button class="pos-cat-pill" onclick="filterPosCat(${c.id}, this)">
+          ${catIcon}${c.nombre}
+        </button>
+      `;
+    }).join('')}
   `;
 }
 
@@ -339,7 +345,7 @@ function renderPosProducts(catId) {
            title="${isFirstMatch ? 'Primer resultado coincidente (pulsa Enter para cobrar)' : ''}"
            onclick="${isOutOfStock ? `alert('El producto \\'${prod.nombre.replace(/'/g, "\\'")}\\' se encuentra bloqueado o agotado.')` : `addToPosCart(${prod.id})`}">
         ${isOutOfStock ? '<div style="position: absolute; top: 10px; right: 10px;"><span class="saas-status-badge saas-status-blocked"><span class="saas-dot"></span>BLOQUEADO</span></div>' : (isFirstMatch ? '<div style="position: absolute; top: 8px; right: 8px;"><span class="saas-status-badge saas-status-active" style="font-size: 0.65rem; padding: 2px 6px;">Enter ↵</span></div>' : '')}
-        <div style="font-size: 2.2rem; text-align: center; margin-bottom: 6px;">${prod.icono || '🥪'}</div>
+        ${window.SiboPayIcons ? window.SiboPayIcons.getFoodIconBadge(prod.icono, prod.nombre, 'card') : `<div style="font-size: 2.2rem; text-align: center; margin-bottom: 6px;">${prod.icono || '🥪'}</div>`}
         <div>
           <div class="prod-title">${prod.nombre}</div>
           ${prod.cumple_mep ? '<span style="font-size: 0.68rem; color: #166534; font-weight: 700; margin-top: 3px; display: inline-flex; align-items: center; gap: 3px;">🌿 MEP Saludable</span>' : ''}
@@ -533,11 +539,17 @@ function updatePosCartUI() {
   list.innerHTML = posCart.map((item, idx) => {
     const subtotal = item.product.precio_colones * item.cantidad;
     total += subtotal;
+    const itemBadge = window.SiboPayIcons
+      ? window.SiboPayIcons.getFoodIconBadge(item.product.icono, item.product.nombre, 'badge')
+      : '';
     return `
       <div class="pos-cart-item">
-        <div style="flex: 1; min-width: 0; word-break: break-word;">
-          <strong style="color: #0f172a; font-size: 0.88rem; font-weight: 800; display: block; line-height: 1.25;">${item.product.icono ? `<span style="margin-right: 5px; font-size: 1rem;">${item.product.icono}</span>` : ''}${item.product.nombre}</strong>
-          <div style="font-size: 0.74rem; color: #64748b; font-weight: 600; margin-top: 3px;">₡${item.product.precio_colones.toLocaleString('es-CR')} c/u</div>
+        <div style="display: flex; align-items: center; min-width: 0; flex: 1;">
+          ${itemBadge}
+          <div style="min-width: 0; flex: 1; word-break: break-word;">
+            <strong style="color: #0f172a; font-size: 0.88rem; font-weight: 800; display: block; line-height: 1.25;">${item.product.nombre}</strong>
+            <div style="font-size: 0.74rem; color: #64748b; font-weight: 600; margin-top: 2px;">₡${item.product.precio_colones.toLocaleString('es-CR')} c/u</div>
+          </div>
         </div>
         <div style="display: flex; align-items: center; gap: 8px; flex-shrink: 0;">
           <button onclick="changePosQty(${idx}, -1)" class="pos-qty-btn" title="Disminuir">−</button>
@@ -1255,7 +1267,7 @@ async function loadPreOrders() {
     list.innerHTML = orders.map(ord => {
       const hora = new Date(ord.creado_en).toLocaleTimeString('es-CR', { hour: '2-digit', minute: '2-digit' });
       const items = Array.isArray(ord.items) ? ord.items : [];
-      const itemsList = items.map(i => `${i.cantidad}x ${i.icono || '🥪'} ${i.nombre}`).join(', ');
+      const itemsList = items.map(i => `${i.cantidad}× ${i.nombre}`).join(' • ');
       const avatarUrl = ord.foto_url || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150';
 
       return `
@@ -1281,8 +1293,8 @@ async function loadPreOrders() {
             </div>
           </div>
 
-          <div class="pos-preorder-items-box">
-            <span>📦</span>
+          <div class="pos-preorder-items-box" style="display: flex; align-items: center; gap: 8px;">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#0284c7" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0;"><path d="m7.5 4.27 9 5.15"/><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22V12"/></svg>
             <span style="flex: 1; word-break: break-word;">${itemsList}</span>
           </div>
 

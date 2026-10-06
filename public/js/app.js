@@ -739,9 +739,12 @@ function renderCategories() {
   `;
 
   for (const cat of categories) {
+    const iconBadge = window.SiboPayIcons 
+      ? window.SiboPayIcons.getFoodIconBadge(cat.icono, cat.nombre, 'inline')
+      : `<span>${cat.icono || '🍽️'}</span>`;
     html += `
-      <button class="cat-pill ${activeCategoryId === cat.id ? 'active' : ''}" onclick="selectCategory(${cat.id})">
-        <span>${cat.icono || '🍽️'}</span> ${cat.nombre}
+      <button class="cat-pill ${activeCategoryId === cat.id ? 'active' : ''}" onclick="selectCategory(${cat.id})" style="display: inline-flex; align-items: center; gap: 6px;">
+        ${iconBadge} <span>${cat.nombre}</span>
       </button>
     `;
   }
@@ -786,9 +789,15 @@ function renderProducts() {
       ? '<span class="badge-out-of-stock">AGOTADO</span>'
       : '';
 
+    const iconHtml = window.SiboPayIcons 
+      ? window.SiboPayIcons.getFoodIconBadge(prod.icono, prod.nombre, 'card') 
+      : `<div class="product-icon-wrap">${prod.icono || '🥪'}</div>`;
+
     return `
       <div class="product-card ${isOutOfStock ? 'out-of-stock' : ''}">
-        <div class="product-icon-wrap">${prod.icono || '🥪'}</div>
+        <div style="display: flex; justify-content: center; align-items: center; margin-bottom: 8px;">
+          ${iconHtml}
+        </div>
         <div>
           <div style="display: flex; gap: 4px; flex-wrap: wrap; margin-bottom: 4px;">
             ${prod.cumple_mep ? '<span class="badge-mep">MEP Saludable</span>' : ''}
@@ -889,11 +898,17 @@ function renderCartModalItems() {
   list.innerHTML = cart.map((item, idx) => {
     const subtotal = item.product.precio_colones * item.cantidad;
     total += subtotal;
+    const itemBadge = window.SiboPayIcons
+      ? window.SiboPayIcons.getFoodIconBadge(item.product.icono, item.product.nombre, 'badge')
+      : '';
     return `
       <div style="display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid #f1f5f9;">
-        <div>
-          <strong style="font-size: 0.9rem; color: #0f172a;">${item.product.icono ? `${item.product.icono} ` : ''}${item.product.nombre}</strong>
-          <div style="font-size: 0.75rem; color: #64748b;">₡${item.product.precio_colones.toLocaleString('es-CR')} c/u</div>
+        <div style="display: flex; align-items: center; gap: 8px;">
+          ${itemBadge}
+          <div>
+            <strong style="font-size: 0.9rem; color: #0f172a;">${item.product.nombre}</strong>
+            <div style="font-size: 0.75rem; color: #64748b;">₡${item.product.precio_colones.toLocaleString('es-CR')} c/u</div>
+          </div>
         </div>
         <div style="display: flex; align-items: center; gap: 8px;">
           <button onclick="changeCartQty(${idx}, -1)" style="width: 28px; height: 28px; border-radius: 6px; border: 1px solid #cbd5e1; background: white; font-weight: 800; cursor: pointer;">-</button>
@@ -3246,11 +3261,17 @@ function renderAdminInventory(list) {
       statusPill = `<span style="font-size: 0.7rem; font-weight: 800; color: #166534; background: #dcfce7; padding: 3px 8px; border-radius: 6px;">${p.stock} unid.</span>`;
     }
 
+    const iconBadge = window.SiboPayIcons 
+      ? window.SiboPayIcons.getFoodIconBadge(p.icono, p.nombre, 'badge') 
+      : `<div style="font-size: 1.8rem; text-align: center; flex-shrink: 0; min-width: 40px;">${p.icono || '🥪'}</div>`;
+
     return `
       <div class="inventory-item-row" style="${isOutOfStock ? 'background: #fff1f2;' : ''}">
         <div class="inventory-item-top" style="display: flex; align-items: center; justify-content: space-between; gap: 10px;">
           <div style="display: flex; align-items: center; gap: 10px; flex: 1; min-width: 0;">
-            <div style="font-size: 1.8rem; text-align: center; flex-shrink: 0; min-width: 40px;">${p.icono || '🥪'}</div>
+            <div style="flex-shrink: 0; display: flex; align-items: center; justify-content: center;">
+              ${iconBadge}
+            </div>
             <div style="flex: 1; min-width: 0;">
               <div style="display: flex; align-items: center; gap: 6px; flex-wrap: wrap;">
                 <strong style="font-size: 0.92rem; color: var(--text-main); word-break: break-word;">${p.nombre}</strong>
@@ -4483,12 +4504,16 @@ function openCreateProductModal() {
   document.getElementById('adminProdId').value = '';
   document.getElementById('adminProdNombre').value = '';
   document.getElementById('adminProdPrecio').value = '';
-  document.getElementById('adminProdIcono').value = '🥪';
+  document.getElementById('adminProdIcono').value = 'sandwich';
   document.getElementById('adminProdDescripcion').value = '';
   document.getElementById('adminProdControlStock').checked = true;
   toggleStockInput(true);
   document.getElementById('adminProdStock').value = '15';
   document.getElementById('adminProdMep').value = '1';
+
+  if (window.SiboPayIcons) {
+    window.SiboPayIcons.renderIconPicker('adminProdIconPickerList', 'adminProdIcono', 'adminProdIconPreview', 'sandwich');
+  }
 
   const btnDel = document.getElementById('btnDeleteProduct');
   if (btnDel) btnDel.style.display = 'none';
@@ -4515,7 +4540,7 @@ function openEditProductModal(prodId) {
   document.getElementById('adminProdId').value = prod.id;
   document.getElementById('adminProdNombre').value = prod.nombre || '';
   document.getElementById('adminProdPrecio').value = prod.precio_colones || 0;
-  document.getElementById('adminProdIcono').value = prod.icono || '🥪';
+  document.getElementById('adminProdIcono').value = prod.icono || 'sandwich';
   document.getElementById('adminProdDescripcion').value = prod.descripcion || '';
   
   const hasControl = prod.control_stock === 1;
@@ -4523,6 +4548,10 @@ function openEditProductModal(prodId) {
   toggleStockInput(hasControl);
   document.getElementById('adminProdStock').value = prod.stock !== undefined ? prod.stock : 0;
   document.getElementById('adminProdMep').value = (prod.cumple_mep !== undefined ? prod.cumple_mep : 1);
+
+  if (window.SiboPayIcons) {
+    window.SiboPayIcons.renderIconPicker('adminProdIconPickerList', 'adminProdIcono', 'adminProdIconPreview', prod.icono || 'sandwich');
+  }
 
   const btnDel = document.getElementById('btnDeleteProduct');
   if (btnDel) btnDel.style.display = 'inline-block';
@@ -4548,7 +4577,7 @@ async function submitAdminProduct(e) {
   const nombre = document.getElementById('adminProdNombre').value.trim();
   const categoria_id = parseInt(document.getElementById('adminProdCategoria').value, 10);
   const precio_colones = parseInt(document.getElementById('adminProdPrecio').value, 10);
-  const icono = document.getElementById('adminProdIcono').value.trim() || '🥪';
+  const icono = document.getElementById('adminProdIcono').value.trim() || 'sandwich';
   const descripcion = document.getElementById('adminProdDescripcion').value.trim();
   const control_stock = document.getElementById('adminProdControlStock').checked ? 1 : 0;
   const stock = parseInt(document.getElementById('adminProdStock').value, 10) || 0;

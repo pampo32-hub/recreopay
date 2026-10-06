@@ -1677,22 +1677,13 @@
           </div>
         </div>
 
-        <div style="display: grid; grid-template-columns: 80px 1fr; gap: 10px; margin-bottom: 10px;">
-          <div>
-            <label style="display: block; font-size: 0.78rem; font-weight: 800; color: var(--text-main); margin-bottom: 3px;">Ícono:</label>
-            <input type="text" id="adminProdIcono" value="🥪" maxlength="4" style="width: 100%; text-align: center; font-size: 1.5rem; padding: 4px; border-radius: 8px; border: 1.5px solid var(--border); box-sizing: border-box; background: var(--card-bg);">
-          </div>
-          <div>
-            <label style="display: block; font-size: 0.78rem; font-weight: 800; color: var(--text-main); margin-bottom: 3px;">Íconos Rápidos:</label>
-            <div style="display: flex; gap: 4px; flex-wrap: wrap;">
-              <button type="button" onclick="selectProdIcon('🥪')" style="padding: 4px 6px; font-size: 1.1rem; border: 1px solid var(--border); border-radius: 6px; background: var(--card-bg); cursor: pointer;">🥪</button>
-              <button type="button" onclick="selectProdIcon('🍎')" style="padding: 4px 6px; font-size: 1.1rem; border: 1px solid var(--border); border-radius: 6px; background: var(--card-bg); cursor: pointer;">🍎</button>
-              <button type="button" onclick="selectProdIcon('🧃')" style="padding: 4px 6px; font-size: 1.1rem; border: 1px solid var(--border); border-radius: 6px; background: var(--card-bg); cursor: pointer;">🧃</button>
-              <button type="button" onclick="selectProdIcon('🍕')" style="padding: 4px 6px; font-size: 1.1rem; border: 1px solid var(--border); border-radius: 6px; background: var(--card-bg); cursor: pointer;">🍕</button>
-              <button type="button" onclick="selectProdIcon('🥗')" style="padding: 4px 6px; font-size: 1.1rem; border: 1px solid var(--border); border-radius: 6px; background: var(--card-bg); cursor: pointer;">🥗</button>
-              <button type="button" onclick="selectProdIcon('🥛')" style="padding: 4px 6px; font-size: 1.1rem; border: 1px solid var(--border); border-radius: 6px; background: var(--card-bg); cursor: pointer;">🥛</button>
-              <button type="button" onclick="selectProdIcon('🍪')" style="padding: 4px 6px; font-size: 1.1rem; border: 1px solid var(--border); border-radius: 6px; background: var(--card-bg); cursor: pointer;">🍪</button>
-              <button type="button" onclick="selectProdIcon('🌮')" style="padding: 4px 6px; font-size: 1.1rem; border: 1px solid var(--border); border-radius: 6px; background: var(--card-bg); cursor: pointer;">🌮</button>
+        <div style="margin-bottom: 12px;">
+          <label style="display: block; font-size: 0.78rem; font-weight: 800; color: var(--text-main); margin-bottom: 6px;">Ícono Vectorial del Alimento:</label>
+          <input type="hidden" id="adminProdIcono" value="sandwich">
+          <div style="display: flex; gap: 12px; align-items: center; background: var(--bg-main, #f8fafc); border: 1.5px solid var(--border); border-radius: 12px; padding: 10px;">
+            <div id="adminProdIconPreview" style="flex-shrink: 0;"></div>
+            <div style="flex: 1; min-width: 0;">
+              <div style="display: flex; gap: 6px; flex-wrap: wrap;" id="adminProdIconPickerList"></div>
             </div>
           </div>
         </div>
@@ -2297,6 +2288,7 @@
 
   <script src="/js/sounds.js?v=9.6"></script>
   <script src="/js/jsQR.js"></script>
+  <script src="/js/food-icons.js?v=1.0"></script>
   <script src="/js/app.js?v=9.6"></script>
 </body>
 </html>
