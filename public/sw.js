@@ -75,3 +75,23 @@ self.addEventListener('fetch', (event) => {
       })
   );
 });
+
+// Manejador de clics en Notificaciones Push
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close();
+  const urlToOpen = (event.notification.data && event.notification.data.url) || '/pos.html?tab=sinpe';
+
+  event.waitUntil(
+    clients.matchAll({ type: 'window', includeUncontrolled: true }).then((windowClients) => {
+      for (const client of windowClients) {
+        if (client.url && (client.url.includes('pos.html') || client.url.includes('index.html'))) {
+          client.navigate(urlToOpen);
+          return client.focus();
+        }
+      }
+      if (clients.openWindow) {
+        return clients.openWindow(urlToOpen);
+      }
+    })
+  );
+});

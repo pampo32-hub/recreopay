@@ -76,6 +76,12 @@ function checkPosHttpsEnvironment() {
 
 document.addEventListener('DOMContentLoaded', async () => {
   checkPosHttpsEnvironment();
+
+  // Registrar Service Worker para Notificaciones PWA
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('/sw.js?v=8.4').catch(e => console.log('SW register error:', e));
+  }
+
   await loadCatalog();
   await loadPreOrders();
   await loadSinpeRequests();
@@ -83,6 +89,26 @@ document.addEventListener('DOMContentLoaded', async () => {
   initSSE();
   initPistolScanner();
   initQuickProductEvents();
+
+  // Si la URL viene con ?tab=sinpe o ?tab=preordenes, abrir esa pestaña directamente
+  const urlTab = new URLSearchParams(window.location.search).get('tab');
+  if (urlTab === 'sinpe' || urlTab === 'preordenes') {
+    switchPosTab(urlTab);
+  }
+
+  // Actualizar estado del botón de notificaciones
+  updateNotificationButtonState();
+
+  // Solicitar permiso de notificaciones con cualquier primera interacción táctil/clic
+  const promptOnFirstInteraction = () => {
+    if ('Notification' in window && Notification.permission === 'default') {
+      Notification.requestPermission().then(() => updateNotificationButtonState()).catch(() => {});
+    }
+    window.removeEventListener('click', promptOnFirstInteraction);
+    window.removeEventListener('touchstart', promptOnFirstInteraction);
+  };
+  window.addEventListener('click', promptOnFirstInteraction, { once: true });
+  window.addEventListener('touchstart', promptOnFirstInteraction, { once: true });
 });
 
 // Cargar catálogo de productos
@@ -1356,13 +1382,181 @@ function initSSE() {
   });
 
   sseSource.addEventListener('solicitud_sinpe_nueva', (e) => {
-    if (window.sounds) window.sounds.playCoin();
-    loadSinpeRequests();
+    try {
+      const sol = JSON.parse(e.data);
+      const montoFmt = (sol.monto_colones || 0).toLocaleString('es-CR');
+      const estudianteNombre = sol.estudiante_nombre || 'Estudiante';
+      const comp = sol.comprobante_sinpe || '';
+
+      // 1. Notificación flotante en la aplicación (con vibración y sonido de moneda)
+      showInAppNotification({
+        title: '¡Nueva Recarga SINPE Reportada!',
+        message: `<strong>${estudianteNombre}</strong>: ₡${montoFmt} • Comp #${comp}`,
+        buttonText: 'Ver y Aprobar'
+      });
+
+      // 2. Notificación PUSH del navegador / sistema operativo
+      sendPushNotification('🔔 Nueva Recarga SINPE - RecreoPay', {
+        body: `Se reportó una recarga de ₡${montoFmt} para ${estudianteNombre}. Comprobante: #${comp}`,
+        tag: `sinpe-${sol.id || Date.now()}`,
+        data: { url: '/pos.html?tab=sinpe' }
+      });
+
+      loadSinpeRequests();
+    } catch (err) {
+      console.error('Error procesando solicitud_sinpe_nueva en POS:', err);
+    }
   });
 
   sseSource.addEventListener('solicitud_sinpe_procesada', () => {
     loadSinpeRequests();
   });
+}
+
+// ==========================================
+// SISTEMA DE NOTIFICACIONES PUSH & EN-APP (RECARGAS SINPE)
+// ==========================================
+function updateNotificationButtonState() {
+  const btn = document.getElementById('btnPosNotificationToggle');
+  const lbl = document.getElementById('lblPosNotificationStatus');
+  if (!btn || !lbl) return;
+
+  if (!('Notification' in window)) {
+    btn.style.display = 'none';
+    return;
+  }
+
+  if (Notification.permission === 'granted') {
+    btn.style.color = '#16a34a';
+    btn.style.borderColor = '#86efac';
+    btn.style.background = '#f0fdf4';
+    lbl.textContent = 'Notificaciones Activas';
+    btn.title = 'Notificaciones push y avisos en pantalla activos';
+  } else if (Notification.permission === 'denied') {
+    btn.style.color = '#dc2626';
+    btn.style.borderColor = '#fca5a5';
+    btn.style.background = '#fef2f2';
+    lbl.textContent = 'Notificaciones Bloqueadas';
+    btn.title = 'Las notificaciones están bloqueadas en los ajustes del navegador';
+  } else {
+    btn.style.color = '#0284c7';
+    btn.style.borderColor = '#bae6fd';
+    btn.style.background = 'white';
+    lbl.textContent = 'Activar Notificaciones';
+    btn.title = 'Toca para recibir avisos de recargas SINPE';
+  }
+}
+
+async function enablePushNotificationsPrompt() {
+  if (!('Notification' in window)) {
+    alert('Tu navegador no soporta notificaciones de sistema.');
+    return;
+  }
+
+  if (Notification.permission === 'granted') {
+    showInAppNotification({
+      title: '¡Notificaciones Activas!',
+      message: 'Recibirás avisos sonoros y visuales cada vez que un padre envíe una recarga SINPE.',
+      buttonText: 'Entendido'
+    });
+    return;
+  }
+
+  try {
+    const perm = await Notification.requestPermission();
+    updateNotificationButtonState();
+    if (perm === 'granted') {
+      sendPushNotification('🔔 RecreoPay Terminal Soda', {
+        body: '¡Notificaciones activadas! Te avisaremos al instante con cada recarga SINPE.',
+        tag: 'recreopay-welcome'
+      });
+      showInAppNotification({
+        title: '¡Notificaciones Activadas!',
+        message: 'Avisos en pantalla y notificaciones push activadas correctamente.',
+        buttonText: 'Listo'
+      });
+    } else {
+      alert('Las notificaciones no fueron autorizadas. Puedes activarlas desde el candado de la barra de direcciones.');
+    }
+  } catch (err) {
+    console.error('Error solicitando permisos de notificación:', err);
+  }
+}
+
+function sendPushNotification(title, options = {}) {
+  if (!('Notification' in window) || Notification.permission !== 'granted') return;
+
+  const defaultOptions = {
+    icon: '/icons/icon-192.png',
+    badge: '/icons/icon-192.png',
+    vibrate: [200, 100, 200, 100, 200],
+    requireInteraction: true,
+    ...options
+  };
+
+  if ('serviceWorker' in navigator && navigator.serviceWorker.ready) {
+    navigator.serviceWorker.ready.then(reg => {
+      reg.showNotification(title, defaultOptions);
+    }).catch(() => {
+      try { new Notification(title, defaultOptions); } catch (e) {}
+    });
+  } else {
+    try { new Notification(title, defaultOptions); } catch (e) {}
+  }
+}
+
+function showInAppNotification({ title, message, buttonText = 'Ver y Aprobar', url = null }) {
+  const existing = document.getElementById('recreoPayInAppToast');
+  if (existing) existing.remove();
+
+  const toast = document.createElement('div');
+  toast.id = 'recreoPayInAppToast';
+  toast.className = 'recreopay-inapp-toast';
+  toast.innerHTML = `
+    <div class="recreopay-inapp-toast-icon">📱</div>
+    <div class="recreopay-inapp-toast-content">
+      <div class="recreopay-inapp-toast-title">
+        <span>${title}</span>
+      </div>
+      <div class="recreopay-inapp-toast-body">${message}</div>
+    </div>
+    <div style="display: flex; align-items: center; gap: 6px; flex-shrink: 0;">
+      <button class="recreopay-inapp-toast-btn" id="btnInAppToastAction">${buttonText}</button>
+      <button class="recreopay-inapp-toast-close" onclick="dismissInAppToast()">✕</button>
+    </div>
+  `;
+
+  document.body.appendChild(toast);
+
+  document.getElementById('btnInAppToastAction').onclick = () => {
+    dismissInAppToast();
+    if (typeof switchPosTab === 'function') {
+      switchPosTab('sinpe');
+    } else if (url) {
+      window.location.href = url;
+    }
+  };
+
+  // Vibrar en dispositivos móviles
+  if ('vibrate' in navigator) {
+    try { navigator.vibrate([200, 100, 200]); } catch (e) {}
+  }
+
+  // Sonido de recarga
+  if (window.sounds && window.sounds.playCoin) {
+    try { window.sounds.playCoin(); } catch (e) {}
+  }
+
+  // Auto cerrar tras 14s
+  clearTimeout(window._inAppToastTimer);
+  window._inAppToastTimer = setTimeout(dismissInAppToast, 14000);
+}
+
+function dismissInAppToast() {
+  const toast = document.getElementById('recreoPayInAppToast');
+  if (!toast) return;
+  toast.classList.add('closing');
+  setTimeout(() => toast.remove(), 250);
 }
 
 // ==========================================
@@ -1418,38 +1612,39 @@ async function loadSinpeRequests() {
       });
 
       return `
-        <div style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 14px; padding: 16px; box-shadow: 0 2px 6px rgba(0,0,0,0.03); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 14px;">
-          <div style="display: flex; align-items: center; gap: 12px; min-width: 240px;">
-            <img src="${s.estudiante_foto || 'https://api.dicebear.com/7.x/bottts/svg?seed=' + s.estudiante_id}" style="width: 48px; height: 48px; border-radius: 12px; object-fit: cover; border: 1.5px solid #cbd5e1; background: #f8fafc;" alt="Foto">
-            <div>
-              <div style="font-weight: 800; font-size: 0.95rem; color: #0f172a;">${s.estudiante_nombre}</div>
-              <div style="font-size: 0.76rem; color: #64748b;">
-                ${s.estudiante_grado || ''} ${s.estudiante_seccion ? '• Sec. ' + s.estudiante_seccion : ''} 
-                <span style="background: #f1f5f9; padding: 2px 6px; border-radius: 4px; font-weight: 700; color: #334155; margin-left: 4px;">Saldo actual: ₡${(s.estudiante_saldo || 0).toLocaleString('es-CR')}</span>
+        <div style="background: #ffffff; border: 1.5px solid #86efac; border-radius: 16px; padding: 14px; box-shadow: 0 2px 8px rgba(16, 185, 129, 0.08); display: flex; flex-direction: column; gap: 12px; width: 100%; box-sizing: border-box;">
+          <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; width: 100%; box-sizing: border-box;">
+            <div style="display: flex; align-items: center; gap: 10px; min-width: 0; flex: 1;">
+              <img src="${s.estudiante_foto || '/img/avatar_default.png'}" style="width: 44px; height: 44px; border-radius: 12px; object-fit: cover; border: 1.5px solid #cbd5e1; background: #f8fafc; flex-shrink: 0;" alt="Foto">
+              <div style="min-width: 0; flex: 1;">
+                <div style="font-weight: 800; font-size: 0.95rem; color: #0f172a; word-break: break-word;">${s.estudiante_nombre}</div>
+                <div style="font-size: 0.74rem; color: #64748b; margin-top: 1px;">
+                  ${s.estudiante_grado || ''} ${s.estudiante_seccion ? '• Sec. ' + s.estudiante_seccion : ''}
+                </div>
+                <div style="font-size: 0.70rem; color: #94a3b8; margin-top: 2px;">
+                  Reportado: ${fecha}
+                </div>
               </div>
-              <div style="font-size: 0.72rem; color: #94a3b8; margin-top: 3px;">
-                Reportado: ${fecha}
+            </div>
+
+            <div style="text-align: right; flex-shrink: 0;">
+              <div style="font-size: 1.25rem; font-weight: 900; color: #16a34a; letter-spacing: -0.5px;">
+                +₡${s.monto_colones.toLocaleString('es-CR')}
+              </div>
+              <div style="font-size: 0.74rem; font-weight: 800; color: #1e293b; background: #f0fdf4; border: 1px solid #bbf7d0; padding: 2px 7px; border-radius: 6px; margin-top: 2px;">
+                Comp: <strong style="font-family: monospace; color: #0284c7;">#${s.comprobante_sinpe}</strong>
               </div>
             </div>
           </div>
 
-          <div style="display: flex; flex-direction: column; align-items: flex-end; min-width: 140px;">
-            <div style="font-size: 1.25rem; font-weight: 900; color: #16a34a;">
-              +₡${s.monto_colones.toLocaleString('es-CR')}
-            </div>
-            <div style="font-size: 0.8rem; font-weight: 800; color: #1e293b; background: #f8fafc; border: 1px solid #e2e8f0; padding: 3px 8px; border-radius: 6px; margin-top: 2px;">
-              Comp: <span style="font-family: monospace; color: #0284c7;">#${s.comprobante_sinpe}</span>
-            </div>
-          </div>
-
-          <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
-            <button onclick="procesarSinpePos(${s.id}, 'aprobar')" style="padding: 10px 16px; background: linear-gradient(135deg, #16a34a, #15803d); color: white; border: none; border-radius: 10px; font-weight: 800; font-size: 0.85rem; cursor: pointer; display: flex; align-items: center; gap: 6px; box-shadow: 0 2px 8px rgba(22, 163, 74, 0.25);">
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
-              <span>Aprobar y Acreditar</span>
-            </button>
-            <button onclick="procesarSinpePos(${s.id}, 'rechazar')" style="padding: 10px 14px; background: #fff1f2; color: #e11d48; border: 1px solid #fecdd3; border-radius: 10px; font-weight: 800; font-size: 0.85rem; cursor: pointer; display: flex; align-items: center; gap: 6px;">
+          <div style="display: flex; gap: 8px; align-items: center; width: 100%; border-top: 1px solid #f1f5f9; padding-top: 10px;">
+            <button onclick="procesarSinpePos(${s.id}, 'rechazar')" style="flex: 1; max-width: 120px; padding: 10px 10px; background: #fff1f2; color: #e11d48; border: 1px solid #fecdd3; border-radius: 10px; font-weight: 800; font-size: 0.82rem; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 4px;">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
               <span>Rechazar</span>
+            </button>
+            <button onclick="procesarSinpePos(${s.id}, 'aprobar')" style="flex: 2; padding: 10px 16px; background: linear-gradient(135deg, #16a34a, #15803d); color: white; border: none; border-radius: 10px; font-weight: 800; font-size: 0.85rem; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; box-shadow: 0 2px 8px rgba(22, 163, 74, 0.25);">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+              <span>Aprobar y Acreditar</span>
             </button>
           </div>
         </div>

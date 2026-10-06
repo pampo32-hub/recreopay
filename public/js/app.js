@@ -55,7 +55,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   // Registrar Service Worker para PWA
   if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('/sw.js?v=8.1').then(reg => {
+    navigator.serviceWorker.register('/sw.js?v=8.4').then(reg => {
       // Registro limpio sin recargas forzadas
     }).catch(err => console.log('SW error:', err));
   }
@@ -1631,6 +1631,80 @@ function triggerBalancePulse() {
   }
 }
 
+// ==========================================
+// SISTEMA DE NOTIFICACIONES PUSH & EN-APP (ADMIN & SODA)
+// ==========================================
+function sendPushNotification(title, options = {}) {
+  if (!('Notification' in window) || Notification.permission !== 'granted') return;
+
+  const defaultOptions = {
+    icon: '/icons/icon-192.png',
+    badge: '/icons/icon-192.png',
+    vibrate: [200, 100, 200, 100, 200],
+    requireInteraction: true,
+    ...options
+  };
+
+  if ('serviceWorker' in navigator && navigator.serviceWorker.ready) {
+    navigator.serviceWorker.ready.then(reg => {
+      reg.showNotification(title, defaultOptions);
+    }).catch(() => {
+      try { new Notification(title, defaultOptions); } catch (e) {}
+    });
+  } else {
+    try { new Notification(title, defaultOptions); } catch (e) {}
+  }
+}
+
+function showInAppNotification({ title, message, buttonText = 'Ver en Terminal', url = '/pos.html?tab=sinpe' }) {
+  const existing = document.getElementById('recreoPayInAppToast');
+  if (existing) existing.remove();
+
+  const toast = document.createElement('div');
+  toast.id = 'recreoPayInAppToast';
+  toast.className = 'recreopay-inapp-toast';
+  toast.innerHTML = `
+    <div class="recreopay-inapp-toast-icon">📱</div>
+    <div class="recreopay-inapp-toast-content">
+      <div class="recreopay-inapp-toast-title">
+        <span>${title}</span>
+      </div>
+      <div class="recreopay-inapp-toast-body">${message}</div>
+    </div>
+    <div style="display: flex; align-items: center; gap: 6px; flex-shrink: 0;">
+      <button class="recreopay-inapp-toast-btn" id="btnInAppToastAction">${buttonText}</button>
+      <button class="recreopay-inapp-toast-close" onclick="dismissInAppToast()">✕</button>
+    </div>
+  `;
+
+  document.body.appendChild(toast);
+
+  document.getElementById('btnInAppToastAction').onclick = () => {
+    dismissInAppToast();
+    if (url) {
+      window.location.href = url;
+    }
+  };
+
+  if ('vibrate' in navigator) {
+    try { navigator.vibrate([200, 100, 200]); } catch (e) {}
+  }
+
+  if (window.sounds && window.sounds.playCoin) {
+    try { window.sounds.playCoin(); } catch (e) {}
+  }
+
+  clearTimeout(window._inAppToastTimer);
+  window._inAppToastTimer = setTimeout(dismissInAppToast, 14000);
+}
+
+function dismissInAppToast() {
+  const toast = document.getElementById('recreoPayInAppToast');
+  if (!toast) return;
+  toast.classList.add('closing');
+  setTimeout(() => toast.remove(), 250);
+}
+
 // SSE en tiempo real para eventos de la soda y monederos
 let sseSource = null;
 let sseReconnectTimer = null;
@@ -1797,6 +1871,41 @@ function initStudentSSE() {
         }
       }
     } catch (err) {}
+  });
+
+  // NUEVA SOLICITUD DE RECARGA SINPE (NOTIFICACIÓN ADMIN & PUSH)
+  sse.addEventListener('solicitud_sinpe_nueva', (e) => {
+    try {
+      const sol = JSON.parse(e.data);
+      const isAdminOrStaff = currentUser && ['admin', 'cajero', 'personal', 'dev', 'soda'].includes(currentUser.rol);
+
+      if (isAdminOrStaff) {
+        const montoFmt = (sol.monto_colones || 0).toLocaleString('es-CR');
+        const estNombre = sol.estudiante_nombre || 'Estudiante';
+        const comp = sol.comprobante_sinpe || '';
+
+        // 1. Notificación flotante en la aplicación
+        showInAppNotification({
+          title: '¡Nueva Recarga SINPE Reportada!',
+          message: `<strong>${estNombre}</strong>: ₡${montoFmt} • Comp #${comp}`,
+          url: '/pos.html?tab=sinpe',
+          buttonText: 'Ver en Terminal POS'
+        });
+
+        // 2. Notificación PUSH del navegador / sistema
+        sendPushNotification('🔔 Nueva Recarga SINPE - RecreoPay', {
+          body: `Se reportó una recarga de ₡${montoFmt} para ${estNombre}. Comprobante: #${comp}`,
+          tag: `sinpe-${sol.id || Date.now()}`,
+          data: { url: '/pos.html?tab=sinpe' }
+        });
+      }
+
+      if (currentUser && currentUser.rol === 'padre') {
+        loadParentDashboard();
+      }
+    } catch (err) {
+      console.warn('Error en SSE solicitud_sinpe_nueva:', err);
+    }
   });
 
   sse.addEventListener('producto_actualizado', (e) => {
