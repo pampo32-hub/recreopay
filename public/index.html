@@ -44,31 +44,11 @@
 
       <!-- FORMULARIO 1: INICIAR SESIÓN -->
       <form id="formLogin" onsubmit="handleLoginSubmit(event)">
-        <div class="login-form-group">
-          <label for="loginUsername">Usuario o Carné:</label>
-          <input type="text" id="loginUsername" class="login-input" placeholder="Ej: admin, padre, mateo, sofia" required autocomplete="username">
-        </div>
-
-        <div class="login-form-group">
-          <label for="loginPassword">Contraseña o PIN:</label>
-          <input type="password" id="loginPassword" class="login-input" placeholder="••••••••" required autocomplete="current-password">
-        </div>
-
-        <div id="loginErrorMsg" style="display: none; background: #fee2e2; border: 1px solid #fca5a5; color: #991b1b; padding: 8px 12px; border-radius: 10px; font-size: 0.8rem; font-weight: 700; margin-bottom: 12px; text-align: center;"></div>
-
-        <button type="submit" id="btnLoginSubmit" class="login-submit-btn" style="display: flex; align-items: center; justify-content: center; gap: 8px;">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" x2="3" y1="12" y2="12"/></svg>
-          <span>Iniciar Sesión</span>
-        </button>
-      </form>
-
-      <!-- FORMULARIO 2: REGISTRO DE NUEVOS PADRES -->
-      <form id="formRegisterPadre" onsubmit="handleRegisterPadreSubmit(event)" style="display: none;">
         <!-- SELECTOR DE ROL: "SOY" CON ICONOS SUPERFINOS Y ELEGANTES (SIN EMOJIS) -->
         <div class="login-role-selector-wrap">
-          <label style="font-size: 0.74rem; font-weight: 900; color: #475569; text-transform: uppercase; letter-spacing: 0.6px; display: block; margin-bottom: 8px;">Soy</label>
+          <label style="font-size: 0.74rem; font-weight: 900; color: #475569; text-transform: uppercase; letter-spacing: 0.6px; display: block; margin-bottom: 8px;">¿Quién eres?</label>
           <div class="login-role-grid">
-            <div onclick="selectRegisterRole('padre')" id="regRoleCardPadre" class="login-role-card selected">
+            <div onclick="selectLoginRole('padre')" id="loginRoleCardPadre" class="login-role-card selected">
               <div class="login-role-icon">
                 <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
                   <circle cx="9" cy="7" r="3.5"/>
@@ -81,7 +61,7 @@
               <span class="login-role-desc">o Encargado</span>
             </div>
 
-            <div onclick="selectRegisterRole('estudiante')" id="regRoleCardEstudiante" class="login-role-card">
+            <div onclick="selectLoginRole('estudiante')" id="loginRoleCardEstudiante" class="login-role-card">
               <div class="login-role-icon">
                 <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
                   <path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1-2.5-2.5Z"/>
@@ -94,7 +74,7 @@
               <span class="login-role-desc">Carné QR</span>
             </div>
 
-            <div onclick="selectRegisterRole('personal')" id="regRoleCardPersonal" class="login-role-card">
+            <div onclick="selectLoginRole('personal')" id="loginRoleCardPersonal" class="login-role-card">
               <div class="login-role-icon">
                 <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
                   <path d="M6 13.8V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v9.8"/>
@@ -105,6 +85,36 @@
               <span class="login-role-name">Personal</span>
               <span class="login-role-desc">Soda / Caja</span>
             </div>
+          </div>
+        </div>
+
+        <div class="login-form-group">
+          <label id="lblLoginUser" for="loginUsername">Usuario o Teléfono del Padre:</label>
+          <input type="text" id="loginUsername" class="login-input" placeholder="Ej: padre, carlos_papa o 8888-1122" required autocomplete="username">
+        </div>
+
+        <div class="login-form-group">
+          <label id="lblLoginPass" for="loginPassword">Contraseña:</label>
+          <input type="password" id="loginPassword" class="login-input" placeholder="••••••••" required autocomplete="current-password">
+        </div>
+
+        <div id="loginErrorMsg" style="display: none; background: #fee2e2; border: 1px solid #fca5a5; color: #991b1b; padding: 8px 12px; border-radius: 10px; font-size: 0.8rem; font-weight: 700; margin-bottom: 12px; text-align: center;"></div>
+
+        <button type="submit" id="btnLoginSubmit" class="login-submit-btn" style="display: flex; align-items: center; justify-content: center; gap: 8px;">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" x2="3" y1="12" y2="12"/></svg>
+          <span id="lblBtnLoginText">Ingresar como Padre / Encargado</span>
+        </button>
+      </form>
+
+      <!-- FORMULARIO 2: REGISTRO DE NUEVOS PADRES -->
+      <form id="formRegisterPadre" onsubmit="handleRegisterPadreSubmit(event)" style="display: none;">
+        <div style="background: #f0f9ff; border: 1px solid #bae6fd; border-radius: 14px; padding: 12px 14px; margin-bottom: 16px; display: flex; align-items: center; gap: 10px;">
+          <div style="width: 36px; height: 36px; border-radius: 10px; background: #e0f2fe; color: #0284c7; display: flex; align-items: center; justify-content: center; font-size: 1.2rem; flex-shrink: 0;">
+            👨‍👩‍👧‍👦
+          </div>
+          <div>
+            <strong style="color: #0369a1; font-size: 0.88rem; display: block;">Registro de Padres o Encargados</strong>
+            <span style="font-size: 0.72rem; color: #64748b;">Crea tu cuenta para vincular a tus hijos y recargarles saldo escolar.</span>
           </div>
         </div>
 
@@ -137,7 +147,7 @@
 
         <button type="submit" id="btnRegisterSubmit" class="login-submit-btn" style="display: flex; align-items: center; justify-content: center; gap: 8px;">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M19 11v6"/><path d="M22 14h-6"/></svg>
-          <span>Crear Cuenta y Entrar al Panel</span>
+          <span>Crear Cuenta de Padre y Entrar</span>
         </button>
       </form>
 

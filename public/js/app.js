@@ -169,45 +169,51 @@ function switchLoginTab(tab) {
   }
 }
 
-let selectedRegisterRole = 'padre';
+let currentLoginRole = 'padre';
 
-function selectRegisterRole(role) {
-  selectedRegisterRole = role;
-  const cardPadre = document.getElementById('regRoleCardPadre');
-  const cardEstudiante = document.getElementById('regRoleCardEstudiante');
-  const cardPersonal = document.getElementById('regRoleCardPersonal');
-  const errorMsg = document.getElementById('registerErrorMsg');
+function selectLoginRole(role) {
+  currentLoginRole = role;
+  const cardPadre = document.getElementById('loginRoleCardPadre');
+  const cardEstudiante = document.getElementById('loginRoleCardEstudiante');
+  const cardPersonal = document.getElementById('loginRoleCardPersonal');
 
   if (cardPadre) cardPadre.classList.toggle('selected', role === 'padre');
   if (cardEstudiante) cardEstudiante.classList.toggle('selected', role === 'estudiante');
   if (cardPersonal) cardPersonal.classList.toggle('selected', role === 'personal');
 
-  if (window.sounds) window.sounds.playTap();
+  const lblUser = document.getElementById('lblLoginUser');
+  const inputUser = document.getElementById('loginUsername');
+  const lblPass = document.getElementById('lblLoginPass');
+  const inputPass = document.getElementById('loginPassword');
+  const btnText = document.getElementById('lblBtnLoginText');
 
   if (role === 'estudiante') {
-    if (errorMsg) {
-      errorMsg.style.background = '#eff6ff';
-      errorMsg.style.borderColor = '#93c5fd';
-      errorMsg.style.color = '#1e40af';
-      errorMsg.innerHTML = '<strong>🎒 Cuenta de Estudiante:</strong> Tu carné y código QR son entregados directamente por el centro educativo. Si ya cuentas con carné o credenciales, toca en <a href="#" onclick="switchLoginTab(\'login\'); return false;" style="color: #0284c7; font-weight: 800; text-decoration: underline;">Iniciar Sesión</a>.';
-      errorMsg.style.display = 'block';
-    }
+    if (lblUser) lblUser.textContent = 'Carné o Código de Estudiante:';
+    if (inputUser) inputUser.placeholder = 'Ej: EST-2026-00001, mateo, sofia';
+    if (lblPass) lblPass.textContent = 'PIN Escolar (4 dígitos) o Contraseña:';
+    if (inputPass) inputPass.placeholder = 'Ej: 1234';
+    if (btnText) btnText.textContent = 'Ingresar como Estudiante';
   } else if (role === 'personal') {
-    if (errorMsg) {
-      errorMsg.style.background = '#fefce8';
-      errorMsg.style.borderColor = '#fde047';
-      errorMsg.style.color = '#854d0e';
-      errorMsg.innerHTML = '<strong>👨‍🍳 Personal de Soda:</strong> Las credenciales de punto de venta y administración son asignadas por la dirección escolar. Por favor ingresa en <a href="#" onclick="switchLoginTab(\'login\'); return false;" style="color: #0284c7; font-weight: 800; text-decoration: underline;">Iniciar Sesión</a>.';
-      errorMsg.style.display = 'block';
-    }
+    if (lblUser) lblUser.textContent = 'Usuario de Soda o Admin:';
+    if (inputUser) inputUser.placeholder = 'Ej: admin, cajero, soda';
+    if (lblPass) lblPass.textContent = 'Contraseña:';
+    if (inputPass) inputPass.placeholder = '••••••••';
+    if (btnText) btnText.textContent = 'Ingresar al Sistema de Soda';
   } else {
-    if (errorMsg) {
-      errorMsg.style.display = 'none';
-      errorMsg.style.background = '#fee2e2';
-      errorMsg.style.borderColor = '#fca5a5';
-      errorMsg.style.color = '#991b1b';
-    }
+    // Padre / Encargado
+    if (lblUser) lblUser.textContent = 'Usuario o Teléfono del Padre:';
+    if (inputUser) inputUser.placeholder = 'Ej: padre, carlos_papa o 8888-1122';
+    if (lblPass) lblPass.textContent = 'Contraseña:';
+    if (inputPass) inputPass.placeholder = '••••••••';
+    if (btnText) btnText.textContent = 'Ingresar como Padre / Encargado';
   }
+
+  if (window.sounds) window.sounds.playTap();
+}
+
+// Compatibilidad
+function selectRegisterRole(role) {
+  selectLoginRole(role);
 }
 
 async function handleRegisterPadreSubmit(event) {
@@ -251,13 +257,23 @@ async function handleRegisterPadreSubmit(event) {
     if (window.sounds) window.sounds.playError();
   } finally {
     btnSubmit.disabled = false;
-    btnSubmit.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:6px;"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M19 11v6"/><path d="M22 14h-6"/></svg> Crear Cuenta y Entrar al Panel';
+    btnSubmit.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:6px;"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M19 11v6"/><path d="M22 14h-6"/></svg> Crear Cuenta de Padre y Entrar';
   }
 }
 
 function quickFillLogin(username, password) {
-  document.getElementById('loginUsername').value = username;
-  document.getElementById('loginPassword').value = password;
+  if (username === 'mateo' || username === 'sofia') {
+    selectLoginRole('estudiante');
+  } else if (username === 'admin' || username === 'cajero' || username === 'dev') {
+    selectLoginRole('personal');
+  } else if (username === 'padre') {
+    selectLoginRole('padre');
+  }
+
+  const inputUser = document.getElementById('loginUsername');
+  const inputPass = document.getElementById('loginPassword');
+  if (inputUser) inputUser.value = username;
+  if (inputPass) inputPass.value = password;
   handleLoginSubmit();
 }
 
@@ -309,7 +325,12 @@ async function handleLoginSubmit(event) {
     if (window.sounds) window.sounds.playError();
   } finally {
     submitBtn.disabled = false;
-    submitBtn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:6px;"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" x2="3" y1="12" y2="12"/></svg> Iniciar Sesión';
+    const btnLabel = currentLoginRole === 'estudiante' 
+      ? 'Ingresar como Estudiante' 
+      : currentLoginRole === 'personal' 
+        ? 'Ingresar al Sistema de Soda' 
+        : 'Ingresar como Padre / Encargado';
+    submitBtn.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:6px;"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" x2="3" y1="12" y2="12"/></svg> <span id="lblBtnLoginText">${btnLabel}</span>`;
   }
 }
 
