@@ -88,7 +88,17 @@ document.addEventListener('DOMContentLoaded', async () => {
 // Cargar catálogo de productos
 async function loadCatalog() {
   try {
-    const res = await fetch('/api/productos');
+    let url = '/api/productos';
+    const storedUser = localStorage.getItem('recreopay_user');
+    if (storedUser) {
+      try {
+        const u = JSON.parse(storedUser);
+        if (u && u.escuela_id) {
+          url += `?escuela_id=${u.escuela_id}`;
+        }
+      } catch (e) {}
+    }
+    const res = await fetch(url);
     const data = await res.json();
     posCategories = data.categorias;
     posProducts = data.productos;
@@ -1365,7 +1375,15 @@ async function loadSinpeRequests() {
   if (!list) return;
 
   try {
-    const res = await fetch('/api/sinpe/solicitudes?estado=pendiente');
+    let url = '/api/sinpe/solicitudes?estado=pendiente';
+    const storedUser = localStorage.getItem('recreopay_user');
+    if (storedUser) {
+      try {
+        const u = JSON.parse(storedUser);
+        if (u && u.escuela_id) url += `&escuela_id=${u.escuela_id}`;
+      } catch (e) {}
+    }
+    const res = await fetch(url);
     const data = await res.json();
     if (!res.ok) throw new Error(data.error);
 

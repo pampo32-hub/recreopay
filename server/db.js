@@ -106,6 +106,21 @@ function initDatabase() {
   if (isPg) {
     try {
       db.exec(`
+        CREATE TABLE IF NOT EXISTS escuelas (
+          id SERIAL PRIMARY KEY,
+          codigo VARCHAR(20) UNIQUE NOT NULL,
+          nombre VARCHAR(150) NOT NULL,
+          telefono_sinpe VARCHAR(30) DEFAULT '8888-8888',
+          nombre_sinpe VARCHAR(150) DEFAULT 'Soda Central',
+          concesionario VARCHAR(150),
+          activo BOOLEAN DEFAULT TRUE,
+          creado_en TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        );
+
+        INSERT INTO escuelas (id, codigo, nombre, telefono_sinpe, nombre_sinpe, concesionario, activo)
+        VALUES (1, 'ESC01', 'Soda Escolar Central', '8888-8888', 'Soda Central', 'Concesionario Central', true)
+        ON CONFLICT (id) DO NOTHING;
+
         CREATE TABLE IF NOT EXISTS solicitudes_recarga_sinpe (
           id SERIAL PRIMARY KEY,
           estudiante_id INTEGER NOT NULL REFERENCES estudiantes(id) ON DELETE CASCADE,
@@ -115,12 +130,13 @@ function initDatabase() {
           estado TEXT DEFAULT 'pendiente',
           notas TEXT,
           aprobado_por_usuario_id INTEGER,
+          escuela_id INTEGER DEFAULT 1 REFERENCES escuelas(id),
           creado_en TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
           procesado_en TIMESTAMP
         );
       `);
     } catch (e) {
-      console.error('Error creando solicitudes_recarga_sinpe en PostgreSQL:', e);
+      console.error('Error creando tablas en PostgreSQL:', e);
     }
     seedUsuarios();
     seedDisenosTarjetas();
@@ -704,11 +720,13 @@ function crearOrdenCompleta({ estudianteId, tipoOrden, momentoEntrega, notas, it
     const notasVal = notas || '';
     const momentoVal = momentoEntrega || (tipoOrden === 'mostrador' ? 'inmediato' : 'recreo_1');
 
+    const escuelaId = (est && est.escuela_id) ? est.escuela_id : 1;
+
     // Insertar orden cabecera con todos sus campos completos
     const resultOrden = db.prepare(`
       INSERT INTO ordenes 
-      (codigo_orden, estudiante_id, cajero_id, tipo_orden, momento_entrega, estado, total_colones, saldo_anterior, saldo_posterior, metodo_pago, notas, observaciones, entregado_en)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'monedero_qr', ?, ?, ?)
+      (codigo_orden, estudiante_id, cajero_id, tipo_orden, momento_entrega, estado, total_colones, saldo_anterior, saldo_posterior, metodo_pago, notas, observaciones, entregado_en, escuela_id)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'monedero_qr', ?, ?, ?, ?)
     `).run(
       codigoOrden,
       estudianteId,
@@ -721,7 +739,8 @@ function crearOrdenCompleta({ estudianteId, tipoOrden, momentoEntrega, notas, it
       saldoPosterior,
       notasVal,
       obsVal,
-      entregadoEn
+      entregadoEn,
+      escuelaId
     );
 
     const ordenId = resultOrden.lastInsertRowid;
@@ -1046,14 +1065,21 @@ function revertirTransaccionSaldoTransaction({ transaccionId, usuarioId, usuario
  * Crea una nueva solicitud de recarga por SINPE Móvil enviada por un padre
  */
 function crearSolicitudRecargaSinpe({ estudianteId, padreUsuarioId, monto, comprobante, notas }) {
+  let escuelaId = 1;
+  try {
+    const est = db.prepare('SELECT escuela_id FROM estudiantes WHERE id = ?').get(estudianteId);
+    if (est && est.escuela_id) escuelaId = est.escuela_id;
+  } catch (e) {}
+
   const insert = db.prepare(`
-    INSERT INTO solicitudes_recarga_sinpe (estudiante_id, padre_usuario_id, monto_colones, comprobante_sinpe, estado, notas)
-    VALUES (?, ?, ?, ?, 'pendiente', ?)
+    INSERT INTO solicitudes_recarga_sinpe (estudiante_id, padre_usuario_id, monto_colones, comprobante_sinpe, estado, notas, escuela_id)
+    VALUES (?, ?, ?, ?, 'pendiente', ?, ?)
   `);
-  const res = insert.run(estudianteId, padreUsuarioId || null, parseInt(monto, 10), String(comprobante).trim(), notas || '');
+  const res = insert.run(estudianteId, padreUsuarioId || null, parseInt(monto, 10), String(comprobante).trim(), notas || '', escuelaId);
   return {
-    id: res.lastInsertRowid,
+    id: res.lastInsertRowid || res.id,
     estudiante_id: estudianteId,
+    escuela_id: escuelaId,
     monto_colones: parseInt(monto, 10),
     comprobante_sinpe: String(comprobante).trim(),
     estado: 'pendiente'
@@ -1061,26 +1087,40 @@ function crearSolicitudRecargaSinpe({ estudianteId, padreUsuarioId, monto, compr
 }
 
 /**
- * Obtiene las solicitudes de recarga SINPE (con datos del estudiante)
+ * Obtiene las solicitudes de recarga SINPE (con datos del estudiante y escuela)
  */
-function obtenerSolicitudesRecargaSinpe(filtroEstado = 'pendiente') {
+function obtenerSolicitudesRecargaSinpe(filtroEstado = 'pendiente', escuelaId = null) {
   let sql = `
     SELECT s.*, 
            e.nombre_completo as estudiante_nombre, 
            e.grado as estudiante_grado, 
            e.seccion as estudiante_seccion, 
            e.foto_url as estudiante_foto, 
-           e.saldo_colones as estudiante_saldo
+           e.saldo_colones as estudiante_saldo,
+           esc.nombre as escuela_nombre,
+           esc.codigo as escuela_codigo
     FROM solicitudes_recarga_sinpe s
     JOIN estudiantes e ON e.id = s.estudiante_id
+    LEFT JOIN escuelas esc ON esc.id = s.escuela_id
   `;
+  const conditions = [];
+  const params = [];
+
   if (filtroEstado && filtroEstado !== 'todas') {
-    sql += ` WHERE s.estado = ? ORDER BY s.creado_en DESC`;
-    return db.prepare(sql).all(filtroEstado);
-  } else {
-    sql += ` ORDER BY s.creado_en DESC`;
-    return db.prepare(sql).all();
+    conditions.push('s.estado = ?');
+    params.push(filtroEstado);
   }
+  if (escuelaId) {
+    conditions.push('(s.escuela_id = ? OR s.escuela_id IS NULL)');
+    params.push(escuelaId);
+  }
+
+  if (conditions.length > 0) {
+    sql += ' WHERE ' + conditions.join(' AND ');
+  }
+  sql += ' ORDER BY s.creado_en DESC';
+
+  return db.prepare(sql).all(...params);
 }
 
 /**

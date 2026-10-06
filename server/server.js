@@ -109,14 +109,36 @@ app.post('/api/auth/login', (req, res) => {
 
     let estudiante = null;
     let hijos = [];
+    let escuela = null;
+
+    if (user.escuela_id) {
+      try {
+        escuela = db.prepare('SELECT id, codigo, nombre, telefono_sinpe, nombre_sinpe, concesionario FROM escuelas WHERE id = ?').get(user.escuela_id);
+      } catch (e) {}
+    }
 
     if (user.rol === 'estudiante') {
-      estudiante = db.prepare('SELECT * FROM estudiantes WHERE usuario_id = ?').get(user.id);
+      estudiante = db.prepare(`
+        SELECT e.*, esc.nombre as escuela_nombre, esc.codigo as escuela_codigo, esc.telefono_sinpe, esc.nombre_sinpe
+        FROM estudiantes e
+        LEFT JOIN escuelas esc ON esc.id = e.escuela_id
+        WHERE e.usuario_id = ?
+      `).get(user.id);
       if (!estudiante) {
-        estudiante = db.prepare('SELECT * FROM estudiantes WHERE LOWER(nombre_completo) LIKE ?').get(`%${cleanUser}%`);
+        estudiante = db.prepare(`
+          SELECT e.*, esc.nombre as escuela_nombre, esc.codigo as escuela_codigo, esc.telefono_sinpe, esc.nombre_sinpe
+          FROM estudiantes e
+          LEFT JOIN escuelas esc ON esc.id = e.escuela_id
+          WHERE LOWER(e.nombre_completo) LIKE ?
+        `).get(`%${cleanUser}%`);
       }
       if (!estudiante) {
-        estudiante = db.prepare('SELECT * FROM estudiantes ORDER BY id ASC LIMIT 1').get();
+        estudiante = db.prepare(`
+          SELECT e.*, esc.nombre as escuela_nombre, esc.codigo as escuela_codigo, esc.telefono_sinpe, esc.nombre_sinpe
+          FROM estudiantes e
+          LEFT JOIN escuelas esc ON esc.id = e.escuela_id
+          ORDER BY e.id ASC LIMIT 1
+        `).get();
       }
       if (estudiante) {
         const gastoHoy = db.prepare(`
@@ -129,14 +151,20 @@ app.post('/api/auth/login', (req, res) => {
       }
     } else if (user.rol === 'padre') {
       hijos = db.prepare(`
-        SELECT e.* 
+        SELECT e.*, esc.nombre as escuela_nombre, esc.codigo as escuela_codigo, esc.telefono_sinpe, esc.nombre_sinpe
         FROM estudiantes e
+        LEFT JOIN escuelas esc ON esc.id = e.escuela_id
         JOIN padres_estudiantes pe ON e.id = pe.estudiante_id
         WHERE pe.padre_usuario_id = ?
         ORDER BY e.nombre_completo ASC
       `).all(user.id);
       if (hijos.length === 0) {
-        hijos = db.prepare('SELECT * FROM estudiantes WHERE padre_usuario_id = ?').all(user.id);
+        hijos = db.prepare(`
+          SELECT e.*, esc.nombre as escuela_nombre, esc.codigo as escuela_codigo, esc.telefono_sinpe, esc.nombre_sinpe
+          FROM estudiantes e
+          LEFT JOIN escuelas esc ON esc.id = e.escuela_id
+          WHERE e.padre_usuario_id = ?
+        `).all(user.id);
       }
       hijos = hijos.map(h => {
         const gastoHoy = db.prepare(`
@@ -160,7 +188,9 @@ app.post('/api/auth/login', (req, res) => {
         rol: user.rol,
         nombre: user.nombre,
         email: user.email,
-        telefono: user.telefono
+        telefono: user.telefono,
+        escuela_id: user.escuela_id || 1,
+        escuela: escuela
       },
       estudiante,
       hijos
@@ -282,15 +312,21 @@ app.get('/api/padres/mis-hijos', (req, res) => {
     }
 
     let hijos = db.prepare(`
-      SELECT e.* 
+      SELECT e.*, esc.nombre as escuela_nombre, esc.codigo as escuela_codigo, esc.telefono_sinpe, esc.nombre_sinpe
       FROM estudiantes e
+      LEFT JOIN escuelas esc ON esc.id = e.escuela_id
       JOIN padres_estudiantes pe ON e.id = pe.estudiante_id
       WHERE pe.padre_usuario_id = ?
       ORDER BY e.nombre_completo ASC
     `).all(padre_usuario_id);
 
     if (hijos.length === 0) {
-      hijos = db.prepare('SELECT * FROM estudiantes WHERE padre_usuario_id = ?').all(padre_usuario_id);
+      hijos = db.prepare(`
+        SELECT e.*, esc.nombre as escuela_nombre, esc.codigo as escuela_codigo, esc.telefono_sinpe, esc.nombre_sinpe
+        FROM estudiantes e
+        LEFT JOIN escuelas esc ON esc.id = e.escuela_id
+        WHERE e.padre_usuario_id = ?
+      `).all(padre_usuario_id);
     }
 
     const hijosEnriquecidos = hijos.map(h => {
@@ -480,12 +516,14 @@ app.post('/api/admin/productos', (req, res) => {
     const disp = disponible !== undefined ? (disponible ? 1 : 0) : (ctrlStock === 1 && stockVal <= 0 ? 0 : 1);
     const mep = cumple_mep !== undefined ? (cumple_mep ? 1 : 0) : 1;
 
+    const escuelaId = req.body.escuela_id ? parseInt(req.body.escuela_id, 10) : 1;
+
     const info = db.prepare(`
       INSERT INTO productos (
         categoria_id, nombre, descripcion, precio_colones, imagen_url, 
         icono, calorias, cumple_mep, alergenos, disponible, 
-        permite_preorden, destacado, control_stock, stock
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?, ?)
+        permite_preorden, destacado, control_stock, stock, escuela_id
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?, ?, ?)
     `).run(
       catId,
       String(nombre).trim(),
@@ -499,7 +537,8 @@ app.post('/api/admin/productos', (req, res) => {
       disp,
       permite_preorden !== undefined ? (permite_preorden ? 1 : 0) : 1,
       ctrlStock,
-      stockVal
+      stockVal,
+      escuelaId
     );
 
     const nuevo = db.prepare(`
@@ -1073,6 +1112,111 @@ app.get('/api/developer/stats', (req, res) => {
   }
 });
 
+// ==========================================
+// GESTIÓN MULTI-ESCUELA / MULTI-TENANT (DEVELOPER MASTER)
+// ==========================================
+
+// Listar todas las escuelas y sus estadísticas de operación
+app.get('/api/developer/escuelas', (req, res) => {
+  try {
+    const escuelas = db.prepare(`
+      SELECT e.*,
+             (SELECT COUNT(*) FROM estudiantes est WHERE est.escuela_id = e.id) as total_estudiantes,
+             (SELECT COUNT(*) FROM productos p WHERE p.escuela_id = e.id) as total_productos,
+             (SELECT COUNT(*) FROM ordenes o WHERE o.escuela_id = e.id) as total_ordenes,
+             (SELECT COALESCE(SUM(total_colones), 0) FROM ordenes o WHERE o.escuela_id = e.id) as ventas_totales
+      FROM escuelas e
+      ORDER BY e.id ASC
+    `).all();
+    res.json(escuelas);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Crear una nueva escuela con catálogo base y cuentas operativas automáticas
+app.post('/api/developer/escuelas', (req, res) => {
+  try {
+    const { codigo, nombre, telefono_sinpe, nombre_sinpe, concesionario } = req.body;
+    if (!codigo || !nombre) {
+      return res.status(400).json({ error: 'Código y Nombre de la escuela son obligatorios' });
+    }
+
+    const cleanCod = codigo.trim().toUpperCase().replace(/[^A-Z0-9]/g, '');
+    const cleanNom = nombre.trim();
+    const tel = (telefono_sinpe || '8888-8888').trim();
+    const nomSinpe = (nombre_sinpe || cleanNom).trim();
+    const conce = (concesionario || 'Concesionario ' + cleanNom).trim();
+
+    const exists = db.prepare('SELECT id FROM escuelas WHERE codigo = ?').get(cleanCod);
+    if (exists) {
+      return res.status(400).json({ error: `El código de escuela '${cleanCod}' ya existe.` });
+    }
+
+    const insertRes = db.prepare(`
+      INSERT INTO escuelas (codigo, nombre, telefono_sinpe, nombre_sinpe, concesionario, activo)
+      VALUES (?, ?, ?, ?, ?, 1)
+    `).run(cleanCod, cleanNom, tel, nomSinpe, conce);
+
+    const newEscuelaId = insertRes.lastInsertRowid || insertRes.id;
+
+    // Clonar catálogo base de productos saludables MEP de la Escuela #1
+    try {
+      const prodsBase = db.prepare('SELECT categoria_id, nombre, descripcion, precio_colones, imagen_url, icono, calorias, cumple_mep, alergenos, permite_preorden, destacado FROM productos WHERE escuela_id = 1').all();
+      for (const p of prodsBase) {
+        db.prepare(`
+          INSERT INTO productos (categoria_id, nombre, descripcion, precio_colones, imagen_url, icono, calorias, cumple_mep, alergenos, permite_preorden, destacado, escuela_id, disponible)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1)
+        `).run(p.categoria_id, p.nombre, p.descripcion, p.precio_colones, p.imagen_url, p.icono, p.calorias, p.cumple_mep, p.alergenos, p.permite_preorden, p.destacado, newEscuelaId);
+      }
+    } catch (e) {
+      console.warn('Advertencia clonando catálogo inicial:', e.message);
+    }
+
+    // Crear cuentas operativas de cajero y administrador para la nueva escuela
+    const cajeroUser = `cajero_${cleanCod.toLowerCase()}`;
+    const adminUser = `admin_${cleanCod.toLowerCase()}`;
+    try {
+      db.prepare(`
+        INSERT INTO usuarios (username, password_hash, rol, nombre, telefono, activo, escuela_id)
+        VALUES (?, '123456', 'cajero', ?, ?, 1, ?)
+      `).run(cajeroUser, `Cajero Soda ${cleanNom}`, tel, newEscuelaId);
+
+      db.prepare(`
+        INSERT INTO usuarios (username, password_hash, rol, nombre, telefono, activo, escuela_id)
+        VALUES (?, '123456', 'admin', ?, ?, 1, ?)
+      `).run(adminUser, `Administrador Soda ${cleanNom}`, tel, newEscuelaId);
+    } catch (e) {
+      console.warn('Advertencia creando usuarios iniciales:', e.message);
+    }
+
+    res.status(201).json({
+      success: true,
+      escuela_id: newEscuelaId,
+      codigo: cleanCod,
+      nombre: cleanNom,
+      cajero_usuario: cajeroUser,
+      admin_usuario: adminUser,
+      mensaje: `¡Escuela "${cleanNom}" dada de alta con éxito! Se crearon sus cuentas operativas y catálogo.`
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Activar o pausar una escuela
+app.put('/api/developer/escuelas/:id/estado', (req, res) => {
+  try {
+    const id = parseInt(req.params.id, 10);
+    const { activo } = req.body;
+    const nuevoEstado = activo ? 1 : 0;
+    db.prepare('UPDATE escuelas SET activo = ? WHERE id = ?').run(nuevoEstado, id);
+    res.json({ success: true, activo: nuevoEstado });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // Crear nuevo estudiante / usuario + carné QR (escalable a 5 dígitos y prefijos multi-negocio)
 app.post('/api/admin/estudiantes', (req, res) => {
   try {
@@ -1090,8 +1234,16 @@ app.post('/api/admin/estudiantes', (req, res) => {
     const maxRow = db.prepare('SELECT COALESCE(MAX(id), 0) + 1 as nextId FROM estudiantes').get();
     const nextSeq = maxRow ? maxRow.nextId : 1;
 
-    // Prefijo configurable para expansión a otros negocios (EST, EMP, EVT, SOC, PASS)
-    const cleanPrefix = (prefijo || tipo_entidad || 'EST').toUpperCase().trim().replace(/[^A-Z0-9]/g, '').substring(0, 6) || 'EST';
+    // Resolver escuela y prefijo institucional
+    let escuelaId = req.body.escuela_id ? parseInt(req.body.escuela_id, 10) : 1;
+    let schoolPrefix = 'EST';
+    try {
+      const escRow = db.prepare('SELECT codigo FROM escuelas WHERE id = ?').get(escuelaId);
+      if (escRow && escRow.codigo) schoolPrefix = escRow.codigo;
+    } catch (e) {}
+
+    // Prefijo institucional configurable (ej: SJT, LCR, EST)
+    const cleanPrefix = (prefijo || tipo_entidad || schoolPrefix).toUpperCase().trim().replace(/[^A-Z0-9]/g, '').substring(0, 6) || 'EST';
     const year = new Date().getFullYear();
     const codigoEstudiante = `${cleanPrefix}-${year}-${String(nextSeq).padStart(5, '0')}`;
     
@@ -1107,8 +1259,8 @@ app.post('/api/admin/estudiantes', (req, res) => {
 
     const resEst = db.prepare(`
       INSERT INTO estudiantes 
-      (codigo_estudiante, nombre_completo, edad, grado, seccion, qr_token, pin_seguridad, foto_url, saldo_colones, limite_diario_colones, alergias, padre_nombre, padre_telefono, permitir_transferencias, tarjeta_bloqueada, activo)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, 0, 1)
+      (codigo_estudiante, nombre_completo, edad, grado, seccion, qr_token, pin_seguridad, foto_url, saldo_colones, limite_diario_colones, alergias, padre_nombre, padre_telefono, permitir_transferencias, tarjeta_bloqueada, activo, escuela_id)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, 0, 1, ?)
     `).run(
       codigoEstudiante,
       nombre_completo.trim(),
@@ -1122,19 +1274,20 @@ app.post('/api/admin/estudiantes', (req, res) => {
       limite,
       alergias || 'Ninguna conocida',
       padre_nombre || '',
-      padre_telefono || ''
+      padre_telefono || '',
+      escuelaId
     );
 
-    const nuevoId = resEst.lastInsertRowid;
+    const nuevoId = resEst.lastInsertRowid || resEst.id;
 
     // Crear cuenta de usuario estudiante
     const usernameEst = primerNombre.toLowerCase() + nextSeq;
     try {
       const userRes = db.prepare(`
-        INSERT INTO usuarios (username, password_hash, rol, nombre, email, telefono, activo)
-        VALUES (?, ?, 'estudiante', ?, '', '', 1)
-      `).run(usernameEst, pin, nombre_completo.trim());
-      db.prepare('UPDATE estudiantes SET usuario_id = ? WHERE id = ?').run(userRes.lastInsertRowid, nuevoId);
+        INSERT INTO usuarios (username, password_hash, rol, nombre, email, telefono, activo, escuela_id)
+        VALUES (?, ?, 'estudiante', ?, '', '', 1, ?)
+      `).run(usernameEst, pin, nombre_completo.trim(), escuelaId);
+      db.prepare('UPDATE estudiantes SET usuario_id = ? WHERE id = ?').run(userRes.lastInsertRowid || userRes.id, nuevoId);
     } catch (e) {}
 
     // Si tiene saldo inicial, registrar en movimientos
@@ -1653,13 +1806,22 @@ app.post('/api/transferencias', (req, res) => {
 
 app.get('/api/productos', (req, res) => {
   try {
+    const escuelaId = req.query.escuela_id ? parseInt(req.query.escuela_id, 10) : null;
     const categorias = db.prepare('SELECT * FROM categorias ORDER BY orden ASC').all();
-    const productos = db.prepare(`
+    
+    let sql = `
       SELECT p.*, c.nombre as categoria_nombre, c.icono as categoria_icono
       FROM productos p
       JOIN categorias c ON p.categoria_id = c.id
-      ORDER BY p.categoria_id, p.nombre
-    `).all();
+    `;
+    const params = [];
+    if (escuelaId) {
+      sql += ' WHERE (p.escuela_id = ? OR p.escuela_id IS NULL) ';
+      params.push(escuelaId);
+    }
+    sql += ' ORDER BY p.categoria_id, p.nombre';
+
+    const productos = db.prepare(sql).all(...params);
 
     res.json({ categorias, productos });
   } catch (error) {
@@ -1670,9 +1832,10 @@ app.get('/api/productos', (req, res) => {
 // Crear producto rápido en mostrador (en caliente)
 app.post('/api/productos/rapido', (req, res) => {
   try {
-    const { nombre, precio_colones, categoria_id } = req.body;
+    const { nombre, precio_colones, categoria_id, escuela_id } = req.body;
     const cleanNombre = (nombre || '').trim();
     const precio = parseInt(precio_colones, 10);
+    const escuelaId = escuela_id ? parseInt(escuela_id, 10) : 1;
 
     if (!cleanNombre) {
       return res.status(400).json({ error: 'El nombre del producto es obligatorio' });
@@ -1697,15 +1860,16 @@ app.post('/api/productos/rapido', (req, res) => {
       INSERT INTO productos (
         categoria_id, nombre, descripcion, precio_colones,
         imagen_url, icono, calorias, cumple_mep, alergenos,
-        disponible, permite_preorden, destacado, control_stock, stock
-      ) VALUES (?, ?, ?, ?, '', ?, 220, ?, 'Ninguno conocido', 1, 1, 0, 1, 10)
+        disponible, permite_preorden, destacado, control_stock, stock, escuela_id
+      ) VALUES (?, ?, ?, ?, '', ?, 220, ?, 'Ninguno conocido', 1, 1, 0, 1, 10, ?)
     `).run(
       targetCatId,
       cleanNombre,
       'Producto rápido registrado en mostrador',
       precio,
       '🥪',
-      1
+      1,
+      escuelaId
     );
 
     const newId = insertRes.lastInsertRowid;

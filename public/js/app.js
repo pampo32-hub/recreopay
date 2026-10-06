@@ -378,6 +378,12 @@ function switchDevTab(tab) {
     if (btn) btn.classList.add('active');
     if (content) content.style.display = 'block';
     loadDevStats();
+  } else if (tab === 'escuelas') {
+    const btn = document.getElementById('btnDevTabEscuelas');
+    const content = document.getElementById('devTabContentEscuelas');
+    if (btn) btn.classList.add('active');
+    if (content) content.style.display = 'block';
+    loadDevEscuelas();
   }
 }
 
@@ -2009,6 +2015,15 @@ function renderActiveChildDetails(child) {
   if (inputCustomLimit) inputCustomLimit.value = currentLimit;
   if (rangeLimit) rangeLimit.value = currentLimit;
   if (chkTransfer) chkTransfer.checked = child.permitir_transferencias !== 0;
+
+  // Actualizar datos de la soda/escuela del hijo seleccionado para recargas SINPE
+  const sinpeNumero = document.getElementById('parentSinpeNumero');
+  const sinpeEscuela = document.getElementById('parentSinpeEscuelaNombre');
+  const sinpeTitular = document.getElementById('parentSinpeTitular');
+
+  if (sinpeNumero) sinpeNumero.textContent = child.telefono_sinpe || '8888-8888';
+  if (sinpeEscuela) sinpeEscuela.textContent = child.escuela_nombre || 'Soda Escolar';
+  if (sinpeTitular) sinpeTitular.textContent = child.nombre_sinpe || child.escuela_nombre || 'Soda Central';
 
   loadActiveChildHistory(child.id);
   loadParentSinpeRequests(child.id);
@@ -5321,6 +5336,228 @@ async function loadDevStats() {
   } catch (err) {
     console.error('Error cargando stats dev:', err);
     container.innerHTML = `<div style="grid-column: 1/-1; color: #ef4444;">Error cargando métricas: ${escapeHtml(err.message)}</div>`;
+  }
+}
+
+// ==========================================
+// 4. GESTIÓN MULTI-ESCUELA / MULTI-TENANT (DEVELOPER MASTER)
+// ==========================================
+
+let devAllEscuelas = [];
+
+async function loadDevEscuelas() {
+  const grid = document.getElementById('devEscuelasGrid');
+  if (!grid) return;
+
+  try {
+    grid.innerHTML = '<div style="grid-column: 1/-1; text-align: center; color: var(--text-muted); padding: 30px;">Cargando centros educativos y sedes...</div>';
+    const res = await fetch('/api/developer/escuelas');
+    if (!res.ok) throw new Error('Error al consultar escuelas');
+    devAllEscuelas = await res.json();
+    renderDevEscuelasSummary(devAllEscuelas);
+    renderDevEscuelas(devAllEscuelas);
+  } catch (err) {
+    console.error('Error cargando escuelas:', err);
+    grid.innerHTML = `<div style="grid-column: 1/-1; color: #ef4444; text-align: center; padding: 20px;">Error: ${escapeHtml(err.message)}</div>`;
+  }
+}
+
+function renderDevEscuelasSummary(escuelas) {
+  const strip = document.getElementById('devEscuelasSummaryStrip');
+  if (!strip) return;
+
+  const totalSedes = escuelas.length;
+  const totalAlumnos = escuelas.reduce((sum, e) => sum + (parseInt(e.total_estudiantes, 10) || 0), 0);
+  const totalProds = escuelas.reduce((sum, e) => sum + (parseInt(e.total_productos, 10) || 0), 0);
+  const totalVentas = escuelas.reduce((sum, e) => sum + (parseFloat(e.ventas_totales) || 0), 0);
+
+  strip.innerHTML = `
+    <div style="background: var(--card-bg); border: 1.5px solid var(--border); border-radius: 12px; padding: 12px 16px; flex: 1; min-width: 150px;">
+      <span style="font-size: 0.72rem; font-weight: 800; color: var(--text-muted); text-transform: uppercase;">Sedes Activas</span>
+      <div style="font-size: 1.35rem; font-weight: 900; color: #8b5cf6; margin-top: 4px;">${totalSedes}</div>
+    </div>
+    <div style="background: var(--card-bg); border: 1.5px solid var(--border); border-radius: 12px; padding: 12px 16px; flex: 1; min-width: 150px;">
+      <span style="font-size: 0.72rem; font-weight: 800; color: var(--text-muted); text-transform: uppercase;">Total Estudiantes</span>
+      <div style="font-size: 1.35rem; font-weight: 900; color: #0284c7; margin-top: 4px;">${totalAlumnos}</div>
+    </div>
+    <div style="background: var(--card-bg); border: 1.5px solid var(--border); border-radius: 12px; padding: 12px 16px; flex: 1; min-width: 150px;">
+      <span style="font-size: 0.72rem; font-weight: 800; color: var(--text-muted); text-transform: uppercase;">Platillos en Catálogos</span>
+      <div style="font-size: 1.35rem; font-weight: 900; color: #10b981; margin-top: 4px;">${totalProds}</div>
+    </div>
+    <div style="background: var(--card-bg); border: 1.5px solid var(--border); border-radius: 12px; padding: 12px 16px; flex: 1; min-width: 150px;">
+      <span style="font-size: 0.72rem; font-weight: 800; color: var(--text-muted); text-transform: uppercase;">Facturación Global</span>
+      <div style="font-size: 1.35rem; font-weight: 900; color: #f59e0b; margin-top: 4px;">₡${totalVentas.toLocaleString('es-CR')}</div>
+    </div>
+  `;
+}
+
+function renderDevEscuelas(escuelas) {
+  const grid = document.getElementById('devEscuelasGrid');
+  if (!grid) return;
+
+  if (escuelas.length === 0) {
+    grid.innerHTML = '<div style="grid-column: 1/-1; text-align: center; color: var(--text-muted); padding: 40px;">No hay escuelas registradas aún. Presiona "+ Dar de Alta Nueva Escuela".</div>';
+    return;
+  }
+
+  grid.innerHTML = escuelas.map(e => {
+    const isActivo = e.activo !== 0;
+    const ventas = parseFloat(e.ventas_totales) || 0;
+    const prods = parseInt(e.total_productos, 10) || 0;
+    const ests = parseInt(e.total_estudiantes, 10) || 0;
+    const ords = parseInt(e.total_ordenes, 10) || 0;
+
+    return `
+      <div style="background: var(--card-bg); border: 1.5px solid ${isActivo ? 'var(--border)' : '#fca5a5'}; border-radius: 16px; padding: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.04); display: flex; flex-direction: column; justify-content: space-between; transition: all 0.2s;">
+        <div>
+          <!-- Cabecera de la Sede -->
+          <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; margin-bottom: 12px;">
+            <div style="display: flex; align-items: center; gap: 10px;">
+              <div style="width: 44px; height: 44px; border-radius: 12px; background: rgba(139, 92, 246, 0.12); color: #8b5cf6; display: flex; align-items: center; justify-content: center; font-size: 1.3rem; flex-shrink: 0;">
+                🏫
+              </div>
+              <div>
+                <h4 style="margin: 0; font-size: 1.05rem; font-weight: 900; color: var(--text-main);">${escapeHtml(e.nombre)}</h4>
+                <div style="display: flex; gap: 6px; align-items: center; margin-top: 2px;">
+                  <span style="font-size: 0.72rem; font-weight: 900; background: #e0e7ff; color: #4338ca; padding: 2px 8px; border-radius: 6px;">CÓD: ${escapeHtml(e.codigo)}</span>
+                  <span style="font-size: 0.72rem; font-weight: 800; color: var(--text-muted);">ID #${e.id}</span>
+                </div>
+              </div>
+            </div>
+            <span style="font-size: 0.70rem; font-weight: 800; padding: 3px 8px; border-radius: 6px; background: ${isActivo ? '#dcfce7' : '#fee2e2'}; color: ${isActivo ? '#166534' : '#dc2626'};">
+              ${isActivo ? '● ACTIVA' : '⏸ EN PAUSA'}
+            </span>
+          </div>
+
+          <!-- Datos de Operación y SINPE -->
+          <div style="background: var(--bg-main); border: 1px solid var(--border); border-radius: 10px; padding: 10px 12px; margin-bottom: 14px; font-size: 0.8rem; line-height: 1.5;">
+            <div><strong>SINPE Móvil:</strong> <span style="color: #16a34a; font-weight: 800;">${escapeHtml(e.telefono_sinpe || 'No configurado')}</span> (${escapeHtml(e.nombre_sinpe || e.nombre)})</div>
+            <div style="margin-top: 3px; color: var(--text-muted);"><strong>Operador:</strong> ${escapeHtml(e.concesionario || 'Administración de la Soda')}</div>
+          </div>
+
+          <!-- Métricas de la Sede -->
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 16px;">
+            <div style="background: var(--bg-main); border-radius: 8px; padding: 8px 10px;">
+              <span style="font-size: 0.68rem; color: var(--text-muted); font-weight: 700; text-transform: uppercase;">Alumnos</span>
+              <div style="font-size: 1.05rem; font-weight: 900; color: #0284c7;">${ests}</div>
+            </div>
+            <div style="background: var(--bg-main); border-radius: 8px; padding: 8px 10px;">
+              <span style="font-size: 0.68rem; color: var(--text-muted); font-weight: 700; text-transform: uppercase;">Catálogo</span>
+              <div style="font-size: 1.05rem; font-weight: 900; color: #10b981;">${prods} prods</div>
+            </div>
+            <div style="background: var(--bg-main); border-radius: 8px; padding: 8px 10px;">
+              <span style="font-size: 0.68rem; color: var(--text-muted); font-weight: 700; text-transform: uppercase;">Órdenes</span>
+              <div style="font-size: 1.05rem; font-weight: 900; color: #8b5cf6;">${ords}</div>
+            </div>
+            <div style="background: var(--bg-main); border-radius: 8px; padding: 8px 10px;">
+              <span style="font-size: 0.68rem; color: var(--text-muted); font-weight: 700; text-transform: uppercase;">Ventas Totales</span>
+              <div style="font-size: 1.05rem; font-weight: 900; color: #f59e0b;">₡${ventas.toLocaleString('es-CR')}</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Acciones Operativas -->
+        <div style="display: flex; gap: 8px; border-top: 1px solid var(--border); padding-top: 12px; justify-content: space-between; align-items: center;">
+          <button onclick="verCredencialesEscuela('${escapeHtml(e.codigo)}', '${escapeHtml(e.nombre)}')" class="dev-action-btn" style="padding: 6px 12px; font-size: 0.78rem; display: inline-flex; align-items: center; gap: 5px;">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg> Cuentas
+          </button>
+          
+          <button onclick="toggleDevEscuelaEstado(${e.id}, ${isActivo ? 0 : 1})" class="dev-action-btn" style="padding: 6px 12px; font-size: 0.78rem; color: ${isActivo ? '#dc2626' : '#16a34a'}; border-color: ${isActivo ? 'rgba(220,38,38,0.3)' : 'rgba(22,163,74,0.3)'};">
+            ${isActivo ? '⏸ Pausar Sede' : '▶ Activar Sede'}
+          </button>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+function openModalDevEscuela() {
+  const form = document.getElementById('formDevEscuela');
+  if (form) form.reset();
+  const modal = document.getElementById('modalDevEscuela');
+  if (modal) modal.style.display = 'flex';
+  setTimeout(() => document.getElementById('devEscuelaCodigo')?.focus(), 50);
+}
+
+function closeModalDevEscuela(e) {
+  if (e && e.target !== e.currentTarget && !e.target.classList.contains('modal-qr-backdrop')) return;
+  const modal = document.getElementById('modalDevEscuela');
+  if (modal) modal.style.display = 'none';
+}
+
+function verCredencialesEscuela(codigo, nombre) {
+  const cod = (codigo || '').toLowerCase();
+  alert(`Credenciales para ${nombre}:\n\n` +
+        `• Cajero Terminal POS:\n  Usuario: cajero_${cod}\n  Contraseña: 123456\n\n` +
+        `• Administrador de Soda:\n  Usuario: admin_${cod}\n  Contraseña: 123456\n\n` +
+        `Pueden ingresar directamente desde la pantalla de login principal.`);
+}
+
+async function guardarDevEscuela(e) {
+  e.preventDefault();
+  const btn = document.getElementById('btnDevSubmitEscuela');
+  const codigo = (document.getElementById('devEscuelaCodigo')?.value || '').trim();
+  const nombre = (document.getElementById('devEscuelaNombre')?.value || '').trim();
+  const telefono_sinpe = (document.getElementById('devEscuelaSinpe')?.value || '').trim();
+  const nombre_sinpe = (document.getElementById('devEscuelaSinpeNombre')?.value || '').trim();
+  const concesionario = (document.getElementById('devEscuelaConcesionario')?.value || '').trim();
+
+  if (!codigo || !nombre) {
+    alert('El código y el nombre del centro educativo son obligatorios.');
+    return;
+  }
+
+  try {
+    if (btn) {
+      btn.disabled = true;
+      btn.textContent = 'Registrando sede...';
+    }
+
+    const res = await fetch('/api/developer/escuelas', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ codigo, nombre, telefono_sinpe, nombre_sinpe, concesionario })
+    });
+
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Error al crear escuela');
+
+    if (window.sounds) window.sounds.playCoin();
+
+    closeModalDevEscuela();
+    alert(`¡Éxito al dar de alta la escuela!\n\n` +
+          `Sede: ${data.nombre} (${data.codigo})\n\n` +
+          `Se creó el catálogo MEP y las siguientes cuentas operativas:\n` +
+          `1. Cajero: ${data.cajero_usuario} (clave: 123456)\n` +
+          `2. Admin Soda: ${data.admin_usuario} (clave: 123456)`);
+
+    loadDevEscuelas();
+  } catch (err) {
+    alert('Error al registrar escuela: ' + err.message);
+  } finally {
+    if (btn) {
+      btn.disabled = false;
+      btn.textContent = 'Dar de Alta Escuela';
+    }
+  }
+}
+
+async function toggleDevEscuelaEstado(id, nuevoEstado) {
+  const accion = nuevoEstado === 1 ? 'activar' : 'pausar temporalmente';
+  if (!confirm(`¿Estás seguro de que deseas ${accion} esta sede escolar?`)) return;
+
+  try {
+    const res = await fetch(`/api/developer/escuelas/${id}/estado`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ activo: nuevoEstado })
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'No se pudo cambiar el estado');
+
+    loadDevEscuelas();
+  } catch (err) {
+    alert('Error actualizando estado: ' + err.message);
   }
 }
 
