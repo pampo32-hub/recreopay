@@ -134,6 +134,17 @@ function initDatabase() {
           creado_en TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
           procesado_en TIMESTAMP
         );
+
+        CREATE TABLE IF NOT EXISTS push_subscriptions (
+          id SERIAL PRIMARY KEY,
+          endpoint TEXT UNIQUE NOT NULL,
+          p256dh TEXT NOT NULL,
+          auth TEXT NOT NULL,
+          user_id INTEGER,
+          rol VARCHAR(50),
+          escuela_id INTEGER DEFAULT 1,
+          creado_en TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        );
       `);
     } catch (e) {
       console.error('Error creando tablas en PostgreSQL:', e);
