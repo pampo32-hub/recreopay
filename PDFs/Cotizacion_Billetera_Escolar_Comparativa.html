@@ -1,0 +1,826 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Cotización Oficial - Billetera Digital Escolar (Comparativa de Planes)</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&display=swap');
+
+    @page {
+      size: A4 portrait;
+      margin: 10mm 12mm 12mm 12mm;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      -webkit-print-color-adjust: exact !important;
+      print-color-adjust: exact !important;
+    }
+
+    body {
+      font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+      color: #1e293b;
+      background-color: #ffffff;
+      font-size: 8.5pt;
+      line-height: 1.45;
+    }
+
+    .page {
+      page-break-after: always;
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+      min-height: 275mm;
+    }
+
+    .page:last-child {
+      page-break-after: avoid;
+    }
+
+    /* HEADER */
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 2px solid #0284c7;
+      padding-bottom: 12px;
+      margin-bottom: 14px;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .brand-text h1 {
+      font-size: 20pt;
+      font-weight: 900;
+      color: #0284c7;
+      letter-spacing: -0.5px;
+      line-height: 1.1;
+      margin-bottom: 2px;
+    }
+
+    .brand-text p {
+      font-size: 8pt;
+      font-weight: 700;
+      color: #475569;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .meta-box {
+      text-align: right;
+    }
+
+    .meta-tag {
+      display: inline-block;
+      background: #e0f2fe;
+      color: #0369a1;
+      font-size: 7.5pt;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      padding: 3px 9px;
+      border-radius: 9999px;
+      margin-bottom: 4px;
+    }
+
+    .meta-table {
+      margin-left: auto;
+      font-size: 7.8pt;
+      color: #475569;
+      border-collapse: collapse;
+    }
+
+    .meta-table td {
+      padding: 1px 4px;
+    }
+
+    .meta-table td.strong {
+      font-weight: 700;
+      color: #0f172a;
+    }
+
+    /* RECIPIENT CARD */
+    .recipient-card {
+      background: #f8fafc;
+      border-left: 4px solid #0284c7;
+      border-radius: 0 8px 8px 0;
+      padding: 9px 14px;
+      margin-bottom: 12px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .recipient-info h3 {
+      font-size: 9pt;
+      font-weight: 800;
+      color: #0f172a;
+    }
+
+    .recipient-info p {
+      font-size: 7.8pt;
+      color: #64748b;
+    }
+
+    .highlight-pill {
+      background: #ffffff;
+      border: 1px solid #cbd5e1;
+      padding: 4px 10px;
+      border-radius: 6px;
+      font-size: 7.5pt;
+      font-weight: 700;
+      color: #0f172a;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .highlight-pill span {
+      color: #10b981;
+    }
+
+    /* SECTION TITLES */
+    .section-title {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 8px;
+      font-size: 9.5pt;
+      font-weight: 800;
+      color: #0f172a;
+      text-transform: uppercase;
+      letter-spacing: 0.4px;
+    }
+
+    .section-title .bullet {
+      width: 7px;
+      height: 7px;
+      background: #0284c7;
+      border-radius: 2px;
+    }
+
+    /* ARCHITECTURE CALLOUT */
+    .arch-callout {
+      background: linear-gradient(135deg, #0f172a, #1e293b);
+      color: #ffffff;
+      border-radius: 8px;
+      padding: 10px 14px;
+      margin-bottom: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+    }
+
+    .arch-text h4 {
+      font-size: 8.8pt;
+      font-weight: 800;
+      color: #38bdf8;
+      margin-bottom: 2px;
+    }
+
+    .arch-text p {
+      font-size: 7.5pt;
+      color: #94a3b8;
+      line-height: 1.35;
+    }
+
+    .arch-badges {
+      display: flex;
+      gap: 8px;
+      flex-shrink: 0;
+    }
+
+    .badge-dark {
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      border-radius: 6px;
+      padding: 5px 8px;
+      text-align: center;
+      font-size: 6.8pt;
+      font-weight: 700;
+      color: #e2e8f0;
+      line-height: 1.2;
+    }
+
+    /* 4-GRID MODULES */
+    .features-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 10px;
+      margin-bottom: 12px;
+    }
+
+    .feature-card {
+      background: #ffffff;
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      padding: 10px 12px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.02);
+    }
+
+    .feature-header {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 6px;
+      border-bottom: 1px dashed #e2e8f0;
+      padding-bottom: 5px;
+    }
+
+    .feature-icon {
+      font-size: 15px;
+      line-height: 1;
+    }
+
+    .feature-title {
+      font-size: 8.8pt;
+      font-weight: 800;
+      color: #0f172a;
+    }
+
+    .feature-desc {
+      font-size: 7.3pt;
+      color: #64748b;
+      margin-bottom: 6px;
+      line-height: 1.35;
+    }
+
+    .feature-bullets {
+      list-style: none;
+      padding-left: 0;
+      font-size: 7.3pt;
+      color: #334155;
+    }
+
+    .feature-bullets li {
+      position: relative;
+      padding-left: 13px;
+      margin-bottom: 3px;
+      line-height: 1.3;
+    }
+
+    .feature-bullets li::before {
+      content: '•';
+      position: absolute;
+      left: 3px;
+      color: #0284c7;
+      font-weight: 900;
+      font-size: 9pt;
+      line-height: 1;
+    }
+
+    /* FOOTER PAGE */
+    .page-footer {
+      margin-top: auto;
+      border-top: 1px solid #e2e8f0;
+      padding-top: 8px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 7.2pt;
+      color: #94a3b8;
+    }
+
+    /* ============================================================ */
+    /* PAGE 2: COMPARATIVA DE LOS 2 PLANES                         */
+    /* ============================================================ */
+    .intro-banner {
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-left: 4px solid #0284c7;
+      border-radius: 6px;
+      padding: 7px 12px;
+      font-size: 7.6pt;
+      color: #334155;
+      margin-bottom: 12px;
+      line-height: 1.4;
+    }
+
+    .plans-comparison-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 12px;
+      margin-bottom: 12px;
+    }
+
+    .plan-card {
+      border-radius: 8px;
+      padding: 12px 14px;
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+
+    .plan-card-dedicated {
+      background: #ffffff;
+      border: 2px solid #0284c7;
+      box-shadow: 0 4px 12px rgba(2, 132, 199, 0.08);
+    }
+
+    .plan-card-subscription {
+      background: #ffffff;
+      border: 2px solid #10b981;
+      box-shadow: 0 4px 12px rgba(16, 185, 129, 0.08);
+    }
+
+    .plan-tag-pill {
+      display: inline-block;
+      font-size: 7pt;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.4px;
+      padding: 2px 8px;
+      border-radius: 9999px;
+      margin-bottom: 6px;
+    }
+
+    .tag-dedicated {
+      background: #e0f2fe;
+      color: #0369a1;
+    }
+
+    .tag-subscription {
+      background: #dcfce7;
+      color: #15803d;
+    }
+
+    .plan-card h3 {
+      font-size: 11pt;
+      font-weight: 900;
+      color: #0f172a;
+      line-height: 1.2;
+      margin-bottom: 4px;
+    }
+
+    .plan-card .plan-subtitle {
+      font-size: 7.3pt;
+      color: #64748b;
+      margin-bottom: 8px;
+      line-height: 1.35;
+      min-height: 28px;
+    }
+
+    .pricing-box {
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 6px;
+      padding: 8px 10px;
+      margin-bottom: 10px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .price-col {
+      text-align: left;
+    }
+
+    .price-col .label {
+      font-size: 6.8pt;
+      font-weight: 700;
+      text-transform: uppercase;
+      color: #64748b;
+    }
+
+    .price-col .amount {
+      font-size: 14pt;
+      font-weight: 900;
+      line-height: 1.1;
+    }
+
+    .amount-dedicated {
+      color: #0284c7;
+    }
+
+    .amount-monthly {
+      color: #15803d;
+    }
+
+    .price-col .period {
+      font-size: 6.8pt;
+      color: #64748b;
+      font-weight: 600;
+    }
+
+    .plan-feature-list {
+      list-style: none;
+      padding-left: 0;
+      font-size: 7.2pt;
+      color: #334155;
+    }
+
+    .plan-feature-list li {
+      position: relative;
+      padding-left: 13px;
+      margin-bottom: 4px;
+      line-height: 1.3;
+    }
+
+    .plan-feature-list li::before {
+      content: '✔';
+      position: absolute;
+      left: 0;
+      color: #10b981;
+      font-weight: 900;
+      font-size: 7pt;
+    }
+
+    /* COMPARISON MATRIX TABLE */
+    .comparison-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 7.2pt;
+      margin-bottom: 11px;
+      background: #ffffff;
+      border: 1px solid #e2e8f0;
+      border-radius: 6px;
+      overflow: hidden;
+    }
+
+    .comparison-table th {
+      background: #0f172a;
+      color: #ffffff;
+      padding: 6px 10px;
+      text-align: left;
+      font-weight: 800;
+      font-size: 7.2pt;
+      text-transform: uppercase;
+    }
+
+    .comparison-table td {
+      padding: 5px 10px;
+      border-bottom: 1px solid #f1f5f9;
+      color: #334155;
+    }
+
+    .comparison-table tr:nth-child(even) {
+      background: #f8fafc;
+    }
+
+    .comparison-table td.center {
+      text-align: center;
+      font-weight: 700;
+    }
+
+    .check-yes {
+      color: #15803d;
+      font-weight: 800;
+    }
+
+    /* RENTABILIDAD & DECISIÓN STRIP */
+    .decision-strip {
+      background: #f0fdf4;
+      border: 1px solid #bbf7d0;
+      border-radius: 6px;
+      padding: 8px 12px;
+      margin-bottom: 11px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .decision-icon {
+      font-size: 20px;
+      flex-shrink: 0;
+    }
+
+    .decision-text {
+      font-size: 7.2pt;
+      color: #166534;
+      line-height: 1.35;
+    }
+
+    .decision-text strong {
+      color: #14532d;
+    }
+
+    /* TERMS BOX */
+    .terms-box {
+      font-size: 7pt;
+      color: #64748b;
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 6px;
+      padding: 7px 10px;
+      margin-bottom: 10px;
+      line-height: 1.35;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ============================================================ -->
+  <!-- PÁGINA 1: PRESENTACIÓN & MÓDULOS DEL SISTEMA                 -->
+  <!-- ============================================================ -->
+  <div class="page">
+    
+    <!-- HEADER -->
+    <div class="header">
+      <div class="brand">
+        <div class="brand-text">
+          <h1>Billetera Digital Escolar</h1>
+          <p>Sistema Integral de Control de Pagos & Punto de Venta para Sodas</p>
+        </div>
+      </div>
+      <div class="meta-box">
+        <span class="meta-tag">Propuesta Comercial</span>
+        <table class="meta-table">
+          <tr><td class="strong">Cotización:</td><td>COT-2026-COMP</td></tr>
+          <tr><td class="strong">Fecha:</td><td>05 de Octubre, 2026</td></tr>
+          <tr><td class="strong">Validez:</td><td>30 Días Calendario</td></tr>
+        </table>
+      </div>
+    </div>
+
+    <!-- RECIPIENT -->
+    <div class="recipient-card">
+      <div class="recipient-info">
+        <h3>Dirigido a: Dirección Institucional, Juntas de Educación y Concesionarios de Soda Escolar</h3>
+        <p>Centro Educativo / Escuela / Colegio — Costa Rica</p>
+      </div>
+      <div class="highlight-pill">
+        <span>●</span> Solución Integral 100% Costarricense
+      </div>
+    </div>
+
+    <!-- RESUMEN EJECUTIVO -->
+    <div style="margin-bottom: 12px;">
+      <div class="section-title">
+        <div class="bullet"></div>
+        <span>Resumen Ejecutivo del Proyecto</span>
+      </div>
+      <p style="font-size: 8pt; color: #334155; line-height: 1.45;">
+        La <strong>Billetera Digital Escolar</strong> es una plataforma tecnológica integral diseñada para modernizar integralmente la experiencia de compra y recaudación en sodas y cafeterías escolares. Elimina por completo el uso de dinero en efectivo en manos de niños, agiliza el despacho en los 15 minutos críticos del recreo mediante códigos QR y pre-órdenes, y brinda a los padres de familia control nutricional y recargas validadas por SINPE Móvil.
+      </p>
+    </div>
+
+    <!-- ARQUITECTURA CALLOUT -->
+    <div class="arch-callout">
+      <div class="arch-text">
+        <h4>Tecnología en Tiempo Real & Alta Disponibilidad</h4>
+        <p>Actualizaciones inmediatas vía Server-Sent Events (SSE), base de datos transaccional ACID contra saldos duplicados y compatibilidad multiplataforma instantánea (sin instalaciones complejas).</p>
+      </div>
+      <div class="arch-badges">
+        <div class="badge-dark">PWA Móvil<br>iOS / Android</div>
+        <div class="badge-dark">POS Táctil<br>Web/PC/Tablet</div>
+        <div class="badge-dark">SINPE Móvil<br>Validado</div>
+      </div>
+    </div>
+
+    <!-- CARACTERÍSTICAS PRINCIPALES -->
+    <div class="section-title">
+      <div class="bullet"></div>
+      <span>Módulos y Características Principales de la Plataforma</span>
+    </div>
+
+    <div class="features-grid">
+      
+      <!-- CARD 1: ESTUDIANTES -->
+      <div class="feature-card">
+        <div class="feature-header">
+          <div class="feature-icon">📱</div>
+          <div class="feature-title">Billetera Estudiantil (PWA Móvil)</div>
+        </div>
+        <div class="feature-desc">Aplicación web progresiva rápida y divertida para alumnos de 7 a 15 años.</div>
+        <ul class="feature-bullets">
+          <li><strong>Carné Digital QR:</strong> Identificación inmediata para pago en mostrador.</li>
+          <li><strong>Menú con Fotos y Precios:</strong> Catálogo interactivo de productos en tiempo real.</li>
+          <li><strong>Modo Offline Resiliente:</strong> El código QR abre aún si no hay internet.</li>
+          <li><strong>Control de Saldo:</strong> Saldo disponible en colones y límite diario visible.</li>
+          <li><strong>Pre-Órdenes:</strong> Pedido anticipado para recreos y almuerzos.</li>
+          <li><strong>Transferencias P2P Seguras:</strong> Entre compañeros con PIN de seguridad.</li>
+        </ul>
+      </div>
+
+      <!-- CARD 2: PADRES -->
+      <div class="feature-card">
+        <div class="feature-header">
+          <div class="feature-icon">👨‍👩‍👧</div>
+          <div class="feature-title">Portal de Padres (Control Parental)</div>
+        </div>
+        <div class="feature-desc">Supervisión total y tranquilidad sobre el presupuesto y nutrición de los hijos.</div>
+        <ul class="feature-bullets">
+          <li><strong>Recarga SINPE Móvil:</strong> Validación con monto y comprobante bancario.</li>
+          <li><strong>Límite Diario de Gasto:</strong> Control del tope máximo diario en colones (₡).</li>
+          <li><strong>Interruptor de Transferencias:</strong> Bloqueo parental con estilo gray-out.</li>
+          <li><strong>Historial Transparente:</strong> Registro exacto de qué comió y a qué hora.</li>
+          <li><strong>Gestión Multi-Hijo:</strong> Monitoreo de varios estudiantes en una sola cuenta.</li>
+          <li><strong>Gestión de Credenciales:</strong> Configuración y reseteo de PIN de seguridad.</li>
+        </ul>
+      </div>
+
+      <!-- CARD 3: POS SODA -->
+      <div class="feature-card">
+        <div class="feature-header">
+          <div class="feature-icon">📟</div>
+          <div class="feature-title">Terminal POS de Mostrador (Soda)</div>
+        </div>
+        <div class="feature-desc">Diseñado para la hora pico: cobro en 1.5 segundos con cero fricción.</div>
+        <ul class="feature-bullets">
+          <li><strong>Escáner Dual:</strong> Compatible con pistolas USB/Bluetooth y cámara web.</li>
+          <li><strong>Catálogo Táctil Rápido:</strong> Con buscador inteligente y productos frecuentes.</li>
+          <li><strong>Fila Exprés de Pre-Órdenes:</strong> Retiro inmediato de combos preparados.</li>
+          <li><strong>Validación SINPE en Caja:</strong> Aprobación y acreditación en 1 clic.</li>
+          <li><strong>Alertas Sonoras y Visuales:</strong> Feedback auditivo para rapidez del cajero.</li>
+          <li><strong>Notificaciones en Vivo:</strong> Reflejo de órdenes sin recargar pantalla.</li>
+        </ul>
+      </div>
+
+      <!-- CARD 4: CARNÉS & SEGURIDAD -->
+      <div class="feature-card">
+        <div class="feature-header">
+          <div class="feature-icon">🖨️</div>
+          <div class="feature-title">Carnés Físicos & Administración</div>
+        </div>
+        <div class="feature-desc">Inclusión garantizada para alumnos sin celular y control operativo total.</div>
+        <ul class="feature-bullets">
+          <li><strong>Generador de Carnés Físicos:</strong> Exportación a PDF para plastificado.</li>
+          <li><strong>Inclusión Digital:</strong> Todo estudiante puede pagar con su credencial QR.</li>
+          <li><strong>Roles del Sistema:</strong> Permisos para SuperAdmin, Admin, Cajero y Padres.</li>
+          <li><strong>Auditoría Transaccional:</strong> Registro de cada movimiento sin posibilidad de alteración.</li>
+          <li><strong>Cierre de Caja Diario:</strong> Cuadre de ventas de mostrador vs. recargas SINPE.</li>
+          <li><strong>Cero Efectivo en Mano:</strong> Eliminación de pérdidas o robos en recreos.</li>
+        </ul>
+      </div>
+
+    </div>
+
+    <!-- FOOTER PAGE 1 -->
+    <div class="page-footer">
+      <span>Billetera Digital Escolar • Sistema de Control y Punto de Venta para Sodas</span>
+      <span>Página 1 de 2</span>
+    </div>
+
+  </div>
+
+
+  <!-- ============================================================ -->
+  <!-- PÁGINA 2: COMPARATIVA DE LOS 2 PLANES DE INVERSIÓN          -->
+  <!-- ============================================================ -->
+  <div class="page">
+    
+    <!-- HEADER MINI -->
+    <div class="header" style="margin-bottom: 10px; padding-bottom: 8px;">
+      <div class="brand">
+        <div class="brand-text">
+          <h1 style="font-size: 15pt; font-weight: 900; color: #0284c7;">Billetera Digital Escolar</h1>
+          <p style="font-size: 7pt; font-weight: 600; color: #64748b;">Modalidades de Contratación & Comparativa de Inversión</p>
+        </div>
+      </div>
+      <div class="meta-box">
+        <span class="meta-tag" style="background: #f1f5f9; color: #0f172a;">2 Planes a Elegir</span>
+      </div>
+    </div>
+
+    <!-- BANNER INTRODUCTORIO -->
+    <div class="intro-banner">
+      Para adaptarnos a las necesidades financieras de la institución, presentamos dos modalidades de contratación: <strong>Inversión Dedicada</strong> (para asegurar la cuota mensual más baja) o <strong>Suscripción Operativa</strong> (con cero desembolso inicial de entrada).
+    </div>
+
+    <!-- GRID DE LOS DOS PLANES LADO A LADO -->
+    <div class="plans-comparison-grid">
+      
+      <!-- PLAN 1: DEDICADO -->
+      <div class="plan-card plan-card-dedicated">
+        <div>
+          <span class="plan-tag-pill tag-dedicated">Máximo Ahorro a Largo Plazo</span>
+          <h3>Plan Implementación Dedicada</h3>
+          <p class="plan-subtitle">Puesta en marcha llave en mano para la institución con la cuota mensual de mantenimiento más reducida.</p>
+          
+          <div class="pricing-box">
+            <div class="price-col">
+              <div class="label">Setup Inicial</div>
+              <div class="amount amount-dedicated">$600 <span style="font-size: 8pt; color: #64748b;">USD</span></div>
+              <div class="period">Pago Único</div>
+            </div>
+            <div class="price-col" style="text-align: right; border-left: 1px solid #e2e8f0; padding-left: 10px;">
+              <div class="label">Mantenimiento</div>
+              <div class="amount amount-monthly">$35 <span style="font-size: 8pt; color: #64748b;">USD</span></div>
+              <div class="period">Por Mes</div>
+            </div>
+          </div>
+
+          <ul class="plan-feature-list">
+            <li><strong>Despliegue Dedicado:</strong> Instalación en servidor de alta velocidad.</li>
+            <li><strong>Digitalización de Menú:</strong> Carga de fotos, precios y categorías.</li>
+            <li><strong>Capacitación al Personal:</strong> Entrenamiento a cajeros y encargados.</li>
+            <li><strong>Plantillas de Carnés:</strong> Generador listo para impresión y plastificado.</li>
+            <li><strong>Soporte Técnico Continuo:</strong> Asistencia prioritaria vía WhatsApp.</li>
+            <li><strong>Actualizaciones & Parches:</strong> Mantenimiento preventivo incluido.</li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- PLAN 2: SUSCRIPCIÓN -->
+      <div class="plan-card plan-card-subscription">
+        <div>
+          <span class="plan-tag-pill tag-subscription">Cero Inversión Inicial</span>
+          <h3>Plan Suscripción Todo Incluido</h3>
+          <p class="plan-subtitle">Acceso inmediato sin barreras de capital; el servicio se financia mes a mes con la operación diaria de la soda.</p>
+          
+          <div class="pricing-box">
+            <div class="price-col">
+              <div class="label">Setup Inicial</div>
+              <div class="amount amount-monthly">$0 <span style="font-size: 8pt; color: #64748b;">USD</span></div>
+              <div class="period">Sin Costo de Entrada</div>
+            </div>
+            <div class="price-col" style="text-align: right; border-left: 1px solid #e2e8f0; padding-left: 10px;">
+              <div class="label">Suscripción</div>
+              <div class="amount amount-dedicated">$75 <span style="font-size: 8pt; color: #64748b;">USD</span></div>
+              <div class="period">Por Escuela / Mes</div>
+            </div>
+          </div>
+
+          <ul class="plan-feature-list">
+            <li><strong>Setup Financiado:</strong> Nosotros absorbemos la configuración inicial.</li>
+            <li><strong>Cero Riesgo de Capital:</strong> Comience a operar sin descapitalizarse.</li>
+            <li><strong>Carga de Menú & Capacitación:</strong> Todo incluido en la mensualidad.</li>
+            <li><strong>Servidor Cloud 24/7:</strong> Hosting y respaldos diarios automáticos.</li>
+            <li><strong>Soporte Técnico Continuo:</strong> Asistencia prioritaria vía WhatsApp.</li>
+            <li><strong>Flexibilidad Mensual:</strong> Sin contratos forzosos de permanencia.</li>
+          </ul>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- TABLA COMPARATIVA DE CARACTERÍSTICAS -->
+    <table class="comparison-table">
+      <thead>
+        <tr>
+          <th>Característica / Componente Incluido</th>
+          <th style="width: 28%; text-align: center;">Plan Dedicado ($600 + $35/m)</th>
+          <th style="width: 28%; text-align: center;">Plan Suscripción ($75/m)</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>Software Completo:</strong> Alumnos ilimitados, Billetera PWA, POS Táctil y Carnés QR</td>
+          <td class="center check-yes">✔ 100% Incluido</td>
+          <td class="center check-yes">✔ 100% Incluido</td>
+        </tr>
+        <tr>
+          <td><strong>Menú Digital:</strong> Catálogo con fotografías de productos y precios en tiempo real</td>
+          <td class="center check-yes">✔ 100% Incluido</td>
+          <td class="center check-yes">✔ 100% Incluido</td>
+        </tr>
+        <tr>
+          <td><strong>Servidor en la Nube:</strong> Hosting 24/7, base de datos ACID y respaldos diarios</td>
+          <td class="center check-yes">✔ 100% Incluido</td>
+          <td class="center check-yes">✔ 100% Incluido</td>
+        </tr>
+        <tr>
+          <td><strong>Soporte Técnico Continuo:</strong> Atención prioritaria vía WhatsApp y correo</td>
+          <td class="center check-yes">✔ Asistencia Directa</td>
+          <td class="center check-yes">✔ Asistencia Directa</td>
+        </tr>
+        <tr>
+          <td><strong>Actualizaciones de Software:</strong> Actualizaciones y parches de seguridad</td>
+          <td class="center check-yes">✔ Incluidas</td>
+          <td class="center check-yes">✔ Incluidas</td>
+        </tr>
+        <tr>
+          <td><strong>Requerimientos Adicionales:</strong> Nuevas características o desarrollos a medida</td>
+          <td class="center" style="color: #64748b;">Cotización por aparte</td>
+          <td class="center" style="color: #64748b;">Cotización por aparte</td>
+        </tr>
+        <tr>
+          <td><strong>Puesta en Marcha Operativa:</strong> Plazo de configuración e inducción técnica</td>
+          <td class="center" style="font-weight: 700; color: #0284c7;">15 a 22 días hábiles</td>
+          <td class="center" style="font-weight: 700; color: #0284c7;">15 a 22 días hábiles</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <!-- RENTABILIDAD & JUSTIFICACIÓN DE DECISIÓN -->
+    <div class="decision-strip">
+      <div class="decision-icon">💡</div>
+      <div class="decision-text">
+        <strong>¿Cuál plan elegir?</strong> Si la institución cuenta con presupuesto de inversión, el <strong>Plan Dedicado ($600 + $35/mes)</strong> es la opción más rentable a mediano y largo plazo (alcanza el punto de equilibrio al mes 15 y genera un ahorro continuo). Si la institución o soda prefiere no descapitalizarse hoy, el <strong>Plan Suscripción ($75/mes)</strong> permite iniciar inmediatamente sin barrera de entrada.
+      </div>
+    </div>
+
+    <!-- TÉRMINOS Y CONDICIONES -->
+    <div class="terms-box">
+      <strong>Términos Comerciales:</strong> Tarifas expresadas en Dólares USD (o su equivalente en Colones ₡ CRC según el tipo de cambio oficial del BCCR al momento de facturación). Formas de pago aceptadas: Transferencia Bancaria y SINPE Móvil Empresarial. La activación técnica se realiza en un plazo estimado de 15 a 22 días hábiles tras la confirmación de la orden y entrega de información del menú. La soda solo requiere una computadora, laptop o tablet con acceso a internet.
+    </div>
+
+    <!-- FOOTER PAGE 2 -->
+    <div class="page-footer">
+      <span>Billetera Digital Escolar • Documento Confidencial de Propuesta Comercial</span>
+      <span>Página 2 de 2</span>
+    </div>
+
+  </div>
+
+</body>
+</html>
