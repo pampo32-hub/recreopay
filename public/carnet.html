@@ -92,6 +92,16 @@
   <script>
     let allStudents = [];
 
+    function getStudentInitials(fullName) {
+      if (!fullName || typeof fullName !== 'string') return 'ES';
+      const clean = fullName.trim().replace(/\s+/g, ' ');
+      const parts = clean.split(' ');
+      if (parts.length === 1) {
+        return parts[0].substring(0, 2).toUpperCase();
+      }
+      return (parts[0].charAt(0) + parts[1].charAt(0)).toUpperCase();
+    }
+
     document.addEventListener('DOMContentLoaded', async () => {
       try {
         const res = await fetch('/api/estudiantes');
@@ -127,7 +137,7 @@
 
             <!-- CUERPO DEL CARNÉ -->
             <div class="carnet-body">
-              <img class="carnet-photo" src="${est.foto_url}" alt="${est.nombre_completo}">
+              <div class="carnet-photo">${getStudentInitials(est.nombre_completo)}</div>
 
               <div class="carnet-details">
                 <div class="carnet-name">${est.nombre_completo}</div>

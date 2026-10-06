@@ -11,6 +11,17 @@ let isScanningActive = true;
 let posMobileActiveView = 'catalog';
 let CLOUDFLARE_TUNNEL_URL = 'https://somewhat-ships-looksmart-optical.trycloudflare.com';
 
+// Helper universal para iniciales de estudiantes (ej. Mateo Alvarado -> MA, Sofía Jiménez -> SJ)
+function getStudentInitials(fullName) {
+  if (!fullName || typeof fullName !== 'string') return 'ES';
+  const clean = fullName.trim().replace(/\s+/g, ' ');
+  const parts = clean.split(' ');
+  if (parts.length === 1) {
+    return parts[0].substring(0, 2).toUpperCase();
+  }
+  return (parts[0].charAt(0) + parts[1].charAt(0)).toUpperCase();
+}
+
 function switchPosMobileView(view) {
   posMobileActiveView = view;
   const body = document.body;
@@ -830,7 +841,14 @@ function renderScannedStudent() {
 
   if (placeholder) placeholder.style.display = 'none';
 
-  document.getElementById('scannedAvatar').src = scannedStudent.foto_url;
+  const scannedAvatar = document.getElementById('scannedAvatar');
+  if (scannedAvatar) {
+    if (scannedAvatar.tagName === 'IMG') {
+      scannedAvatar.src = scannedStudent.foto_url || '/img/avatar_default.png';
+    } else {
+      scannedAvatar.textContent = getStudentInitials(scannedStudent.nombre_completo);
+    }
+  }
   
   const btnCobrar = document.getElementById('btnCobrarPos');
   if (scannedStudent.tarjeta_bloqueada) {

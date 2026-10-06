@@ -15,6 +15,17 @@ let adminStaffList = [];
 
 let CLOUDFLARE_TUNNEL_URL = 'https://recreopay.gammapos.app';
 
+// Helper universal para iniciales de estudiantes (ej. Mateo Alvarado -> MA, Sofía Jiménez -> SJ)
+function getStudentInitials(fullName) {
+  if (!fullName || typeof fullName !== 'string') return 'ES';
+  const clean = fullName.trim().replace(/\s+/g, ' ');
+  const parts = clean.split(' ');
+  if (parts.length === 1) {
+    return parts[0].substring(0, 2).toUpperCase();
+  }
+  return (parts[0].charAt(0) + parts[1].charAt(0)).toUpperCase();
+}
+
 function checkHttpsEnvironment() {
   const isHttp = window.location.protocol !== 'https:' && 
                  window.location.hostname !== 'localhost' && 
@@ -581,7 +592,14 @@ function updateStudentUI() {
   if (!currentStudent) return;
 
   // Actualizar avatar, nombre y grado
-  document.getElementById('walletAvatar').src = currentStudent.foto_url || 'https://api.dicebear.com/7.x/bottts/svg?seed=est';
+  const walletAvatar = document.getElementById('walletAvatar');
+  if (walletAvatar) {
+    if (walletAvatar.tagName === 'IMG') {
+      walletAvatar.src = currentStudent.foto_url || '/img/avatar_default.png';
+    } else {
+      walletAvatar.textContent = getStudentInitials(currentStudent.nombre_completo);
+    }
+  }
   document.getElementById('walletName').textContent = currentStudent.nombre_completo;
   document.getElementById('walletGrade').textContent = `${currentStudent.grado} • Sección ${currentStudent.seccion} • Cód: ${currentStudent.codigo_estudiante}`;
   
@@ -1207,8 +1225,8 @@ function renderQuickTransferFriends() {
   const others = students.filter(s => s.id !== currentStudent.id);
 
   container.innerHTML = others.map(s => `
-    <button type="button" onclick="selectTransferTargetById(${s.id})" style="display: flex; align-items: center; gap: 4px; padding: 4px 8px; background: #f1f5f9; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 0.72rem; font-weight: 700; cursor: pointer; color: #1e293b;">
-      <img src="${s.foto_url}" style="width: 20px; height: 20px; border-radius: 50%;">
+    <button type="button" onclick="selectTransferTargetById(${s.id})" style="display: flex; align-items: center; gap: 6px; padding: 4px 8px; background: #f1f5f9; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 0.72rem; font-weight: 700; cursor: pointer; color: #1e293b;">
+      <span style="width: 22px; height: 22px; border-radius: 50%; background: #0284c7; color: white; display: inline-flex; align-items: center; justify-content: center; font-size: 0.65rem; font-weight: 900;">${getStudentInitials(s.nombre_completo)}</span>
       <span>${s.nombre_completo.split(' ')[0]} (${s.grado.split(' ')[0]})</span>
     </button>
   `).join('');
@@ -1226,7 +1244,14 @@ function onTransferTargetIdentified(target) {
 
   if (window.sounds) window.sounds.playScanChirp();
 
-  document.getElementById('transferTargetAvatar').src = target.foto_url;
+  const targetAvatar = document.getElementById('transferTargetAvatar');
+  if (targetAvatar) {
+    if (targetAvatar.tagName === 'IMG') {
+      targetAvatar.src = target.foto_url || '/img/avatar_default.png';
+    } else {
+      targetAvatar.textContent = getStudentInitials(target.nombre_completo);
+    }
+  }
   document.getElementById('transferTargetName').textContent = target.nombre_completo;
   document.getElementById('transferTargetGrade').textContent = `${target.grado} • Sección ${target.seccion} • Cód: ${target.codigo_estudiante}`;
 
@@ -3018,7 +3043,13 @@ async function showStudentConfirmationForLink(tokenOrCode) {
     const grade = document.getElementById('linkPreviewGrade');
     const code = document.getElementById('linkPreviewCode');
 
-    if (avatar) avatar.src = student.foto_url || '/img/avatar_default.png';
+    if (avatar) {
+      if (avatar.tagName === 'IMG') {
+        avatar.src = student.foto_url || '/img/avatar_default.png';
+      } else {
+        avatar.textContent = getStudentInitials(student.nombre_completo);
+      }
+    }
     if (name) name.textContent = student.nombre_completo;
     if (grade) grade.textContent = `${student.grado} - Sección ${student.seccion}`;
     if (code) code.textContent = `Carné: ${student.codigo_estudiante}`;
@@ -3313,7 +3344,9 @@ function renderAdminStudents(list) {
           <div class="admin-student-row ${isBlocked ? 'is-blocked' : ''}">
             <!-- DATOS PRINCIPALES DEL ESTUDIANTE -->
             <div style="display: flex; align-items: center; gap: 12px; min-width: 0; flex: 1;">
-              <img src="${s.foto_url || 'https://api.dicebear.com/7.x/bottts/svg?seed=est'}" style="width: 42px; height: 42px; border-radius: 50%; border: 2px solid ${isBlocked ? '#fca5a5' : 'var(--border)'}; background: #ffffff; flex-shrink: 0; object-fit: cover;">
+              <div style="width: 42px; height: 42px; border-radius: 50%; border: 2px solid ${isBlocked ? '#fca5a5' : '#0284c7'}; background: ${isBlocked ? '#fee2e2' : 'linear-gradient(135deg, #0284c7, #0369a1)'}; color: ${isBlocked ? '#dc2626' : '#ffffff'}; flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 0.95rem;">
+                ${getStudentInitials(s.nombre_completo)}
+              </div>
               <div style="min-width: 0; flex: 1;">
                 <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
                   <strong style="font-size: 0.95rem; font-weight: 800; color: var(--text-main); line-height: 1.2;">${s.nombre_completo}</strong>
@@ -3546,7 +3579,9 @@ function renderAdminSearchDropdown(list, query = '') {
       const isSelected = adminSelectedStudent && adminSelectedStudent.id === s.id;
       return `
         <div class="admin-search-item ${isSelected ? 'selected' : ''}" onclick="selectAdminStudent(${s.id}, true)">
-          <img src="${s.foto_url || '/img/avatar_default.png'}" style="width: 38px; height: 38px; border-radius: 50%; object-fit: cover; border: 2px solid ${isSelected ? '#0284c7' : '#cbd5e1'}; flex-shrink: 0;">
+          <div style="width: 38px; height: 38px; border-radius: 50%; background: ${isSelected ? 'linear-gradient(135deg, #0284c7, #0369a1)' : '#e0f2fe'}; color: ${isSelected ? '#ffffff' : '#0369a1'}; display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 0.85rem; border: 2px solid ${isSelected ? '#0284c7' : '#cbd5e1'}; flex-shrink: 0;">
+            ${getStudentInitials(s.nombre_completo)}
+          </div>
           <div style="min-width: 0; flex: 1;">
             <div style="display: flex; align-items: center; gap: 6px;">
               <strong style="font-size: 0.9rem; color: var(--text-main); display: block; word-break: break-word;">${s.nombre_completo}</strong>
@@ -3678,7 +3713,13 @@ function selectAdminStudent(studentOrId, updateSearchInput = false) {
   const dropdown = document.getElementById('adminSearchResultsDropdown');
   const btnClear = document.getElementById('btnClearAdminSearch');
 
-  if (avatar) avatar.src = student.foto_url || '/img/avatar_default.png';
+  if (avatar) {
+    if (avatar.tagName === 'IMG') {
+      avatar.src = student.foto_url || '/img/avatar_default.png';
+    } else {
+      avatar.textContent = getStudentInitials(student.nombre_completo);
+    }
+  }
   if (name) name.textContent = student.nombre_completo;
   if (statusBadge) {
     if (student.tarjeta_bloqueada) {
@@ -5031,7 +5072,7 @@ function renderCardDesignsCarousel() {
             <div class="card-contactless-wave"><span>)</span><span>)</span><span>)</span></div>
           </div>
           <div class="student-info">
-            <img class="student-avatar" src="${avatarUrl}" alt="Avatar">
+            <div class="student-avatar">${getStudentInitials(studentName)}</div>
             <div class="student-meta" style="flex: 1; min-width: 0;">
               <h2 style="margin: 0; font-size: 1.05rem; font-weight: 800; word-break: break-word;">${studentName}</h2>
               <span class="student-grade" style="font-size: 0.72rem;">${studentGrade}</span>

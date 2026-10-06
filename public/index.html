@@ -641,7 +641,7 @@
         </div>
         <div id="adminSelectedStudentBanner" class="selected-student-banner" style="display: flex;">
           <div style="display: flex; align-items: center; gap: 10px; min-width: 0; flex: 1;">
-            <img id="adminSelectedAvatar" src="" style="width: 48px; height: 48px; border-radius: 50%; border: 2.5px solid #0284c7; background: white; flex-shrink: 0; object-fit: cover;">
+            <div id="adminSelectedAvatar" class="admin-selected-avatar-badge">ES</div>
             <div style="min-width: 0;">
               <div style="display: flex; align-items: center; gap: 6px; flex-wrap: wrap;">
                 <strong id="adminSelectedName" style="font-size: 1rem; color: var(--text-main); word-break: break-word;">Selecciona un alumno</strong>
@@ -1272,7 +1272,7 @@
       </div>
 
       <div class="student-info">
-        <img id="walletAvatar" class="student-avatar" src="" alt="Avatar">
+        <div id="walletAvatar" class="student-avatar">ES</div>
         <div class="student-meta" style="flex: 1; min-width: 0;">
           <div style="min-width: 0;">
             <h2 id="walletName" style="word-break: break-word; margin: 0; font-size: 1.15rem; font-weight: 800;">Cargando...</h2>
@@ -1845,7 +1845,7 @@
       <div id="transferStepConfirm" style="display: none;">
         <!-- Tarjeta del receptor -->
         <div style="background: #f0fdf4; border: 1.5px solid #86efac; border-radius: 14px; padding: 12px; display: flex; align-items: center; gap: 12px; margin-bottom: 14px;">
-          <img id="transferTargetAvatar" src="" style="width: 48px; height: 48px; border-radius: 50%; border: 2px solid #10b981; background: white;">
+          <div id="transferTargetAvatar" class="transfer-target-avatar-badge">ES</div>
           <div style="flex: 1;">
             <div style="font-size: 0.7rem; color: #15803d; font-weight: 800; text-transform: uppercase;">Vas a transferir a:</div>
             <h4 id="transferTargetName" style="font-size: 1rem; font-weight: 900; color: #0f172a; line-height: 1.2;">Nombre</h4>
@@ -1963,7 +1963,7 @@
 
         <!-- TARJETA DEL ESTUDIANTE -->
         <div style="background: var(--card-bg); border: 2px solid #0284c7; border-radius: 16px; padding: 14px; margin-bottom: 14px; display: flex; align-items: center; gap: 14px; box-shadow: 0 4px 12px rgba(2, 132, 199, 0.1);">
-          <img id="linkPreviewAvatar" src="" style="width: 58px; height: 58px; border-radius: 50%; border: 2.5px solid #0284c7; object-fit: cover; background: white; flex-shrink: 0;">
+          <div id="linkPreviewAvatar" class="link-preview-avatar-badge">ES</div>
           <div style="flex: 1; min-width: 0;">
             <div style="font-size: 0.7rem; color: #64748b; font-weight: 800; text-transform: uppercase;">Alumno a vincular:</div>
             <h3 id="linkPreviewName" style="font-size: 1.05rem; font-weight: 900; color: var(--text-main); margin: 2px 0; word-break: break-word; line-height: 1.2;">Nombre Alumno</h3>
