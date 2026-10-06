@@ -2134,6 +2134,17 @@ setInterval(async () => {
 // FUNCIONES DEL PORTAL DEDICADO DE PADRES
 // ==========================================
 
+// Helper para obtener iniciales del primer nombre y primer apellido (ej. Mateo Alvarado -> MA, Sofía Jiménez -> SJ)
+function getStudentInitials(fullName) {
+  if (!fullName || typeof fullName !== 'string') return 'ES';
+  const clean = fullName.trim().replace(/\s+/g, ' ');
+  const parts = clean.split(' ');
+  if (parts.length === 1) {
+    return parts[0].substring(0, 2).toUpperCase();
+  }
+  return (parts[0].charAt(0) + parts[1].charAt(0)).toUpperCase();
+}
+
 async function loadParentDashboard() {
   if (!currentUser || currentUser.rol !== 'padre') return;
 
@@ -2161,18 +2172,22 @@ function renderParentDashboardView() {
   const sectionHijos = document.getElementById('parentChildrenSection');
   const containerActive = document.getElementById('parentSelectedChildContainer');
   const grid = document.getElementById('parentChildrenGrid');
+  const mainDash = document.getElementById('parentChildDashboardMain');
 
   const hijos = (currentUser && currentUser.hijos) ? currentUser.hijos : [];
 
   if (hijos.length === 0) {
     if (bannerNoHijos) bannerNoHijos.style.display = 'block';
+    if (sectionHijos) sectionHijos.style.display = 'none';
     if (containerActive) containerActive.style.display = 'none';
     if (grid) grid.innerHTML = '';
     return;
   }
 
   if (bannerNoHijos) bannerNoHijos.style.display = 'none';
+  if (sectionHijos) sectionHijos.style.display = 'block';
   if (containerActive) containerActive.style.display = 'block';
+  if (mainDash) mainDash.style.display = 'block';
 
   // Si no hay hijo seleccionado o el seleccionado ya no existe en la lista, seleccionar el primero
   if (!currentParentChild || !hijos.some(h => h.id === currentParentChild.id)) {
@@ -2182,15 +2197,18 @@ function renderParentDashboardView() {
     currentParentChild = hijos.find(h => h.id === currentParentChild.id) || hijos[0];
   }
 
-  // Renderizar tarjetas de hijos en la cuadrícula
+  // Renderizar tarjetas de hijos en la cuadrícula con monograma de iniciales y borde celeste activo
   if (grid) {
     grid.innerHTML = hijos.map(h => {
       const isSelected = currentParentChild && currentParentChild.id === h.id;
       const isBlocked = !!h.tarjeta_bloqueada;
+      const initials = getStudentInitials(h.nombre_completo);
       return `
-        <div class="parent-child-card ${isSelected ? 'active' : ''}" onclick="selectParentChild(${h.id})">
+        <div class="parent-child-card ${isSelected ? 'active selected' : ''}" onclick="selectParentChild(${h.id})">
           <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 8px;">
-            <img src="${h.foto_url || '/img/avatar_default.png'}" style="width: 42px; height: 42px; border-radius: 50%; border: 2px solid ${isSelected ? '#0284c7' : 'var(--border)'}; object-fit: cover;">
+            <div class="child-initials-badge ${isSelected ? 'active' : ''}">
+              ${initials}
+            </div>
             <div style="min-width: 0; flex: 1;">
               <strong style="font-size: 0.9rem; color: var(--text-main); display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
                 ${h.nombre_completo}
@@ -2228,7 +2246,9 @@ function selectParentChild(childId) {
 
 function openParentSubView(viewKey) {
   const mainDash = document.getElementById('parentChildDashboardMain');
+  const childrenSection = document.getElementById('parentChildrenSection');
   if (mainDash) mainDash.style.display = 'none';
+  if (childrenSection) childrenSection.style.display = 'none';
 
   const subViews = [
     'parentSubViewSinpe',
@@ -2243,8 +2263,9 @@ function openParentSubView(viewKey) {
   });
 
   if (currentParentChild) {
-    document.querySelectorAll('.parentSubViewChildAvatar').forEach(img => {
-      img.src = currentParentChild.foto_url || '/img/avatar_default.png';
+    const initials = getStudentInitials(currentParentChild.nombre_completo);
+    document.querySelectorAll('.parentSubViewChildAvatarBadge').forEach(badge => {
+      badge.textContent = initials;
     });
     document.querySelectorAll('.parentSubViewChildName').forEach(span => {
       span.textContent = `${currentParentChild.nombre_completo} (${currentParentChild.grado})`;
@@ -2275,7 +2296,9 @@ function openParentSubView(viewKey) {
 
 function closeParentSubView() {
   const mainDash = document.getElementById('parentChildDashboardMain');
+  const childrenSection = document.getElementById('parentChildrenSection');
   if (mainDash) mainDash.style.display = 'block';
+  if (childrenSection) childrenSection.style.display = 'block';
 
   const subViews = [
     'parentSubViewSinpe',
@@ -2309,7 +2332,13 @@ function renderActiveChildDetails(child) {
   const rangeLimit = document.getElementById('rangeParentLimit');
   const chkTransfer = document.getElementById('chkParentAllowTransferDirect');
 
-  if (avatar) avatar.src = child.foto_url || '/img/avatar_default.png';
+  if (avatar) {
+    if (avatar.tagName === 'IMG') {
+      avatar.src = child.foto_url || '/img/avatar_default.png';
+    } else {
+      avatar.textContent = getStudentInitials(child.nombre_completo);
+    }
+  }
   if (name) name.textContent = child.nombre_completo;
   if (meta) meta.textContent = `${child.grado} - Sección ${child.seccion} • Cód: ${child.codigo_estudiante}`;
   if (balance) balance.textContent = `₡${(child.saldo_colones || 0).toLocaleString('es-CR')}`;

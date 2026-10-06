@@ -2311,15 +2311,75 @@ body.dark-mode .login-tab-btn.active {
   box-shadow: 0 4px 12px rgba(2, 132, 199, 0.12);
 }
 
+.parent-child-card.active,
 .parent-child-card.selected {
-  border-color: #0284c7;
-  background: #f0f9ff;
-  box-shadow: 0 4px 12px rgba(2, 132, 199, 0.18);
+  border: 2.5px solid #0284c7 !important;
+  background: #f0f9ff !important;
+  box-shadow: 0 0 0 3px rgba(2, 132, 199, 0.25), 0 6px 16px rgba(2, 132, 199, 0.16) !important;
 }
 
+body.dark-mode .parent-child-card.active,
 body.dark-mode .parent-child-card.selected {
-  background: rgba(2, 132, 199, 0.15);
+  background: rgba(2, 132, 199, 0.18) !important;
+  border: 2.5px solid #38bdf8 !important;
+  box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.28), 0 6px 16px rgba(0, 0, 0, 0.3) !important;
+}
+
+.child-initials-badge {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: #e0f2fe;
+  color: #0369a1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 900;
+  font-size: 1rem;
+  letter-spacing: 0.5px;
+  flex-shrink: 0;
+  border: 2px solid transparent;
+  transition: all 0.2s ease;
+}
+
+.parent-child-card.active .child-initials-badge,
+.parent-child-card.selected .child-initials-badge {
+  background: linear-gradient(135deg, #0284c7, #0369a1);
+  color: #ffffff;
   border-color: #38bdf8;
+  box-shadow: 0 3px 8px rgba(2, 132, 199, 0.35);
+}
+
+.parent-active-child-avatar-badge {
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #0284c7, #0369a1);
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 900;
+  font-size: 1rem;
+  letter-spacing: 0.5px;
+  flex-shrink: 0;
+  box-shadow: 0 3px 10px rgba(2, 132, 199, 0.3);
+  border: 2px solid #ffffff;
+}
+
+.parentSubViewChildAvatarBadge {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #0284c7, #0369a1);
+  color: #ffffff;
+  font-size: 0.72rem;
+  font-weight: 900;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  letter-spacing: 0.3px;
+  flex-shrink: 0;
 }
 
 /* Buscador Inteligente en Admin Carga */
