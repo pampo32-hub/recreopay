@@ -796,11 +796,15 @@ function renderProducts() {
     const hasAlergenos = prod.alergenos && 
       !['ninguno', 'ninguno conocido', 'no', 'ninguno.', 'sin alérgenos', 'sin alergenos', 'n/a'].includes(String(prod.alergenos).trim().toLowerCase());
 
+    const mediaHtml = prod.imagen_url 
+      ? `<div style="width: 100%; height: 130px; border-radius: 12px; overflow: hidden; margin-bottom: 10px; background: #f8fafc; border: 1px solid var(--border, #e2e8f0); position: relative; box-shadow: 0 2px 6px rgba(0,0,0,0.03);">
+           <img src="${prod.imagen_url}" alt="${prod.nombre}" style="width: 100%; height: 100%; object-fit: cover; display: block;" onerror="this.onerror=null; this.parentElement.innerHTML=\`${iconHtml}\`;">
+         </div>`
+      : `<div style="display: flex; justify-content: center; align-items: center; margin-bottom: 8px;">${iconHtml}</div>`;
+
     return `
       <div class="product-card ${isOutOfStock ? 'out-of-stock' : ''}">
-        <div style="display: flex; justify-content: center; align-items: center; margin-bottom: 8px;">
-          ${iconHtml}
-        </div>
+        ${mediaHtml}
         <div>
           <div style="display: flex; gap: 4px; flex-wrap: wrap; margin-bottom: 4px;">
             ${prod.cumple_mep ? '<span class="badge-mep">MEP Saludable</span>' : ''}
@@ -3268,12 +3272,16 @@ function renderAdminInventory(list) {
       ? window.SiboPayIcons.getFoodIconBadge(p.icono, p.nombre, 'badge') 
       : `<div style="font-size: 1.8rem; text-align: center; flex-shrink: 0; min-width: 40px;">${p.icono || '🥪'}</div>`;
 
+    const mediaBadge = p.imagen_url
+      ? `<img src="${p.imagen_url}" alt="${p.nombre}" style="width: 42px; height: 42px; border-radius: 9px; object-fit: cover; border: 1.2px solid var(--border, #e2e8f0); display: block;" onerror="this.onerror=null; this.parentElement.innerHTML=\`${iconBadge}\`;">`
+      : iconBadge;
+
     return `
       <div class="inventory-item-row" style="${isOutOfStock ? 'background: #fff1f2;' : ''}">
         <div class="inventory-item-top" style="display: flex; align-items: center; justify-content: space-between; gap: 10px;">
           <div style="display: flex; align-items: center; gap: 10px; flex: 1; min-width: 0;">
             <div style="flex-shrink: 0; display: flex; align-items: center; justify-content: center;">
-              ${iconBadge}
+              ${mediaBadge}
             </div>
             <div style="flex: 1; min-width: 0;">
               <div style="display: flex; align-items: center; gap: 6px; flex-wrap: wrap;">

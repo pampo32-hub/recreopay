@@ -340,12 +340,20 @@ function renderPosProducts(catId) {
     const isOutOfStock = prod.disponible === 0 || (prod.control_stock === 1 && prod.stock <= 0);
     const isFirstMatch = hasSearch && idx === 0 && !isOutOfStock;
 
+    const iconBadge = window.SiboPayIcons ? window.SiboPayIcons.getFoodIconBadge(prod.icono, prod.nombre, 'card') : `<div style="font-size: 2.2rem; text-align: center; margin-bottom: 6px;">${prod.icono || '🥪'}</div>`;
+
+    const mediaHtml = prod.imagen_url
+      ? `<div style="width: 100%; height: 95px; border-radius: 9px; overflow: hidden; margin-bottom: 8px; background: #f8fafc; border: 1px solid #e2e8f0; position: relative;">
+           <img src="${prod.imagen_url}" alt="${prod.nombre}" style="width: 100%; height: 100%; object-fit: cover; display: block;" onerror="this.onerror=null; this.parentElement.innerHTML=\`${iconBadge}\`;">
+         </div>`
+      : iconBadge;
+
     return `
       <div class="pos-prod-card ${isOutOfStock ? 'out-of-stock-pos' : ''} ${isFirstMatch ? 'search-match-first' : ''}" 
            title="${isFirstMatch ? 'Primer resultado coincidente (pulsa Enter para cobrar)' : ''}"
            onclick="${isOutOfStock ? `alert('El producto \\'${prod.nombre.replace(/'/g, "\\'")}\\' se encuentra bloqueado o agotado.')` : `addToPosCart(${prod.id})`}">
         ${isOutOfStock ? '<div style="position: absolute; top: 10px; right: 10px;"><span class="saas-status-badge saas-status-blocked"><span class="saas-dot"></span>BLOQUEADO</span></div>' : (isFirstMatch ? '<div style="position: absolute; top: 8px; right: 8px;"><span class="saas-status-badge saas-status-active" style="font-size: 0.65rem; padding: 2px 6px;">Enter ↵</span></div>' : '')}
-        ${window.SiboPayIcons ? window.SiboPayIcons.getFoodIconBadge(prod.icono, prod.nombre, 'card') : `<div style="font-size: 2.2rem; text-align: center; margin-bottom: 6px;">${prod.icono || '🥪'}</div>`}
+        ${mediaHtml}
         <div>
           <div class="prod-title">${prod.nombre}</div>
           ${prod.cumple_mep ? '<span style="font-size: 0.68rem; color: #166534; font-weight: 700; margin-top: 3px; display: inline-flex; align-items: center; gap: 3px;">🌿 MEP Saludable</span>' : ''}
