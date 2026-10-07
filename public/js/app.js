@@ -2611,6 +2611,17 @@ async function loadParentDashboard() {
   renderParentDashboardView();
 }
 
+function smoothScrollToElement(el, offset = 65) {
+  if (!el) return;
+  const rect = el.getBoundingClientRect();
+  const currentY = window.pageYOffset || window.scrollY || document.documentElement.scrollTop || 0;
+  const targetY = currentY + rect.top - offset;
+  window.scrollTo({
+    top: Math.max(0, targetY),
+    behavior: 'smooth'
+  });
+}
+
 function renderParentDashboardView() {
   const bannerNoHijos = document.getElementById('parentNoChildrenBanner');
   const sectionHijos = document.getElementById('parentChildrenSection');
@@ -2682,9 +2693,9 @@ function renderParentDashboardView() {
   }
 
   if (activeView) {
-    openParentSubView(activeView);
+    openParentSubView(activeView, false);
   } else {
-    closeParentSubView();
+    closeParentSubView(false);
   }
 }
 
@@ -2698,7 +2709,7 @@ function selectParentChild(childId) {
   }
 }
 
-function openParentSubView(viewKey) {
+function openParentSubView(viewKey, shouldScroll = true) {
   try {
     localStorage.setItem('recreopay_active_parent_subview', viewKey);
   } catch (e) {}
@@ -2777,14 +2788,19 @@ function openParentSubView(viewKey) {
     loadActiveChildHistory(currentParentChild.id);
   }
 
-  window.scrollTo({ top: 0, behavior: 'smooth' });
+  if (!isDesktop && targetEl && shouldScroll) {
+    setTimeout(() => {
+      smoothScrollToElement(targetEl, 65);
+    }, 60);
+  }
+
   if (window.sounds) window.sounds.playTap();
 }
 
-function closeParentSubView() {
+function closeParentSubView(shouldScroll = true) {
   const isDesktop = window.innerWidth >= 860;
   if (isDesktop) {
-    openParentSubView('resumen');
+    openParentSubView('resumen', false);
     return;
   }
 
@@ -2813,7 +2829,12 @@ function closeParentSubView() {
     box.classList.remove('active');
   });
 
-  window.scrollTo({ top: 0, behavior: 'smooth' });
+  if (!isDesktop && sidebar && shouldScroll) {
+    setTimeout(() => {
+      smoothScrollToElement(sidebar, 65);
+    }, 60);
+  }
+
   if (window.sounds) window.sounds.playTap();
 }
 
