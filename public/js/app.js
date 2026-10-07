@@ -3339,6 +3339,19 @@ function handleSinpeBackdropClick(event) {
   closeSinpeModal();
 }
 
+function openModalSinpeTerms() {
+  const modal = document.getElementById('modalSinpeTerms');
+  if (modal) modal.style.display = 'flex';
+}
+
+function closeModalSinpeTerms(event) {
+  if (event && event.target && event.target.id !== 'modalSinpeTerms') {
+    return;
+  }
+  const modal = document.getElementById('modalSinpeTerms');
+  if (modal) modal.style.display = 'none';
+}
+
 async function executeParentSinpeRecharge() {
   if (!currentParentChild) {
     showSinpeModal('error', {

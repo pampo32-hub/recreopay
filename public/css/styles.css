@@ -5214,6 +5214,11 @@ body.dark-mode .sinpe-card-receipt {
   width: 100%;
 }
 
+/* En móviles se oculta la tarjeta lateral fija para no saturar la pantalla; se abre mediante el modal */
+.parent-sinpe-terms-card {
+  display: none;
+}
+
 body.dark-mode .parent-sinpe-form-card {
   background: rgba(6, 78, 59, 0.22) !important;
   border-color: #059669 !important;
@@ -5223,6 +5228,20 @@ body.dark-mode .parent-sinpe-terms-card {
   background: #1e293b !important;
   border-color: #334155 !important;
   color: #f1f5f9;
+}
+
+body.dark-mode #modalSinpeTerms .modal-qr-card {
+  background: #0f172a !important;
+  color: #f8fafc !important;
+  border: 1px solid #334155 !important;
+}
+
+body.dark-mode #modalSinpeTerms strong {
+  color: #f8fafc !important;
+}
+
+body.dark-mode #modalSinpeTerms span {
+  color: #cbd5e1;
 }
 
 /* Filtros de Historial de Movimientos */

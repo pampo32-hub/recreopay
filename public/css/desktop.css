@@ -405,6 +405,7 @@
   }
 
   .parent-sinpe-terms-card {
+    display: block !important;
     background: var(--card-bg, #ffffff) !important;
     border: 1.5px solid var(--border, #e2e8f0) !important;
     box-shadow: 0 4px 14px rgba(0, 0, 0, 0.03) !important;

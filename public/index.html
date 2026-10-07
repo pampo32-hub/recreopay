@@ -1219,6 +1219,14 @@
               <span id="btnParentValidarSinpeText">Validar SINPE</span>
             </button>
 
+            <!-- Enlace a Términos y Condiciones SINPE -->
+            <div style="text-align: center; margin-top: 10px; font-size: 0.72rem; color: #64748b; line-height: 1.45;">
+              <span>Al hacer pagos por SINPE acepta los </span>
+              <button type="button" onclick="openModalSinpeTerms()" style="background: none; border: none; padding: 0; color: #0284c7; font-weight: 800; font-size: 0.72rem; cursor: pointer; text-decoration: underline; display: inline;">
+                términos de pago con SINPE móvil
+              </button>
+            </div>
+
             <!-- Banner de estado dinámico -->
             <div id="parentSinpeStatusMsg" style="display: none; margin-top: 10px; padding: 10px 12px; border-radius: 10px; font-size: 0.80rem; line-height: 1.4;"></div>
 
@@ -2855,6 +2863,112 @@
 
         <button type="button" class="btn-sinpe-action btn-sinpe-error" onclick="closeSinpeModal()">
           <span>Entendido</span>
+        </button>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- MODAL: TÉRMINOS, CONDICIONES Y GUÍA DE RECARGA SINPE MÓVIL -->
+  <div class="modal-qr-backdrop modal-sinpe-backdrop" id="modalSinpeTerms" style="display: none;" onclick="closeModalSinpeTerms(event)">
+    <div class="modal-qr-card" onclick="event.stopPropagation()" style="max-width: 480px; max-height: 85vh; overflow-y: auto; text-align: left; padding: 22px; border-radius: 20px; box-sizing: border-box;">
+      
+      <!-- Encabezado del Modal -->
+      <div style="display: flex; align-items: center; justify-content: space-between; border-bottom: 1.5px solid var(--border, #e2e8f0); padding-bottom: 12px; margin-bottom: 14px;">
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <div style="width: 38px; height: 38px; border-radius: 10px; background: #e0f2fe; color: #0284c7; display: flex; align-items: center; justify-content: center; font-size: 1.25rem; flex-shrink: 0;">
+            🛡️
+          </div>
+          <div>
+            <h3 style="margin: 0; font-size: 1.05rem; font-weight: 900; color: var(--text-main, #0f172a);">Términos y Guía SINPE Móvil</h3>
+            <span style="font-size: 0.74rem; color: var(--text-muted, #64748b);">Reglas para acreditación automática</span>
+          </div>
+        </div>
+        <button type="button" onclick="closeModalSinpeTerms()" style="background: none; border: none; font-size: 1.3rem; cursor: pointer; color: var(--text-muted, #64748b); padding: 4px;" title="Cerrar">✕</button>
+      </div>
+
+      <!-- Alerta Dorada: Coincidencia Exacta -->
+      <div style="background: #fffbeb; border: 1.5px solid #fde68a; border-radius: 12px; padding: 12px; margin-bottom: 14px;">
+        <div style="display: flex; align-items: flex-start; gap: 8px;">
+          <span style="font-size: 1.15rem; line-height: 1;">⚠️</span>
+          <div style="font-size: 0.77rem; color: #92400e; line-height: 1.45;">
+            <strong style="display: block; font-size: 0.82rem; margin-bottom: 2px;">Atención a dos datos obligatorios:</strong>
+            El <strong>monto</strong> y el <strong>código SIBO</strong> deben coincidir con total precisión para que el sistema de la soda apruebe el saldo en segundos.
+          </div>
+        </div>
+      </div>
+
+      <!-- Lista de Términos Numerados -->
+      <div style="display: flex; flex-direction: column; gap: 13px; font-size: 0.78rem; color: var(--text-main, #334155); line-height: 1.45;">
+        
+        <!-- 1. Monto Exacto -->
+        <div style="display: flex; gap: 10px; align-items: flex-start;">
+          <div style="width: 22px; height: 22px; border-radius: 50%; background: #dcfce7; color: #166534; font-weight: 900; font-size: 0.72rem; display: flex; align-items: center; justify-content: center; flex-shrink: 0; margin-top: 1px;">
+            1
+          </div>
+          <div>
+            <strong style="color: var(--text-main, #0f172a); display: block; font-size: 0.82rem;">Monto idéntico al transferido:</strong>
+            <span>El monto elegido en esta pantalla debe ser <strong>exactamente igual</strong> al transferido desde su banco (ej: si transfirió ₡3.000, digite ₡3.000). Diferencias en el importe impiden la conciliación automática.</span>
+          </div>
+        </div>
+
+        <!-- 2. Código Obligatorio -->
+        <div style="display: flex; gap: 10px; align-items: flex-start;">
+          <div style="width: 22px; height: 22px; border-radius: 50%; background: #dcfce7; color: #166534; font-weight: 900; font-size: 0.72rem; display: flex; align-items: center; justify-content: center; flex-shrink: 0; margin-top: 1px;">
+            2
+          </div>
+          <div>
+            <strong style="color: var(--text-main, #0f172a); display: block; font-size: 0.82rem;">Copiar y pegar el código en el Detalle:</strong>
+            <span>Es <strong>estrictamente obligatorio</strong> colocar el código que empieza con <code style="background: rgba(2, 132, 199, 0.08); color: #0284c7; padding: 1px 6px; border-radius: 4px; font-weight: 800; font-family: monospace;">SIBO-XXXXXX</code> en la casilla de <em>Detalle</em>, <em>Motivo</em> o <em>Concepto</em> del SINPE Móvil bancario.</span>
+          </div>
+        </div>
+
+        <!-- 3. Destinatario Oficial -->
+        <div style="display: flex; gap: 10px; align-items: flex-start;">
+          <div style="width: 22px; height: 22px; border-radius: 50%; background: #dcfce7; color: #166534; font-weight: 900; font-size: 0.72rem; display: flex; align-items: center; justify-content: center; flex-shrink: 0; margin-top: 1px;">
+            3
+          </div>
+          <div>
+            <strong style="color: var(--text-main, #0f172a); display: block; font-size: 0.82rem;">Verificación del Destinatario:</strong>
+            <span>Transfiera únicamente al número telefónico y titular oficial registrados de la soda escolar. SiboPay nunca le solicitará fondos a cuentas particulares.</span>
+          </div>
+        </div>
+
+        <!-- 4. Comprobante de Respaldo -->
+        <div style="display: flex; gap: 10px; align-items: flex-start;">
+          <div style="width: 22px; height: 22px; border-radius: 50%; background: #dcfce7; color: #166534; font-weight: 900; font-size: 0.72rem; display: flex; align-items: center; justify-content: center; flex-shrink: 0; margin-top: 1px;">
+            4
+          </div>
+          <div>
+            <strong style="color: var(--text-main, #0f172a); display: block; font-size: 0.82rem;">Comprobante de Respaldo:</strong>
+            <span>Conserve la captura o número de comprobante emitido por su banco. En caso de requerir aclaración, este servirá como comprobante ante la administración de la soda.</span>
+          </div>
+        </div>
+
+        <!-- 5. Disponibilidad del Saldo -->
+        <div style="display: flex; gap: 10px; align-items: flex-start;">
+          <div style="width: 22px; height: 22px; border-radius: 50%; background: #dcfce7; color: #166534; font-weight: 900; font-size: 0.72rem; display: flex; align-items: center; justify-content: center; flex-shrink: 0; margin-top: 1px;">
+            5
+          </div>
+          <div>
+            <strong style="color: var(--text-main, #0f172a); display: block; font-size: 0.82rem;">Disponibilidad Inmediata:</strong>
+            <span>Una vez validado el pago, los fondos quedan disponibles de inmediato para compras con carné QR o pre-órdenes. El saldo no vence durante el curso lectivo.</span>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Pie de Seguridad y Botón de Aceptar -->
+      <div style="margin-top: 18px; padding-top: 14px; border-top: 1px solid var(--border, #f1f5f9); display: flex; flex-direction: column; gap: 12px;">
+        <div style="display: flex; align-items: center; justify-content: space-between; font-size: 0.72rem; color: var(--text-muted, #64748b);">
+          <span style="display: flex; align-items: center; gap: 6px;">
+            <span style="width: 7px; height: 7px; border-radius: 50%; background: #10b981; display: inline-block;"></span>
+            <span>Conciliación automática activa 24/7</span>
+          </span>
+          <span style="font-weight: 800; color: #0284c7;">SiboPay Protegido</span>
+        </div>
+        <button type="button" onclick="closeModalSinpeTerms()" style="width: 100%; padding: 12px; background: linear-gradient(135deg, #16a34a, #15803d); color: white; border: none; border-radius: 12px; font-weight: 900; font-size: 0.95rem; cursor: pointer; box-shadow: 0 4px 10px rgba(22, 163, 74, 0.25);">
+          Entendido y Aceptar
         </button>
       </div>
 
