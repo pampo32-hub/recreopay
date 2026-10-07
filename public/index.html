@@ -12,7 +12,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="SiboPay">
   <meta name="mobile-web-app-capable" content="yes">
-  <link rel="stylesheet" href="/css/styles.css?v=10.7">
+  <link rel="stylesheet" href="/css/styles.css?v=10.8">
   <style>
     /* Transiciones suaves */
     .fade-enter { animation: fadeIn 0.2s ease-in-out; }
@@ -467,21 +467,33 @@
   <!-- PANEL DE ADMINISTRACIÓN DE LA SODA (#viewAdmin) -->
   <div id="viewAdmin" class="admin-container" style="display: none;">
     <!-- CABECERA DE ADMINISTRADOR -->
-    <header class="admin-header">
-      <div class="admin-badge">
-        <div class="admin-icon">
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+    <header class="admin-header" style="display: flex; flex-direction: column; gap: 12px;">
+      <!-- FILA SUPERIOR: MARCA/TÍTULO A LA IZQUIERDA Y BOTÓN SALIR ÚNICO ARRIBITA A LA DERECHA -->
+      <div style="display: flex; justify-content: space-between; align-items: center; width: 100%; gap: 10px;">
+        <div class="admin-badge" style="display: flex; align-items: center; gap: 10px; min-width: 0;">
+          <div class="admin-icon" style="flex-shrink: 0;">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+          </div>
+          <div style="min-width: 0;">
+            <h2 style="font-size: 1.15rem; font-weight: 900; margin: 0; color: var(--text-main); line-height: 1.2;">Administración de la Soda</h2>
+            <span id="adminLoggedName" style="font-size: 0.76rem; color: #0284c7; font-weight: 700; display: block;">Soda Escolar Central</span>
+          </div>
         </div>
-        <div>
-          <h2 style="font-size: 1.15rem; font-weight: 900; margin: 0; color: var(--text-main);">Administración de la Soda</h2>
-          <span id="adminLoggedName" style="font-size: 0.76rem; color: #0284c7; font-weight: 700;">Soda Escolar Central</span>
+
+        <!-- ACCIONES SUPERIORES: TEMA Y BOTÓN SALIR ARRIBITA A LA DERECHA -->
+        <div style="display: flex; align-items: center; gap: 8px; flex-shrink: 0;">
+          <button onclick="toggleTheme()" class="btn-saas btn-saas-outline" style="width: 34px; height: 34px; padding: 0; display: inline-flex; align-items: center; justify-content: center; border-radius: 9px;" title="Alternar Modo Oscuro / Modo Claro">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>
+          </button>
+          <button onclick="logout(true)" class="btn-saas btn-saas-danger-subtle" style="height: 34px; font-size: 0.82rem; font-weight: 800; border-radius: 9px; padding: 0 14px; box-shadow: 0 1px 3px rgba(220, 38, 38, 0.08); display: inline-flex; align-items: center; gap: 6px; flex-shrink: 0;" title="Cerrar sesión y cambiar de cuenta">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+            <span class="admin-btn-text">Salir</span>
+          </button>
         </div>
       </div>
 
-      <div class="admin-header-actions" style="display: flex; align-items: center; gap: 8px;">
-        <button onclick="toggleTheme()" class="btn-saas btn-saas-outline" style="width: 34px; height: 34px; padding: 0;" title="Alternar Modo Oscuro / Modo Claro">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>
-        </button>
+      <!-- FILA DE ACCIONES RÁPIDAS: RECARGAR SALDO, TERMINAL POS, PANEL DEV -->
+      <div class="admin-header-actions" style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap; width: 100%;">
         <button id="btnAdminDevPanel" onclick="switchAdminToDev()" class="btn-saas btn-saas-outline" style="display: none; border-color: #0284c7; color: #0284c7; height: 34px;" title="Volver al Panel Developer Master">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m18 16 4-4-4-4"/><path d="m6 8-4 4 4 4"/><path d="m14.5 4-5 16"/></svg>
           <span class="admin-btn-text">Panel Dev</span>
@@ -494,10 +506,6 @@
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="14" x="2" y="3" rx="2"/><line x1="8" x2="16" y1="21" y2="21"/><line x1="12" x2="12" y1="17" y2="21"/></svg>
           <span class="admin-btn-text">Terminal POS</span>
         </a>
-        <button onclick="logout(true)" class="btn-saas btn-saas-danger-subtle" style="height: 34px;" title="Cerrar sesión y cambiar de cuenta">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" x2="9" y1="12" y2="12"/></svg>
-          <span class="admin-btn-text">Salir</span>
-        </button>
       </div>
     </header>
 

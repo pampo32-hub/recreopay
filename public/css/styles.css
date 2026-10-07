@@ -2287,7 +2287,7 @@ body.dark-mode .admin-tab-btn.active {
   .admin-header-actions {
     width: 100%;
     display: grid;
-    grid-template-columns: 38px 1fr 1fr 1fr;
+    grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
     gap: 6px;
     align-items: center;
   }
