@@ -74,6 +74,16 @@ document.addEventListener('DOMContentLoaded', async () => {
     }).catch(err => console.log('SW error:', err));
   }
 
+  // Verificar si se solicitó cerrar sesión
+  const urlParams = new URLSearchParams(window.location.search);
+  if (urlParams.get('logout') === 'true') {
+    localStorage.removeItem('sibopay_token');
+    localStorage.removeItem('sibopay_user');
+    localStorage.removeItem('recreopay_token');
+    localStorage.removeItem('recreopay_user');
+    sessionStorage.clear();
+  }
+
   // Verificar si hay sesión activa guardada
   const storedUser = localStorage.getItem('sibopay_user') || localStorage.getItem('recreopay_user');
   if (storedUser) {
@@ -5140,7 +5150,7 @@ async function loadAdminMovimientos() {
       </div>
     `;
 
-    const res = await fetch('/api/admin/movimientos?limit=100');
+    const res = await fetch('/api/admin/movimientos?limit=100&_t=' + Date.now());
     if (!res.ok) throw new Error('Error al cargar movimientos desde el servidor');
     adminMovimientosData = await res.json();
     renderAdminMovimientos();
@@ -5149,6 +5159,7 @@ async function loadAdminMovimientos() {
     container.innerHTML = `<div style="text-align: center; color: #ef4444; padding: 25px; font-weight: 700;">Error al cargar el historial: ${err.message}</div>`;
   }
 }
+window.loadAdminMovimientos = loadAdminMovimientos;
 
 function setMovFilter(filter) {
   currentMovFilter = filter;
@@ -5160,20 +5171,20 @@ function setMovFilter(filter) {
   [btnAll, btnRecargas, btnCobros, btnRechazados].forEach(b => {
     if (!b) return;
     b.classList.remove('active');
-    b.style.background = 'transparent';
-    b.style.color = '#64748b';
-    b.style.boxShadow = 'none';
-    b.style.fontWeight = '700';
+    b.style.setProperty('background', 'transparent', 'important');
+    b.style.setProperty('color', '#64748b', 'important');
+    b.style.setProperty('box-shadow', 'none', 'important');
+    b.style.setProperty('font-weight', '700', 'important');
   });
 
   const isRechazadosTab = filter === 'rechazados' || filter === 'rechazado';
   const activeBtn = filter === 'recargas' ? btnRecargas : (filter === 'cobros' ? btnCobros : (isRechazadosTab ? btnRechazados : btnAll));
   if (activeBtn) {
     activeBtn.classList.add('active');
-    activeBtn.style.background = '#ffffff';
-    activeBtn.style.color = '#0284c7';
-    activeBtn.style.boxShadow = '0 1px 3px rgba(0,0,0,0.08)';
-    activeBtn.style.fontWeight = '800';
+    activeBtn.style.setProperty('background', '#ffffff', 'important');
+    activeBtn.style.setProperty('color', '#0284c7', 'important');
+    activeBtn.style.setProperty('box-shadow', '0 1px 4px rgba(0,0,0,0.08)', 'important');
+    activeBtn.style.setProperty('font-weight', '800', 'important');
   }
 
   if (!adminMovimientosData || adminMovimientosData.length === 0) {
@@ -5183,6 +5194,7 @@ function setMovFilter(filter) {
   }
   if (window.sounds) window.sounds.playTap();
 }
+window.setMovFilter = setMovFilter;
 
 function filterMovimientosUI() {
   renderAdminMovimientos();

@@ -1872,7 +1872,6 @@ async function procesarSinpePos(solicitudId, accion) {
 }
 
 function posLogout() {
-  if (!confirm('¿Deseas cerrar sesión en la terminal POS?')) return;
   try {
     localStorage.removeItem('sibopay_token');
     localStorage.removeItem('sibopay_user');
@@ -1882,4 +1881,5 @@ function posLogout() {
   } catch (e) {}
   window.location.href = '/index.html?logout=true';
 }
+window.posLogout = posLogout;
 

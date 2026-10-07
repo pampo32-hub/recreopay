@@ -4840,3 +4840,36 @@ body.dark-mode .sinpe-card-receipt {
   border-color: #059669;
 }
 
+/* Filtros de Historial de Movimientos */
+.mov-filter-btn {
+  padding: 6px 14px;
+  border: none;
+  border-radius: 8px;
+  font-weight: 700;
+  font-size: 0.8rem;
+  cursor: pointer;
+  background: transparent;
+  color: #64748b;
+  white-space: nowrap;
+  transition: all 0.15s ease;
+  user-select: none;
+}
+
+.mov-filter-btn.active {
+  background: #ffffff !important;
+  color: #0284c7 !important;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08) !important;
+  font-weight: 800 !important;
+}
+
+body.dark-mode .mov-filter-btn {
+  color: #94a3b8;
+}
+
+body.dark-mode .mov-filter-btn.active {
+  background: #1e293b !important;
+  color: #38bdf8 !important;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.3) !important;
+}
+
+
