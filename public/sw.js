@@ -1,5 +1,5 @@
-// RecreoPay PWA Service Worker v8.5 - Soporte Web Push VAPID en Segundo Plano
-const CACHE_NAME = 'recreopay-v8.5';
+// RecreoPay PWA Service Worker v8.6 - Soporte Web Push VAPID en Segundo Plano
+const CACHE_NAME = 'recreopay-v8.6';
 const STATIC_ASSETS = [
   '/',
   '/index.html',

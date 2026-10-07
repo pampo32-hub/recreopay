@@ -2812,6 +2812,8 @@ function fallbackCopyText(text, cb) {
 let sinpeProgressInterval = null;
 let sinpeIsPolling = false;
 
+let currentSinpePollingData = null;
+
 function showSinpeModal(state, data = {}) {
   const modal = document.getElementById('modalSinpeValidacion');
   if (!modal) return;
@@ -2820,12 +2822,14 @@ function showSinpeModal(state, data = {}) {
   const stateSuccess = document.getElementById('modalSinpeStateSuccess');
   const statePending = document.getElementById('modalSinpeStatePending');
   const stateError = document.getElementById('modalSinpeStateError');
+  const stateTimeout = document.getElementById('modalSinpeStateTimeout');
   const btnCloseX = document.getElementById('modalSinpeBtnCloseX');
 
   if (stateLoading) stateLoading.style.display = 'none';
   if (stateSuccess) stateSuccess.style.display = 'none';
   if (statePending) statePending.style.display = 'none';
   if (stateError) stateError.style.display = 'none';
+  if (stateTimeout) stateTimeout.style.display = 'none';
 
   if (state === 'loading') {
     if (stateLoading) stateLoading.style.display = 'block';
@@ -2834,15 +2838,18 @@ function showSinpeModal(state, data = {}) {
     const sumMonto = document.getElementById('modalSinpeSummaryMonto');
     const sumCod = document.getElementById('modalSinpeSummaryCodigo');
     const stepText = document.getElementById('modalSinpeStepText');
-    const timerText = document.getElementById('modalSinpeTimerText');
-    const bar = document.getElementById('modalSinpeProgressBar');
 
     if (sumChild) sumChild.textContent = data.studentName || '-';
     if (sumMonto) sumMonto.textContent = `₡${(data.monto || 0).toLocaleString('es-CR')}`;
     if (sumCod) sumCod.textContent = data.codigo || '-';
-    if (stepText) stepText.textContent = 'Buscando comprobante bancario...';
-    if (timerText) timerText.textContent = '18s';
-    if (bar) bar.style.width = '0%';
+    if (stepText) stepText.textContent = 'Consultando confirmación bancaria en tiempo real...';
+  } else if (state === 'timeout') {
+    if (stateTimeout) stateTimeout.style.display = 'block';
+    if (btnCloseX) btnCloseX.style.display = 'flex';
+    const tMonto = document.getElementById('modalSinpeTimeoutMonto');
+    const tCod = document.getElementById('modalSinpeTimeoutCodigo');
+    if (tMonto) tMonto.textContent = `₡${(data.monto || 0).toLocaleString('es-CR')}`;
+    if (tCod) tCod.textContent = data.codigo || '-';
   } else if (state === 'success') {
     if (stateSuccess) stateSuccess.style.display = 'block';
     if (btnCloseX) btnCloseX.style.display = 'flex';
@@ -2925,21 +2932,34 @@ async function executeParentSinpeRecharge() {
     `;
   }
 
-  // Abrir modal con estado LOADING (sin alertas intrusivas)
+  currentSinpePollingData = {
+    studentId: currentParentChild.id,
+    studentName: currentParentChild.nombre_completo,
+    monto,
+    codigo,
+    comprobante
+  };
+
+  // Abrir modal con estado LOADING (sin barra ni contador de segundos)
   showSinpeModal('loading', {
     studentName: currentParentChild.nombre_completo,
     monto: monto,
     codigo: codigo
   });
 
-  const totalDurationMs = 18000; // 18 segundos de sondeo visual
   const pollIntervalMs = 3000;   // Consulta cada 3 segundos
+  const maxIntentos = 40;        // 40 intentos * 3s = 120 segundos (2 minutos)
   const startTime = Date.now();
   sinpeIsPolling = true;
 
-  const bar = document.getElementById('modalSinpeProgressBar');
-  const timerText = document.getElementById('modalSinpeTimerText');
   const stepText = document.getElementById('modalSinpeStepText');
+  const rotatingSubtitles = [
+    'Consultando confirmación bancaria en tiempo real...',
+    'Sondeando comprobante con el banco...',
+    'Esto podría tardar hasta 1 minuto, por favor espere...',
+    'Verificando transferencias SINPE entrantes...',
+    'Sincronizando estado digital del banco...'
+  ];
 
   clearInterval(sinpeProgressInterval);
   sinpeProgressInterval = setInterval(() => {
@@ -2948,29 +2968,15 @@ async function executeParentSinpeRecharge() {
       return;
     }
     const elapsed = Date.now() - startTime;
-    const progress = Math.min(100, Math.round((elapsed / totalDurationMs) * 100));
-    const remainingSecs = Math.max(0, Math.ceil((totalDurationMs - elapsed) / 1000));
-
-    if (bar) bar.style.width = `${progress}%`;
-    if (timerText) timerText.textContent = `${remainingSecs}s`;
-
-    if (stepText) {
-      if (elapsed < 4500) {
-        stepText.textContent = 'Buscando comprobante bancario...';
-      } else if (elapsed < 9000) {
-        stepText.textContent = 'Sondeando transferencias SINPE entrantes...';
-      } else if (elapsed < 13500) {
-        stepText.textContent = 'Esperando confirmación digital del banco...';
-      } else {
-        stepText.textContent = 'Verificación bancaria final...';
-      }
+    const stepIdx = Math.floor(elapsed / 5000) % rotatingSubtitles.length;
+    if (stepText && stepText.textContent !== rotatingSubtitles[stepIdx]) {
+      stepText.textContent = rotatingSubtitles[stepIdx];
     }
-  }, 100);
+  }, 1000);
 
   try {
     let verifiedData = null;
     let definitiveError = null;
-    const maxIntentos = 6;
 
     for (let intento = 1; intento <= maxIntentos; intento++) {
       if (!sinpeIsPolling) break;
@@ -3057,38 +3063,14 @@ async function executeParentSinpeRecharge() {
     }
 
     // ============================================
-    // CASO 3: BANCO AÚN NO RESPONDIÓ (REGISTRO AUTOMÁTICO PARA REVISIÓN)
+    // CASO 3: BANCO AÚN NO RESPONDIÓ TRAS 2 MINUTOS -> MODAL TIMEOUT
     // ============================================
     if (window.sounds) window.sounds.playTap();
-
-    try {
-      await fetch('/api/sinpe/solicitar', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          estudiante_id: currentParentChild.id,
-          padre_usuario_id: currentUser ? currentUser.id : null,
-          monto,
-          comprobante: comprobante || `SINPE-${codigo}`,
-          codigo_detalle: codigo,
-          notas: `Portal de Padres - Código: ${codigo}`
-        })
-      });
-    } catch (solErr) {
-      console.warn('Error al registrar solicitud:', solErr);
-    }
-
-    if (inputMonto) inputMonto.value = '';
-    if (inputComp) inputComp.value = '';
-
-    showSinpeModal('pending', {
+    showSinpeModal('timeout', {
       studentName: currentParentChild.nombre_completo,
       monto: monto,
       codigo: codigo
     });
-
-    await loadParentSinpeRequests(currentParentChild.id);
-    obtenerNuevoCodigoSinpe();
 
   } catch (err) {
     sinpeIsPolling = false;
@@ -3107,6 +3089,181 @@ async function executeParentSinpeRecharge() {
       `;
     }
   }
+}
+
+async function retrySinpeWaitMore() {
+  if (!currentSinpePollingData) return;
+  const { studentId, studentName, monto, codigo, comprobante } = currentSinpePollingData;
+
+  showSinpeModal('loading', {
+    studentName: studentName || (currentParentChild ? currentParentChild.nombre_completo : ''),
+    monto,
+    codigo
+  });
+
+  const pollIntervalMs = 3000;
+  const maxIntentos = 20; // 20 * 3s = 60s (1 minuto más)
+  const startTime = Date.now();
+  sinpeIsPolling = true;
+
+  const stepText = document.getElementById('modalSinpeStepText');
+  const rotatingSubtitles = [
+    'Buscando comprobante bancario...',
+    'Consultando transferencias recientes...',
+    'Esto podría tardar unos momentos más...',
+    'Verificando confirmación digital...'
+  ];
+
+  clearInterval(sinpeProgressInterval);
+  sinpeProgressInterval = setInterval(() => {
+    if (!sinpeIsPolling) {
+      clearInterval(sinpeProgressInterval);
+      return;
+    }
+    const elapsed = Date.now() - startTime;
+    const stepIdx = Math.floor(elapsed / 5000) % rotatingSubtitles.length;
+    if (stepText && stepText.textContent !== rotatingSubtitles[stepIdx]) {
+      stepText.textContent = rotatingSubtitles[stepIdx];
+    }
+  }, 1000);
+
+  try {
+    let verifiedData = null;
+    let definitiveError = null;
+
+    for (let intento = 1; intento <= maxIntentos; intento++) {
+      if (!sinpeIsPolling) break;
+
+      try {
+        const res = await fetch('/api/sinpe/validar', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            estudiante_id: studentId,
+            padre_usuario_id: currentUser ? currentUser.id : null,
+            monto,
+            codigo,
+            comprobante: comprobante || null
+          })
+        });
+
+        const data = await res.json();
+        if (data.verificado && data.success) {
+          verifiedData = data;
+          break;
+        }
+        if (data.error && !data.retry) {
+          definitiveError = data;
+          break;
+        }
+      } catch (pollErr) {
+        console.warn(`[SINPE Retry Polling intento ${intento}]`, pollErr);
+      }
+
+      if (intento < maxIntentos && sinpeIsPolling) {
+        await new Promise(r => setTimeout(r, pollIntervalMs));
+      }
+    }
+
+    sinpeIsPolling = false;
+    clearInterval(sinpeProgressInterval);
+
+    if (verifiedData && verifiedData.verificado) {
+      if (window.sounds) window.sounds.playCoin();
+      const nuevoSaldo = typeof verifiedData.saldo_nuevo === 'number'
+        ? verifiedData.saldo_nuevo
+        : ((currentParentChild ? currentParentChild.saldo_colones : 0) + monto);
+
+      if (currentParentChild) {
+        currentParentChild.saldo_colones = nuevoSaldo;
+        renderActiveChildDetails(currentParentChild);
+      }
+
+      const inputMonto = document.getElementById('inputParentSinpeMonto');
+      const inputComp = document.getElementById('inputParentSinpeComprobante');
+      if (inputMonto) inputMonto.value = '';
+      if (inputComp) inputComp.value = '';
+
+      showSinpeModal('success', {
+        studentName: studentName || (currentParentChild ? currentParentChild.nombre_completo : ''),
+        monto,
+        banco: verifiedData.banco || 'Bancario',
+        comprobante: verifiedData.comprobante || verifiedData.codigo || codigo,
+        codigo,
+        nuevoSaldo
+      });
+
+      if (currentParentChild) {
+        await loadParentSinpeRequests(currentParentChild.id);
+      }
+      obtenerNuevoCodigoSinpe();
+      return;
+    }
+
+    if (definitiveError) {
+      if (window.sounds) window.sounds.playError();
+      showSinpeModal('error', {
+        title: 'Comprobante no válido',
+        message: definitiveError.message || definitiveError.error || 'El comprobante ya fue utilizado o los datos no corresponden a la transferencia.'
+      });
+      return;
+    }
+
+    // Si después del minuto adicional aún no llega, pasamos a confirmación para revisión manual
+    await confirmSinpeSendManualReview();
+
+  } catch (err) {
+    sinpeIsPolling = false;
+    clearInterval(sinpeProgressInterval);
+    if (window.sounds) window.sounds.playError();
+    showSinpeModal('error', {
+      title: 'Error de conexión',
+      message: `No se pudo conectar con el servidor: ${err.message}`
+    });
+  }
+}
+
+async function confirmSinpeSendManualReview() {
+  if (!currentSinpePollingData) return;
+  const { studentId, studentName, monto, codigo, comprobante } = currentSinpePollingData;
+
+  sinpeIsPolling = false;
+  clearInterval(sinpeProgressInterval);
+
+  if (window.sounds) window.sounds.playTap();
+
+  try {
+    await fetch('/api/sinpe/solicitar', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        estudiante_id: studentId,
+        padre_usuario_id: currentUser ? currentUser.id : null,
+        monto,
+        comprobante: comprobante || `SINPE-${codigo}`,
+        codigo_detalle: codigo,
+        notas: `Portal de Padres - Código: ${codigo}`
+      })
+    });
+  } catch (solErr) {
+    console.warn('Error al registrar solicitud:', solErr);
+  }
+
+  const inputMonto = document.getElementById('inputParentSinpeMonto');
+  const inputComp = document.getElementById('inputParentSinpeComprobante');
+  if (inputMonto) inputMonto.value = '';
+  if (inputComp) inputComp.value = '';
+
+  showSinpeModal('pending', {
+    studentName: studentName || (currentParentChild ? currentParentChild.nombre_completo : ''),
+    monto,
+    codigo
+  });
+
+  if (currentParentChild) {
+    await loadParentSinpeRequests(currentParentChild.id);
+  }
+  obtenerNuevoCodigoSinpe();
 }
 
 async function loadParentSinpeRequests(studentId) {
@@ -5002,21 +5159,28 @@ function setMovFilter(filter) {
 
   [btnAll, btnRecargas, btnCobros, btnRechazados].forEach(b => {
     if (!b) return;
+    b.classList.remove('active');
     b.style.background = 'transparent';
     b.style.color = '#64748b';
     b.style.boxShadow = 'none';
     b.style.fontWeight = '700';
   });
 
-  const activeBtn = filter === 'recargas' ? btnRecargas : (filter === 'cobros' ? btnCobros : (filter === 'rechazados' ? btnRechazados : btnAll));
+  const isRechazadosTab = filter === 'rechazados' || filter === 'rechazado';
+  const activeBtn = filter === 'recargas' ? btnRecargas : (filter === 'cobros' ? btnCobros : (isRechazadosTab ? btnRechazados : btnAll));
   if (activeBtn) {
+    activeBtn.classList.add('active');
     activeBtn.style.background = '#ffffff';
-    activeBtn.style.color = filter === 'rechazados' ? '#e11d48' : '#0284c7';
+    activeBtn.style.color = isRechazadosTab ? '#e11d48' : '#0284c7';
     activeBtn.style.boxShadow = '0 1px 3px rgba(0,0,0,0.08)';
     activeBtn.style.fontWeight = '800';
   }
 
-  renderAdminMovimientos();
+  if (!adminMovimientosData || adminMovimientosData.length === 0) {
+    loadAdminMovimientos();
+  } else {
+    renderAdminMovimientos();
+  }
   if (window.sounds) window.sounds.playTap();
 }
 
@@ -5037,7 +5201,7 @@ function renderAdminMovimientos() {
       if (m.monto_colones <= 0 || m.tipo === 'compra_mostrador' || m.tipo === 'preorden' || m.tipo === 'sinpe_rechazado' || m.tipo === 'recarga_rechazada') return false;
     } else if (currentMovFilter === 'cobros') {
       if (m.monto_colones >= 0 && (m.tipo === 'recarga_manual' || m.tipo === 'recarga_sinpe' || m.tipo === 'sinpe_rechazado' || m.tipo === 'recarga_rechazada')) return false;
-    } else if (currentMovFilter === 'rechazados') {
+    } else if (currentMovFilter === 'rechazados' || currentMovFilter === 'rechazado') {
       if (m.tipo !== 'sinpe_rechazado' && m.tipo !== 'recarga_rechazada') return false;
     }
 
@@ -5054,11 +5218,22 @@ function renderAdminMovimientos() {
   });
 
   if (filtered.length === 0) {
+    const isRechazados = currentMovFilter === 'rechazados' || currentMovFilter === 'rechazado';
     container.innerHTML = `
       <div style="text-align: center; color: var(--text-muted); padding: 35px 20px; background: #f8fafc; border-radius: 14px; border: 1.5px dashed var(--border);">
-        <div style="display: flex; justify-content: center; margin-bottom: 8px;"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="opacity: 0.4;"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></div>
-        <p style="margin: 8px 0 2px 0; font-weight: 800; font-size: 0.95rem; color: var(--text-main);">No se encontraron movimientos</p>
-        <span style="font-size: 0.78rem; color: var(--text-muted);">No hay registros que coincidan con el filtro o búsqueda actual.</span>
+        <div style="display: flex; justify-content: center; margin-bottom: 8px;">
+          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="${isRechazados ? '#e11d48' : 'currentColor'}" stroke-width="2" style="opacity: ${isRechazados ? '0.7' : '0.4'};">
+            ${isRechazados 
+              ? '<circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/>' 
+              : '<circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>'}
+          </svg>
+        </div>
+        <p style="margin: 8px 0 2px 0; font-weight: 800; font-size: 0.95rem; color: var(--text-main);">
+          ${isRechazados ? 'No hay transferencias SINPE rechazadas' : 'No se encontraron movimientos'}
+        </p>
+        <span style="font-size: 0.78rem; color: var(--text-muted);">
+          ${isRechazados ? 'Todas las transferencias registradas han sido procesadas con éxito o están pendientes de revisión.' : 'No hay registros que coincidan con el filtro o búsqueda actual.'}
+        </span>
       </div>
     `;
     return;

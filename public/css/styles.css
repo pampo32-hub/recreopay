@@ -4636,7 +4636,7 @@ body.dark-mode .parent-subview-back-btn:hover {
   position: absolute;
   inset: -6px;
   border-radius: 50%;
-  border: 3px solid #86efac;
+  border: 3px solid #38bdf8;
   opacity: 0.8;
   animation: sinpePulseRing 2s cubic-bezier(0.215, 0.61, 0.355, 1) infinite;
 }
@@ -4660,8 +4660,14 @@ body.dark-mode .parent-subview-back-btn:hover {
 }
 
 .sinpe-icon-badge.loading {
-  background: #f0fdf4;
-  border: 2px solid #86efac;
+  background: #f0f9ff;
+  border: 2px solid #38bdf8;
+}
+
+.sinpe-icon-badge.timeout {
+  background: #f0f9ff;
+  border: 2.5px solid #38bdf8;
+  animation: sinpePopIn 0.35s cubic-bezier(0.175, 0.885, 0.32, 1.275);
 }
 
 .sinpe-icon-badge.success {
@@ -4784,6 +4790,24 @@ body.dark-mode .parent-subview-back-btn:hover {
   background: linear-gradient(135deg, #dc2626, #b91c1c);
   color: white;
   box-shadow: 0 4px 14px rgba(220, 38, 38, 0.35);
+}
+
+.btn-sinpe-sky {
+  background: linear-gradient(135deg, #0284c7, #0369a1);
+  color: white;
+  box-shadow: 0 4px 14px rgba(2, 132, 199, 0.35);
+}
+
+.btn-sinpe-subtle {
+  background: #f1f5f9;
+  color: #334155;
+  border: 1.5px solid #cbd5e1;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04);
+}
+
+.btn-sinpe-subtle:hover {
+  background: #e2e8f0;
+  color: #0f172a;
 }
 
 body.dark-mode .modal-sinpe-card {
