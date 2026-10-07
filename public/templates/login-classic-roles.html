@@ -1,0 +1,177 @@
+<!-- ==========================================================================
+     PLANTILLA DE RESPALDO: DISEÑO DE LOGIN CLÁSICO CON ROLES (PADRE / ESTUDIANTE / PERSONAL)
+     Guardado: 07-Oct-2026
+     Para reactivar este diseño en el futuro, copia este bloque en #viewLogin dentro de public/index.html
+     ========================================================================== -->
+
+<div id="viewLoginClassicCard" class="login-card">
+  <div class="login-brand">
+    <div class="login-logo" style="margin-bottom: 6px;">
+      <img src="/img/sibopay-emblem.png" alt="SiboPay Logo" style="width: 56px; height: 56px; object-fit: contain; filter: drop-shadow(0 4px 12px rgba(2, 132, 199, 0.3)); display: inline-block;">
+    </div>
+    <h1 class="login-title" style="margin: 0; font-size: 1.85rem; font-weight: 900; letter-spacing: -0.5px;">Sibo<strong style="color: #0284c7;">Pay</strong></h1>
+    <p class="login-subtitle">Sistema Digital de Pagos y Monedero Estudiantil</p>
+  </div>
+
+  <!-- SELECTOR ENTRE INICIO DE SESIÓN Y REGISTRO -->
+  <div class="login-tabs">
+    <button type="button" class="login-tab-btn active" id="tabBtnLogin" onclick="switchLoginTab('login')" style="display: inline-flex; align-items: center; justify-content: center; gap: 8px;">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" x2="3" y1="12" y2="12"/></svg>
+      <span>Iniciar Sesión</span>
+    </button>
+    <button type="button" class="login-tab-btn" id="tabBtnRegister" onclick="switchLoginTab('register')" style="display: inline-flex; align-items: center; justify-content: center; gap: 8px;">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="7" r="3.5"/><path d="M3 20v-1.5A4.5 4.5 0 0 1 7.5 14h3A4.5 4.5 0 0 1 15 18.5V20"/><circle cx="17.5" cy="7.5" r="2.5"/><path d="M15 14a3.5 3.5 0 0 1 5.5 3v3"/></svg>
+      <span>Registro de Padres</span>
+    </button>
+  </div>
+
+  <!-- FORMULARIO 1: INICIAR SESIÓN CON SELECTOR DE ROL -->
+  <form id="formLogin" onsubmit="handleLoginSubmit(event)">
+    <div class="login-role-selector-wrap">
+      <label style="font-size: 0.74rem; font-weight: 900; color: #475569; text-transform: uppercase; letter-spacing: 0.6px; display: block; margin-bottom: 8px;">¿Quién eres?</label>
+      <div class="login-role-grid">
+        <div onclick="selectLoginRole('padre')" id="loginRoleCardPadre" class="login-role-card selected">
+          <div class="login-role-icon">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="9" cy="7" r="3.5"/>
+              <path d="M3 20v-1.5A4.5 4.5 0 0 1 7.5 14h3A4.5 4.5 0 0 1 15 18.5V20"/>
+              <circle cx="17.5" cy="7.5" r="2.5"/>
+              <path d="M15 14a3.5 3.5 0 0 1 5.5 3v3"/>
+            </svg>
+          </div>
+          <span class="login-role-name">Padre</span>
+          <span class="login-role-desc">o Encargado</span>
+        </div>
+
+        <div onclick="selectLoginRole('estudiante')" id="loginRoleCardEstudiante" class="login-role-card">
+          <div class="login-role-icon">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1-2.5-2.5Z"/>
+              <path d="M6 6h10"/>
+              <path d="M6 10h10"/>
+              <circle cx="12" cy="15" r="2"/>
+            </svg>
+          </div>
+          <span class="login-role-name">Estudiante</span>
+          <span class="login-role-desc">Carné QR</span>
+        </div>
+
+        <div onclick="selectLoginRole('personal')" id="loginRoleCardPersonal" class="login-role-card">
+          <div class="login-role-icon">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M6 13.8V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v9.8"/>
+              <path d="M4 13.8h16a1 1 0 0 1 1 1V20a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-5.2a1 1 0 0 1 1-1Z"/>
+              <line x1="10" y1="18" x2="14" y2="18"/>
+            </svg>
+          </div>
+          <span class="login-role-name">Personal</span>
+          <span class="login-role-desc">Soda / Caja</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="login-form-group">
+      <label id="lblLoginUser" for="loginUsername">Usuario o Teléfono del Padre:</label>
+      <input type="text" id="loginUsername" class="login-input" placeholder="Ej: padre, carlos_papa o 8888-1122" required autocomplete="username">
+    </div>
+
+    <div class="login-form-group">
+      <label id="lblLoginPass" for="loginPassword">Contraseña:</label>
+      <input type="password" id="loginPassword" class="login-input" placeholder="••••••••" required autocomplete="current-password">
+    </div>
+
+    <div id="loginErrorMsg" style="display: none; background: #fee2e2; border: 1px solid #fca5a5; color: #991b1b; padding: 8px 12px; border-radius: 10px; font-size: 0.8rem; font-weight: 700; margin-bottom: 12px; text-align: center;"></div>
+
+    <button type="submit" id="btnLoginSubmit" class="login-submit-btn" style="display: flex; align-items: center; justify-content: center; gap: 8px;">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" x2="3" y1="12" y2="12"/></svg>
+      <span id="lblBtnLoginText">Ingresar como Padre / Encargado</span>
+    </button>
+  </form>
+
+  <!-- FORMULARIO 2: REGISTRO DE NUEVOS PADRES -->
+  <form id="formRegisterPadre" onsubmit="handleRegisterPadreSubmit(event)" style="display: none;">
+    <div style="background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%); border: 1.5px solid #bae6fd; border-radius: 14px; padding: 12px 14px; margin-bottom: 16px; display: flex; align-items: center; gap: 12px; box-shadow: 0 4px 12px rgba(2, 132, 199, 0.08);">
+      <div style="width: 44px; height: 44px; border-radius: 12px; background: white; border: 1.5px solid #bae6fd; display: flex; align-items: center; justify-content: center; flex-shrink: 0; box-shadow: 0 2px 8px rgba(2, 132, 199, 0.12); padding: 5px;">
+        <img src="/img/sibopay-emblem.png" alt="SiboPay" style="width: 100%; height: 100%; object-fit: contain;">
+      </div>
+      <div>
+        <strong style="color: #0369a1; font-size: 0.92rem; display: block; font-weight: 800; letter-spacing: -0.2px;">Registro de Padres o Encargados</strong>
+        <span style="font-size: 0.74rem; color: #475569; line-height: 1.35; display: block; margin-top: 2px;">Crea tu cuenta oficial en SiboPay para vincular a tus hijos y recargarles saldo escolar.</span>
+      </div>
+    </div>
+
+    <div class="login-form-group">
+      <label for="regNombre">Nombre y Apellidos:</label>
+      <input type="text" id="regNombre" class="login-input" placeholder="Ej: Carlos Alvarado Castro" required autocomplete="name">
+    </div>
+
+    <div class="login-form-group">
+      <label for="regTelefono">Teléfono o Celular (para SINPE):</label>
+      <input type="tel" id="regTelefono" class="login-input" placeholder="Ej: 8888-1122" required autocomplete="tel">
+    </div>
+
+    <div class="login-form-group">
+      <label for="regEmail">Correo Electrónico <span style="font-size: 0.75rem; font-weight: 600; color: #64748b;">(Opcional)</span>:</label>
+      <input type="email" id="regEmail" class="login-input" placeholder="Ej: micorreo@ejemplo.com" autocomplete="email">
+    </div>
+
+    <div class="login-form-group">
+      <label for="regUsername">Nombre de Usuario:</label>
+      <input type="text" id="regUsername" class="login-input" placeholder="Ej: carlos_papa" required autocomplete="username">
+    </div>
+
+    <div class="login-form-group">
+      <label for="regPassword">Contraseña:</label>
+      <input type="password" id="regPassword" class="login-input" placeholder="Mínimo 4 caracteres" required autocomplete="new-password">
+    </div>
+
+    <div id="registerErrorMsg" style="display: none; background: #fee2e2; border: 1px solid #fca5a5; color: #991b1b; padding: 8px 12px; border-radius: 10px; font-size: 0.8rem; font-weight: 700; margin-bottom: 12px; text-align: center;"></div>
+
+    <button type="submit" id="btnRegisterSubmit" class="login-submit-btn" style="display: flex; align-items: center; justify-content: center; gap: 8px;">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="7" r="3.5"/><path d="M3 20v-1.5A4.5 4.5 0 0 1 7.5 14h3A4.5 4.5 0 0 1 15 18.5V20"/><circle cx="17.5" cy="7.5" r="2.5"/><path d="M15 14a3.5 3.5 0 0 1 5.5 3v3"/></svg>
+      <span>Crear Cuenta de Padre y Entrar</span>
+    </button>
+  </form>
+
+  <!-- ACCESOS RÁPIDOS DE PRUEBA (1-CLICK DEMO) -->
+  <div class="login-demo-box">
+    <div class="login-demo-title">Accesos Rápidos de Prueba:</div>
+    <div class="login-demo-btns">
+      <button type="button" class="login-demo-btn" onclick="quickFillLogin('dev', 'dev123')" style="border: 1.5px solid #0284c7; background: #f0f9ff;">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#0284c7" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+        <span style="color: #0284c7; font-weight: 800;">Developer</span>
+      </button>
+      <button type="button" class="login-demo-btn" onclick="quickFillLogin('admin', 'admin123')">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+        <span>Admin Soda</span>
+      </button>
+      <button type="button" class="login-demo-btn" onclick="quickFillLogin('cajero', 'cajero123')">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="14" x="2" y="5" rx="2"/><line x1="2" x2="22" y1="10" y2="10"/></svg>
+        <span>Cajero</span>
+      </button>
+      <button type="button" class="login-demo-btn" onclick="quickFillLogin('padre', 'padre123')">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+        <span>Padre</span>
+      </button>
+      <button type="button" class="login-demo-btn" onclick="quickFillLogin('mateo', '1234')">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+        <span>Mateo (2°)</span>
+      </button>
+      <button type="button" class="login-demo-btn" onclick="quickFillLogin('sofia', '1234')">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+        <span>Sofía (3°)</span>
+      </button>
+    </div>
+    <div style="text-align: center; margin-top: 18px; padding-top: 14px; border-top: 1px solid #f1f5f9;">
+      <a href="/" style="display: inline-flex; align-items: center; gap: 6px; font-size: 0.8rem; font-weight: 800; color: #0284c7; text-decoration: none; padding: 6px 14px; border-radius: 9999px; background: #e0f2fe; transition: all 0.2s;">
+        <span>🌐 Ver Presentación Web de SiboPay ↗</span>
+      </a>
+      <p style="font-size: 0.72rem; color: #64748b; margin-top: 14px; line-height: 1.45;">
+        Al iniciar sesión o registrarte, aceptas nuestros 
+        <a href="/terminos" target="_blank" style="color: #0284c7; font-weight: 700; text-decoration: underline;">Términos y Condiciones</a> 
+        y nuestra 
+        <a href="/privacidad" target="_blank" style="color: #0284c7; font-weight: 700; text-decoration: underline;">Política de Privacidad</a>.
+      </p>
+    </div>
+  </div>
+</div>

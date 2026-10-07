@@ -196,7 +196,8 @@ function showLoginView() {
   if (appContainer) appContainer.style.display = 'none';
   if (bottomNav) bottomNav.style.display = 'none';
 
-  switchLoginTab('login');
+  closeLoginSheet();
+  switchSheetView('login');
   closeScanChildQrModal();
   closeAdminScanQrModal();
   toggleParentPanel(false);
@@ -205,26 +206,65 @@ function showLoginView() {
   closeTransferModal();
 }
 
-function switchLoginTab(tab) {
-  const formLogin = document.getElementById('formLogin');
-  const formRegister = document.getElementById('formRegisterPadre');
-  const tabLogin = document.getElementById('tabBtnLogin');
-  const tabReg = document.getElementById('tabBtnRegister');
-  const demoBox = document.querySelector('.login-demo-box');
-
-  if (tab === 'login') {
-    if (formLogin) formLogin.style.display = 'block';
-    if (formRegister) formRegister.style.display = 'none';
-    if (tabLogin) tabLogin.classList.add('active');
-    if (tabReg) tabReg.classList.remove('active');
-    if (demoBox) demoBox.style.display = 'block';
-  } else {
-    if (formLogin) formLogin.style.display = 'none';
-    if (formRegister) formRegister.style.display = 'block';
-    if (tabLogin) tabLogin.classList.remove('active');
-    if (tabReg) tabReg.classList.add('active');
-    if (demoBox) demoBox.style.display = 'none';
+// ==========================================================================
+// CONTROL DEL NUEVO DISEÑO DE LOGIN (SPLASH SCREEN & BOTTOM SHEET)
+// ==========================================================================
+function openLoginSheet(view = 'login') {
+  const sheet = document.getElementById('loginBottomSheet');
+  if (sheet) {
+    sheet.classList.add('open');
+    switchSheetView(view);
+    setTimeout(() => {
+      if (view === 'login') {
+        const input = document.getElementById('loginUsername');
+        if (input) input.focus();
+      } else {
+        const input = document.getElementById('regNombre');
+        if (input) input.focus();
+      }
+    }, 280);
   }
+}
+
+function closeLoginSheet(e) {
+  if (e && e.target && !e.target.classList.contains('bottom-sheet-backdrop') && !e.target.classList.contains('bottom-sheet-close-btn')) {
+    return;
+  }
+  const sheet = document.getElementById('loginBottomSheet');
+  if (sheet) sheet.classList.remove('open');
+}
+
+function switchSheetView(view) {
+  const loginContent = document.getElementById('sheetContentLogin');
+  const registerContent = document.getElementById('sheetContentRegister');
+  const title = document.getElementById('bottomSheetTitle');
+
+  if (view === 'register') {
+    if (loginContent) loginContent.style.display = 'none';
+    if (registerContent) registerContent.style.display = 'block';
+    if (title) title.textContent = 'Registro de Padres';
+  } else {
+    if (loginContent) loginContent.style.display = 'block';
+    if (registerContent) registerContent.style.display = 'none';
+    if (title) title.textContent = 'Iniciar Sesión';
+  }
+}
+
+function openTerminosModal() {
+  const modal = document.getElementById('modalTerminosSiboPay');
+  if (modal) modal.style.display = 'flex';
+}
+
+function closeTerminosModal(e) {
+  if (e && e.target && !e.target.classList.contains('modal-overlay') && e.target.tagName !== 'BUTTON') {
+    return;
+  }
+  const modal = document.getElementById('modalTerminosSiboPay');
+  if (modal) modal.style.display = 'none';
+}
+
+function switchLoginTab(tab) {
+  switchSheetView(tab);
 }
 
 let currentLoginRole = 'padre';
@@ -406,6 +446,7 @@ async function applyUserRoleSession() {
   const navPadres = document.getElementById('pwaNavPadres');
 
   if (viewLogin) viewLogin.style.display = 'none';
+  closeLoginSheet();
 
   if (currentUser.rol === 'developer') {
     if (viewDeveloper) viewDeveloper.style.display = 'block';
@@ -8013,6 +8054,9 @@ async function exportarEstudiantesCsv() {
 }
 window.exportarEstudiantesCsv = exportarEstudiantesCsv;
 
-
-
-
+// Exportación global para eventos de la interfaz de login moderna
+window.openLoginSheet = openLoginSheet;
+window.closeLoginSheet = closeLoginSheet;
+window.switchSheetView = switchSheetView;
+window.openTerminosModal = openTerminosModal;
+window.closeTerminosModal = closeTerminosModal;
