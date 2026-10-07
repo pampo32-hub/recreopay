@@ -5171,7 +5171,7 @@ function setMovFilter(filter) {
   if (activeBtn) {
     activeBtn.classList.add('active');
     activeBtn.style.background = '#ffffff';
-    activeBtn.style.color = isRechazadosTab ? '#e11d48' : '#0284c7';
+    activeBtn.style.color = '#0284c7';
     activeBtn.style.boxShadow = '0 1px 3px rgba(0,0,0,0.08)';
     activeBtn.style.fontWeight = '800';
   }
