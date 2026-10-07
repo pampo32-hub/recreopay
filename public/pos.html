@@ -207,6 +207,26 @@
           </div>
         </div>
 
+        <!-- FILTROS POR RECREO / HORARIO -->
+        <div class="pos-preorder-filter-bar">
+          <button type="button" class="pos-filter-pill active" id="filterPillTodos" onclick="filterPreOrdersByMomento('todos')">
+            <span>📋 Todos los Recreos</span>
+            <span class="pos-pill-count" id="countFilterTodos">0</span>
+          </button>
+          <button type="button" class="pos-filter-pill" id="filterPillRecreo_1" onclick="filterPreOrdersByMomento('recreo_1')">
+            <span>🔔 1er Recreo (9:30 AM)</span>
+            <span class="pos-pill-count" id="countFilterRecreo1">0</span>
+          </button>
+          <button type="button" class="pos-filter-pill" id="filterPillAlmuerzo" onclick="filterPreOrdersByMomento('almuerzo')">
+            <span>🍲 Almuerzo (11:45 AM)</span>
+            <span class="pos-pill-count" id="countFilterAlmuerzo">0</span>
+          </button>
+          <button type="button" class="pos-filter-pill" id="filterPillRecreo_2" onclick="filterPreOrdersByMomento('recreo_2')">
+            <span>⏰ 2do Recreo (1:45 PM)</span>
+            <span class="pos-pill-count" id="countFilterRecreo2">0</span>
+          </button>
+        </div>
+
         <div id="preOrdersList" style="display: flex; flex-direction: column; gap: 12px;">
           <!-- Lista de pre-órdenes -->
         </div>

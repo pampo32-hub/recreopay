@@ -1271,6 +1271,241 @@ function switchPosTab(tab) {
   }
 }
 
+let currentPreOrderFilter = 'todos';
+let cachedPreOrders = [];
+
+function normalizeMomentoKey(val) {
+  if (!val) return 'recreo_1';
+  const v = String(val).toLowerCase().trim();
+  if (v === 'recreo_1' || v.includes('1er') || v.includes('9:30')) return 'recreo_1';
+  if (v === 'almuerzo' || v.includes('almuerzo') || v.includes('11:45')) return 'almuerzo';
+  if (v === 'recreo_2' || v.includes('2do') || v.includes('1:45')) return 'recreo_2';
+  if (v === 'inmediato' || v.includes('inmediato')) return 'inmediato';
+  return v;
+}
+
+function getMomentoBadge(val) {
+  const key = normalizeMomentoKey(val);
+  switch (key) {
+    case 'recreo_1':
+      return {
+        key: 'recreo_1',
+        title: '1er Recreo (9:30 AM)',
+        full: '1er Recreo de la Mañana (9:30 AM)',
+        icon: '🔔',
+        bg: '#fffbeb',
+        border: '#f59e0b',
+        text: '#b45309',
+        badgeBg: '#fef3c7',
+        badgeColor: '#92400e',
+        badgeBorder: '#fde68a'
+      };
+    case 'almuerzo':
+      return {
+        key: 'almuerzo',
+        title: 'Almuerzo (11:45 AM)',
+        full: 'Hora de Almuerzo (11:45 AM)',
+        icon: '🍲',
+        bg: '#f0fdf4',
+        border: '#16a34a',
+        text: '#15803d',
+        badgeBg: '#dcfce7',
+        badgeColor: '#166534',
+        badgeBorder: '#86efac'
+      };
+    case 'recreo_2':
+      return {
+        key: 'recreo_2',
+        title: '2do Recreo (1:45 PM)',
+        full: '2do Recreo de la Tarde (1:45 PM)',
+        icon: '⏰',
+        bg: '#eef2ff',
+        border: '#6366f1',
+        text: '#4338ca',
+        badgeBg: '#e0e7ff',
+        badgeColor: '#3730a3',
+        badgeBorder: '#c7d2fe'
+      };
+    case 'inmediato':
+      return {
+        key: 'inmediato',
+        title: 'Entrega Inmediata',
+        full: 'Entrega Inmediata en Mostrador',
+        icon: '⚡',
+        bg: '#f8fafc',
+        border: '#64748b',
+        text: '#334155',
+        badgeBg: '#f1f5f9',
+        badgeColor: '#334155',
+        badgeBorder: '#cbd5e1'
+      };
+    default:
+      return {
+        key: val || 'otro',
+        title: val || 'Pre-orden',
+        full: val || 'Pre-orden de recreo',
+        icon: '🥪',
+        bg: '#f8fafc',
+        border: '#0284c7',
+        text: '#0369a1',
+        badgeBg: '#e0f2fe',
+        badgeColor: '#0369a1',
+        badgeBorder: '#bae6fd'
+      };
+  }
+}
+
+function filterPreOrdersByMomento(key) {
+  currentPreOrderFilter = key;
+  renderPreOrdersList();
+}
+
+function renderPreOrdersList() {
+  const orders = cachedPreOrders || [];
+
+  // Conteo total de pendientes
+  const pendingOrders = orders.filter(o => o.estado !== 'entregado' && o.estado !== 'cancelado');
+  const countTodosPending = pendingOrders.length;
+  
+  const badgeCount = document.getElementById('badgePreordenesCount');
+  if (badgeCount) badgeCount.textContent = countTodosPending;
+
+  // Conteo por cada horario de entrega
+  let countR1 = 0, countAlm = 0, countR2 = 0;
+  pendingOrders.forEach(o => {
+    const k = normalizeMomentoKey(o.momento_entrega);
+    if (k === 'recreo_1') countR1++;
+    else if (k === 'almuerzo') countAlm++;
+    else if (k === 'recreo_2') countR2++;
+  });
+
+  const elTodos = document.getElementById('countFilterTodos');
+  const elR1 = document.getElementById('countFilterRecreo1');
+  const elAlm = document.getElementById('countFilterAlmuerzo');
+  const elR2 = document.getElementById('countFilterRecreo2');
+  if (elTodos) elTodos.textContent = countTodosPending;
+  if (elR1) elR1.textContent = countR1;
+  if (elAlm) elAlm.textContent = countAlm;
+  if (elR2) elR2.textContent = countR2;
+
+  // Actualizar clase activa en los botones de filtro
+  const pillMap = {
+    'todos': 'filterPillTodos',
+    'recreo_1': 'filterPillRecreo_1',
+    'almuerzo': 'filterPillAlmuerzo',
+    'recreo_2': 'filterPillRecreo_2'
+  };
+  Object.keys(pillMap).forEach(k => {
+    const btn = document.getElementById(pillMap[k]);
+    if (btn) btn.classList.toggle('active', currentPreOrderFilter === k);
+  });
+
+  // Filtrar según botón seleccionado
+  let filtered = orders;
+  if (currentPreOrderFilter !== 'todos') {
+    filtered = orders.filter(o => normalizeMomentoKey(o.momento_entrega) === currentPreOrderFilter);
+  }
+
+  const list = document.getElementById('preOrdersList');
+  if (!list) return;
+
+  if (filtered.length === 0) {
+    const filterNames = {
+      'todos': 'para hoy',
+      'recreo_1': 'para el 1er Recreo (9:30 AM)',
+      'almuerzo': 'para el Almuerzo (11:45 AM)',
+      'recreo_2': 'para el 2do Recreo (1:45 PM)'
+    };
+    list.innerHTML = `
+      <div style="text-align: center; color: #64748b; padding: 40px 20px; background: white; border-radius: 14px; border: 1.5px dashed #cbd5e1; margin-top: 4px;">
+        <span style="font-size: 2.2rem; display: block; margin-bottom: 8px;">🥪</span>
+        <strong style="color: #334155; font-size: 0.95rem; display: block;">No hay pre-órdenes registradas ${filterNames[currentPreOrderFilter] || ''}</strong>
+        <p style="font-size: 0.8rem; margin: 4px 0 0 0; color: #94a3b8;">Las órdenes programadas para este horario aparecerán aquí automáticamente.</p>
+      </div>
+    `;
+    return;
+  }
+
+  list.innerHTML = filtered.map(ord => {
+    const hora = new Date(ord.creado_en).toLocaleTimeString('es-CR', { hour: '2-digit', minute: '2-digit' });
+    const items = Array.isArray(ord.items) ? ord.items : [];
+    const itemsList = items.map(i => `${i.cantidad}× ${i.nombre}`).join(' • ');
+    const badge = getMomentoBadge(ord.momento_entrega);
+
+    return `
+      <div class="pos-preorder-card" style="border-left: 6px solid ${badge.border};">
+        <!-- Banner Superior de Horario Programado -->
+        <div class="pos-preorder-badge-banner" style="background: ${badge.bg}; border: 1.5px solid ${badge.badgeBorder}; color: ${badge.text};">
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <span style="font-size: 1.3rem;">${badge.icon}</span>
+            <div>
+              <span style="font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.5px; opacity: 0.85; display: block; font-weight: 800;">ALISTAR PARA:</span>
+              <strong style="font-size: 0.96rem; letter-spacing: -0.2px;">${badge.full}</strong>
+            </div>
+          </div>
+          <div style="display: flex; align-items: center; gap: 6px;">
+            ${ord.estado === 'entregado'
+              ? '<span class="saas-status-badge saas-status-active" style="padding: 4px 10px; font-weight: 800;"><span class="saas-dot"></span>Entregado</span>'
+              : '<span class="saas-status-badge saas-status-pending" style="padding: 4px 10px; background: #fef08a; color: #854d0e; border: 1px solid #fde047; font-weight: 800;"><span class="saas-dot" style="background: #eab308;"></span>Pendiente Alistar</span>'
+            }
+          </div>
+        </div>
+
+        <div class="pos-preorder-header" style="margin-top: 2px;">
+          <div class="pos-preorder-student">
+            <div class="pos-preorder-avatar" style="display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 0.9rem; background: linear-gradient(135deg, #0284c7, #0369a1); color: #ffffff;">
+              ${getStudentInitials(ord.estudiante_nombre)}
+            </div>
+            <div>
+              <div class="pos-preorder-name-row">
+                <strong class="pos-preorder-name">${ord.estudiante_nombre}</strong>
+                <span class="pos-preorder-grade">${ord.grado} • ${ord.seccion}</span>
+              </div>
+              <div class="pos-preorder-ticket-info" style="display: flex; align-items: center; gap: 6px; flex-wrap: wrap;">
+                <span>Ticket: <strong>${ord.codigo_orden}</strong></span>
+                <span>•</span>
+                <span>Pedido: ${hora}</span>
+                <span>•</span>
+                <span style="color: ${badge.text}; font-weight: 800;">Retiro: ${badge.title}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        ${ord.notas ? `
+          <div style="background: #fef3c7; border: 1px solid #fde68a; color: #92400e; padding: 6px 10px; border-radius: 8px; font-size: 0.78rem; font-weight: 700;">
+            📝 Nota del pedido: ${ord.notas}
+          </div>
+        ` : ''}
+
+        <div class="pos-preorder-items-box" style="display: flex; align-items: center; gap: 8px;">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#0284c7" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0;"><path d="m7.5 4.27 9 5.15"/><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22V12"/></svg>
+          <span style="flex: 1; word-break: break-word;">${itemsList}</span>
+        </div>
+
+        <div class="pos-preorder-footer">
+          <div class="pos-preorder-total">
+            <span class="pos-preorder-total-label">Total Cobrado:</span>
+            <strong class="pos-preorder-total-val">₡${ord.total_colones.toLocaleString('es-CR')}</strong>
+          </div>
+          <div>
+            ${ord.estado !== 'entregado' ? `
+              <button onclick="updateOrderStatus(${ord.id}, 'entregado')" class="btn-saas pos-btn-entregar" title="Marcar como entregado al estudiante">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                <span>Entregar Pedido</span>
+              </button>
+            ` : `
+              <span class="saas-status-badge saas-status-active" style="padding: 6px 12px; font-size: 0.8rem;">
+                <span class="saas-dot"></span>Despachado en Soda
+              </span>
+            `}
+          </div>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
 async function loadPreOrders() {
   try {
     const res = await fetch('/api/ordenes?tipo=preorden');
@@ -1281,70 +1516,8 @@ async function loadPreOrders() {
       return;
     }
 
-    const pendingCount = orders.filter(o => o.estado !== 'entregado' && o.estado !== 'cancelado').length;
-    document.getElementById('badgePreordenesCount').textContent = pendingCount;
-
-    const list = document.getElementById('preOrdersList');
-    if (orders.length === 0) {
-      list.innerHTML = '<p style="text-align: center; color: #64748b; padding: 30px;">No hay pre-órdenes registradas para hoy.</p>';
-      return;
-    }
-
-    list.innerHTML = orders.map(ord => {
-      const hora = new Date(ord.creado_en).toLocaleTimeString('es-CR', { hour: '2-digit', minute: '2-digit' });
-      const items = Array.isArray(ord.items) ? ord.items : [];
-      const itemsList = items.map(i => `${i.cantidad}× ${i.nombre}`).join(' • ');
-      const avatarUrl = ord.foto_url || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150';
-
-      return `
-        <div class="pos-preorder-card">
-          <div class="pos-preorder-header">
-            <div class="pos-preorder-student">
-              <div class="pos-preorder-avatar" style="display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 0.9rem; background: linear-gradient(135deg, #0284c7, #0369a1); color: #ffffff;">
-                ${getStudentInitials(ord.estudiante_nombre)}
-              </div>
-              <div>
-                <div class="pos-preorder-name-row">
-                  <strong class="pos-preorder-name">${ord.estudiante_nombre}</strong>
-                  <span class="pos-preorder-grade">${ord.grado} • ${ord.seccion}</span>
-                </div>
-                <div class="pos-preorder-ticket-info">Ticket: ${ord.codigo_orden} • Pedido a las ${hora}</div>
-              </div>
-            </div>
-            <div>
-              ${ord.estado === 'entregado'
-                ? '<span class="saas-status-badge saas-status-active"><span class="saas-dot"></span>Entregado</span>'
-                : '<span class="saas-status-badge saas-status-pending"><span class="saas-dot"></span>Pendiente</span>'
-              }
-            </div>
-          </div>
-
-          <div class="pos-preorder-items-box" style="display: flex; align-items: center; gap: 8px;">
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#0284c7" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0;"><path d="m7.5 4.27 9 5.15"/><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22V12"/></svg>
-            <span style="flex: 1; word-break: break-word;">${itemsList}</span>
-          </div>
-
-          <div class="pos-preorder-footer">
-            <div class="pos-preorder-total">
-              <span class="pos-preorder-total-label">Total:</span>
-              <strong class="pos-preorder-total-val">₡${ord.total_colones.toLocaleString('es-CR')}</strong>
-            </div>
-            <div>
-              ${ord.estado !== 'entregado' ? `
-                <button onclick="updateOrderStatus(${ord.id}, 'entregado')" class="btn-saas pos-btn-entregar">
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
-                  <span>Entregado</span>
-                </button>
-              ` : `
-                <span class="saas-status-badge saas-status-active" style="padding: 6px 12px; font-size: 0.8rem;">
-                  <span class="saas-dot"></span>Despachado
-                </span>
-              `}
-            </div>
-          </div>
-        </div>
-      `;
-    }).join('');
+    cachedPreOrders = orders;
+    renderPreOrdersList();
   } catch (err) {
     console.error('Error cargando pre-órdenes:', err);
   }
@@ -1382,13 +1555,50 @@ async function dispatchPreOrderExpress(qrToken) {
 
     if (window.sounds) window.sounds.playSuccess();
 
+    const badge = getMomentoBadge(data.orden ? data.orden.momento_entrega : '');
     const itemsList = (data.orden && Array.isArray(data.orden.items) ? data.orden.items : []).map(i => `• ${i.cantidad}x ${i.nombre}`).join('\n');
-    alert(`¡ENTREGA EXPRESS EXITOSA!\n${data.mensaje}\nAlumno: ${data.estudiante.nombre_completo}\nGrado: ${data.estudiante.grado}\nProductos a entregar:\n${itemsList}`);
+    alert(`¡ENTREGA EXPRESS EXITOSA!\n${data.mensaje}\nAlumno: ${data.estudiante.nombre_completo}\nGrado: ${data.estudiante.grado}\nHorario: ${badge.title}\n\nProductos a entregar:\n${itemsList}`);
 
     loadPreOrders();
   } catch (err) {
     alert(err.message);
   }
+}
+
+function showPreOrderIncomingNotification(orden) {
+  const badge = getMomentoBadge(orden.momento_entrega);
+  const container = document.createElement('div');
+  container.className = 'pos-incoming-preorder-toast';
+  container.style.borderLeft = `6px solid ${badge.border}`;
+  
+  container.innerHTML = `
+    <div style="font-size: 1.8rem; flex-shrink: 0;">${badge.icon}</div>
+    <div style="flex: 1; min-width: 0;">
+      <div style="display: flex; align-items: center; gap: 6px;">
+        <strong style="color: #0f172a; font-size: 0.92rem;">¡Nueva Pre-orden Recibida!</strong>
+        <span style="background: ${badge.badgeBg}; color: ${badge.badgeColor}; border: 1px solid ${badge.badgeBorder}; padding: 1px 7px; border-radius: 6px; font-size: 0.72rem; font-weight: 800;">
+          ${badge.title}
+        </span>
+      </div>
+      <div style="font-size: 0.8rem; color: #475569; margin-top: 2px;">
+        <strong>${orden.estudiante_nombre || 'Estudiante'}</strong> (${orden.grado || ''}) • ₡${(orden.total_colones || 0).toLocaleString('es-CR')}
+      </div>
+    </div>
+    <button type="button" onclick="switchPosTab('preordenes'); this.closest('.pos-incoming-preorder-toast').remove();" class="btn-saas btn-saas-primary" style="padding: 6px 12px; font-size: 0.78rem; border-radius: 8px; flex-shrink: 0;">
+      Ver
+    </button>
+    <button type="button" onclick="this.closest('.pos-incoming-preorder-toast').remove();" style="background: none; border: none; font-size: 1.1rem; color: #94a3b8; cursor: pointer; padding: 4px;">✕</button>
+  `;
+
+  document.body.appendChild(container);
+  setTimeout(() => {
+    if (container.parentNode) {
+      container.style.opacity = '0';
+      container.style.transform = 'translateX(100%)';
+      container.style.transition = 'all 0.3s ease';
+      setTimeout(() => container.remove(), 300);
+    }
+  }, 6000);
 }
 
 // ==========================================
@@ -1399,10 +1609,16 @@ function initSSE() {
   sseSource = new EventSource('/api/events');
 
   sseSource.addEventListener('nueva_orden', (e) => {
-    const orden = JSON.parse(e.data);
-    if (window.sounds) window.sounds.playSuccess();
-    // Notificación sonora y visual
-    loadPreOrders();
+    try {
+      const orden = JSON.parse(e.data);
+      if (window.sounds) window.sounds.playSuccess();
+      loadPreOrders();
+      if (orden && orden.tipo_orden === 'preorden') {
+        showPreOrderIncomingNotification(orden);
+      }
+    } catch (err) {
+      console.warn('Error en SSE nueva_orden:', err);
+    }
   });
 
   sseSource.addEventListener('orden_actualizada', () => {

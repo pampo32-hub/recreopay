@@ -1714,15 +1714,19 @@
         <button onclick="closeCartModal()" style="background: none; border: none; font-size: 1.2rem; cursor: pointer; color: #64748b;">✕</button>
       </div>
 
-      <div style="margin-bottom: 14px;">
-        <label style="display: block; font-size: 0.8rem; font-weight: 700; color: #334155; margin-bottom: 4px;">
-          ¿Para cuál recreo deseas tu orden?
+      <div style="margin-bottom: 14px; background: #f8fafc; border: 1.5px solid #e2e8f0; border-radius: 12px; padding: 12px;">
+        <label style="display: block; font-size: 0.82rem; font-weight: 800; color: #0f172a; margin-bottom: 6px; display: flex; align-items: center; gap: 6px;">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#0284c7" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+          <span>¿Para cuál recreo deseas tu orden?</span>
         </label>
-        <select id="momentoEntregaSelect" style="width: 100%; padding: 8px 10px; border-radius: 8px; border: 1px solid #cbd5e1; font-weight: 600;">
-          <option value="recreo_1">1er Recreo de la Mañana (9:30 AM)</option>
-          <option value="almuerzo">Hora de Almuerzo (11:45 AM)</option>
-          <option value="recreo_2">2do Recreo de la Tarde (1:45 PM)</option>
+        <select id="momentoEntregaSelect" style="width: 100%; box-sizing: border-box; padding: 10px 12px; border-radius: 10px; border: 1.5px solid #cbd5e1; font-weight: 700; font-size: 0.88rem; color: #1e293b; background: white; outline: none; cursor: pointer;">
+          <option value="recreo_1">🔔 1er Recreo de la Mañana (9:30 AM)</option>
+          <option value="almuerzo">🍲 Hora de Almuerzo (11:45 AM)</option>
+          <option value="recreo_2">⏰ 2do Recreo de la Tarde (1:45 PM)</option>
         </select>
+        <div style="font-size: 0.72rem; color: #64748b; margin-top: 6px; display: flex; align-items: center; gap: 4px;">
+          <span>⚡</span> <span>La soda preparará tus alimentos frescos para este horario.</span>
+        </div>
       </div>
 
       <!-- LISTA DE PRODUCTOS EN EL CARRITO -->

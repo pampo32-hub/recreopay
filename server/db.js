@@ -341,6 +341,14 @@ function initDatabase() {
     `);
   } catch (e) {}
 
+  // 9.2 Garantizar columnas de ordenes para SQLite
+  try { db.exec('ALTER TABLE ordenes ADD COLUMN cajero_id INTEGER DEFAULT 1'); } catch (e) {}
+  try { db.exec('ALTER TABLE ordenes ADD COLUMN saldo_anterior INTEGER DEFAULT 0'); } catch (e) {}
+  try { db.exec('ALTER TABLE ordenes ADD COLUMN saldo_posterior INTEGER DEFAULT 0'); } catch (e) {}
+  try { db.exec('ALTER TABLE ordenes ADD COLUMN metodo_pago TEXT DEFAULT "monedero_qr"'); } catch (e) {}
+  try { db.exec('ALTER TABLE ordenes ADD COLUMN observaciones TEXT'); } catch (e) {}
+  try { db.exec('ALTER TABLE ordenes ADD COLUMN escuela_id INTEGER DEFAULT 1'); } catch (e) {}
+
   // 10. Diseños de Tarjetas Virtuales para Estudiantes
   try {
     db.exec(`
@@ -801,6 +809,18 @@ function recargaSaldoTransaction({ estudianteId, monto, comprobanteSinpe, descri
 }
 
 /**
+ * Traduce y estandariza el código o texto de momento de entrega a una etiqueta humana amigable
+ */
+function formatMomentoLabel(momento) {
+  const m = String(momento || '').toLowerCase().trim();
+  if (m === 'recreo_1' || m.includes('1er') || m.includes('9:30')) return '1er Recreo (9:30 AM)';
+  if (m === 'almuerzo' || m.includes('almuerzo') || m.includes('11:45')) return 'Almuerzo (11:45 AM)';
+  if (m === 'recreo_2' || m.includes('2do') || m.includes('1:45')) return '2do Recreo (1:45 PM)';
+  if (m === 'inmediato' || m.includes('inmediato')) return 'Entrega Inmediata';
+  return momento || '1er Recreo (9:30 AM)';
+}
+
+/**
  * Crea una orden completa (Mostrador o Preorden) con sus ítems
  */
 function crearOrdenCompleta({ estudianteId, tipoOrden, momentoEntrega, notas, items }) {
@@ -919,13 +939,19 @@ function crearOrdenCompleta({ estudianteId, tipoOrden, momentoEntrega, notas, it
 
     return {
       orden_id: ordenId,
+      id: ordenId,
       codigo_orden: codigoOrden,
       estudiante_id: estudianteId,
+      estudiante_nombre: est.nombre_completo,
+      grado: est.grado,
+      seccion: est.seccion,
       tipo_orden: tipoOrden,
-      momento_entrega: momentoEntrega,
+      momento_entrega: momentoVal,
+      momento_entrega_label: formatMomentoLabel(momentoVal),
       estado: estadoInicial,
       total_colones: totalColones,
       detalles: detallesParaInsertar,
+      items: detallesParaInsertar,
       productosActualizados,
       financiero: resultadoDebito
     };
@@ -1493,5 +1519,6 @@ module.exports = {
   procesarSolicitudRecargaSinpe,
   guardarSuscripcionPush,
   obtenerSuscripcionesPush,
-  eliminarSuscripcionPush
+  eliminarSuscripcionPush,
+  formatMomentoLabel
 };

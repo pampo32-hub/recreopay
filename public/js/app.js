@@ -1199,11 +1199,96 @@ function changeCartQty(index, delta) {
   updateCartBar();
 }
 
+function normalizeMomentoKey(val) {
+  if (!val) return 'recreo_1';
+  const v = String(val).toLowerCase().trim();
+  if (v === 'recreo_1' || v.includes('1er') || v.includes('9:30')) return 'recreo_1';
+  if (v === 'almuerzo' || v.includes('almuerzo') || v.includes('11:45')) return 'almuerzo';
+  if (v === 'recreo_2' || v.includes('2do') || v.includes('1:45')) return 'recreo_2';
+  if (v === 'inmediato' || v.includes('inmediato')) return 'inmediato';
+  return v;
+}
+
+function getMomentoBadge(val) {
+  const key = normalizeMomentoKey(val);
+  switch (key) {
+    case 'recreo_1':
+      return {
+        key: 'recreo_1',
+        title: '1er Recreo (9:30 AM)',
+        full: '1er Recreo de la Mañana (9:30 AM)',
+        icon: '🔔',
+        bg: '#fffbeb',
+        border: '#f59e0b',
+        text: '#b45309',
+        badgeBg: '#fef3c7',
+        badgeColor: '#92400e',
+        badgeBorder: '#fde68a'
+      };
+    case 'almuerzo':
+      return {
+        key: 'almuerzo',
+        title: 'Almuerzo (11:45 AM)',
+        full: 'Hora de Almuerzo (11:45 AM)',
+        icon: '🍲',
+        bg: '#f0fdf4',
+        border: '#16a34a',
+        text: '#15803d',
+        badgeBg: '#dcfce7',
+        badgeColor: '#166534',
+        badgeBorder: '#86efac'
+      };
+    case 'recreo_2':
+      return {
+        key: 'recreo_2',
+        title: '2do Recreo (1:45 PM)',
+        full: '2do Recreo de la Tarde (1:45 PM)',
+        icon: '⏰',
+        bg: '#eef2ff',
+        border: '#6366f1',
+        text: '#4338ca',
+        badgeBg: '#e0e7ff',
+        badgeColor: '#3730a3',
+        badgeBorder: '#c7d2fe'
+      };
+    case 'inmediato':
+      return {
+        key: 'inmediato',
+        title: 'Entrega Inmediata',
+        full: 'Entrega Inmediata en Mostrador',
+        icon: '⚡',
+        bg: '#f8fafc',
+        border: '#64748b',
+        text: '#334155',
+        badgeBg: '#f1f5f9',
+        badgeColor: '#334155',
+        badgeBorder: '#cbd5e1'
+      };
+    default:
+      return {
+        key: val || 'otro',
+        title: val || 'Pre-orden',
+        full: val || 'Pre-orden de recreo',
+        icon: '🥪',
+        bg: '#f8fafc',
+        border: '#0284c7',
+        text: '#0369a1',
+        badgeBg: '#e0f2fe',
+        badgeColor: '#0369a1',
+        badgeBorder: '#bae6fd'
+      };
+  }
+}
+
 async function submitPreOrder() {
-  if (!currentStudent) return;
+  const targetStudent = (currentUser && currentUser.rol === 'padre' && currentParentChild) ? currentParentChild : currentStudent;
+  if (!targetStudent) return;
   if (cart.length === 0) return alert('Agrega al menos un producto a tu pre-orden');
 
-  const momento = document.getElementById('momentoEntregaSelect').value;
+  const momentoSelect = document.getElementById('momentoEntregaSelect');
+  const momento = momentoSelect ? momentoSelect.value : 'recreo_1';
+  const momentoBadge = getMomentoBadge(momento);
+
   const items = cart.map(item => ({
     producto_id: item.product.id,
     cantidad: item.cantidad
@@ -1218,7 +1303,7 @@ async function submitPreOrder() {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        estudiante_id: currentStudent.id,
+        estudiante_id: targetStudent.id,
         tipo_orden: 'preorden',
         momento_entrega: momento,
         items
@@ -1233,13 +1318,23 @@ async function submitPreOrder() {
 
     if (window.sounds) window.sounds.playSuccess();
 
-    alert(`¡Pre-Orden confirmada con éxito!\nCódigo de entrega: ${data.codigo_orden}\nRebajada de tu monedero: ₡${data.total_colones.toLocaleString('es-CR')}\n\nPodrás retirarla en la fila rápida de la soda durante el recreo presentando tu QR.`);
+    alert(`¡Pre-Orden confirmada con éxito!\n\n📋 Código de retiro: ${data.codigo_orden}\n⏰ Horario: ${momentoBadge.full}\n💰 Total rebajado: ₡${data.total_colones.toLocaleString('es-CR')}\n\nPodrás retirarla en la soda durante el recreo programado presentando tu carné QR.`);
 
-    // Limpiar carrito y recargar datos del estudiante
+    // Limpiar carrito y recargar datos del estudiante o padre
     cart = [];
     updateCartBar();
+    const cartBadge = document.getElementById('parentCartBadgeCount');
+    if (cartBadge) cartBadge.textContent = '0';
     closeCartModal();
-    await selectStudent(currentStudent.id);
+
+    if (currentUser && currentUser.rol === 'padre') {
+      await loadParentDashboard();
+      if (currentParentChild) {
+        await loadActiveChildHistory(currentParentChild.id);
+      }
+    } else if (currentStudent) {
+      await selectStudent(currentStudent.id);
+    }
   } catch (err) {
     alert(`No se pudo procesar: ${err.message}`);
   } finally {
@@ -2918,11 +3013,23 @@ async function loadActiveChildHistory(studentId) {
         ? o.items.map(it => `${it.cantidad}x ${it.nombre}`).join(', ')
         : 'Compra en mostrador';
       const fecha = o.creado_en ? new Date(o.creado_en).toLocaleDateString('es-CR', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : '';
+      const isPreorden = o.tipo_orden === 'preorden';
+      const badge = getMomentoBadge(o.momento_entrega);
+
       return `
-        <div style="display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px dashed var(--border);">
+        <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px dashed var(--border);">
           <div style="min-width: 0; flex: 1; padding-right: 8px;">
-            <div style="font-weight: 800; color: var(--text-main); font-size: 0.82rem; word-break: break-word;">${itemsStr}</div>
-            <div style="font-size: 0.72rem; color: var(--text-muted); margin-top: 1px;">${fecha} • Estado: <span style="color: #10b981; font-weight: 700;">${o.estado}</span></div>
+            <div style="font-weight: 800; color: var(--text-main); font-size: 0.84rem; word-break: break-word;">${itemsStr}</div>
+            <div style="font-size: 0.72rem; color: var(--text-muted); margin-top: 2px; display: flex; align-items: center; gap: 6px; flex-wrap: wrap;">
+              <span>${fecha}</span>
+              <span>•</span>
+              <span style="color: ${o.estado === 'entregado' ? '#10b981' : '#f59e0b'}; font-weight: 700;">${o.estado === 'entregado' ? 'Entregado' : 'Pendiente de retiro'}</span>
+              ${isPreorden ? `
+                <span style="background: ${badge.badgeBg}; color: ${badge.badgeColor}; border: 1px solid ${badge.badgeBorder}; padding: 1px 7px; border-radius: 6px; font-weight: 800; font-size: 0.7rem;">
+                  ${badge.icon} ${badge.title}
+                </span>
+              ` : ''}
+            </div>
           </div>
           <strong style="color: #0284c7; font-size: 0.88rem; flex-shrink: 0;">-₡${(o.total_colones || 0).toLocaleString('es-CR')}</strong>
         </div>

@@ -27,7 +27,8 @@ const {
   procesarSolicitudRecargaSinpe,
   guardarSuscripcionPush,
   obtenerSuscripcionesPush,
-  eliminarSuscripcionPush
+  eliminarSuscripcionPush,
+  formatMomentoLabel
 } = require('./db');
 const { checkSinpeEmailsOnce, simularSinpeEmail } = require('./sinpeImapService');
 const { normalizarCodigoDetalle, parseSinpeEmail } = require('./sinpeParser');
@@ -2473,6 +2474,7 @@ app.get('/api/ordenes', (req, res) => {
     const ordenes = db.prepare(query).all(...params);
     const resultado = ordenes.map(o => ({
       ...o,
+      momento_entrega_label: formatMomentoLabel(o.momento_entrega),
       items: Array.isArray(o.items_json)
         ? o.items_json
         : (typeof o.items_json === 'string' ? JSON.parse(o.items_json || '[]') : [])
@@ -2548,6 +2550,7 @@ app.post('/api/ordenes/despachar-qr', (req, res) => {
         id: preorden.id,
         codigo: preorden.codigo_orden,
         momento_entrega: preorden.momento_entrega,
+        momento_entrega_label: formatMomentoLabel(preorden.momento_entrega),
         total: preorden.total_colones,
         items
       }
