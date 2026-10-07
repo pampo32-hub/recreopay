@@ -2148,6 +2148,9 @@ function initStudentSSE() {
 
   sse.addEventListener('solicitud_sinpe_procesada', (e) => {
     try {
+      if (currentUser && ['admin', 'cajero', 'personal', 'dev', 'soda'].includes(currentUser.rol)) {
+        loadAdminSinpeRequests();
+      }
       if (currentUser && currentUser.rol === 'padre') {
         if (currentParentChild) {
           loadParentSinpeRequests(currentParentChild.id);
@@ -2241,6 +2244,9 @@ function initStudentSSE() {
           tag: `sinpe-${sol.id || Date.now()}`,
           data: { url: '/pos.html?tab=sinpe' }
         });
+
+        // 3. Refrescar solicitudes en panel admin si está abierto
+        loadAdminSinpeRequests();
       }
 
       if (currentUser && currentUser.rol === 'padre') {
@@ -3730,6 +3736,7 @@ function switchAdminTab(tabName) {
   } else if (tabName === 'personal') {
     loadAdminStaff();
   } else if (tabName === 'recarga') {
+    loadAdminSinpeRequests();
     if (!adminSelectedStudent) {
       clearAdminSelectedStudent();
     }
@@ -3769,6 +3776,9 @@ async function loadAdminData() {
         categories = dataCat.categorias;
       }
     }
+
+    // 5. Cargar solicitudes SINPE pendientes para badge y sección
+    loadAdminSinpeRequests();
   } catch (err) {
     console.error('Error cargando datos de administración:', err);
   }
@@ -4729,6 +4739,200 @@ async function submitAdminManualRecharge() {
   } finally {
     btn.disabled = false;
     btn.innerHTML = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg> <span>Aplicar Recarga Inmediata</span>';
+  }
+}
+
+// ==========================================
+// APROBACIÓN MANUAL DE RECARGAS SINPE EN PANEL ADMIN
+// ==========================================
+
+async function loadAdminSinpeRequests() {
+  const list = document.getElementById('adminSinpeRequestsList');
+  const tabBadge = document.getElementById('badgeAdminTabSinpeCount');
+  const countBadge = document.getElementById('adminSinpeCountBadge');
+  if (!list) return;
+
+  try {
+    let url = '/api/sinpe/solicitudes?estado=pendiente';
+    if (currentUser && currentUser.escuela_id) {
+      url += `&escuela_id=${currentUser.escuela_id}`;
+    }
+
+    const res = await fetch(url);
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error);
+
+    const solicitudes = data.solicitudes || [];
+
+    if (tabBadge) {
+      if (solicitudes.length > 0) {
+        tabBadge.textContent = solicitudes.length;
+        tabBadge.style.display = 'inline-block';
+      } else {
+        tabBadge.style.display = 'none';
+      }
+    }
+
+    if (countBadge) {
+      if (solicitudes.length > 0) {
+        countBadge.textContent = solicitudes.length;
+        countBadge.style.display = 'inline-block';
+      } else {
+        countBadge.style.display = 'none';
+      }
+    }
+
+    if (solicitudes.length === 0) {
+      list.innerHTML = `
+        <div style="background: #f8fafc; border: 1.5px dashed #cbd5e1; border-radius: 14px; padding: 36px 20px; text-align: center; color: #64748b;">
+          <div style="font-size: 2.2rem; margin-bottom: 6px;">✨</div>
+          <strong style="color: #0f172a; font-size: 1rem; display: block; margin-bottom: 2px;">No hay recargas SINPE pendientes</strong>
+          <p style="font-size: 0.82rem; margin: 0; color: #94a3b8;">Todas las recargas reportadas por los padres han sido procesadas.</p>
+        </div>
+      `;
+      return;
+    }
+
+    list.innerHTML = solicitudes.map(s => {
+      const fecha = new Date(s.creado_en).toLocaleString('es-CR', { 
+        day: '2-digit', 
+        month: 'short', 
+        hour: '2-digit', 
+        minute: '2-digit' 
+      });
+
+      return `
+        <div class="sinpe-admin-card" style="background: #ffffff; border: 1.5px solid #86efac; border-radius: 16px; padding: 16px 18px; box-shadow: 0 2px 8px rgba(16, 185, 129, 0.08); display: flex; flex-direction: column; gap: 12px; width: 100%; box-sizing: border-box;">
+          
+          <!-- FILA 1: ESTUDIANTE Y MONTO -->
+          <div style="display: flex; justify-content: space-between; align-items: center; gap: 12px; width: 100%; box-sizing: border-box; flex-wrap: wrap;">
+            <div style="display: flex; align-items: center; gap: 12px; min-width: 0; flex: 1;">
+              <div style="width: 46px; height: 46px; border-radius: 12px; background: linear-gradient(135deg, #0284c7, #0369a1); color: #ffffff; display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 1rem; border: 1.5px solid #bae6fd; flex-shrink: 0; box-shadow: 0 2px 6px rgba(2, 132, 199, 0.15);">
+                ${getStudentInitials(s.estudiante_nombre)}
+              </div>
+              <div style="min-width: 0; flex: 1;">
+                <div style="font-weight: 900; font-size: 1.05rem; color: #0f172a; line-height: 1.25; word-break: normal;">
+                  ${escapeHtml(s.estudiante_nombre)}
+                </div>
+                <div style="font-size: 0.78rem; color: #64748b; margin-top: 2px; font-weight: 600;">
+                  ${escapeHtml(s.estudiante_grado || 'Estudiante')} ${s.estudiante_seccion ? '• Sección ' + escapeHtml(s.estudiante_seccion) : ''}
+                </div>
+              </div>
+            </div>
+
+            <div style="text-align: right; flex-shrink: 0;">
+              <div style="font-size: 1.35rem; font-weight: 900; color: #16a34a; letter-spacing: -0.5px; line-height: 1;">
+                +₡${s.monto_colones.toLocaleString('es-CR')}
+              </div>
+              <div style="display: inline-block; font-size: 0.70rem; font-weight: 800; color: #b45309; background: #fef3c7; border: 1px solid #fde68a; padding: 2px 8px; border-radius: 6px; margin-top: 4px;">
+                ⏳ Por Verificar
+              </div>
+            </div>
+          </div>
+
+          <!-- FILA 2: DATOS DEL COMPROBANTE Y DETALLE EN CAJA HORIZONTAL -->
+          <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 10px 14px; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; font-size: 0.82rem;">
+            <div style="display: flex; align-items: center; gap: 6px;">
+              <span style="color: #64748b; font-weight: 700; font-size: 0.75rem; text-transform: uppercase;">Código:</span>
+              <span style="font-family: monospace; font-size: 0.95rem; font-weight: 900; color: #16a34a; background: #dcfce7; padding: 2px 8px; border-radius: 6px; border: 1px solid #bbf7d0;">
+                ${escapeHtml(s.codigo_detalle || '-')}
+              </span>
+            </div>
+
+            <div style="display: flex; align-items: center; gap: 6px;">
+              <span style="color: #64748b; font-weight: 700; font-size: 0.75rem; text-transform: uppercase;">Comprobante:</span>
+              <span style="font-family: monospace; font-size: 0.88rem; font-weight: 800; color: #0369a1; background: #e0f2fe; padding: 2px 8px; border-radius: 6px; border: 1px solid #bae6fd;">
+                #${escapeHtml(s.comprobante_sinpe || '-')}
+              </span>
+            </div>
+
+            <div style="display: flex; align-items: center; gap: 6px;">
+              <span style="color: #64748b; font-weight: 700; font-size: 0.75rem; text-transform: uppercase;">Reportado:</span>
+              <span style="color: #334155; font-weight: 700;">${fecha}</span>
+            </div>
+
+            <div style="display: flex; align-items: center; gap: 6px;">
+              <span style="color: #64748b; font-weight: 700; font-size: 0.75rem; text-transform: uppercase;">Saldo Actual:</span>
+              <span style="color: #334155; font-weight: 800;">₡${(s.estudiante_saldo || 0).toLocaleString('es-CR')}</span>
+            </div>
+          </div>
+
+          ${s.notas ? `
+            <div style="font-size: 0.75rem; color: #475569; background: #ffffff; border: 1px dashed #cbd5e1; border-radius: 8px; padding: 6px 12px; display: flex; align-items: center; gap: 6px;">
+              <span>💬</span>
+              <span><strong>Detalle:</strong> ${escapeHtml(s.notas)}</span>
+            </div>
+          ` : ''}
+
+          <!-- FILA 3: BOTONES DE ACCIÓN (RECHAZAR / APROBAR) -->
+          <div style="display: flex; gap: 10px; align-items: center; width: 100%; border-top: 1px solid #f1f5f9; padding-top: 10px; box-sizing: border-box;">
+            <button type="button" onclick="procesarSinpeAdmin(${s.id}, 'rechazar')" style="padding: 10px 16px; background: #fff1f2; color: #e11d48; border: 1.5px solid #fecdd3; border-radius: 10px; font-weight: 800; font-size: 0.84rem; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; white-space: nowrap; transition: all 0.15s;">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+              <span>Rechazar</span>
+            </button>
+            <button type="button" onclick="procesarSinpeAdmin(${s.id}, 'aprobar')" style="flex: 1; padding: 11px 18px; background: linear-gradient(135deg, #16a34a, #15803d); color: white; border: none; border-radius: 10px; font-weight: 900; font-size: 0.90rem; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; box-shadow: 0 2px 8px rgba(22, 163, 74, 0.25); white-space: nowrap; transition: all 0.15s;">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+              <span>Aprobar y Acreditar (+₡${s.monto_colones.toLocaleString('es-CR')})</span>
+            </button>
+          </div>
+        </div>
+      `;
+    }).join('');
+  } catch (err) {
+    console.error('Error cargando solicitudes SINPE en panel admin:', err);
+  }
+}
+
+async function procesarSinpeAdmin(solicitudId, accion) {
+  if (accion === 'aprobar') {
+    const ok = confirm('¿Confirmas que verificaste el comprobante y el dinero ya ingresó a la cuenta bancaria de la soda?');
+    if (!ok) return;
+
+    try {
+      const res = await fetch('/api/sinpe/procesar', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          solicitud_id: solicitudId,
+          accion: 'aprobar',
+          usuario_id: currentUser ? currentUser.id : null
+        })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+
+      if (window.sounds) window.sounds.playCoin();
+      alert(`¡Recarga Aprobada!\nSe acreditaron ₡${data.resultado.monto.toLocaleString('es-CR')} al estudiante ${data.resultado.estudiante_nombre}.\nNuevo saldo: ₡${data.resultado.saldo_nuevo.toLocaleString('es-CR')}.`);
+      loadAdminSinpeRequests();
+      await loadAdminData();
+    } catch (err) {
+      if (window.sounds) window.sounds.playError();
+      alert(`Error al aprobar recarga: ${err.message}`);
+    }
+  } else if (accion === 'rechazar') {
+    const motivo = prompt('Motivo del rechazo de la recarga:', 'Comprobante no coincide o fondos no recibidos');
+    if (motivo === null) return;
+
+    try {
+      const res = await fetch('/api/sinpe/procesar', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          solicitud_id: solicitudId,
+          accion: 'rechazar',
+          motivo: motivo || 'Rechazado por la soda',
+          usuario_id: currentUser ? currentUser.id : null
+        })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+
+      alert('La solicitud de recarga ha sido rechazada.');
+      loadAdminSinpeRequests();
+      await loadAdminData();
+    } catch (err) {
+      alert(`Error al rechazar recarga: ${err.message}`);
+    }
   }
 }
 

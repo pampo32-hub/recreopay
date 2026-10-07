@@ -1738,41 +1738,77 @@ async function loadSinpeRequests() {
       });
 
       return `
-        <div style="background: #ffffff; border: 1.5px solid #86efac; border-radius: 16px; padding: 14px; box-shadow: 0 2px 8px rgba(16, 185, 129, 0.08); display: flex; flex-direction: column; gap: 12px; width: 100%; box-sizing: border-box;">
-          <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; width: 100%; box-sizing: border-box;">
-            <div style="display: flex; align-items: center; gap: 10px; min-width: 0; flex: 1;">
-              <div style="width: 44px; height: 44px; border-radius: 12px; background: linear-gradient(135deg, #0284c7, #0369a1); color: #ffffff; display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 0.95rem; border: 1.5px solid #bae6fd; flex-shrink: 0; box-shadow: 0 2px 6px rgba(2, 132, 199, 0.15);">
+        <div class="sinpe-admin-card" style="background: #ffffff; border: 1.5px solid #86efac; border-radius: 16px; padding: 16px 18px; box-shadow: 0 2px 8px rgba(16, 185, 129, 0.08); display: flex; flex-direction: column; gap: 12px; width: 100%; box-sizing: border-box;">
+          
+          <!-- FILA 1: ESTUDIANTE Y MONTO -->
+          <div style="display: flex; justify-content: space-between; align-items: center; gap: 12px; width: 100%; box-sizing: border-box; flex-wrap: wrap;">
+            <div style="display: flex; align-items: center; gap: 12px; min-width: 0; flex: 1;">
+              <div style="width: 46px; height: 46px; border-radius: 12px; background: linear-gradient(135deg, #0284c7, #0369a1); color: #ffffff; display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 1rem; border: 1.5px solid #bae6fd; flex-shrink: 0; box-shadow: 0 2px 6px rgba(2, 132, 199, 0.15);">
                 ${getStudentInitials(s.estudiante_nombre)}
               </div>
               <div style="min-width: 0; flex: 1;">
-                <div style="font-weight: 800; font-size: 0.95rem; color: #0f172a; word-break: break-word;">${s.estudiante_nombre}</div>
-                <div style="font-size: 0.74rem; color: #64748b; margin-top: 1px;">
-                  ${s.estudiante_grado || ''} ${s.estudiante_seccion ? '• Sec. ' + s.estudiante_seccion : ''}
+                <div style="font-weight: 900; font-size: 1.05rem; color: #0f172a; line-height: 1.25; word-break: normal;">
+                  ${s.estudiante_nombre}
                 </div>
-                <div style="font-size: 0.70rem; color: #94a3b8; margin-top: 2px;">
-                  Reportado: ${fecha}
+                <div style="font-size: 0.78rem; color: #64748b; margin-top: 2px; font-weight: 600;">
+                  ${s.estudiante_grado || 'Estudiante'} ${s.estudiante_seccion ? '• Sección ' + s.estudiante_seccion : ''}
                 </div>
               </div>
             </div>
 
             <div style="text-align: right; flex-shrink: 0;">
-              <div style="font-size: 1.25rem; font-weight: 900; color: #16a34a; letter-spacing: -0.5px;">
+              <div style="font-size: 1.35rem; font-weight: 900; color: #16a34a; letter-spacing: -0.5px; line-height: 1;">
                 +₡${s.monto_colones.toLocaleString('es-CR')}
               </div>
-              <div style="font-size: 0.74rem; font-weight: 800; color: #1e293b; background: #f0fdf4; border: 1px solid #bbf7d0; padding: 2px 7px; border-radius: 6px; margin-top: 2px;">
-                Comp: <strong style="font-family: monospace; color: #0284c7;">#${s.comprobante_sinpe}</strong>
+              <div style="display: inline-block; font-size: 0.70rem; font-weight: 800; color: #b45309; background: #fef3c7; border: 1px solid #fde68a; padding: 2px 8px; border-radius: 6px; margin-top: 4px;">
+                ⏳ Por Verificar
               </div>
             </div>
           </div>
 
-          <div style="display: flex; gap: 8px; align-items: center; width: 100%; border-top: 1px solid #f1f5f9; padding-top: 10px;">
-            <button onclick="procesarSinpePos(${s.id}, 'rechazar')" style="flex: 1; max-width: 120px; padding: 10px 10px; background: #fff1f2; color: #e11d48; border: 1px solid #fecdd3; border-radius: 10px; font-weight: 800; font-size: 0.82rem; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 4px;">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          <!-- FILA 2: DATOS DEL COMPROBANTE Y DETALLE EN CAJA HORIZONTAL -->
+          <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 10px 14px; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; font-size: 0.82rem;">
+            <div style="display: flex; align-items: center; gap: 6px;">
+              <span style="color: #64748b; font-weight: 700; font-size: 0.75rem; text-transform: uppercase;">Código:</span>
+              <span style="font-family: monospace; font-size: 0.95rem; font-weight: 900; color: #16a34a; background: #dcfce7; padding: 2px 8px; border-radius: 6px; border: 1px solid #bbf7d0;">
+                ${s.codigo_detalle || '-'}
+              </span>
+            </div>
+
+            <div style="display: flex; align-items: center; gap: 6px;">
+              <span style="color: #64748b; font-weight: 700; font-size: 0.75rem; text-transform: uppercase;">Comprobante:</span>
+              <span style="font-family: monospace; font-size: 0.88rem; font-weight: 800; color: #0369a1; background: #e0f2fe; padding: 2px 8px; border-radius: 6px; border: 1px solid #bae6fd;">
+                #${s.comprobante_sinpe || '-'}
+              </span>
+            </div>
+
+            <div style="display: flex; align-items: center; gap: 6px;">
+              <span style="color: #64748b; font-weight: 700; font-size: 0.75rem; text-transform: uppercase;">Reportado:</span>
+              <span style="color: #334155; font-weight: 700;">${fecha}</span>
+            </div>
+
+            <div style="display: flex; align-items: center; gap: 6px;">
+              <span style="color: #64748b; font-weight: 700; font-size: 0.75rem; text-transform: uppercase;">Saldo Actual:</span>
+              <span style="color: #334155; font-weight: 800;">₡${(s.estudiante_saldo || 0).toLocaleString('es-CR')}</span>
+            </div>
+          </div>
+
+          ${s.notas ? `
+            <div style="font-size: 0.75rem; color: #475569; background: #ffffff; border: 1px dashed #cbd5e1; border-radius: 8px; padding: 6px 12px; display: flex; align-items: center; gap: 6px;">
+              <span>💬</span>
+              <span><strong>Detalle:</strong> ${s.notas}</span>
+            </div>
+          ` : ''}
+
+          <!-- FILA 3: BOTONES DE ACCIÓN (RECHAZAR / APROBAR) -->
+          <div style="display: flex; gap: 10px; align-items: center; width: 100%; border-top: 1px solid #f1f5f9; padding-top: 10px; box-sizing: border-box;">
+            <button type="button" onclick="procesarSinpePos(${s.id}, 'rechazar')" style="padding: 10px 16px; background: #fff1f2; color: #e11d48; border: 1.5px solid #fecdd3; border-radius: 10px; font-weight: 800; font-size: 0.84rem; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; white-space: nowrap; transition: all 0.15s;">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
               <span>Rechazar</span>
             </button>
-            <button onclick="procesarSinpePos(${s.id}, 'aprobar')" style="flex: 2; padding: 10px 16px; background: linear-gradient(135deg, #16a34a, #15803d); color: white; border: none; border-radius: 10px; font-weight: 800; font-size: 0.85rem; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; box-shadow: 0 2px 8px rgba(22, 163, 74, 0.25);">
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
-              <span>Aprobar y Acreditar</span>
+            <button type="button" onclick="procesarSinpePos(${s.id}, 'aprobar')" style="flex: 1; padding: 11px 18px; background: linear-gradient(135deg, #16a34a, #15803d); color: white; border: none; border-radius: 10px; font-weight: 900; font-size: 0.90rem; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; box-shadow: 0 2px 8px rgba(22, 163, 74, 0.25); white-space: nowrap; transition: all 0.15s;">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+              <span>Aprobar y Acreditar (+₡${s.monto_colones.toLocaleString('es-CR')})</span>
             </button>
           </div>
         </div>
