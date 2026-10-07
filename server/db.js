@@ -1,5 +1,6 @@
 const path = require('path');
 const fs = require('fs');
+const { normalizarCodigoDetalle } = require('./sinpeParser');
 
 try {
   const envPath = path.join(__dirname, '../.env');
@@ -143,6 +144,27 @@ function initDatabase() {
           procesado_en TIMESTAMP
         );
       `);
+    } catch (e) {}
+
+    try {
+      db.exec(`
+        CREATE TABLE IF NOT EXISTS sinpe_transacciones_banco (
+          id VARCHAR(100) PRIMARY KEY,
+          reference_number VARCHAR(100),
+          codigo_detalle VARCHAR(100),
+          codigo_detalle_norm VARCHAR(100),
+          amount_crc NUMERIC NOT NULL,
+          sender_phone VARCHAR(50),
+          sender_name VARCHAR(100),
+          origin_bank VARCHAR(100),
+          status VARCHAR(20) DEFAULT 'unclaimed',
+          claimed_by_estudiante_id INTEGER,
+          raw_data TEXT,
+          received_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          verified_at TIMESTAMP
+        );
+      `);
+      try { db.exec('ALTER TABLE solicitudes_recarga_sinpe ADD COLUMN IF NOT EXISTS codigo_detalle VARCHAR(100);'); } catch (_) {}
     } catch (e) {}
 
     try {
@@ -343,6 +365,28 @@ function initDatabase() {
         aprobado_por_usuario_id INTEGER,
         creado_en DATETIME DEFAULT CURRENT_TIMESTAMP,
         procesado_en DATETIME
+      );
+    `);
+    try { db.exec('ALTER TABLE solicitudes_recarga_sinpe ADD COLUMN codigo_detalle TEXT;'); } catch (_) {}
+  } catch (e) {}
+
+  // 11b. Transacciones Bancarias SINPE Detectadas por Correo / IMAP
+  try {
+    db.exec(`
+      CREATE TABLE IF NOT EXISTS sinpe_transacciones_banco (
+        id TEXT PRIMARY KEY,
+        reference_number TEXT,
+        codigo_detalle TEXT,
+        codigo_detalle_norm TEXT,
+        amount_crc NUMERIC NOT NULL,
+        sender_phone TEXT,
+        sender_name TEXT,
+        origin_bank TEXT,
+        status TEXT DEFAULT 'unclaimed',
+        claimed_by_estudiante_id INTEGER,
+        raw_data TEXT,
+        received_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        verified_at DATETIME
       );
     `);
   } catch (e) {}
@@ -1101,28 +1145,124 @@ function revertirTransaccionSaldoTransaction({ transaccionId, usuarioId, usuario
 }
 
 /**
+ * Genera un código de detalle amigable y tolerante: "SIBO-" + 4 caracteres anti-confusión
+ */
+function generarCodigoDetalleSinpe() {
+  const chars = '23456789ACDEFGHJKMNPQRSTUVWXYZ';
+  let rand = '';
+  for (let i = 0; i < 4; i++) {
+    rand += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  return `SIBO-${rand}`;
+}
+
+/**
  * Crea una nueva solicitud de recarga por SINPE Móvil enviada por un padre
  */
-function crearSolicitudRecargaSinpe({ estudianteId, padreUsuarioId, monto, comprobante, notas }) {
+function crearSolicitudRecargaSinpe({ estudianteId, padreUsuarioId, monto, comprobante, notas, codigoDetalle }) {
   let escuelaId = 1;
   try {
     const est = db.prepare('SELECT escuela_id FROM estudiantes WHERE id = ?').get(estudianteId);
     if (est && est.escuela_id) escuelaId = est.escuela_id;
   } catch (e) {}
 
+  const finalCodigo = codigoDetalle || generarCodigoDetalleSinpe();
+  const finalComp = comprobante ? String(comprobante).trim() : `SINPE-${finalCodigo.replace(/[^A-Za-z0-9]/g, '')}`;
+
   const insert = db.prepare(`
-    INSERT INTO solicitudes_recarga_sinpe (estudiante_id, padre_usuario_id, monto_colones, comprobante_sinpe, estado, notas, escuela_id)
-    VALUES (?, ?, ?, ?, 'pendiente', ?, ?)
+    INSERT INTO solicitudes_recarga_sinpe (estudiante_id, padre_usuario_id, monto_colones, comprobante_sinpe, codigo_detalle, estado, notas, escuela_id)
+    VALUES (?, ?, ?, ?, ?, 'pendiente', ?, ?)
   `);
-  const res = insert.run(estudianteId, padreUsuarioId || null, parseInt(monto, 10), String(comprobante).trim(), notas || '', escuelaId);
+  const res = insert.run(estudianteId, padreUsuarioId || null, parseInt(monto, 10), finalComp, finalCodigo, notas || '', escuelaId);
   return {
     id: res.lastInsertRowid || res.id,
     estudiante_id: estudianteId,
     escuela_id: escuelaId,
     monto_colones: parseInt(monto, 10),
-    comprobante_sinpe: String(comprobante).trim(),
+    comprobante_sinpe: finalComp,
+    codigo_detalle: finalCodigo,
     estado: 'pendiente'
   };
+}
+
+/**
+ * Busca una transacción bancaria capturada por IMAP/correo para validar la recarga
+ */
+function buscarTransaccionSinpeBanco({ codigoDetalle, comprobante, monto }) {
+  const normCod = codigoDetalle ? normalizarCodigoDetalle(codigoDetalle) : null;
+  const cleanComp = comprobante ? String(comprobante).trim().replace(/^[#:\.\-\s]+/, '') : null;
+  const numMonto = parseInt(monto, 10);
+
+  // 1. Búsqueda por código de detalle normalizado (máxima prioridad)
+  if (normCod && normCod.length >= 4) {
+    let tx = db.prepare(`
+      SELECT * FROM sinpe_transacciones_banco
+      WHERE (codigo_detalle_norm = ? OR UPPER(REPLACE(REPLACE(codigo_detalle, '-', ''), ' ', '')) = ?)
+        AND status = 'unclaimed'
+      ORDER BY received_at DESC
+      LIMIT 1
+    `).get(normCod, normCod);
+
+    if (tx) {
+      if (numMonto && Math.abs(Number(tx.amount_crc) - numMonto) > 0.01) {
+        return { error: 'MONTO_DISCREPANCIA', tx, mensaje: `El comprobante bancario corresponde a ₡${Number(tx.amount_crc).toLocaleString('es-CR')}, pero la recarga solicitada es por ₡${numMonto.toLocaleString('es-CR')}.` };
+      }
+      return { encontrado: true, tx };
+    }
+  }
+
+  // 2. Búsqueda por número de comprobante emitido por el banco
+  if (cleanComp && cleanComp.length >= 3) {
+    let tx = db.prepare(`
+      SELECT * FROM sinpe_transacciones_banco
+      WHERE (reference_number = ? OR reference_number LIKE ?)
+        AND status = 'unclaimed'
+      ORDER BY received_at DESC
+      LIMIT 1
+    `).get(cleanComp, `%${cleanComp}%`);
+
+    if (tx) {
+      if (numMonto && Math.abs(Number(tx.amount_crc) - numMonto) > 0.01) {
+        return { error: 'MONTO_DISCREPANCIA', tx, mensaje: `El comprobante bancario corresponde a ₡${Number(tx.amount_crc).toLocaleString('es-CR')}, pero la recarga solicitada es por ₡${numMonto.toLocaleString('es-CR')}.` };
+      }
+      return { encontrado: true, tx };
+    }
+  }
+
+  // 3. Verificar si el código o comprobante ya fue usado previamente (anti-fraude)
+  if (normCod) {
+    const used = db.prepare(`
+      SELECT * FROM sinpe_transacciones_banco
+      WHERE codigo_detalle_norm = ? AND status = 'used'
+      LIMIT 1
+    `).get(normCod);
+
+    if (used) {
+      return { error: 'COMPROBANTE_YA_UTILIZADO', mensaje: `Este código de detalle ya fue utilizado anteriormente y no es válido para otra recarga.` };
+    }
+  } else if (cleanComp) {
+    const used = db.prepare(`
+      SELECT * FROM sinpe_transacciones_banco
+      WHERE reference_number = ? AND status = 'used'
+      LIMIT 1
+    `).get(cleanComp);
+
+    if (used) {
+      return { error: 'COMPROBANTE_YA_UTILIZADO', mensaje: `Este comprobante bancario ya fue utilizado anteriormente y no es válido para otra recarga.` };
+    }
+  }
+
+  return { encontrado: false };
+}
+
+function marcarTransaccionSinpeUsada(txId, estudianteId) {
+  return db.prepare(`
+    UPDATE sinpe_transacciones_banco
+    SET status = 'used',
+        claimed_by_estudiante_id = ?,
+        verified_at = CURRENT_TIMESTAMP
+    WHERE id = ?
+  `).run(estudianteId || null, txId);
 }
 
 /**
@@ -1271,7 +1411,10 @@ module.exports = {
   crearOrdenCompleta,
   transferenciaP2PTransaction,
   revertirTransaccionSaldoTransaction,
+  generarCodigoDetalleSinpe,
   crearSolicitudRecargaSinpe,
+  buscarTransaccionSinpeBanco,
+  marcarTransaccionSinpeUsada,
   obtenerSolicitudesRecargaSinpe,
   obtenerSolicitudesRecargaPorEstudiante,
   procesarSolicitudRecargaSinpe,

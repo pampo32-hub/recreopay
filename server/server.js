@@ -18,7 +18,10 @@ const {
   crearOrdenCompleta, 
   transferenciaP2PTransaction, 
   revertirTransaccionSaldoTransaction,
+  generarCodigoDetalleSinpe,
   crearSolicitudRecargaSinpe,
+  buscarTransaccionSinpeBanco,
+  marcarTransaccionSinpeUsada,
   obtenerSolicitudesRecargaSinpe,
   obtenerSolicitudesRecargaPorEstudiante,
   procesarSolicitudRecargaSinpe,
@@ -26,6 +29,9 @@ const {
   obtenerSuscripcionesPush,
   eliminarSuscripcionPush
 } = require('./db');
+const { checkSinpeEmailsOnce, simularSinpeEmail } = require('./sinpeImapService');
+const { normalizarCodigoDetalle, parseSinpeEmail } = require('./sinpeParser');
+const { simpleParser } = require('mailparser');
 
 const webpush = require('web-push');
 
@@ -1712,25 +1718,62 @@ app.post('/api/estudiantes/:id/recarga', (req, res) => {
 // SOLICITUDES DE RECARGA SINPE MÓVIL (PORTAL PADRES & SODA)
 // ==========================================
 
+// 0. Generar código de detalle único para recarga SINPE
+app.post('/api/sinpe/generar-codigo', (req, res) => {
+  try {
+    const { estudiante_id, monto } = req.body;
+    const codigo = generarCodigoDetalleSinpe();
+    let telefono_sinpe = '8888-8888';
+    let titular_sinpe = 'Soda Escolar';
+    let escuela_nombre = 'Soda Escolar';
+
+    if (estudiante_id) {
+      const est = db.prepare(`
+        SELECT e.id, esc.telefono_sinpe, esc.nombre_sinpe, esc.nombre as escuela_nombre
+        FROM estudiantes e
+        LEFT JOIN escuelas esc ON esc.id = e.escuela_id
+        WHERE e.id = ?
+      `).get(estudiante_id);
+      if (est) {
+        if (est.telefono_sinpe) telefono_sinpe = est.telefono_sinpe;
+        if (est.nombre_sinpe) titular_sinpe = est.nombre_sinpe;
+        if (est.escuela_nombre) escuela_nombre = est.escuela_nombre;
+      }
+    }
+
+    res.json({
+      success: true,
+      codigo,
+      telefono_sinpe,
+      titular_sinpe,
+      escuela_nombre
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // 1. Crear solicitud de recarga (enviada por el padre)
 app.post('/api/sinpe/solicitar', (req, res) => {
   try {
-    const { estudiante_id, padre_usuario_id, monto, comprobante, notas } = req.body;
+    const { estudiante_id, padre_usuario_id, monto, comprobante, codigo_detalle, notas } = req.body;
     if (!estudiante_id) return res.status(400).json({ error: 'Estudiante no especificado' });
     const montoNum = parseInt(monto, 10);
     if (isNaN(montoNum) || montoNum <= 0) {
       return res.status(400).json({ error: 'Ingresa un monto válido mayor a ₡0' });
     }
     const cleanComp = String(comprobante || '').trim();
-    if (!cleanComp) {
-      return res.status(400).json({ error: 'Debes ingresar el número de comprobante SINPE' });
+    const cleanCod = codigo_detalle ? String(codigo_detalle).trim() : null;
+    if (!cleanComp && !cleanCod) {
+      return res.status(400).json({ error: 'Debes ingresar el comprobante o código de detalle SINPE' });
     }
 
     const nuevaSol = crearSolicitudRecargaSinpe({
       estudianteId: parseInt(estudiante_id, 10),
       padreUsuarioId: padre_usuario_id ? parseInt(padre_usuario_id, 10) : null,
       monto: montoNum,
-      comprobante: cleanComp,
+      comprobante: cleanComp || (cleanCod ? `SINPE-${cleanCod}` : ''),
+      codigoDetalle: cleanCod,
       notas
     });
 
@@ -1752,7 +1795,7 @@ app.post('/api/sinpe/solicitar', (req, res) => {
       escuelaId: nuevaSol.escuela_id || 1,
       payload: {
         title: '🔔 Nueva Recarga SINPE - SiboPay',
-        body: `Recarga de ₡${montoFmt} para ${payloadNotificacion.estudiante_nombre}. Comprobante: #${payloadNotificacion.comprobante_sinpe}`,
+        body: `Recarga de ₡${montoFmt} para ${payloadNotificacion.estudiante_nombre}. Detalle: ${payloadNotificacion.codigo_detalle || payloadNotificacion.comprobante_sinpe}`,
         icon: '/icons/icon-192.png',
         badge: '/icons/icon-192.png',
         tag: `sinpe-${payloadNotificacion.id || Date.now()}`,
@@ -1762,11 +1805,252 @@ app.post('/api/sinpe/solicitar', (req, res) => {
 
     res.json({
       success: true,
-      mensaje: 'Solicitud de recarga enviada. La soda verificará el comprobante en breve.',
+      mensaje: 'Solicitud de recarga enviada.',
       solicitud: payloadNotificacion
     });
   } catch (error) {
     res.status(400).json({ error: error.message });
+  }
+});
+
+// 1b. Validar SINPE en tiempo real por correo bancario
+app.post('/api/sinpe/validar', async (req, res) => {
+  try {
+    const { estudiante_id, monto, codigo, comprobante, solicitud_id, padre_usuario_id } = req.body;
+    if (!estudiante_id) return res.status(400).json({ error: 'Estudiante no especificado' });
+    const montoNum = parseInt(monto, 10);
+    if (isNaN(montoNum) || montoNum <= 0) {
+      return res.status(400).json({ error: 'Ingresa un monto válido mayor a ₡0' });
+    }
+
+    const cleanCod = codigo ? String(codigo).trim() : null;
+    const cleanComp = comprobante ? String(comprobante).trim() : null;
+
+    if (!cleanCod && !cleanComp) {
+      return res.status(400).json({ error: 'Se requiere el código de detalle (ej. SIBO-XXXX) o el número de comprobante para validar.' });
+    }
+
+    // 1. Escaneo en caliente del buzón IMAP (si está configurado)
+    try {
+      await checkSinpeEmailsOnce(db);
+    } catch (scanErr) {
+      console.warn('⚠️ [SINPE Validar] Error en escaneo IMAP caliente:', scanErr.message);
+    }
+
+    // 2. Buscar en las transacciones registradas
+    const busqueda = buscarTransaccionSinpeBanco({
+      codigoDetalle: cleanCod,
+      comprobante: cleanComp,
+      monto: montoNum
+    });
+
+    if (busqueda.error) {
+      return res.status(400).json({
+        success: false,
+        verificado: false,
+        error: busqueda.error,
+        message: busqueda.mensaje
+      });
+    }
+
+    if (busqueda.encontrado && busqueda.tx) {
+      const tx = busqueda.tx;
+      marcarTransaccionSinpeUsada(tx.id, estudiante_id);
+
+      let resultadoAprobacion = null;
+      if (solicitud_id) {
+        try {
+          resultadoAprobacion = procesarSolicitudRecargaSinpe({
+            solicitudId: parseInt(solicitud_id, 10),
+            accion: 'aprobar',
+            usuarioId: null,
+            motivo: `Validación automática por correo (${tx.origin_bank} - Ref #${tx.reference_number || tx.codigo_detalle})`
+          });
+        } catch (_) {}
+      }
+
+      if (!resultadoAprobacion) {
+        resultadoAprobacion = recargaSaldoTransaction({
+          estudianteId: parseInt(estudiante_id, 10),
+          monto: montoNum,
+          comprobanteSinpe: tx.reference_number || cleanComp || tx.codigo_detalle,
+          descripcion: `Recarga SINPE verificada automáticamente por correo (${tx.origin_bank} Ref #${tx.reference_number || tx.codigo_detalle})`
+        });
+      }
+
+      const est = db.prepare('SELECT nombre_completo, saldo_colones FROM estudiantes WHERE id = ?').get(estudiante_id);
+      const nuevoSaldo = est ? est.saldo_colones : (resultadoAprobacion.saldo_nuevo || montoNum);
+
+      broadcastEvent('recarga_exitosa', {
+        estudiante_id,
+        monto: montoNum,
+        saldo_nuevo: nuevoSaldo,
+        origen_banco: tx.origin_bank,
+        referencia: tx.reference_number
+      });
+      broadcastEvent('saldo_actualizado', { id: estudiante_id, saldo_colones: nuevoSaldo });
+      broadcastEvent('estudiante_actualizado', { id: estudiante_id, saldo_colones: nuevoSaldo });
+
+      console.log(`🎉 [SINPE Validado] ₡${montoNum} acreditados a estudiante #${estudiante_id} vía ${tx.origin_bank} (Ref #${tx.reference_number})`);
+
+      return res.json({
+        success: true,
+        verificado: true,
+        monto: montoNum,
+        banco: tx.origin_bank,
+        comprobante: tx.reference_number,
+        codigo: tx.codigo_detalle,
+        saldo_nuevo: nuevoSaldo,
+        mensaje: `🎉 ¡Pago verificado con éxito! Se acreditaron ₡${montoNum.toLocaleString('es-CR')} de ${tx.origin_bank}.`
+      });
+    }
+
+    // Si aún no se detectó el correo
+    return res.json({
+      success: false,
+      verificado: false,
+      retry: true,
+      mensaje: `⏳ Aún no detectamos la notificación del banco en el correo. Si acabas de realizar la transferencia, espera unos 10-15 segundos a que el banco emita el comprobante y presiona "Validar SINPE" nuevamente.`
+    });
+  } catch (error) {
+    console.error('Error en /api/sinpe/validar:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// 1c. Simular correo bancario entrante (para pruebas y demos)
+app.post('/api/sinpe/simular-correo', (req, res) => {
+  try {
+    const { codigo, monto, banco, remitente, telefono, comprobante } = req.body;
+    if (!monto) return res.status(400).json({ error: 'Monto es requerido' });
+    const tx = simularSinpeEmail(db, { codigo, monto, banco, remitente, telefono, comprobante });
+    res.json({ success: true, mensaje: 'Transacción simulada registrada exitosamente', tx });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// 1d. Webhook receptor en el aire para Cloudflare Email Routing / Worker
+app.post('/api/sinpe/webhook-email', express.text({ type: ['text/*', 'application/json', '*/*'], limit: '25mb' }), async (req, res) => {
+  try {
+    const rawData = req.body;
+    let subject = '';
+    let bodyText = '';
+    let bodyHtml = '';
+    let from = '';
+
+    if (typeof rawData === 'string') {
+      try {
+        const parsed = await simpleParser(rawData);
+        subject = parsed.subject || '';
+        bodyText = parsed.text || '';
+        bodyHtml = parsed.html || '';
+        from = parsed.from ? parsed.from.text : '';
+      } catch (e) {
+        bodyText = rawData;
+      }
+      if (!bodyText && !bodyHtml) {
+        bodyText = rawData;
+      } else {
+        bodyText = `${bodyText}\n${rawData}`;
+      }
+    } else if (typeof rawData === 'object' && rawData !== null) {
+      subject = rawData.subject || '';
+      bodyText = rawData.text || rawData.body || '';
+      from = rawData.from || '';
+    }
+
+    const parsedSinpe = parseSinpeEmail(subject, bodyText, bodyHtml, from);
+
+    if (parsedSinpe.isSinpe && parsedSinpe.amountCrc > 0) {
+      const txId = `sinpe_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+      const normCod = parsedSinpe.codigoDetalleNormalizado || '';
+      const refNum = parsedSinpe.referenceNumber || (normCod ? `REF-${normCod}` : `TX-${Date.now()}`);
+
+      // Evitar duplicados exactos: solo si el código ya fue recibido previamente
+      const existing = db.prepare(`
+        SELECT id FROM sinpe_transacciones_banco 
+        WHERE (codigo_detalle_norm = ? AND codigo_detalle_norm IS NOT NULL AND codigo_detalle_norm != '')
+           OR (reference_number = ? AND reference_number IS NOT NULL AND codigo_detalle_norm = ?)
+        LIMIT 1
+      `).get(normCod || '__none__', refNum, normCod || '__none__');
+
+      if (!existing) {
+        db.prepare(`
+          INSERT INTO sinpe_transacciones_banco 
+            (id, reference_number, codigo_detalle, codigo_detalle_norm, amount_crc, sender_phone, sender_name, origin_bank, status, raw_data)
+          VALUES 
+            (?, ?, ?, ?, ?, ?, ?, ?, 'unclaimed', ?)
+        `).run(
+          txId,
+          refNum,
+          parsedSinpe.codigoDetalle || null,
+          normCod || null,
+          parsedSinpe.amountCrc,
+          parsedSinpe.senderPhone || null,
+          parsedSinpe.senderName || 'Cliente SINPE',
+          parsedSinpe.originBank || 'SINPE Móvil',
+          JSON.stringify({ from, subject, summary: parsedSinpe.rawSummary, source: 'cloudflare_webhook' })
+        );
+        console.log(`⚡ [SINPE Webhook Cloudflare] Correo atrapado en el aire: ₡${parsedSinpe.amountCrc} | Cód: ${parsedSinpe.codigoDetalle || 'N/A'} | Ref: #${refNum} | Banco: ${parsedSinpe.originBank}`);
+
+        // AUTO-CONCILIACIÓN INMEDIATA:
+        // Si hay una solicitud pendiente con este código y monto, aprobarla al instante
+        if (normCod || refNum) {
+          try {
+            const solPendiente = db.prepare(`
+              SELECT id, estudiante_id, monto_colones, codigo_detalle, comprobante_sinpe 
+              FROM solicitudes_recarga_sinpe 
+              WHERE estado = 'pendiente' 
+                AND (
+                  (codigo_detalle IS NOT NULL AND (codigo_detalle = ? OR UPPER(REPLACE(REPLACE(codigo_detalle, '-', ''), ' ', '')) = ?))
+                  OR (comprobante_sinpe IS NOT NULL AND (comprobante_sinpe = ? OR comprobante_sinpe = ? OR comprobante_sinpe LIKE ?))
+                )
+              ORDER BY creado_en DESC LIMIT 1
+            `).get(
+              parsedSinpe.codigoDetalle || '__none__',
+              normCod || '__none__',
+              refNum,
+              `SINPE-${parsedSinpe.codigoDetalle}`,
+              `%${refNum}%`
+            );
+
+            if (solPendiente && Math.abs(Number(solPendiente.monto_colones) - parsedSinpe.amountCrc) < 0.01) {
+              marcarTransaccionSinpeUsada(txId, solPendiente.estudiante_id);
+              procesarSolicitudRecargaSinpe({
+                solicitudId: solPendiente.id,
+                accion: 'aprobar',
+                usuarioId: null,
+                motivo: `Validación automática por correo (${parsedSinpe.originBank} Ref #${refNum})`
+              });
+
+              const est = db.prepare('SELECT saldo_colones FROM estudiantes WHERE id = ?').get(solPendiente.estudiante_id);
+              const nuevoSaldo = est ? est.saldo_colones : parsedSinpe.amountCrc;
+
+              broadcastEvent('recarga_exitosa', {
+                estudiante_id: solPendiente.estudiante_id,
+                monto: parsedSinpe.amountCrc,
+                saldo_nuevo: nuevoSaldo,
+                origen_banco: parsedSinpe.originBank,
+                referencia: refNum
+              });
+              broadcastEvent('saldo_actualizado', { id: solPendiente.estudiante_id, saldo_colones: nuevoSaldo });
+              broadcastEvent('estudiante_actualizado', { id: solPendiente.estudiante_id, saldo_colones: nuevoSaldo });
+              broadcastEvent('solicitud_sinpe_procesada', { id: solPendiente.id, estado: 'aprobada' });
+
+              console.log(`🎉 [SINPE Auto-Conciliado] Solicitud #${solPendiente.id} aprobada automáticamente al llegar el correo bancario (+₡${parsedSinpe.amountCrc} a estudiante #${solPendiente.estudiante_id})`);
+            }
+          } catch (autoErr) {
+            console.warn('⚠️ Error en auto-conciliación de webhook:', autoErr.message);
+          }
+        }
+      }
+    }
+
+    res.json({ success: true, parsed: parsedSinpe });
+  } catch (error) {
+    console.error('Error en /api/sinpe/webhook-email:', error);
+    res.status(500).json({ error: error.message });
   }
 });
 
