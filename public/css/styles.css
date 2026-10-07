@@ -5256,4 +5256,157 @@ body.dark-mode .parent-nav-box-icon {
   border-color: #334155;
 }
 
+/* --------------------------------------------------------------------------
+   COMPONENTES ESTÉTICOS MODERNOS PARA PORTAL DE PADRES (FINTECH / SAAS)
+   -------------------------------------------------------------------------- */
+.parent-compact-stage-card {
+  max-width: 620px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+/* Switch Toggle Moderno Estilo iOS */
+.switch-saas {
+  position: relative;
+  display: inline-block;
+  width: 48px;
+  height: 26px;
+  flex-shrink: 0;
+  cursor: pointer;
+  margin: 0;
+}
+
+.switch-saas input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+  position: absolute;
+}
+
+.switch-saas-slider {
+  position: absolute;
+  cursor: pointer;
+  inset: 0;
+  background-color: #cbd5e1;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  border-radius: 26px;
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.switch-saas-slider:before {
+  position: absolute;
+  content: "";
+  height: 20px;
+  width: 20px;
+  left: 3px;
+  bottom: 3px;
+  background-color: #ffffff;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  border-radius: 50%;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.switch-saas input:checked + .switch-saas-slider {
+  background-color: #0284c7;
+}
+
+.switch-saas input:checked + .switch-saas-slider.rose {
+  background-color: #e11d48;
+}
+
+.switch-saas input:checked + .switch-saas-slider:before {
+  transform: translateX(22px);
+}
+
+body.dark-mode .switch-saas-slider {
+  background-color: #334155;
+}
+
+body.dark-mode .switch-saas-slider:before {
+  background-color: #f1f5f9;
+}
+
+/* Range Slider Estilizado para Límites */
+.saas-range-slider {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 8px;
+  border-radius: 8px;
+  background: #e0f2fe;
+  outline: none;
+  transition: background 0.2s;
+  margin: 10px 0 6px 0;
+}
+
+body.dark-mode .saas-range-slider {
+  background: #1e293b;
+}
+
+.saas-range-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: #0284c7;
+  cursor: pointer;
+  box-shadow: 0 2px 6px rgba(2, 132, 199, 0.4);
+  border: 2.5px solid #ffffff;
+  transition: transform 0.15s ease, background 0.15s;
+}
+
+.saas-range-slider::-webkit-slider-thumb:hover {
+  transform: scale(1.15);
+  background: #0369a1;
+}
+
+.saas-range-slider::-moz-range-thumb {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: #0284c7;
+  cursor: pointer;
+  box-shadow: 0 2px 6px rgba(2, 132, 199, 0.4);
+  border: 2.5px solid #ffffff;
+}
+
+/* Píldoras de Monto Preestablecido */
+.limit-preset-pill {
+  padding: 8px 10px;
+  font-size: 0.82rem;
+  font-weight: 800;
+  border-radius: 10px;
+  border: 1.5px solid #bae6fd;
+  background: #ffffff;
+  color: #0369a1;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.limit-preset-pill:hover {
+  background: #e0f2fe;
+  border-color: #0284c7;
+  color: #0284c7;
+  transform: translateY(-1px);
+}
+
+.limit-preset-pill:active {
+  transform: translateY(0);
+}
+
+body.dark-mode .limit-preset-pill {
+  background: #0f172a;
+  border-color: #334155;
+  color: #38bdf8;
+}
+
+body.dark-mode .limit-preset-pill:hover {
+  background: #1e293b;
+  border-color: #38bdf8;
+}
+
 

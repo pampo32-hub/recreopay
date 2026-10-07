@@ -12,8 +12,8 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="SiboPay">
   <meta name="mobile-web-app-capable" content="yes">
-  <link rel="stylesheet" href="/css/styles.css?v=11.2">
-  <link rel="stylesheet" href="/css/desktop.css?v=2.1">
+  <link rel="stylesheet" href="/css/styles.css?v=11.3">
+  <link rel="stylesheet" href="/css/desktop.css?v=2.2">
   <style>
     /* Transiciones suaves */
     .fade-enter { animation: fadeIn 0.2s ease-in-out; }
@@ -1278,7 +1278,10 @@
               <strong style="font-size: 0.84rem; color: #1e293b; display: block;">Veto de Comida Chatarra / Golosinas</strong>
               <span style="font-size: 0.70rem; color: #64748b; display: block; margin-top: 2px;">Bloquea confites, gaseosas y comida chatarra en caja</span>
             </div>
-            <input type="checkbox" id="chkParentBlockJunkFood" onchange="onToggleParentBlockJunkFood(this.checked)" style="width: 22px; height: 22px; cursor: pointer; accent-color: #e11d48;">
+            <label class="switch-saas" title="Bloquear comida chatarra">
+              <input type="checkbox" id="chkParentBlockJunkFood" onchange="onToggleParentBlockJunkFood(this.checked)">
+              <span class="switch-saas-slider rose"></span>
+            </label>
           </div>
 
           <!-- Botón Guardar Alergias -->
@@ -1302,53 +1305,80 @@
           </div>
         </div>
 
-        <div id="parentDailyLimitCard" class="parent-card" style="background: #f0f9ff; border: 2px solid #38bdf8; margin-bottom: 12px;">
-          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-            <div>
-              <strong style="font-size: 0.95rem; color: #0369a1; display: inline-flex; align-items: center; gap: 6px;">
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-                <span>Límite de Gasto Máximo Diario</span>
-              </strong>
-              <span style="font-size: 0.74rem; color: #64748b; display: block; margin-top: 2px;">Monto máximo que el estudiante puede gastar por día</span>
+        <!-- TARJETA ÚNICA DE LÍMITE DIARIO Y TRANSFERENCIAS (COMPACTA, ESTÉTICA Y FINTECH) -->
+        <div id="parentDailyLimitCard" class="parent-card" style="background: var(--card-bg, #ffffff); border: 1.5px solid #bae6fd; box-shadow: 0 4px 16px rgba(2, 132, 199, 0.06); padding: 22px; border-radius: 18px; margin-bottom: 14px;">
+          <!-- Cabecera con Icono y Badge -->
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; flex-wrap: wrap; gap: 8px;">
+            <div style="display: flex; align-items: center; gap: 10px;">
+              <div style="width: 40px; height: 40px; border-radius: 11px; background: #e0f2fe; color: #0284c7; display: flex; align-items: center; justify-content: center; font-size: 1.15rem; flex-shrink: 0;">
+                🛡️
+              </div>
+              <div>
+                <strong style="font-size: 0.98rem; color: var(--text-main); display: block; line-height: 1.2;">Límite de Gasto Diario</strong>
+                <span style="font-size: 0.74rem; color: var(--text-muted); display: block; margin-top: 2px;">Tope de consumo por jornada escolar</span>
+              </div>
             </div>
-            <span id="lblParentDailyLimitDisplay" style="font-size: 1.1rem; color: #0284c7; font-weight: 900; background: white; border: 1.5px solid #bae6fd; padding: 4px 12px; border-radius: 8px;">₡3.000</span>
+            <div style="text-align: right;">
+              <span id="lblParentDailyLimitDisplay" style="font-size: 1.15rem; color: #0284c7; font-weight: 900; background: #f0f9ff; border: 1.5px solid #bae6fd; padding: 5px 14px; border-radius: 10px; display: inline-block; letter-spacing: -0.3px;">₡3.000 / día</span>
+            </div>
           </div>
 
-          <div style="display: flex; gap: 8px; margin-bottom: 10px;">
-            <div style="position: relative; flex: 1;">
-              <span style="position: absolute; left: 10px; top: 50%; transform: translateY(-50%); font-weight: 900; color: #0284c7; font-size: 1.1rem;">₡</span>
-              <input type="tel" inputmode="numeric" pattern="[0-9]*" id="inputParentCustomLimit" placeholder="Ej: 3000" style="width: 100%; padding: 10px 10px 10px 30px; border-radius: 10px; border: 2px solid #0284c7; font-size: 1.1rem; font-weight: 900; color: #0f172a; background: white; box-sizing: border-box;">
+          <!-- Selector de Montos Rápidos (Pills) -->
+          <div style="margin-bottom: 14px;">
+            <span style="display: block; font-size: 0.72rem; font-weight: 800; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px;">Montos sugeridos:</span>
+            <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px;">
+              <button type="button" onclick="setParentLimitPreset(1500)" class="limit-preset-pill">₡1.500</button>
+              <button type="button" onclick="setParentLimitPreset(2500)" class="limit-preset-pill">₡2.500</button>
+              <button type="button" onclick="setParentLimitPreset(3500)" class="limit-preset-pill">₡3.500</button>
+              <button type="button" onclick="setParentLimitPreset(5000)" class="limit-preset-pill">₡5.000</button>
             </div>
-            <button type="button" onclick="saveParentCustomLimit()" style="padding: 10px 16px; background: linear-gradient(135deg, #0284c7, #0369a1); color: white; border: none; border-radius: 10px; font-weight: 900; font-size: 0.85rem; cursor: pointer; white-space: nowrap; box-shadow: 0 2px 6px rgba(2, 132, 199, 0.35); display: inline-flex; align-items: center; gap: 6px;">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
-              <span>Guardar</span>
+          </div>
+
+          <!-- Barra Deslizadora Compacta y Estilizada -->
+          <div style="background: var(--bg-main, #f8fafc); border: 1px solid var(--border, #e2e8f0); border-radius: 12px; padding: 12px 14px; margin-bottom: 16px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.72rem; font-weight: 800; color: var(--text-muted);">
+              <span>Ajuste rápido:</span>
+              <span style="color: #0284c7; font-weight: 900;">Arrastra la barra</span>
+            </div>
+            <input type="range" id="rangeParentLimit" class="saas-range-slider" min="1000" max="10000" step="500" value="3000" oninput="onParentLimitSliderChange(this.value)">
+            <div style="display: flex; justify-content: space-between; font-size: 0.72rem; color: var(--text-muted); font-weight: 700;">
+              <span>₡1.000 min</span>
+              <span>₡5.000</span>
+              <span>₡10.000 max</span>
+            </div>
+          </div>
+
+          <!-- Input Manual y Botón Guardar en Fila Compacta -->
+          <div style="display: flex; gap: 8px; align-items: center; margin-bottom: 18px;">
+            <div style="position: relative; flex: 1;">
+              <span style="position: absolute; left: 12px; top: 50%; transform: translateY(-50%); font-weight: 900; color: #0284c7; font-size: 1.05rem;">₡</span>
+              <input type="tel" inputmode="numeric" pattern="[0-9]*" id="inputParentCustomLimit" placeholder="Ej: 3000" oninput="onParentLimitInputChange(this.value)" style="width: 100%; height: 42px; padding: 0 12px 0 32px; border-radius: 10px; border: 1.5px solid var(--border, #cbd5e1); font-size: 1.05rem; font-weight: 900; color: var(--text-main); background: var(--card-bg, #ffffff); box-sizing: border-box; outline: none;">
+            </div>
+            <button type="button" onclick="saveParentCustomLimit()" class="btn-saas btn-saas-primary" style="height: 42px; padding: 0 20px; font-size: 0.85rem; font-weight: 800; border-radius: 10px; white-space: nowrap; flex-shrink: 0; display: inline-flex; align-items: center; gap: 6px;">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+              <span>Guardar Límite</span>
             </button>
           </div>
 
-          <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 5px; margin-bottom: 10px;">
-            <button type="button" onclick="setParentLimitPreset(1500)" class="stock-btn-quick">₡1.500</button>
-            <button type="button" onclick="setParentLimitPreset(2500)" class="stock-btn-quick">₡2.500</button>
-            <button type="button" onclick="setParentLimitPreset(3500)" class="stock-btn-quick">₡3.500</button>
-            <button type="button" onclick="setParentLimitPreset(5000)" class="stock-btn-quick">₡5.000</button>
-          </div>
+          <!-- Divisor Separador Elegante -->
+          <div style="border-top: 1px solid var(--border, #e2e8f0); margin: 18px 0 16px 0;"></div>
 
-          <input type="range" id="rangeParentLimit" min="1000" max="10000" step="500" value="3000" oninput="onParentLimitSliderChange(this.value)" style="width: 100%;">
-          <div style="display: flex; justify-content: space-between; font-size: 0.7rem; color: #64748b; margin-top: 2px;">
-            <span>₡1.000 min</span>
-            <span>₡10.000 max</span>
+          <!-- REGLA DE PERMISOS: TRANSFERENCIAS ENTRE COMPAÑEROS CON SWITCH TIPO IOS -->
+          <div style="display: flex; justify-content: space-between; align-items: center; gap: 14px;">
+            <div style="display: flex; align-items: center; gap: 10px; min-width: 0;">
+              <div style="width: 36px; height: 36px; border-radius: 10px; background: rgba(2, 132, 199, 0.08); color: #0284c7; display: flex; align-items: center; justify-content: center; font-size: 1.05rem; flex-shrink: 0;">
+                🔄
+              </div>
+              <div>
+                <strong style="font-size: 0.88rem; color: var(--text-main); display: block; line-height: 1.25;">Transferencias entre Compañeros</strong>
+                <span style="font-size: 0.72rem; color: var(--text-muted); display: block; margin-top: 2px;">Permitir transferir saldo a compañeros de clase</span>
+              </div>
+            </div>
+            <label class="switch-saas" title="Activar o desactivar transferencias">
+              <input type="checkbox" id="chkParentAllowTransferDirect" onchange="onToggleParentTransfer(this.checked)" checked>
+              <span class="switch-saas-slider"></span>
+            </label>
           </div>
-        </div>
-
-        <!-- PERMISOS DE TRANSFERENCIA ENTRE COMPAÑEROS -->
-        <div class="parent-card" style="display: flex; justify-content: space-between; align-items: center;">
-          <div>
-            <strong style="font-size: 0.88rem; color: var(--text-main); display: inline-flex; align-items: center; gap: 6px;">
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg>
-              <span>Transferencias entre Compañeros</span>
-            </strong>
-            <span style="font-size: 0.74rem; color: var(--text-muted); display: block; margin-top: 2px;">Permitir transferir saldo a compañeros de clase</span>
-          </div>
-          <input type="checkbox" id="chkParentAllowTransferDirect" onchange="onToggleParentTransfer(this.checked)" style="width: 24px; height: 24px; cursor: pointer; accent-color: #0284c7;" checked>
         </div>
       </div>
 
@@ -2752,6 +2782,6 @@
   <script src="/js/sounds.js?v=9.6"></script>
   <script src="/js/jsQR.js"></script>
   <script src="/js/food-icons.js?v=1.1"></script>
-  <script src="/js/app.js?v=11.1"></script>
+  <script src="/js/app.js?v=11.2"></script>
 </body>
 </html>

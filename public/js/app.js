@@ -2834,7 +2834,7 @@ function renderActiveChildDetails(child) {
   if (balance) balance.textContent = `₡${(child.saldo_colones || 0).toLocaleString('es-CR')}`;
 
   const currentLimit = child.limite_diario_colones || 3000;
-  if (lblLimit) lblLimit.textContent = `₡${currentLimit.toLocaleString('es-CR')}`;
+  if (lblLimit) lblLimit.textContent = `₡${currentLimit.toLocaleString('es-CR')} / día`;
   if (inputCustomLimit) inputCustomLimit.value = currentLimit;
   if (rangeLimit) rangeLimit.value = currentLimit;
   if (chkTransfer) chkTransfer.checked = child.permitir_transferencias !== 0;
@@ -3644,7 +3644,7 @@ function setParentLimitPreset(amt) {
   const lbl = document.getElementById('lblParentDailyLimitDisplay');
   if (input) input.value = amt;
   if (range) range.value = amt;
-  if (lbl) lbl.textContent = `₡${parseInt(amt, 10).toLocaleString('es-CR')}`;
+  if (lbl) lbl.textContent = `₡${parseInt(amt, 10).toLocaleString('es-CR')} / día`;
   if (window.sounds) window.sounds.playTap();
 }
 
@@ -3652,7 +3652,17 @@ function onParentLimitSliderChange(val) {
   const input = document.getElementById('inputParentCustomLimit');
   const lbl = document.getElementById('lblParentDailyLimitDisplay');
   if (input) input.value = val;
-  if (lbl) lbl.textContent = `₡${parseInt(val, 10).toLocaleString('es-CR')}`;
+  if (lbl) lbl.textContent = `₡${parseInt(val, 10).toLocaleString('es-CR')} / día`;
+}
+
+function onParentLimitInputChange(val) {
+  const range = document.getElementById('rangeParentLimit');
+  const lbl = document.getElementById('lblParentDailyLimitDisplay');
+  const num = parseInt(val, 10);
+  if (!isNaN(num) && num > 0) {
+    if (range) range.value = num;
+    if (lbl) lbl.textContent = `₡${num.toLocaleString('es-CR')} / día`;
+  }
 }
 
 async function saveParentCustomLimit() {

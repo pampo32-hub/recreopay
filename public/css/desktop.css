@@ -368,6 +368,17 @@
     margin-bottom: 16px !important;
   }
 
+  /* Contención ergonómica de formularios y ajustes en desktop (máx 620px) */
+  .parent-subview:not(#parentSubViewMenu) .parent-card {
+    max-width: 620px !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+  }
+
+  #parentSubViewMenu .parent-card {
+    max-width: 100% !important;
+  }
+
   /* Ocultar botón Volver en escritorio ya que la barra lateral siempre está visible */
   .parent-subview-back-btn {
     display: none !important;
