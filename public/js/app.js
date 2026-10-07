@@ -2546,6 +2546,7 @@ function openParentSubView(viewKey) {
   }
 
   if (viewKey === 'sinpe' && currentParentChild) {
+    obtenerNuevoCodigoSinpe();
     loadParentSinpeRequests(currentParentChild.id);
   } else if (viewKey === 'historial' && currentParentChild) {
     loadActiveChildHistory(currentParentChild.id);
@@ -2684,63 +2685,392 @@ async function loadActiveChildHistory(studentId) {
   }
 }
 
+let currentSinpeCode = '';
+
+function setParentSinpeMonto(monto) {
+  const input = document.getElementById('inputParentSinpeMonto');
+  if (input) {
+    input.value = monto;
+    input.focus();
+  }
+  if (window.sounds) window.sounds.playTap();
+}
+
+async function obtenerNuevoCodigoSinpe() {
+  const display = document.getElementById('parentSinpeCodigoDisplay');
+  const statusMsg = document.getElementById('parentSinpeStatusMsg');
+  if (statusMsg) statusMsg.style.display = 'none';
+
+  try {
+    const studentId = currentParentChild ? currentParentChild.id : null;
+    const res = await fetch('/api/sinpe/generar-codigo', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ estudiante_id: studentId })
+    });
+    const data = await res.json();
+    if (data.success && data.codigo) {
+      currentSinpeCode = data.codigo;
+      if (display) display.textContent = data.codigo;
+      if (data.telefono_sinpe) {
+        const telEl = document.getElementById('parentSinpeNumero');
+        if (telEl) telEl.textContent = data.telefono_sinpe;
+      }
+      if (data.titular_sinpe) {
+        const titEl = document.getElementById('parentSinpeTitular');
+        if (titEl) titEl.textContent = data.titular_sinpe;
+      }
+      if (data.escuela_nombre) {
+        const escEl = document.getElementById('parentSinpeEscuelaNombre');
+        if (escEl) escEl.textContent = data.escuela_nombre;
+      }
+    }
+  } catch (err) {
+    console.error('Error generando código SINPE:', err);
+    if (!currentSinpeCode && display) {
+      currentSinpeCode = 'SIBO-' + Math.random().toString(36).substring(2, 6).toUpperCase();
+      display.textContent = currentSinpeCode;
+    }
+  }
+}
+
+function copiarCodigoSinpe() {
+  const code = currentSinpeCode || (document.getElementById('parentSinpeCodigoDisplay')?.textContent || '').trim();
+  if (!code || code.includes('CARGANDO')) return;
+
+  const btn = document.getElementById('btnCopiarCodigoSinpe');
+  const lbl = document.getElementById('lblCopiarCodigoSinpe');
+
+  const onCopiado = () => {
+    if (window.sounds) window.sounds.playTap();
+    if (lbl) lbl.textContent = '¡Copiado! ✓';
+    if (btn) btn.style.background = '#059669';
+    setTimeout(() => {
+      if (lbl) lbl.textContent = 'Copiar código';
+      if (btn) btn.style.background = '#16a34a';
+    }, 2200);
+  };
+
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(code).then(onCopiado).catch(() => {
+      fallbackCopyText(code, onCopiado);
+    });
+  } else {
+    fallbackCopyText(code, onCopiado);
+  }
+}
+
+function fallbackCopyText(text, cb) {
+  try {
+    const tempInput = document.createElement('input');
+    tempInput.value = text;
+    document.body.appendChild(tempInput);
+    tempInput.select();
+    document.execCommand('copy');
+    document.body.removeChild(tempInput);
+    if (cb) cb();
+  } catch (e) {
+    console.warn('No se pudo copiar automáticamente:', e);
+  }
+}
+
+// Control del Modal de Validación SINPE Móvil
+let sinpeProgressInterval = null;
+let sinpeIsPolling = false;
+
+function showSinpeModal(state, data = {}) {
+  const modal = document.getElementById('modalSinpeValidacion');
+  if (!modal) return;
+
+  const stateLoading = document.getElementById('modalSinpeStateLoading');
+  const stateSuccess = document.getElementById('modalSinpeStateSuccess');
+  const statePending = document.getElementById('modalSinpeStatePending');
+  const stateError = document.getElementById('modalSinpeStateError');
+  const btnCloseX = document.getElementById('modalSinpeBtnCloseX');
+
+  if (stateLoading) stateLoading.style.display = 'none';
+  if (stateSuccess) stateSuccess.style.display = 'none';
+  if (statePending) statePending.style.display = 'none';
+  if (stateError) stateError.style.display = 'none';
+
+  if (state === 'loading') {
+    if (stateLoading) stateLoading.style.display = 'block';
+    if (btnCloseX) btnCloseX.style.display = 'none'; // No permitir cerrar en sondeo crítico
+    const sumChild = document.getElementById('modalSinpeSummaryChild');
+    const sumMonto = document.getElementById('modalSinpeSummaryMonto');
+    const sumCod = document.getElementById('modalSinpeSummaryCodigo');
+    const stepText = document.getElementById('modalSinpeStepText');
+    const timerText = document.getElementById('modalSinpeTimerText');
+    const bar = document.getElementById('modalSinpeProgressBar');
+
+    if (sumChild) sumChild.textContent = data.studentName || '-';
+    if (sumMonto) sumMonto.textContent = `₡${(data.monto || 0).toLocaleString('es-CR')}`;
+    if (sumCod) sumCod.textContent = data.codigo || '-';
+    if (stepText) stepText.textContent = 'Buscando comprobante bancario...';
+    if (timerText) timerText.textContent = '18s';
+    if (bar) bar.style.width = '0%';
+  } else if (state === 'success') {
+    if (stateSuccess) stateSuccess.style.display = 'block';
+    if (btnCloseX) btnCloseX.style.display = 'flex';
+    const sMonto = document.getElementById('modalSinpeSuccessMonto');
+    const sChild = document.getElementById('modalSinpeSuccessChild');
+    const sBanco = document.getElementById('modalSinpeSuccessBanco');
+    const sComp = document.getElementById('modalSinpeSuccessComp');
+    const sNuevo = document.getElementById('modalSinpeSuccessNuevoSaldo');
+
+    if (sMonto) sMonto.textContent = `₡${(data.monto || 0).toLocaleString('es-CR')}`;
+    if (sChild) sChild.textContent = data.studentName || '-';
+    if (sBanco) sBanco.textContent = data.banco || 'Bancario';
+    if (sComp) sComp.textContent = data.comprobante || data.codigo || '-';
+    if (sNuevo) sNuevo.textContent = `₡${(data.nuevoSaldo || 0).toLocaleString('es-CR')}`;
+  } else if (state === 'pending') {
+    if (statePending) statePending.style.display = 'block';
+    if (btnCloseX) btnCloseX.style.display = 'flex';
+    const pMonto = document.getElementById('modalSinpePendingMonto');
+    if (pMonto) pMonto.textContent = (data.monto || 0).toLocaleString('es-CR');
+  } else if (state === 'error') {
+    if (stateError) stateError.style.display = 'block';
+    if (btnCloseX) btnCloseX.style.display = 'flex';
+    const eTitle = document.getElementById('modalSinpeErrorTitle');
+    const eMsg = document.getElementById('modalSinpeErrorMessage');
+    if (eTitle) eTitle.textContent = data.title || 'No se pudo validar';
+    if (eMsg) eMsg.textContent = data.message || 'Ocurrió un error al procesar el SINPE.';
+  }
+
+  modal.style.display = 'flex';
+}
+
+function closeSinpeModal() {
+  if (sinpeIsPolling) {
+    sinpeIsPolling = false;
+    clearInterval(sinpeProgressInterval);
+  }
+  const modal = document.getElementById('modalSinpeValidacion');
+  if (modal) modal.style.display = 'none';
+}
+
+function handleSinpeBackdropClick(event) {
+  // Si está validando activamente, no cerramos por clic accidental en el fondo
+  if (sinpeIsPolling) return;
+  closeSinpeModal();
+}
+
 async function executeParentSinpeRecharge() {
   if (!currentParentChild) {
-    alert('Selecciona primero al estudiante a quien deseas recargarle.');
+    showSinpeModal('error', {
+      title: 'Estudiante no seleccionado',
+      message: 'Por favor, selecciona primero al estudiante a quien deseas realizarle la recarga.'
+    });
     return;
   }
   const inputMonto = document.getElementById('inputParentSinpeMonto');
   const inputComp = document.getElementById('inputParentSinpeComprobante');
   const btn = document.getElementById('btnParentValidarSinpe');
+  const statusMsg = document.getElementById('parentSinpeStatusMsg');
 
   const monto = parseInt(inputMonto ? inputMonto.value : 0, 10);
   const comprobante = inputComp ? inputComp.value.trim() : '';
+  const codigo = currentSinpeCode || (document.getElementById('parentSinpeCodigoDisplay')?.textContent || '').trim();
 
   if (isNaN(monto) || monto <= 0) {
-    alert('Ingresa un monto válido mayor a ₡0 para recargar.');
+    showSinpeModal('error', {
+      title: 'Monto requerido',
+      message: 'Ingresa un monto válido mayor a ₡0 para procesar tu recarga SINPE.'
+    });
     if (inputMonto) inputMonto.focus();
     return;
   }
-  if (!comprobante) {
-    alert('Por favor ingresa el número de comprobante de la transferencia SINPE Móvil.');
-    if (inputComp) inputComp.focus();
-    return;
+
+  if (statusMsg) statusMsg.style.display = 'none';
+
+  if (btn) {
+    btn.disabled = true;
+    btn.innerHTML = `
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="animation: sinpeSpin 1s linear infinite;"><circle cx="12" cy="12" r="10" stroke-opacity="0.25"/><path d="M12 2a10 10 0 0 1 10 10" stroke-linecap="round"/></svg>
+      <span>Validando SINPE...</span>
+    `;
   }
 
+  // Abrir modal con estado LOADING (sin alertas intrusivas)
+  showSinpeModal('loading', {
+    studentName: currentParentChild.nombre_completo,
+    monto: monto,
+    codigo: codigo
+  });
+
+  const totalDurationMs = 18000; // 18 segundos de sondeo visual
+  const pollIntervalMs = 3000;   // Consulta cada 3 segundos
+  const startTime = Date.now();
+  sinpeIsPolling = true;
+
+  const bar = document.getElementById('modalSinpeProgressBar');
+  const timerText = document.getElementById('modalSinpeTimerText');
+  const stepText = document.getElementById('modalSinpeStepText');
+
+  clearInterval(sinpeProgressInterval);
+  sinpeProgressInterval = setInterval(() => {
+    if (!sinpeIsPolling) {
+      clearInterval(sinpeProgressInterval);
+      return;
+    }
+    const elapsed = Date.now() - startTime;
+    const progress = Math.min(100, Math.round((elapsed / totalDurationMs) * 100));
+    const remainingSecs = Math.max(0, Math.ceil((totalDurationMs - elapsed) / 1000));
+
+    if (bar) bar.style.width = `${progress}%`;
+    if (timerText) timerText.textContent = `${remainingSecs}s`;
+
+    if (stepText) {
+      if (elapsed < 4500) {
+        stepText.textContent = 'Buscando comprobante bancario...';
+      } else if (elapsed < 9000) {
+        stepText.textContent = 'Sondeando transferencias SINPE entrantes...';
+      } else if (elapsed < 13500) {
+        stepText.textContent = 'Esperando confirmación digital del banco...';
+      } else {
+        stepText.textContent = 'Verificación bancaria final...';
+      }
+    }
+  }, 100);
+
   try {
-    if (btn) {
-      btn.disabled = true;
-      btn.innerHTML = '<span>Verificando...</span>';
+    let verifiedData = null;
+    let definitiveError = null;
+    const maxIntentos = 6;
+
+    for (let intento = 1; intento <= maxIntentos; intento++) {
+      if (!sinpeIsPolling) break;
+
+      try {
+        const res = await fetch('/api/sinpe/validar', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            estudiante_id: currentParentChild.id,
+            padre_usuario_id: currentUser ? currentUser.id : null,
+            monto,
+            codigo,
+            comprobante: comprobante || null
+          })
+        });
+
+        const data = await res.json();
+
+        // 1. Pago Verificado con éxito
+        if (data.verificado && data.success) {
+          verifiedData = data;
+          break;
+        }
+
+        // 2. Error definitivo (ej. comprobante repetido o monto inválido)
+        if (data.error && !data.retry) {
+          definitiveError = data;
+          break;
+        }
+      } catch (pollErr) {
+        console.warn(`[SINPE Polling intento ${intento}]`, pollErr);
+      }
+
+      if (intento < maxIntentos && sinpeIsPolling) {
+        await new Promise(r => setTimeout(r, pollIntervalMs));
+      }
     }
 
-    const res = await fetch('/api/sinpe/solicitar', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        estudiante_id: currentParentChild.id,
-        padre_usuario_id: currentUser ? currentUser.id : null,
-        monto,
-        comprobante,
-        notas: `Portal de Padres - ${currentUser ? currentUser.nombre : 'Encargado'}`
-      })
-    });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.error);
+    sinpeIsPolling = false;
+    clearInterval(sinpeProgressInterval);
 
-    if (window.sounds) window.sounds.playCoin();
-    alert(`¡Solicitud de Recarga Enviada!\n\nMonto: ₡${monto.toLocaleString('es-CR')}\nComprobante: #${comprobante}\n\nLa soda verificará el depósito y el saldo se acreditará automáticamente.`);
+    // ============================================
+    // CASO 1: VERIFICADO CON ÉXITO
+    // ============================================
+    if (verifiedData && verifiedData.verificado) {
+      if (window.sounds) window.sounds.playCoin();
+
+      const nuevoSaldo = typeof verifiedData.saldo_nuevo === 'number'
+        ? verifiedData.saldo_nuevo
+        : (currentParentChild.saldo_colones + monto);
+
+      currentParentChild.saldo_colones = nuevoSaldo;
+      renderActiveChildDetails(currentParentChild);
+
+      if (inputMonto) inputMonto.value = '';
+      if (inputComp) inputComp.value = '';
+
+      showSinpeModal('success', {
+        studentName: currentParentChild.nombre_completo,
+        monto: monto,
+        banco: verifiedData.banco || 'Bancario',
+        comprobante: verifiedData.comprobante || verifiedData.codigo || codigo,
+        codigo: codigo,
+        nuevoSaldo: nuevoSaldo
+      });
+
+      await loadParentSinpeRequests(currentParentChild.id);
+      obtenerNuevoCodigoSinpe();
+      return;
+    }
+
+    // ============================================
+    // CASO 2: ERROR DEFINITIVO (REPETIDO O INVÁLIDO)
+    // ============================================
+    if (definitiveError) {
+      if (window.sounds) window.sounds.playError();
+
+      showSinpeModal('error', {
+        title: 'Comprobante no válido',
+        message: definitiveError.message || definitiveError.error || 'El comprobante ya fue utilizado o los datos no corresponden a la transferencia.'
+      });
+      return;
+    }
+
+    // ============================================
+    // CASO 3: BANCO AÚN NO RESPONDIÓ (REGISTRO AUTOMÁTICO PARA REVISIÓN)
+    // ============================================
+    if (window.sounds) window.sounds.playTap();
+
+    try {
+      await fetch('/api/sinpe/solicitar', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          estudiante_id: currentParentChild.id,
+          padre_usuario_id: currentUser ? currentUser.id : null,
+          monto,
+          comprobante: comprobante || `SINPE-${codigo}`,
+          codigo_detalle: codigo,
+          notas: `Portal de Padres - Código: ${codigo}`
+        })
+      });
+    } catch (solErr) {
+      console.warn('Error al registrar solicitud:', solErr);
+    }
 
     if (inputMonto) inputMonto.value = '';
     if (inputComp) inputComp.value = '';
 
+    showSinpeModal('pending', {
+      studentName: currentParentChild.nombre_completo,
+      monto: monto,
+      codigo: codigo
+    });
+
     await loadParentSinpeRequests(currentParentChild.id);
+    obtenerNuevoCodigoSinpe();
+
   } catch (err) {
+    sinpeIsPolling = false;
+    clearInterval(sinpeProgressInterval);
     if (window.sounds) window.sounds.playError();
-    alert(`Error al enviar solicitud SINPE: ${err.message}`);
+    showSinpeModal('error', {
+      title: 'Error de conexión',
+      message: `No se pudo conectar con el servidor: ${err.message}`
+    });
   } finally {
     if (btn) {
       btn.disabled = false;
-      btn.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg><span>Validar SINPE</span>`;
+      btn.innerHTML = `
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+        <span id="btnParentValidarSinpeText">Validar SINPE</span>
+      `;
     }
   }
 }
@@ -2779,10 +3109,12 @@ async function loadParentSinpeRequests(studentId) {
         badgeText = '❌ Rechazado';
       }
 
+      const refLabel = s.codigo_detalle ? `Cód: ${s.codigo_detalle}` : `Comp: #${s.comprobante_sinpe}`;
+
       return `
         <div style="background: white; border: 1px solid #e2e8f0; border-radius: 8px; padding: 8px 10px; display: flex; justify-content: space-between; align-items: center; font-size: 0.76rem;">
           <div>
-            <div style="font-weight: 800; color: #0f172a;">₡${s.monto_colones.toLocaleString('es-CR')} <span style="font-weight: 500; color: #64748b;">(Comp: #${s.comprobante_sinpe})</span></div>
+            <div style="font-weight: 800; color: #0f172a;">₡${s.monto_colones.toLocaleString('es-CR')} <span style="font-weight: 600; color: #166534; font-family: monospace;">(${refLabel})</span></div>
             <div style="font-size: 0.68rem; color: #94a3b8;">${fecha}</div>
           </div>
           <div>
