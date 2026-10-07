@@ -1,0 +1,730 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>SiboPay - Pistola Lectora QR Remota</title>
+  <link rel="icon" type="image/png" href="/img/sibopay-emblem.png">
+  <meta name="theme-color" content="#0f172a">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      -webkit-tap-highlight-color: transparent;
+      user-select: none;
+    }
+
+    body {
+      background: #0f172a;
+      color: #f8fafc;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      touch-action: manipulation;
+    }
+
+    /* Top Bar */
+    .pistola-header {
+      background: #1e293b;
+      border-bottom: 1.5px solid #334155;
+      padding: 12px 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      z-index: 20;
+    }
+
+    .brand-box {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .brand-box img {
+      width: 32px;
+      height: 32px;
+      object-fit: contain;
+    }
+
+    .brand-box h1 {
+      font-size: 1rem;
+      font-weight: 900;
+      letter-spacing: -0.3px;
+    }
+
+    .brand-box h1 span {
+      color: #38bdf8;
+    }
+
+    .brand-box p {
+      font-size: 0.68rem;
+      color: #94a3b8;
+      font-weight: 600;
+    }
+
+    .status-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 10px;
+      border-radius: 20px;
+      font-size: 0.72rem;
+      font-weight: 800;
+      background: rgba(16, 185, 129, 0.15);
+      color: #34d399;
+      border: 1px solid rgba(16, 185, 129, 0.4);
+      transition: all 0.2s ease;
+    }
+
+    .status-badge.connecting {
+      background: rgba(245, 158, 11, 0.15);
+      color: #fbbf24;
+      border-color: rgba(245, 158, 11, 0.4);
+    }
+
+    .status-badge.offline {
+      background: rgba(239, 68, 68, 0.15);
+      color: #f87171;
+      border-color: rgba(239, 68, 68, 0.4);
+    }
+
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: currentColor;
+    }
+
+    /* Banner de cobro sincronizado desde la PC */
+    .pos-sync-banner {
+      background: #0284c7;
+      color: #ffffff;
+      padding: 10px 14px;
+      display: none;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 0.8rem;
+      font-weight: 800;
+      animation: bannerPulse 1.8s ease-in-out infinite;
+      z-index: 15;
+    }
+
+    @keyframes bannerPulse {
+      0%, 100% { background: #0284c7; }
+      50% { background: #0369a1; }
+    }
+
+    .pos-sync-banner.active {
+      display: flex;
+    }
+
+    /* Visor de Cámara Principal */
+    .scanner-viewport {
+      flex: 1;
+      position: relative;
+      background: #000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+    }
+
+    #scannerVideo {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    /* Retícula de mira láser */
+    .aiming-reticle {
+      position: absolute;
+      width: 260px;
+      height: 260px;
+      pointer-events: none;
+      box-shadow: 0 0 0 4000px rgba(0, 0, 0, 0.55);
+      border-radius: 24px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    /* Esquinas estilizadas */
+    .corner {
+      position: absolute;
+      width: 28px;
+      height: 28px;
+      border-color: #38bdf8;
+      border-style: solid;
+    }
+
+    .corner.tl { top: 0; left: 0; border-width: 4px 0 0 4px; border-top-left-radius: 20px; }
+    .corner.tr { top: 0; right: 0; border-width: 4px 4px 0 0; border-top-right-radius: 20px; }
+    .corner.bl { bottom: 0; left: 0; border-width: 0 0 4px 4px; border-bottom-left-radius: 20px; }
+    .corner.br { bottom: 0; right: 0; border-width: 0 4px 4px 0; border-bottom-right-radius: 20px; }
+
+    /* Haz de escáner láser rojo / cyan */
+    .laser-beam {
+      position: absolute;
+      left: 10px;
+      right: 10px;
+      height: 2.5px;
+      background: #38bdf8;
+      box-shadow: 0 0 14px 2px #38bdf8;
+      border-radius: 2px;
+      animation: laserSweep 2s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+    }
+
+    @keyframes laserSweep {
+      0% { top: 12px; opacity: 0.3; }
+      50% { top: 240px; opacity: 1; }
+      100% { top: 12px; opacity: 0.3; }
+    }
+
+    /* Flash verde de disparo exitoso */
+    .flash-overlay {
+      position: absolute;
+      inset: 0;
+      background: rgba(16, 185, 129, 0.45);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
+      gap: 12px;
+      z-index: 30;
+      backdrop-filter: blur(2px);
+    }
+
+    .flash-overlay.active {
+      display: flex;
+      animation: popIn 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+
+    @keyframes popIn {
+      from { opacity: 0; transform: scale(0.95); }
+      to { opacity: 1; transform: scale(1); }
+    }
+
+    .flash-badge {
+      background: #065f46;
+      color: #34d399;
+      border: 2px solid #10b981;
+      padding: 12px 24px;
+      border-radius: 16px;
+      font-size: 1.1rem;
+      font-weight: 900;
+      text-align: center;
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+    }
+
+    /* Controles de cámara flotantes */
+    .cam-controls {
+      position: absolute;
+      top: 14px;
+      right: 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      z-index: 25;
+    }
+
+    .cam-btn {
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      background: rgba(15, 23, 42, 0.75);
+      border: 1.5px solid rgba(255, 255, 255, 0.2);
+      color: #ffffff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      backdrop-filter: blur(6px);
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+      font-size: 1.2rem;
+    }
+
+    .cam-btn.active {
+      background: #0284c7;
+      border-color: #38bdf8;
+      color: #ffffff;
+    }
+
+    /* Barra inferior: Último disparo y botones de prueba */
+    .pistola-footer {
+      background: #1e293b;
+      border-top: 1.5px solid #334155;
+      padding: 12px 14px calc(14px + env(safe-area-inset-bottom, 0px)) 14px;
+      z-index: 20;
+    }
+
+    .last-shot-box {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: #0f172a;
+      border: 1px solid #334155;
+      border-radius: 12px;
+      padding: 8px 12px;
+      margin-bottom: 10px;
+    }
+
+    .last-shot-title {
+      font-size: 0.68rem;
+      color: #94a3b8;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .last-shot-value {
+      font-size: 0.85rem;
+      font-weight: 900;
+      color: #38bdf8;
+      font-family: monospace;
+    }
+
+    .test-shortcuts-row {
+      display: flex;
+      gap: 6px;
+      overflow-x: auto;
+      scrollbar-width: none;
+    }
+
+    .test-btn {
+      flex: 1;
+      min-width: 90px;
+      padding: 8px 10px;
+      background: #334155;
+      color: #f1f5f9;
+      border: 1px solid #475569;
+      border-radius: 10px;
+      font-size: 0.74rem;
+      font-weight: 800;
+      cursor: pointer;
+      white-space: nowrap;
+      text-align: center;
+      transition: all 0.15s ease;
+    }
+
+    .test-btn:active {
+      transform: scale(0.96);
+      background: #0284c7;
+      border-color: #38bdf8;
+    }
+
+    /* Mensaje de permiso / error */
+    .cam-error-box {
+      position: absolute;
+      inset: 20px;
+      background: rgba(15, 23, 42, 0.95);
+      border: 1.5px solid #ef4444;
+      border-radius: 18px;
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+      text-align: center;
+      z-index: 28;
+    }
+
+    .cam-error-box.active {
+      display: flex;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- CABECERA -->
+  <header class="pistola-header">
+    <div class="brand-box">
+      <img src="/img/sibopay-emblem.png" alt="SiboPay">
+      <div>
+        <h1>Sibo<span>Pay</span> Handheld</h1>
+        <p>Pistola QR Inalámbrica</p>
+      </div>
+    </div>
+
+    <div id="connectionStatusBadge" class="status-badge connecting">
+      <span class="status-dot"></span>
+      <span id="lblConnectionStatus">Conectando...</span>
+    </div>
+  </header>
+
+  <!-- BANNER COBRO ACTIVO EN PC -->
+  <div id="posChargeBanner" class="pos-sync-banner">
+    <div style="display: flex; align-items: center; gap: 8px;">
+      <span style="font-size: 1.2rem;">⚡</span>
+      <div>
+        <div style="font-size: 0.72rem; text-transform: uppercase; opacity: 0.9;">Cobro en Caja Listo</div>
+        <div id="lblChargeAmount" style="font-size: 1.05rem; font-weight: 900;">Esperando carné...</div>
+      </div>
+    </div>
+    <span style="background: rgba(255,255,255,0.25); padding: 3px 8px; border-radius: 6px; font-size: 0.7rem;">¡Apunta!</span>
+  </div>
+
+  <!-- VISOR DE CÁMARA CON MIRA LÁSER -->
+  <main class="scanner-viewport">
+    <video id="scannerVideo" playsinline autoplay muted></video>
+
+    <!-- Mira Láser -->
+    <div class="aiming-reticle">
+      <div class="corner tl"></div>
+      <div class="corner tr"></div>
+      <div class="corner bl"></div>
+      <div class="corner br"></div>
+      <div class="laser-beam"></div>
+    </div>
+
+    <!-- Controles flotantes: Linterna y Alternar Cámara -->
+    <div class="cam-controls">
+      <button id="btnToggleTorch" onclick="toggleTorch()" class="cam-btn" title="Encender / Apagar Linterna" style="display: none;">
+        🔦
+      </button>
+      <button onclick="flipCamera()" class="cam-btn" title="Cambiar Cámara">
+        🔄
+      </button>
+    </div>
+
+    <!-- Overlay de Disparo Exitoso -->
+    <div id="shotSuccessOverlay" class="flash-overlay">
+      <div class="flash-badge">
+        <div style="font-size: 1.8rem; margin-bottom: 4px;">⚡ BEEP!</div>
+        <div style="font-size: 0.9rem; font-weight: 800; color: #ffffff;">Disparo Enviado a Caja</div>
+        <div id="lblSuccessToken" style="font-size: 0.78rem; opacity: 0.9; margin-top: 4px; font-family: monospace;">QR-MATEO-2026-A891</div>
+      </div>
+    </div>
+
+    <!-- Error / Permiso Denegado -->
+    <div id="camErrorBox" class="cam-error-box">
+      <div style="font-size: 2.5rem; margin-bottom: 8px;">📷</div>
+      <h3 style="font-size: 1.1rem; font-weight: 900; margin-bottom: 6px;">Se requiere acceso a la cámara</h3>
+      <p style="font-size: 0.8rem; color: #94a3b8; margin-bottom: 16px;">
+        Para usar tu teléfono como pistola lectora, habilita el permiso de cámara en este navegador.
+      </p>
+      <button onclick="startScannerCamera()" style="padding: 10px 20px; background: #0284c7; color: white; border: none; border-radius: 10px; font-weight: 800; font-size: 0.85rem; cursor: pointer;">
+        Reintentar Permiso
+      </button>
+    </div>
+  </main>
+
+  <!-- PIE DE PÁGINA: ESTADO Y BOTONES DE DISPARO RÁPIDO PARA PRUEBAS -->
+  <footer class="pistola-footer">
+    <div class="last-shot-box">
+      <span class="last-shot-title">Último Disparo:</span>
+      <span id="lblLastShot" class="last-shot-value">Ninguno</span>
+    </div>
+
+    <div style="margin-bottom: 6px; font-size: 0.68rem; color: #94a3b8; font-weight: 700; text-transform: uppercase;">
+      Disparo Rápido para Pruebas:
+    </div>
+
+    <div class="test-shortcuts-row">
+      <button type="button" onclick="sendDirectShot('QR-MATEO-2026-A891')" class="test-btn">
+        🧒 Mateo (8a)
+      </button>
+      <button type="button" onclick="sendDirectShot('QR-SOFIA-2026-B442')" class="test-btn">
+        👧 Sofía (9a)
+      </button>
+      <button type="button" onclick="sendDirectShot('QR-NACHO-2026-D902')" class="test-btn">
+        🧑 Ignacio (14a)
+      </button>
+    </div>
+  </footer>
+
+  <!-- Librería jsQR para fallback si BarcodeDetector no está presente -->
+  <script src="/js/jsQR.js"></script>
+
+  <script>
+    // Variables de control de cámara y escaneo
+    let videoStream = null;
+    let videoTrack = null;
+    let facingMode = 'environment';
+    let isTorchOn = false;
+    let isScanning = true;
+    let lastScannedToken = null;
+    let lastScannedTime = 0;
+    let sseSource = null;
+    let audioCtx = null;
+
+    // Inicializar Audio Web sintético (beeper de pistola POS)
+    function playLaserBeep() {
+      try {
+        if (!audioCtx) {
+          audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        }
+        if (audioCtx.state === 'suspended') {
+          audioCtx.resume();
+        }
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+
+        // Tono agudo característico de pistola lectora de supermercado (2400Hz)
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(2400, audioCtx.currentTime);
+        gain.gain.setValueAtTime(0.35, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.08);
+
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start();
+        osc.stop(audioCtx.currentTime + 0.08);
+      } catch (e) {
+        console.warn('Audio feedback error:', e);
+      }
+    }
+
+    // Vibración háptica
+    function vibratePhone() {
+      try {
+        if (navigator.vibrate) {
+          navigator.vibrate([70]);
+        }
+      } catch (e) {}
+    }
+
+    // Inicializar Canal SSE con el Servidor
+    function initSSEConnection() {
+      const badge = document.getElementById('connectionStatusBadge');
+      const lbl = document.getElementById('lblConnectionStatus');
+
+      if (sseSource) {
+        sseSource.close();
+      }
+
+      sseSource = new EventSource('/api/events');
+
+      sseSource.onopen = () => {
+        badge.className = 'status-badge';
+        lbl.textContent = 'En Línea • Conectado';
+      };
+
+      sseSource.onerror = () => {
+        badge.className = 'status-badge offline';
+        lbl.textContent = 'Reconectando...';
+      };
+
+      // Escuchar cuando la caja en la PC entra en modo de cobro
+      sseSource.addEventListener('pistola_solicitud_cobro', (e) => {
+        try {
+          const data = JSON.parse(e.data);
+          const banner = document.getElementById('posChargeBanner');
+          const lblAmount = document.getElementById('lblChargeAmount');
+          if (banner && lblAmount) {
+            lblAmount.textContent = `₡${Number(data.total || 0).toLocaleString('es-CR')} (${data.itemsCount || 1} ítems)`;
+            banner.classList.add('active');
+          }
+          playLaserBeep();
+          vibratePhone();
+        } catch (err) {}
+      });
+
+      // Escuchar cuando la caja en la PC cancela o cierra el modal
+      sseSource.addEventListener('pistola_cancelar_cobro', () => {
+        const banner = document.getElementById('posChargeBanner');
+        if (banner) banner.classList.remove('active');
+      });
+    }
+
+    // Inicializar Cámara
+    async function startScannerCamera() {
+      const video = document.getElementById('scannerVideo');
+      const errBox = document.getElementById('camErrorBox');
+      const btnTorch = document.getElementById('btnToggleTorch');
+
+      errBox.classList.remove('active');
+
+      if (videoStream) {
+        videoStream.getTracks().forEach(t => t.stop());
+        videoStream = null;
+      }
+
+      try {
+        videoStream = await navigator.mediaDevices.getUserMedia({
+          video: {
+            facingMode: { ideal: facingMode },
+            width: { ideal: 1280 },
+            height: { ideal: 720 }
+          },
+          audio: false
+        });
+
+        video.srcObject = videoStream;
+        await video.play();
+
+        videoTrack = videoStream.getVideoTracks()[0];
+        
+        // Verificar soporte de linterna
+        if (videoTrack) {
+          const capabilities = videoTrack.getCapabilities ? videoTrack.getCapabilities() : {};
+          if (capabilities.torch) {
+            btnTorch.style.display = 'flex';
+          } else {
+            btnTorch.style.display = 'none';
+          }
+        }
+
+        startDetectionLoop();
+      } catch (err) {
+        console.error('Error cámara:', err);
+        errBox.classList.add('active');
+      }
+    }
+
+    // Alternar linterna
+    async function toggleTorch() {
+      if (!videoTrack) return;
+      try {
+        isTorchOn = !isTorchOn;
+        await videoTrack.applyConstraints({
+          advanced: [{ torch: isTorchOn }]
+        });
+        const btn = document.getElementById('btnToggleTorch');
+        if (btn) btn.classList.toggle('active', isTorchOn);
+      } catch (e) {
+        console.warn('Torch no soportado:', e);
+      }
+    }
+
+    // Cambiar cámara frontal / trasera
+    function flipCamera() {
+      facingMode = (facingMode === 'environment') ? 'user' : 'environment';
+      isTorchOn = false;
+      const btn = document.getElementById('btnToggleTorch');
+      if (btn) btn.classList.remove('active');
+      startScannerCamera();
+    }
+
+    // Detección Ultra-Rápida de Código QR
+    let scanCanvas = null;
+    let scanCtx = null;
+    let barcodeDetector = null;
+
+    if ('BarcodeDetector' in window) {
+      try {
+        barcodeDetector = new BarcodeDetector({ formats: ['qr_code'] });
+      } catch (e) {}
+    }
+
+    function startDetectionLoop() {
+      const video = document.getElementById('scannerVideo');
+
+      async function checkFrame() {
+        if (!isScanning) return;
+
+        if (video && video.readyState >= video.HAVE_CURRENT_DATA) {
+          try {
+            // 1. Intentar con BarcodeDetector nativo (acelerado por hardware)
+            if (barcodeDetector) {
+              const barcodes = await barcodeDetector.detect(video);
+              if (barcodes.length > 0 && barcodes[0].rawValue) {
+                handleScannedCode(barcodes[0].rawValue);
+              }
+            } else if (window.jsQR) {
+              // 2. Fallback a jsQR
+              if (!scanCanvas) {
+                scanCanvas = document.createElement('canvas');
+                scanCtx = scanCanvas.getContext('2d', { willReadFrequently: true });
+              }
+              scanCanvas.width = video.videoWidth;
+              scanCanvas.height = video.videoHeight;
+              scanCtx.drawImage(video, 0, 0, scanCanvas.width, scanCanvas.height);
+              const imgData = scanCtx.getImageData(0, 0, scanCanvas.width, scanCanvas.height);
+              const code = window.jsQR(imgData.data, imgData.width, imgData.height, {
+                inversionAttempts: 'dontInvert'
+              });
+              if (code && code.data) {
+                handleScannedCode(code.data);
+              }
+            }
+          } catch (e) {}
+        }
+
+        requestAnimationFrame(checkFrame);
+      }
+
+      requestAnimationFrame(checkFrame);
+    }
+
+    // Procesar Código QR Detectado
+    async function handleScannedCode(rawToken) {
+      if (!rawToken) return;
+      const token = rawToken.trim();
+      const now = Date.now();
+
+      // Cooldown de 2 segundos para evitar disparos duplicados involuntarios
+      if (token === lastScannedToken && (now - lastScannedTime) < 2000) {
+        return;
+      }
+
+      lastScannedToken = token;
+      lastScannedTime = now;
+
+      // Disparar feedback sonoro y háptico
+      playLaserBeep();
+      vibratePhone();
+
+      // Destello visual en pantalla
+      showShotSuccess(token);
+
+      // Enviar disparo a la caja POS
+      sendTokenToPos(token);
+    }
+
+    function showShotSuccess(token) {
+      const overlay = document.getElementById('shotSuccessOverlay');
+      const lbl = document.getElementById('lblSuccessToken');
+      const lblLast = document.getElementById('lblLastShot');
+
+      if (lbl) lbl.textContent = token;
+      if (lblLast) lblLast.textContent = token;
+
+      if (overlay) {
+        overlay.classList.add('active');
+        setTimeout(() => {
+          overlay.classList.remove('active');
+        }, 800);
+      }
+    }
+
+    // Envío por API a la Terminal POS
+    async function sendTokenToPos(token) {
+      try {
+        const res = await fetch('/api/pos/remote-scan', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            token: token,
+            deviceName: navigator.userAgent.includes('iPhone') ? 'iPhone' : 'Android'
+          })
+        });
+        const data = await res.json();
+        console.log('📡 Disparo enviado exitosamente a la terminal:', data);
+      } catch (err) {
+        console.error('Error enviando disparo a la terminal:', err);
+      }
+    }
+
+    // Botones directos de prueba
+    function sendDirectShot(token) {
+      handleScannedCode(token);
+    }
+
+    // Iniciar todo al cargar
+    window.addEventListener('DOMContentLoaded', () => {
+      initSSEConnection();
+      startScannerCamera();
+
+      // Desbloquear AudioContext al primer toque
+      document.body.addEventListener('click', () => {
+        if (!audioCtx) playLaserBeep();
+      }, { once: true });
+    });
+  </script>
+</body>
+</html>

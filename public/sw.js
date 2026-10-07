@@ -1,9 +1,10 @@
-// RecreoPay PWA Service Worker v9.4 - Soporte Desktop Web Desacoplado
-const CACHE_NAME = 'recreopay-v9.4';
+// RecreoPay PWA Service Worker v9.5 - Soporte Pistola Móvil Remota
+const CACHE_NAME = 'recreopay-v9.5';
 const STATIC_ASSETS = [
   '/',
   '/index.html',
   '/pos.html',
+  '/pistola.html',
   '/carnet.html',
   '/manifest.json',
   '/css/styles.css',

@@ -158,6 +158,57 @@ setInterval(() => {
 }, 10000);
 
 // ==========================================
+// PISTOLA REMOTA QR / HANDHELD SMARTPHONE
+// ==========================================
+
+// Disparo remoto desde la pistola móvil (teléfono) hacia la caja POS
+app.post('/api/pos/remote-scan', (req, res) => {
+  try {
+    const { token, deviceName } = req.body;
+    if (!token) return res.status(400).json({ error: 'Token requerido' });
+
+    console.log(`📡 [PISTOLA REMOTA] Disparo recibido desde ${deviceName || 'teléfono'}: ${token}`);
+
+    // Broadcast a todas las terminales POS conectadas por SSE
+    broadcastEvent('pistola_scan', {
+      token: String(token).trim(),
+      deviceName: deviceName || 'Pistola Teléfono',
+      timestamp: Date.now()
+    });
+
+    res.json({ ok: true, token: String(token).trim() });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Solicitud desde el POS en PC al teléfono para avisar que la caja está lista para cobrar
+app.post('/api/pos/notify-scan-ready', (req, res) => {
+  try {
+    const { mode, total, itemsCount } = req.body;
+    broadcastEvent('pistola_solicitud_cobro', {
+      mode: mode || 'cobro',
+      total: total || 0,
+      itemsCount: itemsCount || 0,
+      timestamp: Date.now()
+    });
+    res.json({ ok: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Cancelación de solicitud cuando se cierra el modal de cobro en la PC
+app.post('/api/pos/notify-scan-cancel', (req, res) => {
+  try {
+    broadcastEvent('pistola_cancelar_cobro', { timestamp: Date.now() });
+    res.json({ ok: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ==========================================
 // 0. AUTENTICACIÓN Y ROLES (ADMIN, PADRE, ESTUDIANTE)
 // ==========================================
 

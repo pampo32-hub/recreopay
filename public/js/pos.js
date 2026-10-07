@@ -1046,6 +1046,17 @@ function openPistolaModal(mode = 'cobro') {
 
   startModalCamera();
 
+  // Notificar al teléfono vinculado que la caja está lista para escanear
+  try {
+    const total = posModalMode === 'cobro' ? posCart.reduce((sum, item) => sum + (item.product.precio_colones * item.cantidad), 0) : 0;
+    const totalItems = posCart.reduce((sum, item) => sum + item.cantidad, 0);
+    fetch('/api/pos/notify-scan-ready', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ mode: posModalMode, total, itemsCount: totalItems })
+    }).catch(() => {});
+  } catch (e) {}
+
   setTimeout(() => {
     const input = document.getElementById('inputPistolaDirectScan');
     if (input) input.focus();
@@ -1062,6 +1073,11 @@ function closePistolaModal(e) {
   }
   // SIEMPRE apagar la cámara de inmediato al salir del modal
   stopModalCamera();
+
+  // Notificar al teléfono vinculado que la sesión de escaneo terminó
+  try {
+    fetch('/api/pos/notify-scan-cancel', { method: 'POST' }).catch(() => {});
+  } catch (e) {}
 
   const modal = document.getElementById('modalPistolaCobro');
   if (modal) modal.style.display = 'none';
@@ -1391,6 +1407,37 @@ function initSSE() {
 
   sseSource.addEventListener('orden_actualizada', () => {
     loadPreOrders();
+  });
+
+  // Disparo recibido desde pistola remota (teléfono celular)
+  sseSource.addEventListener('pistola_scan', async (e) => {
+    try {
+      const data = JSON.parse(e.data);
+      if (data && data.token) {
+        console.log('📡 [POS] Disparo recibido desde pistola remota (teléfono):', data.token);
+
+        // Feedback visual en la barra superior
+        const badge = document.getElementById('pistolaStatusBadge');
+        if (badge) {
+          const prevHtml = badge.innerHTML;
+          badge.innerHTML = `<span class="saas-dot" style="background: #10b981;"></span> 📱 Disparo: ${data.token}`;
+          badge.style.background = '#dcfce7';
+          badge.style.borderColor = '#86efac';
+          badge.style.color = '#15803d';
+          setTimeout(() => {
+            badge.innerHTML = prevHtml;
+            badge.style.background = '#e0f2fe';
+            badge.style.borderColor = '#bae6fd';
+            badge.style.color = '#0369a1';
+          }, 2500);
+        }
+
+        // Ejecutar procesamiento del carné escaneado
+        await onQrCodeDetected(data.token);
+      }
+    } catch (err) {
+      console.error('Error procesando disparo remoto:', err);
+    }
   });
 
   sseSource.addEventListener('producto_actualizado', (e) => {
@@ -1882,4 +1929,48 @@ function posLogout() {
   window.location.href = '/index.html?logout=true';
 }
 window.posLogout = posLogout;
+
+// ==========================================
+// VINCULACIÓN DE TELÉFONO COMO PISTOLA QR
+// ==========================================
+
+function openPhonePairingModal() {
+  const modal = document.getElementById('modalPhonePairing');
+  if (!modal) return;
+  const pistolaUrl = window.location.origin + '/pistola.html';
+  const img = document.getElementById('imgPairingQr');
+  const link = document.getElementById('linkDirectPistola');
+  if (img) img.src = `/api/qr-image/${encodeURIComponent(pistolaUrl)}`;
+  if (link) {
+    link.href = pistolaUrl;
+  }
+  modal.style.display = 'flex';
+}
+window.openPhonePairingModal = openPhonePairingModal;
+
+function closePhonePairingModal(e) {
+  if (e && e.target && e.target.id !== 'modalPhonePairing') return;
+  const modal = document.getElementById('modalPhonePairing');
+  if (modal) modal.style.display = 'none';
+}
+window.closePhonePairingModal = closePhonePairingModal;
+
+function copyPistolaUrl() {
+  const pistolaUrl = window.location.origin + '/pistola.html';
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(pistolaUrl).then(() => {
+      const feedback = document.getElementById('lblCopyPistolaFeedback');
+      if (feedback) {
+        feedback.style.display = 'block';
+        setTimeout(() => { if (feedback) feedback.style.display = 'none'; }, 3000);
+      }
+    }).catch(() => {
+      prompt('Copia este enlace para abrir la pistola en tu teléfono:', pistolaUrl);
+    });
+  } else {
+    prompt('Copia este enlace para abrir la pistola en tu teléfono:', pistolaUrl);
+  }
+}
+window.copyPistolaUrl = copyPistolaUrl;
+
 

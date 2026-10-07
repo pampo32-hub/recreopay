@@ -108,6 +108,10 @@
           <button id="btnPosNotificationToggle" onclick="enablePushNotificationsPrompt()" class="btn-saas btn-saas-outline" style="height: 30px; font-size: 0.76rem; cursor: pointer; display: inline-flex; align-items: center; gap: 4px; color: #0284c7; border-color: #bae6fd;" title="Activar notificaciones de recargas en tiempo real">
             <span>🔔</span> <span id="lblPosNotificationStatus">Notificaciones</span>
           </button>
+          <button type="button" onclick="openPhonePairingModal()" class="btn-saas btn-saas-outline" style="height: 30px; font-size: 0.76rem; cursor: pointer; display: inline-flex; align-items: center; gap: 5px; color: #0284c7; border-color: #bae6fd; font-weight: 700;" title="Vincular tu teléfono celular como pistola lectora QR inalámbrica">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="20" x="5" y="2" rx="2" ry="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></svg>
+            <span>📱 Vincular Celular</span>
+          </button>
           <a href="/index.html?tab=admin" class="btn-saas btn-saas-outline" style="height: 30px; font-size: 0.76rem; display: inline-flex; align-items: center; gap: 5px; font-weight: 700; color: #475569; border-color: #cbd5e1;" title="Ir al Panel de Administración">
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>
             <span>Admin</span>
@@ -475,11 +479,37 @@
         </div>
       </form>
     </div>
+  <!-- MODAL: VINCULAR TELÉFONO COMO PISTOLA QR INALÁMBRICA -->
+  <div class="modal-qr-backdrop" id="modalPhonePairing" style="display: none;" onclick="closePhonePairingModal(event)">
+    <div class="modal-qr-card" onclick="event.stopPropagation()" style="max-width: 440px; text-align: center; border-radius: 20px; padding: 22px;">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; border-bottom: 1px solid var(--border, #e2e8f0); padding-bottom: 8px;">
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <span style="font-size: 1.3rem;">📱</span>
+          <strong style="font-size: 1.05rem; color: var(--text-main, #0f172a);">Pistola QR en tu Celular</strong>
+        </div>
+        <button type="button" onclick="closePhonePairingModal()" style="background: none; border: none; font-size: 1.2rem; cursor: pointer; color: var(--text-muted, #64748b);">✕</button>
+      </div>
+      <p style="font-size: 0.82rem; color: #64748b; margin-bottom: 14px; line-height: 1.4;">
+        Apunta la cámara de tu teléfono a este código para activarlo como <strong>pistola lectora inalámbrica en tiempo real</strong>. Cualquier carné que escanees con tu celular se cobrará aquí al instante.
+      </p>
+      <div style="background: #ffffff; border: 2px solid #0284c7; border-radius: 16px; padding: 14px; display: inline-block; margin-bottom: 14px; box-shadow: 0 4px 14px rgba(2, 132, 199, 0.15);">
+        <img id="imgPairingQr" src="/api/qr-image/http%3A%2F%2Flocalhost%2Fpistola.html" alt="QR Pistola" style="width: 200px; height: 200px; display: block; border-radius: 8px;">
+      </div>
+      <div style="display: flex; gap: 8px; justify-content: center; align-items: center; margin-bottom: 10px; flex-wrap: wrap;">
+        <a id="linkDirectPistola" href="/pistola.html" target="_blank" class="btn-saas btn-saas-outline" style="font-size: 0.78rem; text-decoration: none;">
+          Abrir Pistola en pestaña ↗
+        </a>
+        <button type="button" onclick="copyPistolaUrl()" class="btn-saas btn-saas-primary" style="font-size: 0.78rem;">
+          Copiar Enlace
+        </button>
+      </div>
+      <span id="lblCopyPistolaFeedback" style="font-size: 0.74rem; color: #10b981; font-weight: 800; display: none;">¡Enlace copiado al portapapeles!</span>
+    </div>
   </div>
 
   <script src="/js/sounds.js?v=8.6"></script>
   <script src="/js/jsQR.js"></script>
   <script src="/js/food-icons.js?v=1.1"></script>
-  <script src="/js/pos.js?v=10.3"></script>
+  <script src="/js/pos.js?v=10.4"></script>
 </body>
 </html>
