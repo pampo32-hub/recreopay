@@ -5206,6 +5206,25 @@ body.dark-mode .sinpe-card-receipt {
   border-color: #059669;
 }
 
+/* Layout Responsivo para Recarga SINPE */
+.parent-sinpe-desktop-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  width: 100%;
+}
+
+body.dark-mode .parent-sinpe-form-card {
+  background: rgba(6, 78, 59, 0.22) !important;
+  border-color: #059669 !important;
+}
+
+body.dark-mode .parent-sinpe-terms-card {
+  background: #1e293b !important;
+  border-color: #334155 !important;
+  color: #f1f5f9;
+}
+
 /* Filtros de Historial de Movimientos */
 .mov-filter-btn {
   padding: 6px 14px;

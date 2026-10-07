@@ -369,7 +369,7 @@
   }
 
   /* Contención ergonómica de formularios y ajustes en desktop (máx 620px) */
-  .parent-subview:not(#parentSubViewMenu) .parent-card {
+  .parent-subview:not(#parentSubViewMenu):not(#parentSubViewSinpe) .parent-card {
     max-width: 620px !important;
     width: 100% !important;
     box-sizing: border-box !important;
@@ -377,6 +377,37 @@
 
   #parentSubViewMenu .parent-card {
     max-width: 100% !important;
+  }
+
+  /* Sección Recarga SINPE Móvil en Desktop (Grid de Formulario + Términos) */
+  #parentSubViewSinpe {
+    max-width: 1150px !important;
+    width: 100% !important;
+  }
+
+  #parentSubViewSinpe .parent-sinpe-desktop-grid {
+    display: grid !important;
+    grid-template-columns: minmax(350px, 1.15fr) minmax(320px, 0.85fr) !important;
+    gap: 22px !important;
+    align-items: start !important;
+    width: 100% !important;
+  }
+
+  #parentSubViewSinpe .parent-card {
+    max-width: 100% !important;
+    width: 100% !important;
+  }
+
+  .parent-sinpe-form-card {
+    background: #f0fdf4 !important;
+    border: 1.5px solid #86efac !important;
+    box-shadow: 0 4px 14px rgba(22, 163, 74, 0.08) !important;
+  }
+
+  .parent-sinpe-terms-card {
+    background: var(--card-bg, #ffffff) !important;
+    border: 1.5px solid var(--border, #e2e8f0) !important;
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.03) !important;
   }
 
   /* Ocultar botón Volver en escritorio ya que la barra lateral siempre está visible */
@@ -523,6 +554,17 @@
 
   body.dark-mode .parent-balance-amount-display span {
     color: #38bdf8 !important;
+  }
+
+  body.dark-mode .parent-sinpe-form-card {
+    background: rgba(6, 78, 59, 0.22) !important;
+    border-color: #059669 !important;
+  }
+
+  body.dark-mode .parent-sinpe-terms-card {
+    background: #1e293b !important;
+    border-color: #334155 !important;
+    color: #f1f5f9 !important;
   }
 
 }
