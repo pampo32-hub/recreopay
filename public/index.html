@@ -256,6 +256,10 @@
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18"/><path d="M5 21V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16"/><path d="M9 21v-4a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v4"/><line x1="9" y1="9" x2="9" y2="9.01"/><line x1="15" y1="9" x2="15" y2="9.01"/></svg>
         <span>Escuelas & Sedes</span>
       </button>
+      <button class="dev-tab-btn" id="btnDevTabImportacion" onclick="switchDevTab('importacion')" style="display: inline-flex; align-items: center; gap: 8px;">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+        <span>Carga Masiva (Excel/CSV)</span>
+      </button>
     </nav>
 
     <!-- 1. PESTAÑA: USUARIOS Y ADMINISTRADORES -->
@@ -438,6 +442,46 @@
       <div id="devStatsContainer" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; margin-bottom: 24px;">
         <!-- Inyectado dinámicamente -->
       </div>
+
+      <!-- SECCIÓN: COPIAS DE SEGURIDAD (BACKUPS) AUTOMÁTICAS -->
+      <div class="dev-card" style="background: var(--card-bg); border: 1.5px solid var(--border); border-radius: 18px; padding: 22px; margin-top: 20px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; flex-wrap: wrap; gap: 10px;">
+          <div style="display: flex; align-items: center; gap: 10px;">
+            <div style="width: 38px; height: 38px; border-radius: 10px; background: #f0fdf4; color: #166534; border: 1px solid #bbf7d0; display: flex; align-items: center; justify-content: center; font-size: 1.25rem;">
+              💾
+            </div>
+            <div>
+              <h3 style="margin: 0; font-size: 1.08rem; font-weight: 900; color: var(--text-main);">Copias de Seguridad del Sistema (Backups)</h3>
+              <span style="font-size: 0.76rem; color: var(--text-muted);">Respaldos automáticos diarios y descargas manuales</span>
+            </div>
+          </div>
+          <button type="button" onclick="ejecutarBackupManualDev()" id="btnDevCrearBackup" class="dev-action-btn dev-action-btn-primary" style="padding: 9px 18px; font-size: 0.84rem; display: inline-flex; align-items: center; gap: 6px;">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            <span>Crear Respaldo Ahora</span>
+          </button>
+        </div>
+
+        <div id="devBackupsStatusMsg" style="display: none; padding: 10px 14px; border-radius: 10px; margin-bottom: 14px; font-size: 0.82rem; font-weight: 700;"></div>
+
+        <div style="overflow-x: auto;">
+          <table class="dev-table" style="width: 100%; border-collapse: collapse; font-size: 0.82rem;">
+            <thead>
+              <tr style="border-bottom: 1.5px solid var(--border); text-align: left; color: var(--text-muted);">
+                <th style="padding: 10px 12px;">Archivo de Respaldo</th>
+                <th style="padding: 10px 12px;">Motor BD</th>
+                <th style="padding: 10px 12px;">Fecha y Hora</th>
+                <th style="padding: 10px 12px;">Tamaño</th>
+                <th style="padding: 10px 12px; text-align: right;">Acción</th>
+              </tr>
+            </thead>
+            <tbody id="devBackupsTableBody">
+              <tr>
+                <td colspan="5" style="text-align: center; padding: 18px; color: var(--text-muted);">Cargando copias de seguridad...</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
     </div>
 
     <!-- 4. PESTAÑA: ESCUELAS & SEDES (MULTI-TENANT) -->
@@ -461,6 +505,90 @@
       <!-- Grid de Tarjetas de Escuelas -->
       <div id="devEscuelasGrid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 18px;">
         <!-- Inyectado dinámicamente -->
+      </div>
+    </div>
+
+    <!-- 5. PESTAÑA: CARGA MASIVA DE ESTUDIANTES (DEVELOPER) -->
+    <div id="devTabContentImportacion" class="dev-tab-content" style="display: none;">
+      <div class="dev-card" style="background: var(--card-bg); border: 1.5px solid var(--border); border-radius: 18px; padding: 24px; margin-bottom: 20px;">
+        <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 18px; flex-wrap: wrap; gap: 12px;">
+          <div>
+            <h3 style="margin: 0; font-size: 1.2rem; font-weight: 900; color: var(--text-main); display: flex; align-items: center; gap: 8px;">
+              <span>👥 Carga Masiva de Estudiantes vía Excel / CSV</span>
+            </h3>
+            <p style="margin: 4px 0 0 0; font-size: 0.82rem; color: var(--text-muted); line-height: 1.4;">
+              Importa decenas o cientos de estudiantes en segundos. Puedes subir un archivo <code>.csv</code> o pegar las celdas directamente copiadas desde Microsoft Excel o Google Sheets.
+            </p>
+          </div>
+          <button type="button" onclick="descargarPlantillaCsvEstudiantes()" class="dev-action-btn" style="padding: 8px 14px; font-size: 0.80rem; display: inline-flex; align-items: center; gap: 6px;">
+            <span>📥 Descargar Plantilla Ejemplo (.CSV)</span>
+          </button>
+        </div>
+
+        <!-- Paso 1: Seleccionar Escuela Destino -->
+        <div style="margin-bottom: 18px; background: #f8fafc; border: 1.5px solid var(--border); padding: 16px; border-radius: 14px;">
+          <label style="font-size: 0.84rem; font-weight: 800; color: var(--text-main); display: block; margin-bottom: 6px;">
+            1. Selecciona la Escuela / Sede de Destino: *
+          </label>
+          <select id="devImportEscuelaSelect" style="width: 100%; max-width: 420px; padding: 10px 14px; border-radius: 10px; border: 1.5px solid var(--border); background: var(--card-bg); color: var(--text-main); font-weight: 700; font-size: 0.90rem;">
+            <!-- Cargado dinámicamente -->
+          </select>
+        </div>
+
+        <!-- Paso 2: Pegar o Subir Datos -->
+        <div style="margin-bottom: 18px;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+            <label style="font-size: 0.84rem; font-weight: 800; color: var(--text-main); display: block;">
+              2. Pega aquí los datos desde Excel o escribe en formato CSV:
+            </label>
+            <span style="font-size: 0.74rem; color: var(--text-muted);">Columnas: <strong>Nombre, Grado, Sección, Saldo (opcional), Alergias (opcional), Tel. Padre (opcional)</strong></span>
+          </div>
+          <textarea id="devImportTextarea" rows="7" placeholder="Ejemplo pegado desde Excel:&#10;Santiago Morales Castro&#9;5to&#9;5-B&#9;2500&#9;Lactosa&#9;8888-1234&#10;Valeria Solano Gómez&#9;3ro&#9;3-A&#9;5000&#9;Ninguna&#9;8765-4321&#10;Mateo Alvarado Pérez&#9;2do&#9;2-A&#9;0&#9;Maní&#9;8333-2211" style="width: 100%; padding: 12px 14px; border-radius: 12px; border: 1.5px solid var(--border); background: var(--card-bg); color: var(--text-main); font-family: monospace; font-size: 0.84rem; line-height: 1.45; box-sizing: border-box;"></textarea>
+          
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 10px; flex-wrap: wrap; gap: 10px;">
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <span style="font-size: 0.78rem; font-weight: 700; color: var(--text-muted);">O selecciona archivo CSV:</span>
+              <input type="file" id="devImportFileInput" accept=".csv,.txt" onchange="handleDevImportFile(event)" style="font-size: 0.78rem;">
+            </div>
+            <button type="button" onclick="analizarDatosImportacionDev()" class="dev-action-btn dev-action-btn-primary" style="padding: 10px 20px; font-size: 0.88rem; display: inline-flex; align-items: center; gap: 6px;">
+              <span>🔍 Previsualizar y Validar</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Paso 3: Previsualización de Datos -->
+        <div id="devImportPreviewBox" style="display: none; border-top: 1.5px dashed var(--border); padding-top: 18px; margin-top: 18px;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; flex-wrap: wrap; gap: 8px;">
+            <div style="display: flex; align-items: center; gap: 10px;">
+              <span id="devImportPreviewCount" style="background: #e0f2fe; color: #0284c7; padding: 4px 10px; border-radius: 8px; font-weight: 800; font-size: 0.80rem;">0 Alumnos Detectados</span>
+              <span style="font-size: 0.78rem; color: var(--text-muted);">Revisa la lista antes de guardar</span>
+            </div>
+            <button type="button" onclick="ejecutarImportacionMasivaDev()" id="btnDevEjecutarImport" class="dev-action-btn dev-action-btn-primary" style="background: linear-gradient(135deg, #16a34a, #15803d); border-color: #16a34a; padding: 10px 22px; font-size: 0.90rem; font-weight: 800;">
+              <span>⚡ Confirmar e Importar Todos los Estudiantes</span>
+            </button>
+          </div>
+
+          <div style="overflow-x: auto; max-height: 380px; overflow-y: auto; border: 1px solid var(--border); border-radius: 12px;">
+            <table class="dev-table" style="width: 100%; border-collapse: collapse; font-size: 0.82rem;">
+              <thead style="position: sticky; top: 0; background: var(--card-bg); z-index: 2;">
+                <tr style="border-bottom: 1.5px solid var(--border); text-align: left; color: var(--text-muted);">
+                  <th style="padding: 8px 10px;">#</th>
+                  <th style="padding: 8px 10px;">Nombre Completo</th>
+                  <th style="padding: 8px 10px;">Grado/Sección</th>
+                  <th style="padding: 8px 10px;">Saldo Inicial</th>
+                  <th style="padding: 8px 10px;">Alergias</th>
+                  <th style="padding: 8px 10px;">Teléfono Padre</th>
+                  <th style="padding: 8px 10px;">Código Asignado</th>
+                </tr>
+              </thead>
+              <tbody id="devImportPreviewTbody">
+                <!-- Filas inyectadas -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div id="devImportResultMsg" style="display: none; margin-top: 16px; padding: 14px; border-radius: 12px; font-size: 0.84rem; line-height: 1.45;"></div>
       </div>
     </div>
   </div>
@@ -507,6 +635,14 @@
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="14" x="2" y="3" rx="2"/><line x1="8" x2="16" y1="21" y2="21"/><line x1="12" x2="12" y1="17" y2="21"/></svg>
           <span class="admin-btn-text">Terminal POS</span>
         </a>
+        <button type="button" onclick="exportarVentasCsv()" class="btn-saas btn-saas-outline" style="height: 34px; border-color: #10b981; color: #166534;" title="Descargar histórico de ventas a archivo Excel / CSV">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          <span class="admin-btn-text">📊 Ventas Excel</span>
+        </button>
+        <button type="button" onclick="exportarEstudiantesCsv()" class="btn-saas btn-saas-outline" style="height: 34px; border-color: #0284c7; color: #0284c7;" title="Descargar listado de saldos de alumnos a Excel / CSV">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          <span class="admin-btn-text">📋 Saldos Excel</span>
+        </button>
       </div>
     </header>
 

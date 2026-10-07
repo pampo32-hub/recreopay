@@ -38,6 +38,36 @@
       from { transform: rotate(0deg); }
       to { transform: rotate(360deg); }
     }
+
+    /* Formateo de impresión para Comanda / Ticket Térmico (58mm / 80mm) */
+    @media print {
+      body * {
+        visibility: hidden !important;
+      }
+      #posThermalReceipt, #posThermalReceipt * {
+        visibility: visible !important;
+      }
+      #posThermalReceipt {
+        position: fixed !important;
+        left: 0 !important;
+        top: 0 !important;
+        width: 100% !important;
+        max-width: 80mm !important;
+        margin: 0 !important;
+        padding: 4mm 2mm !important;
+        font-family: 'Courier New', Courier, monospace !important;
+        font-size: 12px !important;
+        line-height: 1.3 !important;
+        color: #000000 !important;
+        background: #ffffff !important;
+        display: block !important;
+        z-index: 999999 !important;
+      }
+      @page {
+        margin: 0;
+        size: auto;
+      }
+    }
   </style>
   <script>
     function posLogout() {
@@ -116,6 +146,10 @@
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>
             <span>Admin</span>
           </a>
+          <label style="display: inline-flex; align-items: center; gap: 6px; font-size: 0.74rem; font-weight: 700; color: #475569; background: #ffffff; padding: 4px 10px; border-radius: 8px; border: 1.5px solid #cbd5e1; cursor: pointer; user-select: none;" title="Imprimir comanda o ticket térmico automáticamente al finalizar cada cobro">
+            <input type="checkbox" id="chkPosAutoPrint" style="cursor: pointer; width: 14px; height: 14px;">
+            <span>🖨️ Auto-imprimir ticket</span>
+          </label>
         </div>
       </div>
 
@@ -438,6 +472,11 @@
             <strong id="pistolaSuccessBalance" style="color: #16a34a; font-size: 0.95rem;">-</strong>
           </div>
         </div>
+        <div style="display: flex; gap: 8px; margin-bottom: 10px;">
+          <button type="button" onclick="imprimirTicketTermico()" class="btn-saas btn-saas-outline" style="flex: 1; height: 40px; font-size: 0.86rem; font-weight: 800; display: inline-flex; align-items: center; justify-content: center; gap: 6px; color: #0284c7; border-color: #bae6fd; background: #f0f9ff;" title="Imprimir ticket para impresora térmica de 58mm o 80mm">
+            <span>🖨️ Imprimir Ticket Térmico</span>
+          </button>
+        </div>
         <button type="button" onclick="closePistolaModal()" class="btn-saas btn-saas-primary" style="width: 100%; height: 42px; background: #16a34a; border-color: #16a34a; font-size: 0.92rem; font-weight: 800;">
           Listo / Siguiente Alumno (Enter) ➔
         </button>
@@ -499,6 +538,8 @@
         </div>
       </form>
     </div>
+  </div>
+
   <!-- MODAL: VINCULAR TELÉFONO COMO PISTOLA QR INALÁMBRICA -->
   <div class="modal-qr-backdrop" id="modalPhonePairing" style="display: none;" onclick="closePhonePairingModal(event)">
     <div class="modal-qr-card" onclick="event.stopPropagation()" style="max-width: 440px; text-align: center; border-radius: 20px; padding: 22px;">
@@ -527,9 +568,12 @@
     </div>
   </div>
 
+  <!-- CONTENEDOR DE TICKET TÉRMICO OCULTO EN PANTALLA (VISIBLE EN IMPRESIÓN 58mm / 80mm) -->
+  <div id="posThermalReceipt" style="display: none;"></div>
+
   <script src="/js/sounds.js?v=8.6"></script>
   <script src="/js/jsQR.js"></script>
   <script src="/js/food-icons.js?v=1.1"></script>
-  <script src="/js/pos.js?v=10.4"></script>
+  <script src="/js/pos.js?v=12.0"></script>
 </body>
 </html>

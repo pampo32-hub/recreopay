@@ -1,5 +1,5 @@
-// RecreoPay PWA Service Worker v9.5 - Soporte Pistola Móvil Remota
-const CACHE_NAME = 'recreopay-v9.5';
+// SiboPay PWA Service Worker v12.0 - Alta Velocidad & Despacho
+const CACHE_NAME = 'sibopay-v12.0';
 const STATIC_ASSETS = [
   '/',
   '/index.html',
@@ -12,8 +12,11 @@ const STATIC_ASSETS = [
   '/js/app.js',
   '/js/pos.js',
   '/js/sounds.js',
+  '/js/food-icons.js',
   '/icons/icon-192.png',
-  '/icons/icon-512.png'
+  '/icons/icon-512.png',
+  '/img/sibopay-emblem.png',
+  '/apple-touch-icon.png'
 ];
 
 self.addEventListener('install', (event) => {
@@ -85,18 +88,18 @@ self.addEventListener('push', (event) => {
     try {
       data = event.data.json();
     } catch (e) {
-      data = { title: '🔔 RecreoPay', body: event.data.text() };
+      data = { title: '🔔 SiboPay', body: event.data.text() };
     }
   }
 
-  const title = data.title || '🔔 RecreoPay';
+  const title = data.title || '🔔 SiboPay';
   const options = {
-    body: data.body || 'Tienes una nueva notificación de RecreoPay',
+    body: data.body || 'Tienes una nueva notificación de SiboPay',
     icon: data.icon || '/icons/icon-192.png',
     badge: data.badge || '/icons/icon-192.png',
     vibrate: [250, 100, 250, 100, 250],
     data: data.data || { url: '/pos.html?tab=sinpe' },
-    tag: data.tag || `recreopay-push-${Date.now()}`,
+    tag: data.tag || `sibopay-push-${Date.now()}`,
     renotify: true,
     requireInteraction: true
   };

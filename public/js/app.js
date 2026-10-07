@@ -517,12 +517,19 @@ function switchDevTab(tab) {
     if (btn) btn.classList.add('active');
     if (content) content.style.display = 'block';
     loadDevStats();
+    cargarBackupsDev();
   } else if (tab === 'escuelas') {
     const btn = document.getElementById('btnDevTabEscuelas');
     const content = document.getElementById('devTabContentEscuelas');
     if (btn) btn.classList.add('active');
     if (content) content.style.display = 'block';
     loadDevEscuelas();
+  } else if (tab === 'importacion') {
+    const btn = document.getElementById('btnDevTabImportacion');
+    const content = document.getElementById('devTabContentImportacion');
+    if (btn) btn.classList.add('active');
+    if (content) content.style.display = 'block';
+    cargarEscuelasSelectImportacion();
   }
 }
 
@@ -7584,6 +7591,307 @@ async function toggleDevEscuelaEstado(id, nuevoEstado) {
   } catch (err) {
     alert('Error actualizando estado: ' + err.message);
   }
+}
+
+// ==========================================
+// GESTIÓN DE COPIAS DE SEGURIDAD (DEVELOPER)
+// ==========================================
+async function cargarBackupsDev() {
+  const tbody = document.getElementById('devBackupsTableBody');
+  if (!tbody) return;
+
+  try {
+    const res = await fetch('/api/developer/backups');
+    const data = await res.json();
+    const backups = data.backups || [];
+
+    if (backups.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="5" style="text-align: center; padding: 18px; color: var(--text-muted);">No hay respaldos generados aún. Haz clic en "Crear Respaldo Ahora".</td></tr>`;
+      return;
+    }
+
+    tbody.innerHTML = backups.map(b => {
+      const fechaFmt = b.fecha ? new Date(b.fecha).toLocaleString('es-CR') : '-';
+      const badgeColor = b.tipo === 'PostgreSQL' ? '#0284c7' : '#16a34a';
+      return `
+        <tr style="border-bottom: 1px solid var(--border);">
+          <td style="padding: 10px 12px; font-weight: 800; color: var(--text-main); font-family: monospace;">
+            💾 ${escapeHtml(b.filename)}
+          </td>
+          <td style="padding: 10px 12px;">
+            <span style="font-size: 0.70rem; font-weight: 800; padding: 2px 7px; border-radius: 6px; background: rgba(2, 132, 199, 0.1); color: ${badgeColor};">
+              ${escapeHtml(b.tipo)}
+            </span>
+          </td>
+          <td style="padding: 10px 12px; color: var(--text-muted); font-size: 0.78rem;">
+            ${fechaFmt}
+          </td>
+          <td style="padding: 10px 12px; font-weight: 800; color: #16a34a;">
+            ${escapeHtml(b.sizeFmt)}
+          </td>
+          <td style="padding: 10px 12px; text-align: right;">
+            <button type="button" onclick="descargarBackupDev('${encodeURIComponent(b.filename)}')" class="dev-action-btn" style="padding: 5px 12px; font-size: 0.76rem; display: inline-flex; align-items: center; gap: 4px;">
+              <span>⬇️ Descargar</span>
+            </button>
+          </td>
+        </tr>
+      `;
+    }).join('');
+  } catch (err) {
+    tbody.innerHTML = `<tr><td colspan="5" style="text-align: center; padding: 18px; color: #dc2626;">Error al cargar lista de respaldos: ${escapeHtml(err.message)}</td></tr>`;
+  }
+}
+
+async function ejecutarBackupManualDev() {
+  const btn = document.getElementById('btnDevCrearBackup');
+  const msg = document.getElementById('devBackupsStatusMsg');
+  if (btn) {
+    btn.disabled = true;
+    btn.innerHTML = '⏳ Generando Respaldo...';
+  }
+  if (msg) msg.style.display = 'none';
+
+  try {
+    const res = await fetch('/api/developer/backups/crear', { method: 'POST' });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Error generando respaldo');
+
+    if (window.sounds) window.sounds.playSuccess();
+    if (msg) {
+      msg.style.display = 'block';
+      msg.style.background = '#f0fdf4';
+      msg.style.border = '1px solid #bbf7d0';
+      msg.style.color = '#166534';
+      msg.textContent = `✅ ${data.mensaje}`;
+    }
+    cargarBackupsDev();
+  } catch (err) {
+    if (window.sounds) window.sounds.playError();
+    if (msg) {
+      msg.style.display = 'block';
+      msg.style.background = '#fef2f2';
+      msg.style.border = '1px solid #fecaca';
+      msg.style.color = '#991b1b';
+      msg.textContent = `❌ ${err.message}`;
+    }
+  } finally {
+    if (btn) {
+      btn.disabled = false;
+      btn.innerHTML = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg> <span>Crear Respaldo Ahora</span>`;
+    }
+  }
+}
+
+function descargarBackupDev(filename) {
+  window.location.href = `/api/developer/backups/descargar/${filename}`;
+}
+
+// ==========================================
+// CARGA MASIVA DE ESTUDIANTES (DEVELOPER)
+// ==========================================
+let parsedStudentsToImport = [];
+
+async function cargarEscuelasSelectImportacion() {
+  const select = document.getElementById('devImportEscuelaSelect');
+  if (!select) return;
+
+  try {
+    const res = await fetch('/api/developer/escuelas');
+    const escuelas = await res.json();
+    select.innerHTML = escuelas.map(e => `
+      <option value="${e.id}">${escapeHtml(e.nombre)} (${escapeHtml(e.codigo)})</option>
+    `).join('');
+  } catch (err) {
+    console.error('Error cargando escuelas para importación:', err);
+  }
+}
+
+function descargarPlantillaCsvEstudiantes() {
+  const headers = ['Nombre Completo', 'Grado', 'Seccion', 'Saldo Inicial', 'Alergias', 'Telefono Padre'];
+  const sampleRows = [
+    ['Santiago Morales Castro', '5to', '5-B', '3000', 'Lactosa', '8888-1234'],
+    ['Valeria Solano Gómez', '3ro', '3-A', '5000', 'Ninguna', '8765-4321'],
+    ['Mateo Alvarado Pérez', '2do', '2-A', '0', 'Maní', '8333-2211']
+  ];
+  const csvContent = '\uFEFF' + [headers.join(','), ...sampleRows.map(r => r.map(c => `"${c}"`).join(','))].join('\r\n');
+  const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'plantilla_estudiantes_sibopay.csv';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+function handleDevImportFile(event) {
+  const file = event.target.files && event.target.files[0];
+  if (!file) return;
+
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    const content = e.target.result;
+    const txt = document.getElementById('devImportTextarea');
+    if (txt) {
+      txt.value = content;
+      analizarDatosImportacionDev();
+    }
+  };
+  reader.readAsText(file);
+}
+
+function analizarDatosImportacionDev() {
+  const textarea = document.getElementById('devImportTextarea');
+  const previewBox = document.getElementById('devImportPreviewBox');
+  const tbody = document.getElementById('devImportPreviewTbody');
+  const countBadge = document.getElementById('devImportPreviewCount');
+  const resultMsg = document.getElementById('devImportResultMsg');
+  if (resultMsg) resultMsg.style.display = 'none';
+
+  if (!textarea || !textarea.value.trim()) {
+    alert('Por favor, pega datos de Excel o escribe el listado de alumnos.');
+    return;
+  }
+
+  const rawLines = textarea.value.trim().split(/\r?\n/);
+  parsedStudentsToImport = [];
+
+  for (let i = 0; i < rawLines.length; i++) {
+    const line = rawLines[i].trim();
+    if (!line) continue;
+
+    let delimiter = '\t';
+    if (line.includes('\t')) delimiter = '\t';
+    else if (line.includes(',')) delimiter = ',';
+    else if (line.includes(';')) delimiter = ';';
+
+    const cols = line.split(delimiter).map(c => c.trim().replace(/^["']|["']$/g, ''));
+    if (cols.length === 0 || !cols[0]) continue;
+
+    const firstColLower = cols[0].toLowerCase();
+    if (i === 0 && (firstColLower.includes('nombre') || firstColLower.includes('alumno') || firstColLower.includes('estudiante'))) {
+      continue;
+    }
+
+    const nombre = cols[0];
+    const grado = cols[1] || 'General';
+    const seccion = cols[2] || 'A';
+    const saldo = parseInt(cols[3] || 0, 10) || 0;
+    const alergias = cols[4] || 'Ninguna conocida';
+    const tel = cols[5] || '';
+
+    parsedStudentsToImport.push({
+      nombre_completo: nombre,
+      grado: grado,
+      seccion: seccion,
+      saldo_inicial: saldo,
+      alergias: alergias,
+      padre_telefono: tel
+    });
+  }
+
+  if (parsedStudentsToImport.length === 0) {
+    alert('No se detectaron alumnos válidos en el texto ingresado.');
+    return;
+  }
+
+  if (countBadge) countBadge.textContent = `${parsedStudentsToImport.length} Alumnos Detectados`;
+  if (tbody) {
+    tbody.innerHTML = parsedStudentsToImport.map((st, idx) => `
+      <tr style="border-bottom: 1px solid var(--border);">
+        <td style="padding: 6px 10px; color: var(--text-muted);">${idx + 1}</td>
+        <td style="padding: 6px 10px; font-weight: 800; color: var(--text-main);">${escapeHtml(st.nombre_completo)}</td>
+        <td style="padding: 6px 10px;">${escapeHtml(st.grado)} - ${escapeHtml(st.seccion)}</td>
+        <td style="padding: 6px 10px; color: #16a34a; font-weight: 700;">₡${st.saldo_inicial.toLocaleString('es-CR')}</td>
+        <td style="padding: 6px 10px; color: ${st.alergias !== 'Ninguna conocida' ? '#e11d48' : 'var(--text-muted)'}; font-size: 0.76rem;">${escapeHtml(st.alergias)}</td>
+        <td style="padding: 6px 10px; font-family: monospace;">${escapeHtml(st.padre_telefono || '-')}</td>
+        <td style="padding: 6px 10px; color: #0284c7; font-size: 0.76rem; font-weight: 700;">(Auto-generado)</td>
+      </tr>
+    `).join('');
+  }
+
+  if (previewBox) previewBox.style.display = 'block';
+}
+
+async function ejecutarImportacionMasivaDev() {
+  if (!parsedStudentsToImport || parsedStudentsToImport.length === 0) {
+    alert('Primero analiza y previsualiza los estudiantes a importar.');
+    return;
+  }
+
+  const select = document.getElementById('devImportEscuelaSelect');
+  const escuelaId = select ? parseInt(select.value, 10) : 1;
+  const btn = document.getElementById('btnDevEjecutarImport');
+  const resultMsg = document.getElementById('devImportResultMsg');
+
+  if (btn) {
+    btn.disabled = true;
+    btn.textContent = '⏳ Importando en la Base de Datos...';
+  }
+
+  try {
+    const res = await fetch('/api/developer/estudiantes/importar-masivo', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        escuela_id: escuelaId,
+        estudiantes: parsedStudentsToImport
+      })
+    });
+
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Error al procesar la importación.');
+
+    if (window.sounds) {
+      window.sounds.playSuccess();
+      window.sounds.playCoin();
+    }
+
+    if (resultMsg) {
+      resultMsg.style.display = 'block';
+      resultMsg.style.background = '#f0fdf4';
+      resultMsg.style.border = '1.5px solid #86efac';
+      resultMsg.style.color = '#166534';
+      resultMsg.innerHTML = `
+        <strong>${data.mensaje}</strong>
+        <div style="font-size: 0.78rem; margin-top: 6px;">Total procesados: ${data.totalProcesados} · Insertados con éxito: ${data.insertados} · Omitidos: ${data.omitidos}</div>
+        ${data.errores && data.errores.length > 0 ? `<div style="color: #dc2626; font-size: 0.74rem; margin-top: 4px;">Avisos: ${data.errores.join(' | ')}</div>` : ''}
+      `;
+    }
+
+    document.getElementById('devImportPreviewBox').style.display = 'none';
+    document.getElementById('devImportTextarea').value = '';
+    parsedStudentsToImport = [];
+
+  } catch (err) {
+    if (window.sounds) window.sounds.playError();
+    if (resultMsg) {
+      resultMsg.style.display = 'block';
+      resultMsg.style.background = '#fef2f2';
+      resultMsg.style.border = '1.5px solid #fecaca';
+      resultMsg.style.color = '#991b1b';
+      resultMsg.innerHTML = `<strong>Error durante la importación:</strong> ${err.message}`;
+    }
+  } finally {
+    if (btn) {
+      btn.disabled = false;
+      btn.textContent = '⚡ Confirmar e Importar Todos los Estudiantes';
+    }
+  }
+}
+
+// ==========================================
+// EXPORTACIÓN A EXCEL / CSV (ADMIN SODA)
+// ==========================================
+function exportarVentasCsv() {
+  const escuelaId = (window.currentAdminUser && window.currentAdminUser.escuela_id) || '';
+  window.open(`/api/admin/export/ventas.csv${escuelaId ? '?escuela_id=' + escuelaId : ''}`, '_blank');
+}
+
+function exportarEstudiantesCsv() {
+  const escuelaId = (window.currentAdminUser && window.currentAdminUser.escuela_id) || '';
+  window.open(`/api/admin/export/estudiantes.csv${escuelaId ? '?escuela_id=' + escuelaId : ''}`, '_blank');
 }
 
 

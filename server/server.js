@@ -1342,6 +1342,284 @@ app.put('/api/developer/escuelas/:id/estado', (req, res) => {
   }
 });
 
+// ==========================================
+// MÓDULO DE COPIAS DE SEGURIDAD (BACKUPS)
+// ==========================================
+const backupsDir = path.join(__dirname, 'backups');
+if (!fs.existsSync(backupsDir)) {
+  try { fs.mkdirSync(backupsDir, { recursive: true }); } catch (e) {}
+}
+
+function rotarBackups() {
+  try {
+    const files = fs.readdirSync(backupsDir)
+      .filter(f => f.startsWith('sibopay_'))
+      .map(f => {
+        const p = path.join(backupsDir, f);
+        return { name: f, path: p, time: fs.statSync(p).mtimeMs };
+      })
+      .sort((a, b) => b.time - a.time);
+    if (files.length > 20) {
+      for (const oldFile of files.slice(20)) {
+        try { fs.unlinkSync(oldFile.path); } catch (e) {}
+      }
+    }
+  } catch (e) {}
+}
+
+async function ejecutarBackupBaseDatos() {
+  const isPg = Boolean(process.env.DATABASE_URL);
+  const now = new Date();
+  const pad = (n) => String(n).padStart(2, '0');
+  const timestamp = `${now.getFullYear()}-${pad(now.getMonth()+1)}-${pad(now.getDate())}_${pad(now.getHours())}-${pad(now.getMinutes())}-${pad(now.getSeconds())}`;
+
+  if (isPg) {
+    const filename = `sibopay_pg_${timestamp}.sql`;
+    const targetPath = path.join(backupsDir, filename);
+    const dbUrl = process.env.DATABASE_URL;
+    const parsed = new URL(dbUrl);
+    const user = parsed.username || 'postgres';
+    const password = parsed.password || '';
+    const host = parsed.hostname || '127.0.0.1';
+    const port = parsed.port || '5432';
+    const dbname = parsed.pathname ? parsed.pathname.replace(/^\//, '') : 'recreopay_db';
+
+    return new Promise((resolve, reject) => {
+      const { exec } = require('child_process');
+      const cmd = `PGPASSWORD="${password}" pg_dump -h ${host} -p ${port} -U ${user} -d ${dbname} --clean > "${targetPath}"`;
+      exec(cmd, (err, stdout, stderr) => {
+        if (err) return reject(new Error('Fallo al ejecutar pg_dump: ' + (stderr || err.message)));
+        const stat = fs.statSync(targetPath);
+        rotarBackups();
+        resolve({
+          filename,
+          sizeBytes: stat.size,
+          sizeFmt: (stat.size / 1024).toFixed(1) + ' KB',
+          fecha: now.toISOString(),
+          tipo: 'PostgreSQL'
+        });
+      });
+    });
+  } else {
+    const filename = `sibopay_sqlite_${timestamp}.db`;
+    const targetPath = path.join(backupsDir, filename);
+    const sqliteSource = path.join(__dirname, 'recreopay.db');
+    if (fs.existsSync(sqliteSource)) {
+      fs.copyFileSync(sqliteSource, targetPath);
+    }
+    const stat = fs.existsSync(targetPath) ? fs.statSync(targetPath) : { size: 0 };
+    rotarBackups();
+    return {
+      filename,
+      sizeBytes: stat.size,
+      sizeFmt: (stat.size / 1024).toFixed(1) + ' KB',
+      fecha: now.toISOString(),
+      tipo: 'SQLite'
+    };
+  }
+}
+
+// Programar backup automático cada 24 horas (iniciado tras 5 minutos de uptime)
+setTimeout(() => {
+  ejecutarBackupBaseDatos().catch(() => {});
+  setInterval(() => {
+    ejecutarBackupBaseDatos().catch(() => {});
+  }, 24 * 60 * 60 * 1000);
+}, 5 * 60 * 1000);
+
+// Endpoint: Listar backups existentes (Developer)
+app.get('/api/developer/backups', (req, res) => {
+  try {
+    if (!fs.existsSync(backupsDir)) {
+      return res.json({ backups: [] });
+    }
+    const files = fs.readdirSync(backupsDir)
+      .filter(f => f.startsWith('sibopay_'))
+      .map(f => {
+        const p = path.join(backupsDir, f);
+        const stat = fs.statSync(p);
+        return {
+          filename: f,
+          sizeBytes: stat.size,
+          sizeFmt: (stat.size / 1024).toFixed(1) + ' KB',
+          fecha: stat.mtime.toISOString(),
+          tipo: f.includes('_pg_') ? 'PostgreSQL' : 'SQLite'
+        };
+      })
+      .sort((a, b) => new Date(b.fecha) - new Date(a.fecha));
+
+    res.json({ backups: files });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Endpoint: Crear backup manual inmediato (Developer)
+app.post('/api/developer/backups/crear', async (req, res) => {
+  try {
+    const backupInfo = await ejecutarBackupBaseDatos();
+    res.json({
+      exito: true,
+      mensaje: `Respaldo "${backupInfo.filename}" generado exitosamente (${backupInfo.sizeFmt}).`,
+      backup: backupInfo
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Endpoint: Descargar archivo de backup (Developer)
+app.get('/api/developer/backups/descargar/:filename', (req, res) => {
+  try {
+    const safeFilename = path.basename(req.params.filename);
+    const targetPath = path.join(backupsDir, safeFilename);
+    if (!fs.existsSync(targetPath)) {
+      return res.status(404).send('Archivo de respaldo no encontrado.');
+    }
+    res.download(targetPath, safeFilename);
+  } catch (err) {
+    res.status(500).send(err.message);
+  }
+});
+
+// ==========================================
+// CARGA MASIVA DE ESTUDIANTES (DEVELOPER)
+// ==========================================
+app.post('/api/developer/estudiantes/importar-masivo', (req, res) => {
+  try {
+    const { escuela_id, estudiantes } = req.body;
+    if (!escuela_id) {
+      return res.status(400).json({ error: 'Debes seleccionar la escuela de destino.' });
+    }
+    if (!Array.isArray(estudiantes) || estudiantes.length === 0) {
+      return res.status(400).json({ error: 'No se recibieron estudiantes para importar.' });
+    }
+
+    const escuela = db.prepare('SELECT id, codigo, nombre FROM escuelas WHERE id = ?').get(escuela_id);
+    if (!escuela) {
+      return res.status(404).json({ error: 'La escuela seleccionada no existe.' });
+    }
+
+    const schoolPrefix = (escuela.codigo || 'EST').toUpperCase().trim().replace(/[^A-Z0-9]/g, '');
+    const year = new Date().getFullYear();
+
+    const maxRow = db.prepare('SELECT MAX(id) as maxId FROM estudiantes').get();
+    let currentSeq = (maxRow && maxRow.maxId ? maxRow.maxId : 0) + 1;
+
+    let insertados = 0;
+    let omitidos = 0;
+    const errores = [];
+    const resultados = [];
+
+    const insertEstStmt = db.prepare(`
+      INSERT INTO estudiantes (
+        codigo_estudiante, nombre_completo, edad, grado, seccion,
+        qr_token, pin_seguridad, foto_url, saldo_colones, limite_diario_colones,
+        alergias, padre_nombre, padre_telefono, permitir_transferencias,
+        tarjeta_bloqueada, activo, escuela_id
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, NULL, ?, ?, ?, ?, ?, 1, 0, 1, ?)
+    `);
+
+    const insertTxStmt = db.prepare(`
+      INSERT INTO transacciones_saldo (
+        estudiante_id, tipo, monto_colones, saldo_anterior, saldo_nuevo, descripcion
+      ) VALUES (?, 'recarga_manual', ?, 0, ?, 'Saldo inicial asignado por importación masiva')
+    `);
+
+    const insertUserStmt = db.prepare(`
+      INSERT INTO usuarios (username, password_hash, rol, nombre, activo, escuela_id)
+      VALUES (?, ?, 'estudiante', ?, 1, ?)
+    `);
+
+    const processImport = db.transaction(() => {
+      for (let i = 0; i < estudiantes.length; i++) {
+        const item = estudiantes[i];
+        const rawNombre = item.nombre_completo || item.nombre || '';
+        const cleanNombre = String(rawNombre).trim();
+
+        if (!cleanNombre) {
+          omitidos++;
+          errores.push(`Fila ${i + 1}: Nombre vacío.`);
+          continue;
+        }
+
+        const grado = String(item.grado || item.nivel || 'Primaria').trim();
+        const seccion = String(item.seccion || item.grupo || 'A').trim();
+        const saldoInicial = Math.max(0, parseInt(item.saldo_inicial || item.saldo || 0, 10));
+        const limiteDiario = Math.max(500, parseInt(item.limite_diario || 3000, 10));
+        const alergias = String(item.alergias || 'Ninguna conocida').trim();
+        const padreNombre = String(item.padre_nombre || item.encargado || '').trim();
+        const padreTelefono = String(item.padre_telefono || item.telefono || '').trim();
+        const edad = parseInt(item.edad || 10, 10);
+        const pin = String(item.pin || '1234').trim();
+
+        let codigoEstudiante = item.codigo ? String(item.codigo).trim().toUpperCase() : null;
+        if (codigoEstudiante) {
+          const existe = db.prepare('SELECT id FROM estudiantes WHERE codigo_estudiante = ?').get(codigoEstudiante);
+          if (existe) {
+            omitidos++;
+            errores.push(`Fila ${i + 1} ("${cleanNombre}"): El código "${codigoEstudiante}" ya está registrado.`);
+            continue;
+          }
+        } else {
+          codigoEstudiante = `${schoolPrefix}-${year}-${String(currentSeq).padStart(5, '0')}`;
+        }
+
+        const primerNombre = cleanNombre.split(' ')[0].toUpperCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+        const randomHex = Math.random().toString(16).substring(2, 6).toUpperCase();
+        const qrToken = `QR-${schoolPrefix}-${primerNombre}-${year}-${String(currentSeq).padStart(5, '0')}-${randomHex}`;
+
+        const resEst = insertEstStmt.run(
+          codigoEstudiante,
+          cleanNombre,
+          edad,
+          grado,
+          seccion,
+          qrToken,
+          pin,
+          saldoInicial,
+          limiteDiario,
+          alergias,
+          padreNombre,
+          padreTelefono,
+          escuela_id
+        );
+
+        const newEstId = resEst.lastInsertRowid || resEst.id;
+
+        if (saldoInicial > 0) {
+          insertTxStmt.run(newEstId, saldoInicial, saldoInicial);
+        }
+
+        const usernameEst = primerNombre.toLowerCase() + currentSeq;
+        try {
+          const resUser = insertUserStmt.run(usernameEst, pin, cleanNombre, escuela_id);
+          const userId = resUser.lastInsertRowid || resUser.id;
+          db.prepare('UPDATE estudiantes SET usuario_id = ? WHERE id = ?').run(userId, newEstId);
+        } catch (e) {}
+
+        currentSeq++;
+        insertados++;
+        resultados.push({ id: newEstId, codigo: codigoEstudiante, nombre: cleanNombre });
+      }
+    });
+
+    processImport();
+
+    res.json({
+      exito: true,
+      totalProcesados: estudiantes.length,
+      insertados,
+      omitidos,
+      errores,
+      estudiantes: resultados.slice(0, 100),
+      mensaje: `¡Importación completada! Se crearon ${insertados} estudiante(s) con éxito en "${escuela.nombre}".`
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // Crear nuevo estudiante / usuario + carné QR (escalable a 5 dígitos y prefijos multi-negocio)
 app.post('/api/admin/estudiantes', (req, res) => {
   try {
@@ -1564,6 +1842,113 @@ app.post('/api/admin/movimientos/:id/revertir', (req, res) => {
     res.json(resultado);
   } catch (error) {
     res.status(400).json({ error: error.message });
+  }
+});
+
+// ==========================================
+// EXPORTACIÓN A EXCEL / CSV (ADMIN SODA)
+// ==========================================
+function arrayToCsv(headers, rows) {
+  const escapeCell = (cell) => {
+    if (cell === null || cell === undefined) return '';
+    const str = String(cell);
+    if (str.includes(',') || str.includes('"') || str.includes('\n') || str.includes('\r')) {
+      return `"${str.replace(/"/g, '""')}"`;
+    }
+    return str;
+  };
+  const headerLine = headers.map(escapeCell).join(',');
+  const rowLines = rows.map(r => r.map(escapeCell).join(','));
+  return '\uFEFF' + [headerLine, ...rowLines].join('\r\n');
+}
+
+// Exportar Ventas a CSV
+app.get('/api/admin/export/ventas.csv', (req, res) => {
+  try {
+    const escuelaId = req.query.escuela_id ? parseInt(req.query.escuela_id, 10) : null;
+    let query = `
+      SELECT o.id, o.codigo_orden, o.tipo_orden, o.momento_entrega, o.total_colones, o.estado, o.creado_en,
+             e.nombre_completo as estudiante_nombre, e.codigo_estudiante
+      FROM ordenes o
+      JOIN estudiantes e ON o.estudiante_id = e.id
+    `;
+    const params = [];
+    if (escuelaId) {
+      query += ` WHERE e.escuela_id = ? `;
+      params.push(escuelaId);
+    }
+    query += ` ORDER BY o.id DESC LIMIT 2000`;
+
+    const ordenes = db.prepare(query).all(...params);
+
+    const headers = ['Fecha y Hora', 'Código Orden', 'Estudiante', 'Código Est.', 'Tipo Orden', 'Horario Entrega', 'Total (CRC)', 'Estado'];
+    const csvData = ordenes.map(o => {
+      const fechaFmt = o.creado_en ? new Date(o.creado_en).toLocaleString('es-CR') : '';
+      return [
+        fechaFmt,
+        o.codigo_orden,
+        o.estudiante_nombre,
+        o.codigo_estudiante,
+        o.tipo_orden === 'preorden' ? 'Pre-orden' : 'Mostrador',
+        o.momento_entrega || 'Inmediato',
+        o.total_colones,
+        o.estado
+      ];
+    });
+
+    const csvOutput = arrayToCsv(headers, csvData);
+    const filename = `ventas_sibopay_${new Date().toISOString().slice(0, 10)}.csv`;
+    res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    res.send(csvOutput);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Exportar Saldos de Estudiantes a CSV
+app.get('/api/admin/export/estudiantes.csv', (req, res) => {
+  try {
+    const escuelaId = req.query.escuela_id ? parseInt(req.query.escuela_id, 10) : null;
+    let query = `
+      SELECT e.codigo_estudiante, e.nombre_completo, e.grado, e.seccion,
+             e.saldo_colones, e.limite_diario_colones, e.alergias, e.bloquear_chucherias,
+             e.padre_nombre, e.padre_telefono, e.activo, esc.nombre as escuela_nombre
+      FROM estudiantes e
+      LEFT JOIN escuelas esc ON e.escuela_id = esc.id
+    `;
+    const params = [];
+    if (escuelaId) {
+      query += ` WHERE e.escuela_id = ? `;
+      params.push(escuelaId);
+    }
+    query += ` ORDER BY e.nombre_completo ASC`;
+
+    const rows = db.prepare(query).all(...params);
+    const headers = ['Código Estudiante', 'Nombre Completo', 'Grado', 'Sección', 'Saldo Actual (CRC)', 'Límite Diario (CRC)', 'Alergias / Salud', 'Veto Chatarra', 'Encargado / Padre', 'Teléfono Padre', 'Sede Escolar', 'Estado'];
+
+    const csvData = rows.map(r => [
+      r.codigo_estudiante,
+      r.nombre_completo,
+      r.grado || '',
+      r.seccion || '',
+      r.saldo_colones || 0,
+      r.limite_diario_colones || 3000,
+      r.alergias || 'Ninguna conocida',
+      r.bloquear_chucherias ? 'SÍ (Veto Activo)' : 'NO',
+      r.padre_nombre || '',
+      r.padre_telefono || '',
+      r.escuela_nombre || 'Sede Central',
+      r.activo ? 'Activo' : 'Bloqueado'
+    ]);
+
+    const csvOutput = arrayToCsv(headers, csvData);
+    const filename = `estudiantes_saldos_sibopay_${new Date().toISOString().slice(0, 10)}.csv`;
+    res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    res.send(csvOutput);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
   }
 });
 

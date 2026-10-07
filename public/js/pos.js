@@ -127,6 +127,15 @@ document.addEventListener('DOMContentLoaded', async () => {
   };
   window.addEventListener('click', promptOnFirstInteraction, { once: true });
   window.addEventListener('touchstart', promptOnFirstInteraction, { once: true });
+
+  // Inicializar preferencia de auto-impresión de ticket térmico
+  const chkAutoPrint = document.getElementById('chkPosAutoPrint');
+  if (chkAutoPrint) {
+    chkAutoPrint.checked = localStorage.getItem('sibopay_pos_autoprint') === '1';
+    chkAutoPrint.addEventListener('change', () => {
+      localStorage.setItem('sibopay_pos_autoprint', chkAutoPrint.checked ? '1' : '0');
+    });
+  }
 });
 
 // Cargar catálogo de productos
@@ -1212,14 +1221,42 @@ async function handlePistolBarcodeScan(rawToken) {
       window.sounds.playCoin();
     }
 
+    // Guardar para impresión de comanda / ticket térmico
+    window.lastCompletedOrder = {
+      orderCode: dataCobro.codigo_orden || ('ORD-' + Date.now().toString().slice(-4)),
+      student: {
+        nombre_completo: student.nombre_completo,
+        codigo_estudiante: student.codigo_estudiante,
+        grado: student.grado || student.grado_seccion || ''
+      },
+      items: posCart.map(i => ({
+        nombre: i.product?.nombre || 'Producto',
+        cantidad: i.cantidad || 1,
+        precio: i.product?.precio || 0,
+        subtotal: (i.product?.precio || 0) * (i.cantidad || 1)
+      })),
+      total: totalCompra,
+      nuevoSaldo: nuevoSaldo,
+      fecha: new Date()
+    };
+
+    // Auto-imprimir ticket si está activada la casilla
+    const autoPrintActive = !!document.getElementById('chkPosAutoPrint')?.checked;
+    if (autoPrintActive) {
+      setTimeout(() => {
+        imprimirTicketTermico();
+      }, 350);
+    }
+
     // Limpiar carrito de mostrador
     clearPosCart();
     clearScannedStudent();
 
-    // Auto-cerrar el modal en 2.5 segundos para quedar listo para el siguiente alumno
+    // Auto-cerrar el modal (dar más tiempo si se imprime para no interrumpir el diálogo)
+    const closeDelay = autoPrintActive ? 6000 : 2500;
     pistolaAutoCloseTimer = setTimeout(() => {
       closePistolaModal();
-    }, 2500);
+    }, closeDelay);
 
   } catch (err) {
     if (window.sounds) window.sounds.playError();
@@ -2188,5 +2225,106 @@ function copyPistolaUrl() {
   }
 }
 window.copyPistolaUrl = copyPistolaUrl;
+
+// ==========================================
+// IMPRESIÓN DE COMANDA / TICKET TÉRMICO (58mm / 80mm)
+// ==========================================
+function escapeHtml(str) {
+  if (!str) return '';
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+function imprimirTicketTermico(orderData) {
+  const ord = orderData || window.lastCompletedOrder;
+  if (!ord) {
+    alert('No hay ninguna venta o comanda reciente para imprimir.');
+    return;
+  }
+
+  // Si el modal está abierto con auto-cierre, pausar o extender el temporizador
+  if (typeof pistolaAutoCloseTimer !== 'undefined' && pistolaAutoCloseTimer) {
+    clearTimeout(pistolaAutoCloseTimer);
+    pistolaAutoCloseTimer = setTimeout(() => {
+      if (typeof closePistolaModal === 'function') closePistolaModal();
+    }, 6000);
+  }
+
+  const container = document.getElementById('posThermalReceipt');
+  if (!container) return;
+
+  const fechaFmt = (ord.fecha ? new Date(ord.fecha) : new Date()).toLocaleString('es-CR', {
+    day: '2-digit', month: '2-digit', year: 'numeric',
+    hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true
+  });
+
+  const itemsRows = (ord.items || []).map(it => {
+    const cant = it.cantidad || 1;
+    const subt = (it.subtotal != null ? it.subtotal : ((it.precio || 0) * cant));
+    return `
+      <tr>
+        <td style="padding: 2px 4px 2px 0; vertical-align: top; width: 26px; font-weight: bold;">${cant}x</td>
+        <td style="padding: 2px 4px; vertical-align: top; word-break: break-word;">${escapeHtml(it.nombre)}</td>
+        <td style="padding: 2px 0 2px 4px; vertical-align: top; text-align: right; white-space: nowrap; font-weight: bold;">₡${Number(subt).toLocaleString('es-CR')}</td>
+      </tr>
+    `;
+  }).join('');
+
+  container.innerHTML = `
+    <div style="text-align: center; font-family: 'Courier New', Courier, monospace; font-size: 12px; line-height: 1.25; color: #000; width: 100%; max-width: 80mm; margin: 0 auto; box-sizing: border-box;">
+      <div style="font-size: 15px; font-weight: 900; letter-spacing: 0.5px; margin-bottom: 2px;">SIBOPAY</div>
+      <div style="font-size: 11px; font-weight: bold; text-transform: uppercase; margin-bottom: 4px;">SODA ESCOLAR • COMPROBANTE</div>
+      <div style="border-top: 1px dashed #000; margin: 5px 0;"></div>
+
+      <div style="text-align: left; font-size: 11px; line-height: 1.35;">
+        <div><strong>Fecha:</strong> ${fechaFmt}</div>
+        <div><strong>Ticket:</strong> #${escapeHtml(ord.orderCode)}</div>
+        <div><strong>Estudiante:</strong> ${escapeHtml(ord.student?.nombre_completo || 'Cliente')}</div>
+        ${ord.student?.grado ? `<div><strong>Grado:</strong> ${escapeHtml(ord.student.grado)}</div>` : ''}
+      </div>
+
+      <div style="border-top: 1px dashed #000; margin: 5px 0;"></div>
+
+      <table style="width: 100%; font-size: 11px; border-collapse: collapse; text-align: left; margin: 4px 0;">
+        <thead>
+          <tr style="border-bottom: 1px dashed #000;">
+            <th style="padding-bottom: 3px; font-weight: bold;">Cant.</th>
+            <th style="padding-bottom: 3px; font-weight: bold;">Detalle</th>
+            <th style="text-align: right; padding-bottom: 3px; font-weight: bold;">Total</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${itemsRows}
+        </tbody>
+      </table>
+
+      <div style="border-top: 1px dashed #000; margin: 5px 0;"></div>
+
+      <div style="display: flex; justify-content: space-between; font-size: 14px; font-weight: 900; margin: 4px 0;">
+        <span>TOTAL COBRADO:</span>
+        <span>₡${Number(ord.total || 0).toLocaleString('es-CR')}</span>
+      </div>
+
+      <div style="display: flex; justify-content: space-between; font-size: 11px; margin: 2px 0;">
+        <span>Saldo Disponible:</span>
+        <span style="font-weight: bold;">₡${Number(ord.nuevoSaldo || 0).toLocaleString('es-CR')}</span>
+      </div>
+
+      <div style="border-top: 1px dashed #000; margin: 6px 0;"></div>
+      <div style="text-align: center; font-size: 10px; margin-top: 6px; line-height: 1.3;">
+        ¡Gracias por su compra!<br>
+        Monedero Escolar SiboPay
+      </div>
+    </div>
+  `;
+
+  window.print();
+}
+window.imprimirTicketTermico = imprimirTicketTermico;
+
 
 
