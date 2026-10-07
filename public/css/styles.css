@@ -2182,7 +2182,7 @@ body.dark-mode .floating-cart-bar {
   user-select: none;
 }
 
-/* Patrón de siluetas de alimentos difuminado (Marca de agua / Watermark) */
+/* Patrón de siluetas de alimentos difuminado (Marca de agua animada / Floating Watermark) */
 .splash-doodle-bg {
   position: absolute;
   inset: 0;
@@ -2190,6 +2190,23 @@ body.dark-mode .floating-cart-bar {
   background-image: url("data:image/svg+xml,%3Csvg width='130' height='130' viewBox='0 0 130 130' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' stroke='%23ffffff' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round' opacity='0.16'%3E%3Cpath d='M15 32 h28 a3 3 0 0 1 3 3 v12 a10 10 0 0 1 -10 10 h-14 a10 10 0 0 1 -10 -10 v-12 a3 3 0 0 1 3 -3 z'/%3E%3Cpath d='M24 26 c0 -3 10 -3 10 0'/%3E%3Cpath d='M9 37 h6'/%3E%3Cpath d='M46 37 h6'/%3E%3Cpath d='M92 26 c-6 -8 -16 0 -16 8 c0 10 12 18 16 20 c4 -2 16 -10 16 -20 c0 -8 -10 -16 -16 -8'/%3E%3Cpath d='M92 26 c0 -5 4 -7 7 -8'/%3E%3Cpath d='M20 102 c-4 -4 -3 -10 2 -12 c0 -6 8 -8 12 -4 c4 -6 14 -4 14 3 c4 2 5 8 1 12 c-2 2 -4 3 -7 3 h-15 c-3 0 -5 -1 -7 -2 z'/%3E%3Cpath d='M30 105 v12'/%3E%3Cpath d='M82 86 v24'/%3E%3Cpath d='M78 86 v8 c0 3 8 3 8 0 v-8'/%3E%3Cpath d='M82 94 v16'/%3E%3Cpath d='M98 86 c-3 0 -5 4 -5 9 c0 4 3 6 5 6 v17'/%3E%3Cpath d='M98 86 v32'/%3E%3Cellipse cx='60' cy='62' rx='13' ry='5'/%3E%3Cpath d='M49 62 c2 6 20 6 22 0'/%3E%3C/g%3E%3C/svg%3E");
   background-size: 130px 130px;
   background-repeat: repeat;
+  animation: floatingDoodles 55s linear infinite;
+  will-change: background-position;
+}
+
+@keyframes floatingDoodles {
+  0% {
+    background-position: 0 0;
+  }
+  100% {
+    background-position: 520px -260px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .splash-doodle-bg {
+    animation: none;
+  }
 }
 
 .splash-content-wrap {
