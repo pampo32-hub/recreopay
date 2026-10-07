@@ -12,7 +12,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="SiboPay">
   <meta name="mobile-web-app-capable" content="yes">
-  <link rel="stylesheet" href="/css/styles.css?v=10.8">
+  <link rel="stylesheet" href="/css/styles.css?v=10.9">
   <style>
     /* Transiciones suaves */
     .fade-enter { animation: fadeIn 0.2s ease-in-out; }
@@ -1552,23 +1552,34 @@
     </div>
   </div>
 
-  <!-- MODAL: CÓDIGO QR PARA PRESENTAR EN LA SODA -->
-  <div class="modal-qr-backdrop" id="modalQr" style="display: none;" onclick="closeQrModal(event)">
-    <div class="modal-qr-card" onclick="event.stopPropagation()">
-      <h3 style="color: #0f172a; font-size: 1.2rem; font-weight: 800;">Mi Carné QR SiboPay</h3>
-      <p style="font-size: 0.8rem; color: #64748b; margin-top: 4px;">Muéstralo en la ventanilla de la soda para pagar al instante</p>
-      
-      <img id="qrDisplayImg" class="qr-code-img" src="" alt="Código QR">
-      
-      <div style="background: #f1f5f9; padding: 8px 12px; border-radius: 8px; font-family: monospace; font-size: 0.9rem; font-weight: 800; color: #0284c7;" id="qrTokenDisplay">
-        CODIGO-QR
+  <!-- MODAL INMERSIVO: CÓDIGO QR PARA PRESENTAR EN LA SODA (DISEÑO SIBOPAY EXACTO) -->
+  <div class="modal-qr-sibopay-immersive" id="modalQr" style="display: none;" onclick="closeQrModal(event)">
+    <!-- FONDO SUPERIOR CELESTE CON TÍTULO SIBOPAY -->
+    <div class="qr-immersive-bg-header">
+      <div class="qr-immersive-brand-title">SiboPay</div>
+    </div>
+
+    <!-- CONTENEDOR CENTRAL: TARJETA BLANCA Y BOTÓN CERRAR -->
+    <div class="qr-immersive-content" onclick="event.stopPropagation()">
+      <div class="qr-immersive-card">
+        <div class="qr-card-header-title">MI CARNÉ SIBOPAY</div>
+
+        <div class="qr-scanner-frame-wrapper">
+          <div class="qr-frame-corner top-left"></div>
+          <div class="qr-frame-corner top-right"></div>
+          <div class="qr-frame-corner bottom-left"></div>
+          <div class="qr-frame-corner bottom-right"></div>
+          
+          <img id="qrDisplayImg" class="qr-immersive-code-img" src="" alt="Código QR">
+        </div>
+
+        <div class="qr-card-token-text" id="qrTokenDisplay">
+          CODIGO-QR
+        </div>
       </div>
 
-      <p style="font-size: 0.75rem; color: #94a3b8; margin-top: 10px;">
-        Si no tienes tu celular en la escuela, puedes usar tu carné físico impreso con este mismo código.
-      </p>
-
-      <button onclick="closeQrModal()" style="margin-top: 14px; width: 100%; padding: 10px; background: #0f172a; color: white; border: none; border-radius: 12px; font-weight: 700; cursor: pointer;">
+      <!-- BOTÓN CELESTE TIPO PÍLDORA -->
+      <button type="button" onclick="closeQrModal()" class="qr-immersive-btn-close">
         Cerrar
       </button>
     </div>

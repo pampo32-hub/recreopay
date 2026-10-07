@@ -467,6 +467,200 @@ body.dark-mode .wallet-card:not([class*="theme-"]) {
   padding: 6px;
 }
 
+/* ==========================================================================
+   MODAL QR INMERSIVO SIBOPAY (DISEÑO MÓVIL EXACTO A LA REFERENCIA)
+   ========================================================================== */
+.modal-qr-sibopay-immersive {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  background: #f1f5f9;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: calc(16px + var(--safe-top)) 20px calc(24px + var(--safe-bottom)) 20px;
+  box-sizing: border-box;
+  overflow-y: auto;
+  animation: fadeIn 0.2s ease;
+}
+
+body.dark-mode .modal-qr-sibopay-immersive {
+  background: #0b1120;
+}
+
+.qr-immersive-bg-header {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 44%;
+  min-height: 230px;
+  background: linear-gradient(180deg, #0284c7 0%, #0369a1 100%);
+  border-bottom-left-radius: 36px;
+  border-bottom-right-radius: 36px;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding-top: calc(34px + var(--safe-top));
+  box-sizing: border-box;
+  z-index: 1;
+  box-shadow: 0 8px 24px rgba(2, 132, 199, 0.25);
+  pointer-events: none;
+}
+
+.qr-immersive-brand-title {
+  color: #ffffff;
+  font-size: 2.25rem;
+  font-weight: 900;
+  letter-spacing: -0.6px;
+  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.15);
+}
+
+.qr-immersive-content {
+  position: relative;
+  z-index: 2;
+  width: 100%;
+  max-width: 325px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 18px;
+  margin-top: calc(56px + var(--safe-top));
+  animation: zoomIn 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.qr-immersive-card {
+  width: 100%;
+  background: #ffffff;
+  border-radius: 26px;
+  padding: 24px 20px 22px 20px;
+  text-align: center;
+  box-shadow: 0 20px 40px rgba(15, 23, 42, 0.12), 0 4px 16px rgba(0, 0, 0, 0.06);
+  border: 1px solid rgba(226, 232, 240, 0.9);
+  box-sizing: border-box;
+}
+
+body.dark-mode .qr-immersive-card {
+  background: #1e293b;
+  border-color: #334155;
+  box-shadow: 0 20px 45px rgba(0, 0, 0, 0.5);
+}
+
+.qr-card-header-title {
+  font-size: 0.98rem;
+  font-weight: 900;
+  color: #1e293b;
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
+  margin-bottom: 18px;
+}
+
+body.dark-mode .qr-card-header-title {
+  color: #f1f5f9;
+}
+
+.qr-scanner-frame-wrapper {
+  position: relative;
+  width: 224px;
+  height: 224px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  padding: 12px;
+}
+
+.qr-frame-corner {
+  position: absolute;
+  width: 24px;
+  height: 24px;
+  border-color: #94a3b8;
+  border-style: solid;
+}
+
+body.dark-mode .qr-frame-corner {
+  border-color: #64748b;
+}
+
+.qr-frame-corner.top-left {
+  top: 0;
+  left: 0;
+  border-width: 3.5px 0 0 3.5px;
+  border-top-left-radius: 8px;
+}
+
+.qr-frame-corner.top-right {
+  top: 0;
+  right: 0;
+  border-width: 3.5px 3.5px 0 0;
+  border-top-right-radius: 8px;
+}
+
+.qr-frame-corner.bottom-left {
+  bottom: 0;
+  left: 0;
+  border-width: 0 0 3.5px 3.5px;
+  border-bottom-left-radius: 8px;
+}
+
+.qr-frame-corner.bottom-right {
+  bottom: 0;
+  right: 0;
+  border-width: 0 3.5px 3.5px 0;
+  border-bottom-right-radius: 8px;
+}
+
+.qr-immersive-code-img {
+  width: 196px;
+  height: 196px;
+  object-fit: contain;
+  display: block;
+  border-radius: 6px;
+  background: #ffffff;
+}
+
+.qr-card-token-text {
+  margin-top: 18px;
+  font-family: monospace;
+  font-size: 0.92rem;
+  font-weight: 800;
+  color: #64748b;
+  letter-spacing: 0.6px;
+  word-break: break-all;
+}
+
+body.dark-mode .qr-card-token-text {
+  color: #94a3b8;
+}
+
+.qr-immersive-btn-close {
+  width: 100%;
+  height: 50px;
+  border-radius: 999px;
+  background: #0284c7;
+  color: #ffffff;
+  border: none;
+  font-size: 1.05rem;
+  font-weight: 800;
+  cursor: pointer;
+  box-shadow: 0 8px 20px rgba(2, 132, 199, 0.38);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.15s ease, background 0.15s ease, box-shadow 0.15s ease;
+}
+
+.qr-immersive-btn-close:hover {
+  background: #0369a1;
+  box-shadow: 0 10px 24px rgba(2, 132, 199, 0.48);
+}
+
+.qr-immersive-btn-close:active {
+  transform: scale(0.98);
+}
+
 /* Banner de Límite Diario / Alerta */
 .daily-limit-badge {
   background: var(--card-bg);
