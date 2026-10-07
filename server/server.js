@@ -2094,8 +2094,11 @@ app.post('/api/sinpe/procesar', (req, res) => {
       broadcastEvent('recarga_exitosa', resultado);
       broadcastEvent('estudiante_actualizado', { id: resultado.estudiante_id, saldo_colones: resultado.saldo_nuevo });
       broadcastEvent('saldo_actualizado', { id: resultado.estudiante_id, saldo_colones: resultado.saldo_nuevo });
+    } else if (resultado.estado === 'rechazada') {
+      broadcastEvent('sinpe_rechazado', resultado);
     }
     broadcastEvent('solicitud_sinpe_procesada', resultado);
+    broadcastEvent('movimiento_registrado', resultado);
 
     res.json({ success: true, resultado });
   } catch (error) {

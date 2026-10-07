@@ -183,8 +183,15 @@ function initDatabase() {
     } catch (e) {
       console.error('Error creando push_subscriptions en PostgreSQL:', e);
     }
+    try {
+      db.exec('ALTER TABLE transacciones_saldo ADD COLUMN IF NOT EXISTS revertida INTEGER DEFAULT 0;');
+      db.exec('ALTER TABLE transacciones_saldo ADD COLUMN IF NOT EXISTS revertido_por_usuario_id INTEGER REFERENCES usuarios(id);');
+      db.exec('ALTER TABLE transacciones_saldo ADD COLUMN IF NOT EXISTS revertido_en TIMESTAMP;');
+    } catch (e) {}
+
     seedUsuarios();
     seedDisenosTarjetas();
+    migrarTrazabilidadSinpeRechazadas();
     return;
   }
 
@@ -407,9 +414,52 @@ function initDatabase() {
     `);
   } catch (e) {}
 
+  migrarTrazabilidadSinpeRechazadas();
   seedInitialData();
   seedUsuarios();
   seedDisenosTarjetas();
+}
+
+function migrarTrazabilidadSinpeRechazadas() {
+  try {
+    const rechazadasSinMov = db.prepare(`
+      SELECT s.*, e.saldo_colones as saldo_actual
+      FROM solicitudes_recarga_sinpe s
+      JOIN estudiantes e ON s.estudiante_id = e.id
+      WHERE s.estado = 'rechazada'
+        AND NOT EXISTS (
+          SELECT 1 FROM transacciones_saldo t 
+          WHERE t.tipo = 'sinpe_rechazado' 
+            AND t.estudiante_id = s.estudiante_id
+            AND (t.comprobante_sinpe = s.comprobante_sinpe OR (s.codigo_detalle IS NOT NULL AND t.comprobante_sinpe = s.codigo_detalle))
+        )
+    `).all();
+
+    if (rechazadasSinMov && rechazadasSinMov.length > 0) {
+      console.log(`[Trazabilidad SINPE] Sincronizando ${rechazadasSinMov.length} solicitudes rechazadas previas en transacciones_saldo...`);
+      for (const r of rechazadasSinMov) {
+        const motivoRechazo = r.notas || 'Comprobante no verificado en cuenta';
+        const comp = r.comprobante_sinpe || r.codigo_detalle || 'N/A';
+        const fechaTx = r.procesado_en || r.creado_en || new Date().toISOString();
+        db.prepare(`
+          INSERT INTO transacciones_saldo 
+          (estudiante_id, tipo, monto_colones, saldo_previo, saldo_posterior, comprobante_sinpe, descripcion, fecha)
+          VALUES (?, 'sinpe_rechazado', ?, ?, ?, ?, ?, ?)
+        `).run(
+          r.estudiante_id,
+          r.monto_colones,
+          r.saldo_actual || 0,
+          r.saldo_actual || 0,
+          r.comprobante_sinpe || r.codigo_detalle || 'SINPE-RECHAZADO',
+          `SINPE Rechazado: ${motivoRechazo} (Comprobante #${comp})`,
+          fechaTx
+        );
+      }
+      console.log('[Trazabilidad SINPE] Sincronización retroactiva completada con éxito.');
+    }
+  } catch (e) {
+    console.warn('Migración trazabilidad sinpe rechazadas:', e.message);
+  }
 }
 
 function seedUsuarios() {
@@ -1016,8 +1066,8 @@ function revertirTransaccionSaldoTransaction({ transaccionId, usuarioId, usuario
       throw new Error('Esta transacción ya fue revertida previamente');
     }
 
-    if (tx.tipo === 'reversion_recarga' || tx.tipo === 'reembolso') {
-      throw new Error('No es posible revertir una transacción que ya corresponde a una reversión o reembolso');
+    if (tx.tipo === 'reversion_recarga' || tx.tipo === 'reembolso' || tx.tipo === 'sinpe_rechazado') {
+      throw new Error('No es posible revertir una transacción que fue rechazada o que ya corresponde a una reversión o reembolso');
     }
 
     // 2. Control de tiempo según el rol (Cajero: <= 10 min, Admin: ilimitado)
@@ -1346,17 +1396,40 @@ function procesarSolicitudRecargaSinpe({ solicitudId, accion, usuarioId, motivo 
         estudiante_nombre: resultadoSaldo.nombre
       };
     } else if (accion === 'rechazar') {
+      const est = db.prepare('SELECT * FROM estudiantes WHERE id = ?').get(sol.estudiante_id);
+      const saldoActual = est ? est.saldo_colones : 0;
+      const motivoRechazo = motivo || 'Comprobante no verificado en cuenta';
+
       db.prepare(`
         UPDATE solicitudes_recarga_sinpe 
         SET estado = 'rechazada', aprobado_por_usuario_id = ?, procesado_en = CURRENT_TIMESTAMP, notas = ?
         WHERE id = ?
-      `).run(usuarioId || null, motivo || 'Comprobante no verificado en cuenta', solicitudId);
+      `).run(usuarioId || null, motivoRechazo, solicitudId);
+
+      // Registrar en transacciones_saldo para trazabilidad en Movimientos y Reversiones
+      const compLabel = sol.comprobante_sinpe || (sol.codigo_detalle ? `Cód: ${sol.codigo_detalle}` : 'N/A');
+      const descTrazabilidad = `SINPE Rechazado: ${motivoRechazo} (Comprobante #${compLabel})`;
+
+      db.prepare(`
+        INSERT INTO transacciones_saldo 
+        (estudiante_id, tipo, monto_colones, saldo_previo, saldo_posterior, comprobante_sinpe, descripcion)
+        VALUES (?, 'sinpe_rechazado', ?, ?, ?, ?, ?)
+      `).run(
+        sol.estudiante_id,
+        sol.monto_colones,
+        saldoActual,
+        saldoActual,
+        sol.comprobante_sinpe || (sol.codigo_detalle ? `Cód: ${sol.codigo_detalle}` : 'SINPE-RECHAZADO'),
+        descTrazabilidad
+      );
 
       return {
         solicitud_id: solicitudId,
         estado: 'rechazada',
         estudiante_id: sol.estudiante_id,
-        monto: sol.monto_colones
+        monto: sol.monto_colones,
+        estudiante_nombre: est ? est.nombre_completo : 'Estudiante',
+        motivo: motivoRechazo
       };
     } else {
       throw new Error('Acción no válida (usar aprobar o rechazar)');

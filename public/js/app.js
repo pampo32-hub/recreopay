@@ -1406,10 +1406,14 @@ function renderParentHistory() {
   }
 
   container.innerHTML = currentStudent.transacciones.map(t => {
-    const esPositivo = t.monto_colones > 0;
-    const color = esPositivo ? '#166534' : '#0f172a';
-    const signo = esPositivo ? '+' : '';
-    const fecha = new Date(t.fecha).toLocaleDateString('es-CR', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+    const isSinpeRechazado = t.tipo === 'sinpe_rechazado' || t.tipo === 'recarga_rechazada';
+    const esPositivo = t.monto_colones > 0 && !isSinpeRechazado;
+    const color = isSinpeRechazado ? '#be123c' : (esPositivo ? '#166534' : '#0f172a');
+    const signo = isSinpeRechazado ? '' : (esPositivo ? '+' : '');
+    let fecha = t.fecha;
+    try {
+      fecha = new Date(t.fecha).toLocaleDateString('es-CR', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+    } catch(e) {}
 
     return `
       <div style="display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid #f1f5f9;">
@@ -1417,8 +1421,8 @@ function renderParentHistory() {
           <div style="font-weight: 700; color: ${color};">${t.descripcion || t.tipo}</div>
           <div style="font-size: 0.7rem; color: #94a3b8;">${fecha}</div>
         </div>
-        <div style="font-weight: 800; color: ${esPositivo ? '#10b981' : '#ef4444'};">
-          ${signo}₡${Math.abs(t.monto_colones).toLocaleString('es-CR')}
+        <div style="font-weight: 800; color: ${isSinpeRechazado ? '#be123c' : (esPositivo ? '#10b981' : '#ef4444')};">
+          ${isSinpeRechazado ? '₡' + Math.abs(t.monto_colones).toLocaleString('es-CR') + ' (Rechazado)' : signo + '₡' + Math.abs(t.monto_colones).toLocaleString('es-CR')}
         </div>
       </div>
     `;
@@ -2326,6 +2330,30 @@ function initStudentSSE() {
   });
 
   sse.addEventListener('movimiento_revertido', (e) => {
+    try {
+      if (currentUser && (currentUser.rol === 'admin' || currentUser.rol === 'cajero')) {
+        loadAdminData();
+        const movTab = document.getElementById('adminTabContentMovimientos');
+        if (movTab && movTab.style.display !== 'none') {
+          loadAdminMovimientos();
+        }
+      }
+    } catch (err) {}
+  });
+
+  sse.addEventListener('movimiento_registrado', (e) => {
+    try {
+      if (currentUser && (currentUser.rol === 'admin' || currentUser.rol === 'cajero')) {
+        loadAdminData();
+        const movTab = document.getElementById('adminTabContentMovimientos');
+        if (movTab && movTab.style.display !== 'none') {
+          loadAdminMovimientos();
+        }
+      }
+    } catch (err) {}
+  });
+
+  sse.addEventListener('sinpe_rechazado', (e) => {
     try {
       if (currentUser && (currentUser.rol === 'admin' || currentUser.rol === 'cajero')) {
         loadAdminData();
@@ -4970,8 +4998,9 @@ function setMovFilter(filter) {
   const btnAll = document.getElementById('btnFilterMovAll');
   const btnRecargas = document.getElementById('btnFilterMovRecargas');
   const btnCobros = document.getElementById('btnFilterMovCobros');
+  const btnRechazados = document.getElementById('btnFilterMovRechazados');
 
-  [btnAll, btnRecargas, btnCobros].forEach(b => {
+  [btnAll, btnRecargas, btnCobros, btnRechazados].forEach(b => {
     if (!b) return;
     b.style.background = 'transparent';
     b.style.color = '#64748b';
@@ -4979,10 +5008,10 @@ function setMovFilter(filter) {
     b.style.fontWeight = '700';
   });
 
-  const activeBtn = filter === 'recargas' ? btnRecargas : (filter === 'cobros' ? btnCobros : btnAll);
+  const activeBtn = filter === 'recargas' ? btnRecargas : (filter === 'cobros' ? btnCobros : (filter === 'rechazados' ? btnRechazados : btnAll));
   if (activeBtn) {
     activeBtn.style.background = '#ffffff';
-    activeBtn.style.color = '#0284c7';
+    activeBtn.style.color = filter === 'rechazados' ? '#e11d48' : '#0284c7';
     activeBtn.style.boxShadow = '0 1px 3px rgba(0,0,0,0.08)';
     activeBtn.style.fontWeight = '800';
   }
@@ -5005,9 +5034,11 @@ function renderAdminMovimientos() {
   let filtered = adminMovimientosData.filter(m => {
     // Filtro por tipo
     if (currentMovFilter === 'recargas') {
-      if (m.monto_colones <= 0 || m.tipo === 'compra_mostrador' || m.tipo === 'preorden') return false;
+      if (m.monto_colones <= 0 || m.tipo === 'compra_mostrador' || m.tipo === 'preorden' || m.tipo === 'sinpe_rechazado' || m.tipo === 'recarga_rechazada') return false;
     } else if (currentMovFilter === 'cobros') {
-      if (m.monto_colones >= 0 && (m.tipo === 'recarga_manual' || m.tipo === 'recarga_sinpe')) return false;
+      if (m.monto_colones >= 0 && (m.tipo === 'recarga_manual' || m.tipo === 'recarga_sinpe' || m.tipo === 'sinpe_rechazado' || m.tipo === 'recarga_rechazada')) return false;
+    } else if (currentMovFilter === 'rechazados') {
+      if (m.tipo !== 'sinpe_rechazado' && m.tipo !== 'recarga_rechazada') return false;
     }
 
     // Filtro por texto de búsqueda
@@ -5036,7 +5067,8 @@ function renderAdminMovimientos() {
   const isCajero = currentUser && currentUser.rol === 'cajero';
 
   container.innerHTML = filtered.map(m => {
-    const isPositive = m.monto_colones > 0;
+    const isSinpeRechazado = m.tipo === 'sinpe_rechazado' || m.tipo === 'recarga_rechazada';
+    const isPositive = m.monto_colones > 0 && !isSinpeRechazado;
     const isRevertida = m.revertida === 1;
     const isReversionOrRefund = m.tipo === 'reversion_recarga' || m.tipo === 'reembolso';
 
@@ -5046,6 +5078,8 @@ function renderAdminMovimientos() {
       tipoBadge = `<span style="background: #dcfce7; color: #166534; border: 1px solid #bbf7d0; font-size: 0.7rem; font-weight: 800; padding: 3px 8px; border-radius: 6px; display: inline-flex; align-items: center; gap: 4px;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="2"/></svg> Recarga Efectivo</span>`;
     } else if (m.tipo === 'recarga_sinpe') {
       tipoBadge = `<span style="background: #e0f2fe; color: #0369a1; border: 1px solid #bae6fd; font-size: 0.7rem; font-weight: 800; padding: 3px 8px; border-radius: 6px; display: inline-flex; align-items: center; gap: 4px;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="5" y="2" width="14" height="20" rx="2" ry="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></svg> Recarga SINPE</span>`;
+    } else if (isSinpeRechazado) {
+      tipoBadge = `<span style="background: #fff1f2; color: #be123c; border: 1.5px solid #fecdd3; font-size: 0.7rem; font-weight: 900; padding: 3px 8px; border-radius: 6px; display: inline-flex; align-items: center; gap: 4px;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg> SINPE Rechazado</span>`;
     } else if (m.tipo === 'compra_mostrador' || m.tipo === 'preorden') {
       tipoBadge = `<span style="background: #fee2e2; color: #991b1b; border: 1px solid #fecaca; font-size: 0.7rem; font-weight: 800; padding: 3px 8px; border-radius: 6px; display: inline-flex; align-items: center; gap: 4px;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg> Cobro Soda</span>`;
     } else if (m.tipo === 'reversion_recarga') {
@@ -5063,15 +5097,29 @@ function renderAdminMovimientos() {
       fechaHoraStr = d.toLocaleTimeString('es-CR', { hour: '2-digit', minute: '2-digit' }) + ' • ' + d.toLocaleDateString('es-CR', { day: '2-digit', month: 'short' });
     } catch (e) {}
 
-    // Monto formateado: Estilo sutil idéntico a "Revertir" / "Revertido" (rojo suave) y verde suave
+    // Monto formateado
     const absMonto = Math.abs(m.monto_colones);
-    const montoDisplay = isPositive ? `+₡${absMonto.toLocaleString('es-CR')}` : `-₡${absMonto.toLocaleString('es-CR')}`;
-    const montoColor = isPositive ? '#166534' : '#991b1b';
-    const montoBg = isPositive ? '#f0fdf4' : '#fef2f2';
-    const montoBorder = isPositive ? '#bbf7d0' : '#fecaca';
-    const montoIcon = isPositive 
-      ? '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="19" x2="12" y2="5"/><polyline points="5 12 12 5 19 12"/></svg>'
-      : '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><polyline points="19 12 12 19 5 12"/></svg>';
+    let montoDisplay = '';
+    let montoColor = '';
+    let montoBg = '';
+    let montoBorder = '';
+    let montoIcon = '';
+
+    if (isSinpeRechazado) {
+      montoDisplay = `₡${absMonto.toLocaleString('es-CR')} (Rechazado)`;
+      montoColor = '#be123c';
+      montoBg = '#fff1f2';
+      montoBorder = '#fecdd3';
+      montoIcon = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>';
+    } else {
+      montoDisplay = isPositive ? `+₡${absMonto.toLocaleString('es-CR')}` : `-₡${absMonto.toLocaleString('es-CR')}`;
+      montoColor = isPositive ? '#166534' : '#991b1b';
+      montoBg = isPositive ? '#f0fdf4' : '#fef2f2';
+      montoBorder = isPositive ? '#bbf7d0' : '#fecaca';
+      montoIcon = isPositive 
+        ? '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="19" x2="12" y2="5"/><polyline points="5 12 12 5 19 12"/></svg>'
+        : '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><polyline points="19 12 12 19 5 12"/></svg>';
+    }
 
     // Regla de 10 min para Cajero
     const minutos = parseFloat(m.minutos_transcurridos) || 0;
@@ -5087,6 +5135,12 @@ function renderAdminMovimientos() {
           </span>
           ${m.revertido_por_nombre ? `<span style="font-size: 0.68rem; color: var(--text-muted); font-weight: 700;">(${m.revertido_por_nombre})</span>` : ''}
         </div>
+      `;
+    } else if (isSinpeRechazado) {
+      actionHtml = `
+        <span style="display: inline-flex; align-items: center; gap: 4px; background: #fff1f2; color: #be123c; border: 1px solid #fecdd3; padding: 4px 10px; border-radius: 7px; font-size: 0.72rem; font-weight: 800;">
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg> Denegado
+        </span>
       `;
     } else if (isReversionOrRefund) {
       actionHtml = `
@@ -5128,7 +5182,7 @@ function renderAdminMovimientos() {
     }
 
     return `
-      <div class="admin-mov-card" style="background: ${isRevertida ? 'rgba(254, 242, 242, 0.45)' : 'var(--card-bg)'}; border: 1.5px solid ${isRevertida ? '#fecaca' : 'var(--border)'}; border-radius: 14px; padding: 12px 14px; display: flex; flex-direction: column; gap: 10px; opacity: ${isRevertida ? '0.85' : '1'}; transition: all 0.2s; box-shadow: 0 1px 3px rgba(0,0,0,0.03);">
+      <div class="admin-mov-card" style="background: ${isRevertida ? 'rgba(254, 242, 242, 0.45)' : (isSinpeRechazado ? 'rgba(255, 241, 242, 0.35)' : 'var(--card-bg)')}; border: 1.5px solid ${isRevertida ? '#fecaca' : (isSinpeRechazado ? '#fecdd3' : 'var(--border)')}; border-radius: 14px; padding: 12px 14px; display: flex; flex-direction: column; gap: 10px; opacity: ${isRevertida ? '0.85' : '1'}; transition: all 0.2s; box-shadow: 0 1px 3px rgba(0,0,0,0.03);">
         
         <!-- FILA SUPERIOR: BADGE Y FECHA -->
         <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px; border-bottom: 1px solid var(--border); padding-bottom: 8px; flex-wrap: wrap;">
@@ -5171,7 +5225,7 @@ function renderAdminMovimientos() {
               </span>
             </div>
             <span style="font-size: 0.74rem; color: var(--text-muted); font-weight: 700;">
-              Saldo posterior: <strong style="color: var(--text-main); font-weight: 800;">₡${(m.saldo_posterior || 0).toLocaleString('es-CR')}</strong>
+              ${isSinpeRechazado ? 'Saldo sin cambios:' : 'Saldo posterior:'} <strong style="color: var(--text-main); font-weight: 800;">₡${(m.saldo_posterior || 0).toLocaleString('es-CR')}</strong>
             </span>
           </div>
           <div style="flex-shrink: 0;">
