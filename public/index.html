@@ -12,8 +12,8 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="SiboPay">
   <meta name="mobile-web-app-capable" content="yes">
-  <link rel="stylesheet" href="/css/styles.css?v=11.0">
-  <link rel="stylesheet" href="/css/desktop.css?v=1.0" media="(min-width: 1024px)">
+  <link rel="stylesheet" href="/css/styles.css?v=11.1">
+  <link rel="stylesheet" href="/css/desktop.css?v=2.1">
   <style>
     /* Transiciones suaves */
     .fade-enter { animation: fadeIn 0.2s ease-in-out; }
@@ -565,7 +565,7 @@
         <div>
           <h3 style="margin: 0; font-size: 1.1rem; font-weight: 800; color: var(--text-main);">Inventario y Existencias</h3>
           <p style="margin: 2px 0 0 0; font-size: 0.75rem; color: var(--text-muted);">
-            Crea, edita productos, controla precios, existencias y sellos nutricionales MEP.
+            Crea, edita productos, controla precios, existencias y clasificación nutricional.
           </p>
         </div>
         <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
@@ -891,164 +891,241 @@
 
     <!-- SECCIÓN DE GESTIÓN DEL HIJO SELECCIONADO -->
     <div id="parentSelectedChildContainer" style="display: none;">
-      <!-- PANTALLA PRINCIPAL DEL HIJO (TERMINA EN EL MENÚ DE ACCIONES) -->
-      <div id="parentChildDashboardMain">
-        <!-- TARJETA ELEGANTE DE SALDO EN LA CUENTA -->
-        <div class="parent-balance-card-refined">
-          <div class="parent-balance-header-row">
-            <div style="display: flex; align-items: center; gap: 10px; min-width: 0;">
-              <div id="parentActiveChildAvatar" class="parent-active-child-avatar-badge">ES</div>
-              <div style="min-width: 0;">
-                <span class="parent-balance-tag-title">Saldo en la cuenta</span>
-                <div style="display: flex; align-items: center; gap: 6px; margin-top: 2px; flex-wrap: wrap;">
-                  <span id="parentActiveChildName" class="parent-balance-child-pill">Cargando...</span>
-                  <span id="parentActiveChildMeta" class="parent-balance-grade-pill">Grado • Carné</span>
-                </div>
+      <!-- TARJETA ELEGANTE DE SALDO Y RESUMEN DEL HIJO (BARRA SUPERIOR) -->
+      <div class="parent-balance-card-refined" style="margin-bottom: 16px;">
+        <div class="parent-balance-header-row">
+          <div style="display: flex; align-items: center; gap: 10px; min-width: 0;">
+            <div id="parentActiveChildAvatar" class="parent-active-child-avatar-badge">ES</div>
+            <div style="min-width: 0;">
+              <span class="parent-balance-tag-title">Estudiante Seleccionado</span>
+              <div style="display: flex; align-items: center; gap: 6px; margin-top: 2px; flex-wrap: wrap;">
+                <span id="parentActiveChildName" class="parent-balance-child-pill">Cargando...</span>
+                <span id="parentActiveChildMeta" class="parent-balance-grade-pill">Grado • Carné</span>
+                <span id="parentActiveSchoolNameBadge" style="font-size: 0.72rem; color: #0284c7; font-weight: 800; background: #f0f9ff; padding: 2px 7px; border-radius: 6px;">Soda Central</span>
               </div>
             </div>
-            <button type="button" onclick="switchToSodaMenuAsParent()" style="background: none; border: none; color: #0284c7; font-size: 0.78rem; font-weight: 800; cursor: pointer; display: flex; align-items: center; gap: 4px; padding: 4px;">
-              <span>Ver Menú</span>
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
-            </button>
           </div>
-
-          <div class="parent-balance-amount-display">
-            <span id="parentActiveChildBalance">₡0</span>
-          </div>
-
-          <div class="parent-balance-footer-row">
-            <div class="parent-balance-limit-info">
-              Límite Diario: <strong id="parentDailyLimitInlineDisplay" style="color: #0284c7;">₡3.000</strong>
-            </div>
-            <button type="button" onclick="openParentSubView('sinpe')" class="parent-balance-btn-recharge">
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-              <span>Recargar Saldo</span>
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <button type="button" onclick="openParentSubView('preordenes')" class="btn-saas btn-saas-outline" style="font-size: 0.78rem; font-weight: 800; border-radius: 10px; padding: 7px 12px; cursor: pointer; display: inline-flex; align-items: center; gap: 5px;">
+              <span>🥪 Ver Menú</span>
             </button>
           </div>
         </div>
 
-        <!-- SELECTOR DE SEDE ESCOLAR ACTIVA -->
-        <div class="parent-school-selector-pill">
-          <div style="display: flex; align-items: center; gap: 10px;">
-            <div style="width: 34px; height: 34px; border-radius: 10px; background: rgba(2, 132, 199, 0.1); color: #0284c7; display: flex; align-items: center; justify-content: center; font-size: 1.1rem;">
-              🏫
-            </div>
-            <div>
-              <span style="font-size: 0.68rem; font-weight: 800; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; display: block;">Sede Escolar Activa</span>
-              <strong id="parentActiveSchoolNameBadge" style="font-size: 0.85rem; font-weight: 900; color: var(--text-main);">Soda Escolar Central</strong>
-            </div>
-          </div>
-          <span style="font-size: 0.72rem; color: #0284c7; font-weight: 800; background: #f0f9ff; padding: 3px 8px; border-radius: 6px;">● Conectada</span>
+        <div class="parent-balance-amount-display">
+          <span id="parentActiveChildBalance">₡0</span>
         </div>
 
-        <!-- BUSCADOR INTELIGENTE EN PORTAL DE PADRES -->
-        <div class="parent-smart-search-card" style="margin-bottom: 14px; background: var(--card-bg, #ffffff); border: 1.5px solid var(--border, #e2e8f0); border-radius: 16px; padding: 12px 14px; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);">
-          <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
-            <label for="parentMenuSearchInput" style="font-size: 0.76rem; font-weight: 800; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; display: flex; align-items: center; gap: 6px; margin: 0;">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#0284c7" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
-              <span>Buscador Inteligente de Alimentos:</span>
-            </label>
-            <span style="font-size: 0.7rem; color: #0284c7; font-weight: 700; background: #f0f9ff; padding: 2px 7px; border-radius: 6px;">Catálogo Soda</span>
+        <div class="parent-balance-footer-row">
+          <div class="parent-balance-limit-info">
+            Límite Diario: <strong id="parentDailyLimitInlineDisplay" style="color: #0284c7;">₡3.000</strong>
           </div>
-          <div style="display: flex; gap: 8px; align-items: center;">
-            <div style="position: relative; flex: 1;">
-              <input 
-                type="text" 
-                id="parentMenuSearchInput" 
-                placeholder="Buscar platillo, fresco, snack o precio (<1000)..." 
-                onkeydown="if(event.key==='Enter') searchMenuFromParent(this.value)"
-                style="width: 100%; box-sizing: border-box; padding: 10px 12px 10px 36px; border-radius: 12px; border: 1.5px solid var(--border, #cbd5e1); font-size: 0.88rem; font-weight: 600; outline: none; background: var(--bg-main, #f8fafc); color: var(--text-main);"
-              >
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="position: absolute; left: 11px; top: 50%; transform: translateY(-50%); pointer-events: none;">
-                <circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/>
-              </svg>
-            </div>
-            <button 
-              type="button" 
-              onclick="searchMenuFromParent(document.getElementById('parentMenuSearchInput').value)" 
-              class="btn-saas btn-saas-primary" 
-              style="height: 40px; padding: 0 16px; font-size: 0.84rem; border-radius: 10px; flex-shrink: 0; display: inline-flex; align-items: center; gap: 6px;"
-            >
-              <span>Buscar</span>
-            </button>
-          </div>
-          <!-- Chips de búsqueda rápida para padres -->
-          <div style="display: flex; gap: 6px; overflow-x: auto; padding-top: 8px; scrollbar-width: none;">
-            <button type="button" class="search-chip" onclick="searchMenuFromParent('fresco')">🥤 Frescos</button>
-            <button type="button" class="search-chip" onclick="searchMenuFromParent('almuerzo')">🍛 Almuerzos</button>
-            <button type="button" class="search-chip" onclick="searchMenuFromParent('saludable')">🥗 Saludables</button>
-            <button type="button" class="search-chip" onclick="searchMenuFromParent('<1000')">💰 < ₡1.000</button>
-          </div>
-        </div>
-
-        <!-- MENÚ DE ACCIONES RÁPIDAS SUPERFINAS -->
-        <div class="parent-refined-menu-card">
-          <div onclick="switchToSodaMenuAsParent()" class="parent-refined-menu-item">
-            <div class="parent-refined-item-left">
-              <div class="parent-refined-icon-box">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 2v7c0 1.1.9 2 2 2h4a2 2 0 0 0 2-2V2"/><path d="M7 2v20"/><path d="M21 15V2v0a5 5 0 0 0-5 5v6c0 1.1.9 2 2 2h3Zm0 0v7"/></svg>
-              </div>
-              <div>
-                <span class="parent-refined-item-title">Pre-ordenar Merienda / Ver Menú</span>
-                <span class="parent-refined-item-desc">Alimentos y meriendas saludables de la soda</span>
-              </div>
-            </div>
-            <span class="parent-refined-arrow">›</span>
-          </div>
-
-          <div onclick="openParentSubView('alergias')" class="parent-refined-menu-item">
-            <div class="parent-refined-item-left">
-              <div class="parent-refined-icon-box rose-halo">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
-              </div>
-              <div>
-                <span class="parent-refined-item-title" style="color: #e11d48;">Alergias y Restricciones</span>
-                <span class="parent-refined-item-desc">Veto de golosinas y expediente médico</span>
-              </div>
-            </div>
-            <span class="parent-refined-arrow" style="color: #f43f5e;">›</span>
-          </div>
-
-          <div onclick="openParentSubView('limites')" class="parent-refined-menu-item">
-            <div class="parent-refined-item-left">
-              <div class="parent-refined-icon-box">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="14" x="2" y="5" rx="2"/><line x1="2" x2="22" y1="10" y2="10"/></svg>
-              </div>
-              <div>
-                <span class="parent-refined-item-title">Límite Diario de Gasto</span>
-                <span class="parent-refined-item-desc">Control presupuestario y transferencias</span>
-              </div>
-            </div>
-            <span class="parent-refined-arrow">›</span>
-          </div>
-
-          <div onclick="openParentSubView('historial')" class="parent-refined-menu-item">
-            <div class="parent-refined-item-left">
-              <div class="parent-refined-icon-box">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="4" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
-              </div>
-              <div>
-                <span class="parent-refined-item-title">Historial de Compras en Soda</span>
-                <span class="parent-refined-item-desc">Revisar consumos escolares</span>
-              </div>
-            </div>
-            <span class="parent-refined-arrow">›</span>
-          </div>
-
-          <div onclick="openParentSubView('credenciales')" class="parent-refined-menu-item">
-            <div class="parent-refined-item-left">
-              <div class="parent-refined-icon-box">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-              </div>
-              <div>
-                <span class="parent-refined-item-title">Seguridad y PIN Escolar</span>
-                <span class="parent-refined-item-desc">PIN de 4 dígitos y contraseña del carné</span>
-              </div>
-            </div>
-            <span class="parent-refined-arrow">›</span>
-          </div>
+          <button type="button" onclick="openParentSubView('sinpe')" class="parent-balance-btn-recharge">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            <span>Recargar Saldo con SINPE</span>
+          </button>
         </div>
       </div>
+
+      <!-- LAYOUT DIVIDIDO A IZQUIERDA Y DERECHA (ESTILO GMAIL) -->
+      <div class="parent-split-wrapper">
+        <!-- COLUMNA IZQUIERDA: MENÚ DE CAJITAS (SIDEBAR) -->
+        <aside class="parent-sidebar-boxes" id="parentSidebarBoxes">
+          <div class="parent-nav-box active" data-view="resumen" onclick="openParentSubView('resumen')">
+            <div class="parent-nav-box-icon">📊</div>
+            <div class="parent-nav-box-text">
+              <strong>Resumen General</strong>
+              <span>Saldo y estado del carné</span>
+            </div>
+            <span class="parent-nav-arrow">›</span>
+          </div>
+
+          <div class="parent-nav-box" data-view="preordenes" onclick="openParentSubView('preordenes')">
+            <div class="parent-nav-box-icon">🥪</div>
+            <div class="parent-nav-box-text">
+              <strong>Pre-ordenar / Ver Menú</strong>
+              <span>Catálogo y pedidos de merienda</span>
+            </div>
+            <span class="parent-nav-arrow">›</span>
+          </div>
+
+          <div class="parent-nav-box" data-view="alergias" onclick="openParentSubView('alergias')">
+            <div class="parent-nav-box-icon rose-halo">⚠️</div>
+            <div class="parent-nav-box-text">
+              <strong style="color: #e11d48;">Alertas y Salud</strong>
+              <span>Alergias y veto de golosinas</span>
+            </div>
+            <span class="parent-nav-arrow" style="color: #f43f5e;">›</span>
+          </div>
+
+          <div class="parent-nav-box" data-view="limites" onclick="openParentSubView('limites')">
+            <div class="parent-nav-box-icon">💳</div>
+            <div class="parent-nav-box-text">
+              <strong>Límite Diario de Gasto</strong>
+              <span>Control y transferencias</span>
+            </div>
+            <span class="parent-nav-arrow">›</span>
+          </div>
+
+          <div class="parent-nav-box" data-view="historial" onclick="openParentSubView('historial')">
+            <div class="parent-nav-box-icon">📜</div>
+            <div class="parent-nav-box-text">
+              <strong>Historial de Compras</strong>
+              <span>Consumos en la soda</span>
+            </div>
+            <span class="parent-nav-arrow">›</span>
+          </div>
+
+          <div class="parent-nav-box" data-view="credenciales" onclick="openParentSubView('credenciales')">
+            <div class="parent-nav-box-icon">🔒</div>
+            <div class="parent-nav-box-text">
+              <strong>Seguridad y PIN</strong>
+              <span>PIN escolar y contraseña</span>
+            </div>
+            <span class="parent-nav-arrow">›</span>
+          </div>
+
+          <div class="parent-nav-box" data-view="sinpe" onclick="openParentSubView('sinpe')">
+            <div class="parent-nav-box-icon green-halo">💸</div>
+            <div class="parent-nav-box-text">
+              <strong style="color: #166534;">Recargar con SINPE</strong>
+              <span>Validar recarga bancaria</span>
+            </div>
+            <span class="parent-nav-arrow" style="color: #16a34a;">›</span>
+          </div>
+        </aside>
+
+        <!-- COLUMNA DERECHA: ESCENARIO DE CONTENIDO ACTIVO -->
+        <main class="parent-content-stage" id="parentContentStage">
+          <!-- SUBVISTA 0: RESUMEN GENERAL DEL ESTUDIANTE -->
+          <div id="parentSubViewResumen" class="parent-subview">
+            <div class="parent-subview-header">
+              <button type="button" onclick="closeParentSubView()" class="parent-subview-back-btn">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+                <span>Volver</span>
+              </button>
+              <div class="parent-subview-child-tag">
+                <span class="parentSubViewChildAvatarBadge">ES</span>
+                <span class="parentSubViewChildName">Estudiante</span>
+              </div>
+            </div>
+            <div class="parent-card" style="background: var(--card-bg, #ffffff); border: 1px solid var(--border, #e2e8f0); border-radius: 18px; padding: 22px; margin-bottom: 16px; box-shadow: 0 2px 8px rgba(0,0,0,0.03);">
+              <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; flex-wrap: wrap; gap: 10px;">
+                <div style="display: flex; align-items: center; gap: 12px;">
+                  <div class="parent-refined-icon-box" style="width: 44px; height: 44px; background: rgba(2, 132, 199, 0.1); color: #0284c7; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 1.25rem;">
+                    📊
+                  </div>
+                  <div>
+                    <h3 style="font-size: 1.1rem; font-weight: 900; color: var(--text-main); margin: 0;">Panel Principal del Estudiante</h3>
+                    <span style="font-size: 0.76rem; color: var(--text-muted);">Monitoreo escolar en tiempo real de <strong id="parentSummaryChildName" style="color: #0284c7;">su hijo</strong></span>
+                  </div>
+                </div>
+                <div class="parent-subview-child-tag" style="margin: 0;">
+                  <span class="parentSubViewChildAvatarBadge">ES</span>
+                  <span class="parentSubViewChildName">Estudiante</span>
+                </div>
+              </div>
+
+              <!-- Grid de métricas rápidas del estudiante -->
+              <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin-bottom: 18px;">
+                <div style="background: var(--bg-main, #f8fafc); border: 1px solid var(--border, #e2e8f0); border-radius: 14px; padding: 14px;">
+                  <span style="font-size: 0.72rem; font-weight: 800; color: var(--text-muted); text-transform: uppercase;">Saldo Actual</span>
+                  <div id="parentSummaryBalanceDisplay" style="font-size: 1.6rem; font-weight: 900; color: #0284c7; margin-top: 4px;">₡0</div>
+                  <span style="font-size: 0.68rem; color: #10b981; font-weight: 700;">● Disponible para compras</span>
+                </div>
+                <div style="background: var(--bg-main, #f8fafc); border: 1px solid var(--border, #e2e8f0); border-radius: 14px; padding: 14px;">
+                  <span style="font-size: 0.72rem; font-weight: 800; color: var(--text-muted); text-transform: uppercase;">Límite por Día</span>
+                  <div id="parentSummaryLimitDisplay" style="font-size: 1.6rem; font-weight: 900; color: var(--text-main); margin-top: 4px;">₡3.000</div>
+                  <span style="font-size: 0.68rem; color: var(--text-muted); font-weight: 700;">Tope de consumo diario</span>
+                </div>
+                <div style="background: var(--bg-main, #f8fafc); border: 1px solid var(--border, #e2e8f0); border-radius: 14px; padding: 14px;">
+                  <span style="font-size: 0.72rem; font-weight: 800; color: var(--text-muted); text-transform: uppercase;">Salud & Veto</span>
+                  <div id="parentSummaryAllergyStatus" style="font-size: 1.1rem; font-weight: 900; color: #10b981; margin-top: 8px;">Sin alertas</div>
+                  <span style="font-size: 0.68rem; color: var(--text-muted); font-weight: 700;">Expediente activo en caja</span>
+                </div>
+              </div>
+
+              <!-- Atajos Rápidos -->
+              <h4 style="font-size: 0.85rem; font-weight: 900; color: var(--text-main); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 10px;">Acciones Rápidas</h4>
+              <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px;">
+                <button type="button" onclick="openParentSubView('preordenes')" class="btn-saas btn-saas-outline" style="padding: 12px 14px; border-radius: 12px; display: flex; align-items: center; gap: 10px; justify-content: flex-start; text-align: left;">
+                  <span style="font-size: 1.3rem;">🥪</span>
+                  <div>
+                    <strong style="display: block; font-size: 0.84rem; color: var(--text-main);">Pre-ordenar Merienda</strong>
+                    <span style="font-size: 0.7rem; color: var(--text-muted);">Ver platillos de la soda</span>
+                  </div>
+                </button>
+
+                <button type="button" onclick="openParentSubView('sinpe')" class="btn-saas btn-saas-outline" style="padding: 12px 14px; border-radius: 12px; display: flex; align-items: center; gap: 10px; justify-content: flex-start; text-align: left; border-color: #86efac; background: #f0fdf4;">
+                  <span style="font-size: 1.3rem;">💸</span>
+                  <div>
+                    <strong style="display: block; font-size: 0.84rem; color: #166534;">Recargar por SINPE</strong>
+                    <span style="font-size: 0.7rem; color: #15803d;">Acreditar saldo al instante</span>
+                  </div>
+                </button>
+
+                <button type="button" onclick="openParentSubView('historial')" class="btn-saas btn-saas-outline" style="padding: 12px 14px; border-radius: 12px; display: flex; align-items: center; gap: 10px; justify-content: flex-start; text-align: left;">
+                  <span style="font-size: 1.3rem;">📜</span>
+                  <div>
+                    <strong style="display: block; font-size: 0.84rem; color: var(--text-main);">Ver Compras Recientes</strong>
+                    <span style="font-size: 0.7rem; color: var(--text-muted);">Auditar consumos en caja</span>
+                  </div>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- SUBVISTA: PRE-ORDENAR MERIENDA Y VER CATÁLOGO -->
+          <div id="parentSubViewMenu" class="parent-subview" style="display: none;">
+            <div class="parent-subview-header">
+              <button type="button" onclick="closeParentSubView()" class="parent-subview-back-btn">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+                <span>Volver</span>
+              </button>
+              <div class="parent-subview-child-tag">
+                <span class="parentSubViewChildAvatarBadge">ES</span>
+                <span class="parentSubViewChildName">Estudiante</span>
+              </div>
+            </div>
+
+            <div class="parent-card" style="background: var(--card-bg, #ffffff); border: 1px solid var(--border, #e2e8f0); border-radius: 18px; padding: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.03);">
+              <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; flex-wrap: wrap; gap: 8px;">
+                <div>
+                  <h3 style="font-size: 1.1rem; font-weight: 900; color: var(--text-main); margin: 0; display: flex; align-items: center; gap: 8px;">
+                    <span>🥪 Menú de la Soda y Pre-órdenes</span>
+                  </h3>
+                  <span style="font-size: 0.76rem; color: var(--text-muted);">Selecciona los alimentos para la merienda escolar de tu hijo</span>
+                </div>
+                <button type="button" onclick="openCartModal()" class="btn-saas btn-saas-primary" style="padding: 8px 16px; border-radius: 10px; font-size: 0.82rem; display: inline-flex; align-items: center; gap: 6px;">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>
+                  <span>Ver Mi Orden</span>
+                  <span id="parentCartBadgeCount" style="background: #ffffff; color: #0284c7; padding: 1px 7px; border-radius: 10px; font-weight: 900; font-size: 0.72rem; margin-left: 2px;">0</span>
+                </button>
+              </div>
+
+              <!-- Buscador inteligente en catálogo de padres -->
+              <div style="margin-bottom: 14px;">
+                <div style="position: relative;">
+                  <input type="text" id="parentCatalogSearch" placeholder="Buscar platillo, fresco, snack o precio (<1000)..." oninput="filterParentCatalog(this.value)" style="width: 100%; box-sizing: border-box; padding: 11px 12px 11px 36px; border-radius: 12px; border: 1.5px solid var(--border, #cbd5e1); font-size: 0.88rem; font-weight: 600; outline: none; background: var(--bg-main, #f8fafc); color: var(--text-main);">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="position: absolute; left: 11px; top: 50%; transform: translateY(-50%); pointer-events: none;">
+                    <circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/>
+                  </svg>
+                </div>
+                <div style="display: flex; gap: 6px; overflow-x: auto; padding-top: 8px; scrollbar-width: none;">
+                  <button type="button" class="search-chip" onclick="quickFilterParentCatalog('fresco')">🥤 Frescos</button>
+                  <button type="button" class="search-chip" onclick="quickFilterParentCatalog('almuerzo')">🍛 Almuerzos</button>
+                  <button type="button" class="search-chip" onclick="quickFilterParentCatalog('saludable')">🥗 Saludables</button>
+                  <button type="button" class="search-chip" onclick="quickFilterParentCatalog('<1000')">💰 < ₡1.000</button>
+                  <button type="button" class="search-chip" onclick="quickFilterParentCatalog('')">✨ Todos</button>
+                </div>
+              </div>
+
+              <!-- Grid de productos en portal de padres -->
+              <div id="parentProductsGrid" class="parent-products-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 14px;">
+                <!-- Se llena dinámicamente con renderParentCatalog() -->
+              </div>
+            </div>
+          </div>
 
       <!-- 1. SUB-PANTALLA: RECARGA SINPE MÓVIL -->
       <div id="parentSubViewSinpe" class="parent-subview" style="display: none;">
@@ -1199,7 +1276,7 @@
           <div style="display: flex; justify-content: space-between; align-items: center; background: #f8fafc; border: 1px solid #e2e8f0; padding: 12px; border-radius: 14px; margin-bottom: 12px;">
             <div>
               <strong style="font-size: 0.84rem; color: #1e293b; display: block;">Veto de Comida Chatarra / Golosinas</strong>
-              <span style="font-size: 0.70rem; color: #64748b; display: block; margin-top: 2px;">Bloquea confites, gaseosas y productos no avalados por el MEP en caja</span>
+              <span style="font-size: 0.70rem; color: #64748b; display: block; margin-top: 2px;">Bloquea confites, gaseosas y comida chatarra en caja</span>
             </div>
             <input type="checkbox" id="chkParentBlockJunkFood" onchange="onToggleParentBlockJunkFood(this.checked)" style="width: 22px; height: 22px; cursor: pointer; accent-color: #e11d48;">
           </div>
@@ -1338,7 +1415,8 @@
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
             <span>Guardar Nuevas Credenciales</span>
           </button>
-        </div>
+      </div>
+        </main>
       </div>
     </div>
   </div>
@@ -1897,9 +1975,9 @@
               </div>
             </div>
             <div>
-              <label style="display: block; font-size: 0.75rem; font-weight: 800; color: var(--text-main); margin-bottom: 4px;">Sello Nutricional MEP:</label>
+              <label style="display: block; font-size: 0.75rem; font-weight: 800; color: var(--text-main); margin-bottom: 4px;">Clasificación Nutricional:</label>
               <select id="adminProdMep" style="width: 100%; padding: 7px; border-radius: 6px; border: 1px solid var(--border); font-weight: 700; font-size: 0.8rem; background: var(--card-bg); color: var(--text-main); box-sizing: border-box;">
-                <option value="1">Saludable MEP (Permitido)</option>
+                <option value="1">Saludable (Permitido)</option>
                 <option value="0">Consumo Ocasional</option>
               </select>
             </div>
@@ -2438,7 +2516,7 @@
         </div>
 
         <div style="background: #f0f9ff; border: 1px solid #bae6fd; border-radius: 12px; padding: 12px; margin-bottom: 18px; font-size: 0.78rem; color: var(--text-main); line-height: 1.45;">
-          <span style="display:inline-flex; align-items:center; gap:5px; color:#0284c7; font-weight:800;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg> Automatización Instantánea:</span> Al registrar la sede, el sistema clonará de forma automática el menú base de productos saludables MEP y creará sus credenciales operativas (<code>cajero_codigo</code> y <code>admin_codigo</code>, clave temporal <code>123456</code>).
+          <span style="display:inline-flex; align-items:center; gap:5px; color:#0284c7; font-weight:800;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg> Automatización Instantánea:</span> Al registrar la sede, el sistema clonará de forma automática el menú base de productos saludables y creará sus credenciales operativas (<code>cajero_codigo</code> y <code>admin_codigo</code>, clave temporal <code>123456</code>).
         </div>
 
         <div style="display: flex; justify-content: flex-end; gap: 10px; border-top: 1.5px solid var(--border); padding-top: 14px;">
@@ -2662,6 +2740,6 @@
   <script src="/js/sounds.js?v=9.6"></script>
   <script src="/js/jsQR.js"></script>
   <script src="/js/food-icons.js?v=1.1"></script>
-  <script src="/js/app.js?v=10.8"></script>
+  <script src="/js/app.js?v=11.1"></script>
 </body>
 </html>

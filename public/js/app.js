@@ -2521,7 +2521,7 @@ function renderParentDashboardView() {
   const sectionHijos = document.getElementById('parentChildrenSection');
   const containerActive = document.getElementById('parentSelectedChildContainer');
   const grid = document.getElementById('parentChildrenGrid');
-  const mainDash = document.getElementById('parentChildDashboardMain');
+  const sidebar = document.getElementById('parentSidebarBoxes');
 
   const hijos = (currentUser && currentUser.hijos) ? currentUser.hijos : [];
 
@@ -2535,18 +2535,7 @@ function renderParentDashboardView() {
 
   if (bannerNoHijos) bannerNoHijos.style.display = 'none';
   if (containerActive) containerActive.style.display = 'block';
-
-  // Si hay una sub-pantalla abierta (ej: Recarga SINPE o Alergias), NO mostrar mainDash ni sectionHijos para no expulsar al usuario
-  const isSinpeOpen = document.getElementById('parentSubViewSinpe')?.style.display === 'block';
-  const anySubViewOpen = isSinpeOpen || !!document.querySelector('.parent-subview[style*="display: block"]') || !!localStorage.getItem('recreopay_active_parent_subview');
-
-  if (anySubViewOpen) {
-    if (sectionHijos) sectionHijos.style.display = 'none';
-    if (mainDash) mainDash.style.display = 'none';
-  } else {
-    if (sectionHijos) sectionHijos.style.display = 'block';
-    if (mainDash) mainDash.style.display = 'block';
-  }
+  if (sectionHijos) sectionHijos.style.display = 'block';
 
   // Si no hay hijo seleccionado o el seleccionado ya no existe en la lista, seleccionar el primero
   if (!currentParentChild || !hijos.some(h => h.id === currentParentChild.id)) {
@@ -2556,7 +2545,7 @@ function renderParentDashboardView() {
     currentParentChild = hijos.find(h => h.id === currentParentChild.id) || hijos[0];
   }
 
-  // Renderizar tarjetas de hijos en la cuadrícula con monograma de iniciales y borde celeste activo
+  // Renderizar tarjetas de hijos en la cuadrícula
   if (grid) {
     grid.innerHTML = hijos.map(h => {
       const isSelected = currentParentChild && currentParentChild.id === h.id;
@@ -2590,6 +2579,18 @@ function renderParentDashboardView() {
   }
 
   renderActiveChildDetails(currentParentChild);
+
+  const isDesktop = window.innerWidth >= 860;
+  let activeView = localStorage.getItem('recreopay_active_parent_subview');
+  if (isDesktop && !activeView) {
+    activeView = 'resumen';
+  }
+
+  if (activeView) {
+    openParentSubView(activeView);
+  } else {
+    closeParentSubView();
+  }
 }
 
 function selectParentChild(childId) {
@@ -2597,7 +2598,6 @@ function selectParentChild(childId) {
   const found = hijos.find(h => h.id === childId);
   if (found) {
     currentParentChild = found;
-    closeParentSubView();
     renderParentDashboardView();
     if (window.sounds) window.sounds.playTap();
   }
@@ -2608,12 +2608,21 @@ function openParentSubView(viewKey) {
     localStorage.setItem('recreopay_active_parent_subview', viewKey);
   } catch (e) {}
 
-  const mainDash = document.getElementById('parentChildDashboardMain');
-  const childrenSection = document.getElementById('parentChildrenSection');
-  if (mainDash) mainDash.style.display = 'none';
-  if (childrenSection) childrenSection.style.display = 'none';
+  const isDesktop = window.innerWidth >= 860;
+  const sidebar = document.getElementById('parentSidebarBoxes');
+
+  // Actualizar estado activo en las cajitas del menú
+  document.querySelectorAll('.parent-nav-box').forEach(box => {
+    if (box.dataset.view === viewKey) {
+      box.classList.add('active');
+    } else {
+      box.classList.remove('active');
+    }
+  });
 
   const subViews = [
+    'parentSubViewResumen',
+    'parentSubViewMenu',
     'parentSubViewSinpe',
     'parentSubViewAlergias',
     'parentSubViewLimites',
@@ -2635,19 +2644,34 @@ function openParentSubView(viewKey) {
     });
   }
 
-  let targetId = '';
+  let targetId = 'parentSubViewResumen';
   if (viewKey === 'sinpe') targetId = 'parentSubViewSinpe';
   else if (viewKey === 'alergias') targetId = 'parentSubViewAlergias';
   else if (viewKey === 'limites') targetId = 'parentSubViewLimites';
   else if (viewKey === 'historial') targetId = 'parentSubViewHistorial';
   else if (viewKey === 'credenciales') targetId = 'parentSubViewCredenciales';
+  else if (viewKey === 'preordenes' || viewKey === 'menu') targetId = 'parentSubViewMenu';
+  else if (viewKey === 'resumen') targetId = 'parentSubViewResumen';
 
   const targetEl = document.getElementById(targetId);
   if (targetEl) {
     targetEl.style.display = 'block';
   }
 
-  if (viewKey === 'sinpe' && currentParentChild) {
+  // Manejo móvil vs escritorio:
+  if (!isDesktop) {
+    if (viewKey) {
+      if (sidebar) sidebar.style.display = 'none';
+    } else {
+      if (sidebar) sidebar.style.display = 'flex';
+    }
+  } else {
+    if (sidebar) sidebar.style.display = 'flex';
+  }
+
+  if (viewKey === 'preordenes' || viewKey === 'menu') {
+    renderParentCatalog();
+  } else if (viewKey === 'sinpe' && currentParentChild) {
     if (typeof ensureParentSinpeSession === 'function') {
       ensureParentSinpeSession(currentParentChild);
     } else {
@@ -2663,16 +2687,22 @@ function openParentSubView(viewKey) {
 }
 
 function closeParentSubView() {
+  const isDesktop = window.innerWidth >= 860;
+  if (isDesktop) {
+    openParentSubView('resumen');
+    return;
+  }
+
   try {
     localStorage.removeItem('recreopay_active_parent_subview');
   } catch (e) {}
 
-  const mainDash = document.getElementById('parentChildDashboardMain');
-  const childrenSection = document.getElementById('parentChildrenSection');
-  if (mainDash) mainDash.style.display = 'block';
-  if (childrenSection) childrenSection.style.display = 'block';
+  const sidebar = document.getElementById('parentSidebarBoxes');
+  if (sidebar) sidebar.style.display = 'flex';
 
   const subViews = [
+    'parentSubViewResumen',
+    'parentSubViewMenu',
     'parentSubViewSinpe',
     'parentSubViewAlergias',
     'parentSubViewLimites',
@@ -2684,12 +2714,100 @@ function closeParentSubView() {
     if (el) el.style.display = 'none';
   });
 
+  document.querySelectorAll('.parent-nav-box').forEach(box => {
+    box.classList.remove('active');
+  });
+
   window.scrollTo({ top: 0, behavior: 'smooth' });
   if (window.sounds) window.sounds.playTap();
 }
 
+window.addEventListener('resize', () => {
+  const isDesk = window.innerWidth >= 860;
+  const sidebar = document.getElementById('parentSidebarBoxes');
+  if (isDesk && sidebar && sidebar.style.display === 'none') {
+    sidebar.style.display = 'flex';
+  }
+});
+
 function focusParentSinpeRecharge() {
   openParentSubView('sinpe');
+}
+
+function renderParentCatalog(filterTerm = '') {
+  const grid = document.getElementById('parentProductsGrid');
+  if (!grid) return;
+
+  let filtered = products || [];
+  if (filterTerm) {
+    const term = filterTerm.toLowerCase().trim();
+    if (term === '<1000') {
+      filtered = filtered.filter(p => p.precio_colones < 1000);
+    } else if (term === 'saludable') {
+      filtered = filtered.filter(p => p.cumple_mep === 1 || p.es_saludable);
+    } else {
+      filtered = filtered.filter(p => 
+        (p.nombre && p.nombre.toLowerCase().includes(term)) ||
+        (p.descripcion && p.descripcion.toLowerCase().includes(term)) ||
+        (p.categoria_nombre && p.categoria_nombre.toLowerCase().includes(term))
+      );
+    }
+  }
+
+  const cartBadge = document.getElementById('parentCartBadgeCount');
+  if (cartBadge) {
+    const totalItems = (cart || []).reduce((acc, it) => acc + (it.cantidad || 1), 0);
+    cartBadge.textContent = totalItems;
+  }
+
+  if (filtered.length === 0) {
+    grid.innerHTML = `<div style="grid-column: 1 / -1; text-align: center; padding: 30px; color: var(--text-muted);">No se encontraron alimentos con ese filtro.</div>`;
+    return;
+  }
+
+  grid.innerHTML = filtered.map(prod => {
+    const isOutOfStock = prod.disponible === 0 || (prod.control_stock === 1 && prod.stock <= 0);
+    const mediaHtml = prod.imagen_url 
+      ? `<div style="width: 100%; height: 110px; border-radius: 10px; overflow: hidden; margin-bottom: 8px; background: #f8fafc; border: 1px solid var(--border); display: flex; align-items: center; justify-content: center;">
+           <img src="${prod.imagen_url}" alt="${prod.nombre}" style="width: 100%; height: 100%; object-fit: cover;">
+         </div>`
+      : `<div style="font-size: 2rem; text-align: center; margin-bottom: 6px;">${prod.icono || '🥪'}</div>`;
+
+    return `
+      <div class="product-card ${isOutOfStock ? 'out-of-stock' : ''}" style="background: var(--card-bg); border: 1.5px solid var(--border); border-radius: 14px; padding: 12px; display: flex; flex-direction: column; justify-content: space-between;">
+        <div>
+          ${mediaHtml}
+          <strong style="font-size: 0.88rem; color: var(--text-main); display: block; margin-bottom: 2px;">${prod.nombre}</strong>
+          <span style="font-size: 0.72rem; color: var(--text-muted); display: block; margin-bottom: 6px;">${prod.categoria_nombre || 'General'}</span>
+        </div>
+        <div style="display: flex; align-items: center; justify-content: space-between; margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--border);">
+          <span style="font-size: 0.95rem; font-weight: 900; color: #0284c7;">₡${prod.precio_colones.toLocaleString('es-CR')}</span>
+          ${isOutOfStock ? `<span style="font-size: 0.7rem; font-weight: 800; color: #ef4444;">Agotado</span>` : `
+            <button type="button" class="btn-saas btn-saas-primary" onclick="addParentProductToCart(${prod.id})" style="padding: 5px 10px; font-size: 0.78rem; border-radius: 8px;">+ Pre-ordenar</button>
+          `}
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+function filterParentCatalog(val) {
+  renderParentCatalog(val);
+}
+
+function quickFilterParentCatalog(term) {
+  const input = document.getElementById('parentCatalogSearch');
+  if (input) input.value = term;
+  renderParentCatalog(term);
+}
+
+function addParentProductToCart(productId) {
+  addToCart(productId);
+  const cartBadge = document.getElementById('parentCartBadgeCount');
+  if (cartBadge) {
+    const totalItems = (cart || []).reduce((acc, it) => acc + (it.cantidad || 1), 0);
+    cartBadge.textContent = totalItems;
+  }
 }
 
 function renderActiveChildDetails(child) {
@@ -2727,6 +2845,16 @@ function renderActiveChildDetails(child) {
   const schoolBadge = document.getElementById('parentActiveSchoolNameBadge');
   if (schoolBadge) schoolBadge.textContent = child.escuela_nombre || 'Soda Escolar Central';
 
+  // Actualizar Resumen General de la subvista
+  const summaryBalance = document.getElementById('parentSummaryBalanceDisplay');
+  const summaryLimit = document.getElementById('parentSummaryLimitDisplay');
+  const summaryName = document.getElementById('parentSummaryChildName');
+  const summaryAllergies = document.getElementById('parentSummaryAllergyStatus');
+
+  if (summaryBalance) summaryBalance.textContent = `₡${(child.saldo_colones || 0).toLocaleString('es-CR')}`;
+  if (summaryLimit) summaryLimit.textContent = `₡${currentLimit.toLocaleString('es-CR')}`;
+  if (summaryName) summaryName.textContent = child.nombre_completo || 'Estudiante';
+
   // Actualizar Alergias y Restricciones
   const inputAllergies = document.getElementById('inputParentStudentAllergies');
   const chkJunkFood = document.getElementById('chkParentBlockJunkFood');
@@ -2744,6 +2872,16 @@ function renderActiveChildDetails(child) {
       allergiesBadge.textContent = 'Sin alergias';
       allergiesBadge.style.background = '#f1f5f9';
       allergiesBadge.style.color = '#64748b';
+    }
+  }
+
+  if (summaryAllergies) {
+    if (hasAlergias || child.bloquear_chucherias) {
+      summaryAllergies.textContent = hasAlergias ? child.alergias : 'Veto de Chatarra';
+      summaryAllergies.style.color = '#e11d48';
+    } else {
+      summaryAllergies.textContent = 'Sin alertas';
+      summaryAllergies.style.color = '#10b981';
     }
   }
 
@@ -4210,7 +4348,6 @@ function renderAdminInventory(list) {
               <div style="display: flex; align-items: center; gap: 6px; flex-wrap: wrap;">
                 <strong style="font-size: 0.92rem; color: var(--text-main); word-break: break-word;">${p.nombre}</strong>
                 ${statusPill}
-                ${p.cumple_mep === 1 ? '<span style="font-size: 0.68rem; font-weight: 800; background: #dcfce7; color: #15803d; padding: 2px 6px; border-radius: 5px;">MEP Saludable</span>' : '<span style="font-size: 0.68rem; font-weight: 800; background: #fef3c7; color: #b45309; padding: 2px 6px; border-radius: 5px;">Ocasional</span>'}
               </div>
               <div style="font-size: 0.74rem; color: var(--text-muted); margin-top: 2px;">
                 ${p.categoria_nombre || 'General'} • ₡${p.precio_colones.toLocaleString('es-CR')}
@@ -7264,7 +7401,7 @@ async function guardarDevEscuela(e) {
     closeModalDevEscuela();
     alert(`¡Éxito al dar de alta la escuela!\n\n` +
           `Sede: ${data.nombre} (${data.codigo})\n\n` +
-          `Se creó el catálogo MEP y las siguientes cuentas operativas:\n` +
+          `Se creó el catálogo de productos y las siguientes cuentas operativas:\n` +
           `1. Cajero: ${data.cajero_usuario} (clave: 123456)\n` +
           `2. Admin Soda: ${data.admin_usuario} (clave: 123456)`);
 

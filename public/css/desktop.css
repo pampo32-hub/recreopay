@@ -5,7 +5,7 @@
    Basado en la distribución, paleta de colores y tamaño de botones del Panel Admin.
    ========================================================================== */
 
-@media (min-width: 1024px) {
+@media (min-width: 860px) {
 
   /* --------------------------------------------------------------------------
      1. CONTENEDORES GENERALES EN PANTALLA COMPLETA
@@ -245,78 +245,141 @@
     margin-bottom: 16px !important;
   }
 
-  /* Menú de Acciones Rápidas: En Grid Horizontal de Pantalla Ancha */
-  .parent-refined-menu-card {
-    display: grid !important;
-    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)) !important;
-    gap: 12px !important;
-    background: transparent !important;
-    border: none !important;
-    padding: 0 !important;
-    box-shadow: none !important;
-    margin-bottom: 18px !important;
+  /* --------------------------------------------------------------------------
+     4. PORTAL DE PADRES: LAYOUT DIVIDIDO IZQUIERDA / DERECHA (ESTILO GMAIL)
+     -------------------------------------------------------------------------- */
+  .parent-split-wrapper {
+    display: flex !important;
+    gap: 22px !important;
+    align-items: flex-start !important;
+    width: 100% !important;
+    margin-top: 14px !important;
   }
 
-  .parent-refined-menu-item {
+  /* Columna Izquierda: Menú de Cajitas (Sidebar Fijo) */
+  .parent-sidebar-boxes {
+    width: 330px !important;
+    min-width: 330px !important;
+    max-width: 330px !important;
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 10px !important;
+    position: sticky !important;
+    top: 20px !important;
+    flex-shrink: 0 !important;
+  }
+
+  .parent-nav-box {
     background: var(--card-bg, #ffffff) !important;
-    border: 1px solid var(--border, #e2e8f0) !important;
+    border: 1.5px solid var(--border, #e2e8f0) !important;
     border-radius: 14px !important;
-    padding: 14px 16px !important;
+    padding: 12px 16px !important;
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03) !important;
     transition: all 0.15s ease !important;
     display: flex !important;
     align-items: center !important;
     justify-content: space-between !important;
+    cursor: pointer !important;
   }
 
-  .parent-refined-menu-item:hover {
+  .parent-nav-box:hover {
     background: var(--bg-main, #f8fafc) !important;
     border-color: #cbd5e1 !important;
-    transform: translateY(-2px) !important;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06) !important;
+    transform: translateX(4px) !important;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05) !important;
+  }
+
+  .parent-nav-box.active {
+    background: #f0f9ff !important;
+    border-color: #0284c7 !important;
+    border-left: 5px solid #0284c7 !important;
+    box-shadow: 0 2px 8px rgba(2, 132, 199, 0.12) !important;
+  }
+
+  .parent-nav-box.active .parent-nav-box-text strong {
+    color: #0284c7 !important;
+  }
+
+  .parent-nav-box-icon {
+    width: 38px !important;
+    height: 38px !important;
+    min-width: 38px !important;
+    border-radius: 10px !important;
+    background: var(--bg-main, #f8fafc) !important;
+    border: 1px solid var(--border, #e2e8f0) !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    font-size: 1.2rem !important;
+    margin-right: 12px !important;
+    flex-shrink: 0 !important;
+  }
+
+  .parent-nav-box-icon.rose-halo {
+    background: #fff1f2 !important;
+    border-color: #fecdd3 !important;
+  }
+
+  .parent-nav-box-icon.green-halo {
+    background: #f0fdf4 !important;
+    border-color: #bbf7d0 !important;
+  }
+
+  .parent-nav-box-text {
+    flex: 1 !important;
+    min-width: 0 !important;
+  }
+
+  .parent-nav-box-text strong {
+    display: block !important;
+    font-size: 0.88rem !important;
+    color: var(--text-main, #0f172a) !important;
+    font-weight: 800 !important;
+    line-height: 1.25 !important;
+  }
+
+  .parent-nav-box-text span {
+    display: block !important;
+    font-size: 0.72rem !important;
+    color: var(--text-muted, #64748b) !important;
+    margin-top: 2px !important;
+  }
+
+  .parent-nav-arrow {
+    font-size: 1.25rem !important;
+    color: var(--text-muted, #94a3b8) !important;
+    font-weight: 800 !important;
+    margin-left: 8px !important;
+  }
+
+  /* Columna Derecha: Escenario de Contenido (Panel de Información) */
+  .parent-content-stage {
+    flex: 1 !important;
+    min-width: 0 !important;
+    width: calc(100% - 352px) !important;
   }
 
   .parent-card {
     background: var(--card-bg, #ffffff) !important;
     border: 1px solid var(--border, #e2e8f0) !important;
     border-radius: 18px !important;
-    padding: 20px !important;
+    padding: 22px !important;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04) !important;
     margin-bottom: 16px !important;
   }
 
-  /* Subvistas de Padres (Límites, Restricciones, Historial, etc.) */
+  /* Ocultar botón Volver en escritorio ya que la barra lateral siempre está visible */
+  .parent-subview-back-btn {
+    display: none !important;
+  }
+
   .parent-subview-header {
     display: flex !important;
     align-items: center !important;
-    justify-content: space-between !important;
+    justify-content: flex-end !important;
     margin-bottom: 16px !important;
     padding-bottom: 12px !important;
     border-bottom: 1px solid var(--border, #e2e8f0) !important;
-  }
-
-  .parent-subview-back-btn {
-    height: 34px !important;
-    font-size: 0.82rem !important;
-    font-weight: 700 !important;
-    border-radius: 9px !important;
-    padding: 0 14px !important;
-    background: var(--card-bg, #ffffff) !important;
-    border: 1.5px solid var(--border, #cbd5e1) !important;
-    color: var(--text-main, #334155) !important;
-    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04) !important;
-    display: inline-flex !important;
-    align-items: center !important;
-    gap: 6px !important;
-    cursor: pointer !important;
-    transition: all 0.15s ease !important;
-  }
-
-  .parent-subview-back-btn:hover {
-    background: var(--bg-main, #f8fafc) !important;
-    border-color: #94a3b8 !important;
-    color: var(--text-main, #0f172a) !important;
-    transform: none !important;
   }
 
   /* --------------------------------------------------------------------------
@@ -416,6 +479,31 @@
     border-color: #38bdf8 !important;
     background: rgba(2, 132, 199, 0.15) !important;
     box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.25) !important;
+  }
+
+  body.dark-mode .parent-nav-box {
+    background: #1e293b !important;
+    border-color: #334155 !important;
+  }
+
+  body.dark-mode .parent-nav-box:hover {
+    background: #243447 !important;
+    border-color: #475569 !important;
+  }
+
+  body.dark-mode .parent-nav-box.active {
+    background: rgba(2, 132, 199, 0.18) !important;
+    border-color: #38bdf8 !important;
+    border-left: 5px solid #38bdf8 !important;
+  }
+
+  body.dark-mode .parent-nav-box.active .parent-nav-box-text strong {
+    color: #38bdf8 !important;
+  }
+
+  body.dark-mode .parent-nav-box-icon {
+    background: #0f172a !important;
+    border-color: #334155 !important;
   }
 
   body.dark-mode .parent-refined-menu-item:hover {

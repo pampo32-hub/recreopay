@@ -202,7 +202,7 @@ function matchesProduct(prod, query) {
   }
 
   // 2. Filtros especiales por palabras clave
-  if (cleanQ === 'mep' || cleanQ === 'saludable') {
+  if (cleanQ === 'saludable' || cleanQ === 'nutritivo') {
     return Boolean(prod.cumple_mep || prod.es_saludable);
   }
   if (cleanQ === 'bloqueado' || cleanQ === 'agotado' || cleanQ === 'sin stock') {
