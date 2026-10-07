@@ -12,7 +12,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="SiboPay">
   <meta name="mobile-web-app-capable" content="yes">
-  <link rel="stylesheet" href="/css/styles.css?v=11.1">
+  <link rel="stylesheet" href="/css/styles.css?v=11.2">
   <link rel="stylesheet" href="/css/desktop.css?v=2.1">
   <style>
     /* Transiciones suaves */
@@ -1633,9 +1633,16 @@
 
   <!-- MODAL INMERSIVO: CÓDIGO QR PARA PRESENTAR EN LA SODA (DISEÑO SIBOPAY EXACTO) -->
   <div class="modal-qr-sibopay-immersive" id="modalQr" style="display: none;" onclick="closeQrModal(event)">
-    <!-- FONDO SUPERIOR CELESTE CON TÍTULO SIBOPAY -->
+    <!-- FONDO SUPERIOR CELESTE CON LOGO Y MARCA SIBOPAY -->
     <div class="qr-immersive-bg-header">
-      <div class="qr-immersive-brand-title">SiboPay</div>
+      <div class="qr-immersive-brand-header">
+        <div class="qr-immersive-brand-logo-wrap">
+          <img src="/img/sibopay-emblem.png" alt="SiboPay" class="qr-immersive-brand-logo">
+        </div>
+        <div class="qr-immersive-brand-title">
+          <span>Sibo</span><strong class="brand-pay-text">Pay</strong>
+        </div>
+      </div>
     </div>
 
     <!-- CONTENEDOR CENTRAL: TARJETA BLANCA Y BOTÓN CERRAR -->
@@ -1650,6 +1657,11 @@
           <div class="qr-frame-corner bottom-right"></div>
           
           <img id="qrDisplayImg" class="qr-immersive-code-img" src="" alt="Código QR">
+
+          <!-- LOGO DE LA 'S' EN EL CENTRO DEL QR -->
+          <div class="qr-center-logo-badge" title="SiboPay">
+            <img src="/img/sibopay-emblem.png" alt="S" class="qr-center-logo-img">
+          </div>
         </div>
 
         <div class="qr-card-token-text" id="qrTokenDisplay">

@@ -1725,7 +1725,7 @@ app.get('/api/qr-image/:token', async (req, res) => {
     const qrDataUrl = await QRCode.toDataURL(req.params.token, {
       width: 350,
       margin: 3,
-      errorCorrectionLevel: 'M',
+      errorCorrectionLevel: 'H',
       color: {
         dark: '#000000',
         light: '#ffffff'
