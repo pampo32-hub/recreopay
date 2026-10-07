@@ -4858,6 +4858,34 @@ body.dark-mode .parent-subview-back-btn:hover {
   border: 2px solid #38bdf8;
 }
 
+.sinpe-icon-badge.loading .sinpe-spin-svg {
+  position: absolute;
+}
+
+.sinpe-center-s-circle {
+  position: absolute;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: #0284c7;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 6px rgba(2, 132, 199, 0.35);
+  pointer-events: none;
+  z-index: 3;
+}
+
+.sinpe-center-s-circle span {
+  color: #ffffff;
+  font-family: 'Poppins', 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+  font-size: 1.05rem;
+  font-weight: 900;
+  line-height: 1;
+  transform: translateY(-0.5px);
+}
+
+
 .sinpe-icon-badge.timeout {
   background: #f0f9ff;
   border: 2.5px solid #38bdf8;

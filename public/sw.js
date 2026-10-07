@@ -1,5 +1,5 @@
-// RecreoPay PWA Service Worker v9.2 - Soporte Web Push VAPID en Segundo Plano
-const CACHE_NAME = 'recreopay-v9.2';
+// RecreoPay PWA Service Worker v9.3 - Actualización spinner SINPE S
+const CACHE_NAME = 'recreopay-v9.3';
 const STATIC_ASSETS = [
   '/',
   '/index.html',
