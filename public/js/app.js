@@ -134,6 +134,25 @@ document.addEventListener('DOMContentLoaded', async () => {
       }
     });
   }
+
+  // Persistencia en caliente de datos ingresados en recarga SINPE de padres
+  const inputSinpeMonto = document.getElementById('inputParentSinpeMonto');
+  if (inputSinpeMonto) {
+    inputSinpeMonto.addEventListener('input', (e) => {
+      if (currentParentChild && typeof saveSinpeSession === 'function') {
+        saveSinpeSession({ studentId: currentParentChild.id, monto: e.target.value });
+      }
+    });
+  }
+
+  const inputSinpeComp = document.getElementById('inputParentSinpeComprobante');
+  if (inputSinpeComp) {
+    inputSinpeComp.addEventListener('input', (e) => {
+      if (currentParentChild && typeof saveSinpeSession === 'function') {
+        saveSinpeSession({ studentId: currentParentChild.id, comprobante: e.target.value });
+      }
+    });
+  }
 });
 
 // Atajo global para enfocar el buscador inteligente del menú al presionar '/'
@@ -438,6 +457,24 @@ async function applyUserRoleSession() {
     
     await loadInitialData();
     await loadParentDashboard();
+
+    // Si el padre tenía una sub-pantalla abierta (ej: recarga SINPE al ir al banco y volver), restaurarla exactamente
+    try {
+      const activeSubView = localStorage.getItem('recreopay_active_parent_subview');
+      if (activeSubView === 'sinpe') {
+        const activeSession = typeof getSavedSinpeSession === 'function' ? getSavedSinpeSession() : null;
+        if (activeSession && activeSession.studentId) {
+          const hijos = (currentUser && currentUser.hijos) ? currentUser.hijos : [];
+          const matchChild = hijos.find(h => h.id === activeSession.studentId);
+          if (matchChild) {
+            currentParentChild = matchChild;
+          }
+        }
+        openParentSubView('sinpe');
+      }
+    } catch (e) {
+      console.warn('Error restaurando subvista padre:', e);
+    }
   } else {
     // Estudiante: SEGURIDAD ESTRICTA - Ocultar botón de padres
     if (viewAdmin) viewAdmin.style.display = 'none';
@@ -525,6 +562,8 @@ function logout(skipConfirm = false) {
   if (skipConfirm || confirm('¿Deseas cerrar sesión para seleccionar otra cuenta?')) {
     localStorage.removeItem('sibopay_user');
     localStorage.removeItem('recreopay_user');
+    localStorage.removeItem('recreopay_active_parent_subview');
+    if (typeof clearSinpeSession === 'function') clearSinpeSession();
     currentUser = null;
     currentStudent = null;
     currentParentChild = null;
@@ -2410,6 +2449,11 @@ document.addEventListener('visibilitychange', () => {
     }
     if (currentUser && currentUser.rol === 'padre') {
       loadParentDashboard();
+      // Si la sub-pantalla de SINPE está abierta, refrescar solicitudes pendientes sin alterar la vista
+      const isSinpeOpen = document.getElementById('parentSubViewSinpe')?.style.display === 'block';
+      if (isSinpeOpen && currentParentChild) {
+        loadParentSinpeRequests(currentParentChild.id);
+      }
     }
     if (!sseSource || sseSource.readyState === EventSource.CLOSED) {
       initStudentSSE();
@@ -2490,9 +2534,19 @@ function renderParentDashboardView() {
   }
 
   if (bannerNoHijos) bannerNoHijos.style.display = 'none';
-  if (sectionHijos) sectionHijos.style.display = 'block';
   if (containerActive) containerActive.style.display = 'block';
-  if (mainDash) mainDash.style.display = 'block';
+
+  // Si hay una sub-pantalla abierta (ej: Recarga SINPE o Alergias), NO mostrar mainDash ni sectionHijos para no expulsar al usuario
+  const isSinpeOpen = document.getElementById('parentSubViewSinpe')?.style.display === 'block';
+  const anySubViewOpen = isSinpeOpen || !!document.querySelector('.parent-subview[style*="display: block"]') || !!localStorage.getItem('recreopay_active_parent_subview');
+
+  if (anySubViewOpen) {
+    if (sectionHijos) sectionHijos.style.display = 'none';
+    if (mainDash) mainDash.style.display = 'none';
+  } else {
+    if (sectionHijos) sectionHijos.style.display = 'block';
+    if (mainDash) mainDash.style.display = 'block';
+  }
 
   // Si no hay hijo seleccionado o el seleccionado ya no existe en la lista, seleccionar el primero
   if (!currentParentChild || !hijos.some(h => h.id === currentParentChild.id)) {
@@ -2550,6 +2604,10 @@ function selectParentChild(childId) {
 }
 
 function openParentSubView(viewKey) {
+  try {
+    localStorage.setItem('recreopay_active_parent_subview', viewKey);
+  } catch (e) {}
+
   const mainDash = document.getElementById('parentChildDashboardMain');
   const childrenSection = document.getElementById('parentChildrenSection');
   if (mainDash) mainDash.style.display = 'none';
@@ -2590,7 +2648,11 @@ function openParentSubView(viewKey) {
   }
 
   if (viewKey === 'sinpe' && currentParentChild) {
-    obtenerNuevoCodigoSinpe();
+    if (typeof ensureParentSinpeSession === 'function') {
+      ensureParentSinpeSession(currentParentChild);
+    } else {
+      obtenerNuevoCodigoSinpe();
+    }
     loadParentSinpeRequests(currentParentChild.id);
   } else if (viewKey === 'historial' && currentParentChild) {
     loadActiveChildHistory(currentParentChild.id);
@@ -2601,6 +2663,10 @@ function openParentSubView(viewKey) {
 }
 
 function closeParentSubView() {
+  try {
+    localStorage.removeItem('recreopay_active_parent_subview');
+  } catch (e) {}
+
   const mainDash = document.getElementById('parentChildDashboardMain');
   const childrenSection = document.getElementById('parentChildrenSection');
   if (mainDash) mainDash.style.display = 'block';
@@ -2731,13 +2797,92 @@ async function loadActiveChildHistory(studentId) {
 
 let currentSinpeCode = '';
 
+// ==========================================
+// PERSISTENCIA DE SESIÓN ACTIVA SINPE MÓVIL
+// ==========================================
+const SINPE_SESSION_KEY = 'recreopay_active_sinpe_session';
+const SINPE_SESSION_TTL_MS = 60 * 60 * 1000; // 60 minutos de vigencia
+
+function getSavedSinpeSession(studentId = null) {
+  try {
+    const raw = localStorage.getItem(SINPE_SESSION_KEY);
+    if (!raw) return null;
+    const session = JSON.parse(raw);
+    if (!session || !session.codigo) return null;
+    if (studentId && session.studentId !== studentId) return null;
+    if (Date.now() - (session.timestamp || 0) > SINPE_SESSION_TTL_MS) {
+      localStorage.removeItem(SINPE_SESSION_KEY);
+      return null;
+    }
+    return session;
+  } catch (e) {
+    return null;
+  }
+}
+
+function saveSinpeSession(data) {
+  try {
+    const existing = getSavedSinpeSession(data.studentId) || {};
+    const updated = {
+      ...existing,
+      ...data,
+      timestamp: existing.timestamp || Date.now()
+    };
+    localStorage.setItem(SINPE_SESSION_KEY, JSON.stringify(updated));
+  } catch (e) {}
+}
+
+function clearSinpeSession() {
+  try {
+    localStorage.removeItem(SINPE_SESSION_KEY);
+  } catch (e) {}
+}
+
 function setParentSinpeMonto(monto) {
   const input = document.getElementById('inputParentSinpeMonto');
   if (input) {
     input.value = monto;
     input.focus();
   }
+  if (currentParentChild) {
+    saveSinpeSession({ studentId: currentParentChild.id, monto: String(monto) });
+  }
   if (window.sounds) window.sounds.playTap();
+}
+
+async function ensureParentSinpeSession(student, forceNew = false) {
+  if (!student) return;
+
+  const display = document.getElementById('parentSinpeCodigoDisplay');
+  const inputMonto = document.getElementById('inputParentSinpeMonto');
+  const inputComp = document.getElementById('inputParentSinpeComprobante');
+  const statusMsg = document.getElementById('parentSinpeStatusMsg');
+  if (statusMsg) statusMsg.style.display = 'none';
+
+  if (!forceNew) {
+    const saved = getSavedSinpeSession(student.id);
+    if (saved && saved.codigo) {
+      currentSinpeCode = saved.codigo;
+      if (display) display.textContent = saved.codigo;
+      if (inputMonto && saved.monto) inputMonto.value = saved.monto;
+      if (inputComp && saved.comprobante) inputComp.value = saved.comprobante;
+      if (saved.telefono_sinpe) {
+        const telEl = document.getElementById('parentSinpeNumero');
+        if (telEl) telEl.textContent = saved.telefono_sinpe;
+      }
+      if (saved.titular_sinpe) {
+        const titEl = document.getElementById('parentSinpeTitular');
+        if (titEl) titEl.textContent = saved.titular_sinpe;
+      }
+      if (saved.escuela_nombre) {
+        const escEl = document.getElementById('parentSinpeEscuelaNombre');
+        if (escEl) escEl.textContent = saved.escuela_nombre;
+      }
+      return;
+    }
+  }
+
+  await obtenerNuevoCodigoSinpe();
 }
 
 async function obtenerNuevoCodigoSinpe() {
@@ -2768,12 +2913,34 @@ async function obtenerNuevoCodigoSinpe() {
         const escEl = document.getElementById('parentSinpeEscuelaNombre');
         if (escEl) escEl.textContent = data.escuela_nombre;
       }
+
+      if (studentId) {
+        const inputMonto = document.getElementById('inputParentSinpeMonto');
+        const inputComp = document.getElementById('inputParentSinpeComprobante');
+        saveSinpeSession({
+          studentId: studentId,
+          codigo: data.codigo,
+          monto: inputMonto ? inputMonto.value : '',
+          comprobante: inputComp ? inputComp.value : '',
+          telefono_sinpe: data.telefono_sinpe || '',
+          titular_sinpe: data.titular_sinpe || '',
+          escuela_nombre: data.escuela_nombre || '',
+          timestamp: Date.now()
+        });
+      }
     }
   } catch (err) {
     console.error('Error generando código SINPE:', err);
     if (!currentSinpeCode && display) {
       currentSinpeCode = 'SIBO-' + Math.random().toString(36).substring(2, 6).toUpperCase();
       display.textContent = currentSinpeCode;
+      if (currentParentChild) {
+        saveSinpeSession({
+          studentId: currentParentChild.id,
+          codigo: currentSinpeCode,
+          timestamp: Date.now()
+        });
+      }
     }
   }
 }
@@ -3055,6 +3222,7 @@ async function executeParentSinpeRecharge() {
       });
 
       await loadParentSinpeRequests(currentParentChild.id);
+      clearSinpeSession();
       obtenerNuevoCodigoSinpe();
       return;
     }
@@ -3206,6 +3374,7 @@ async function retrySinpeWaitMore() {
       if (currentParentChild) {
         await loadParentSinpeRequests(currentParentChild.id);
       }
+      clearSinpeSession();
       obtenerNuevoCodigoSinpe();
       return;
     }
@@ -3273,6 +3442,7 @@ async function confirmSinpeSendManualReview() {
   if (currentParentChild) {
     await loadParentSinpeRequests(currentParentChild.id);
   }
+  clearSinpeSession();
   obtenerNuevoCodigoSinpe();
 }
 
