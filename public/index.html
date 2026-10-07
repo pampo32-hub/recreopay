@@ -12,7 +12,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="SiboPay">
   <meta name="mobile-web-app-capable" content="yes">
-  <link rel="stylesheet" href="/css/styles.css?v=11.3">
+  <link rel="stylesheet" href="/css/styles.css?v=12.2">
   <link rel="stylesheet" href="/css/desktop.css?v=2.2">
   <style>
     /* Transiciones suaves */
@@ -520,9 +520,14 @@
               Importa decenas o cientos de estudiantes en segundos. Puedes subir un archivo <code>.csv</code> o pegar las celdas directamente copiadas desde Microsoft Excel o Google Sheets.
             </p>
           </div>
-          <button type="button" onclick="descargarPlantillaCsvEstudiantes()" class="dev-action-btn" style="padding: 8px 14px; font-size: 0.80rem; display: inline-flex; align-items: center; gap: 6px;">
-            <span>📥 Descargar Plantilla Ejemplo (.CSV)</span>
-          </button>
+          <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+            <button type="button" onclick="cargarEjemploImportacionDev()" class="dev-action-btn" style="padding: 8px 14px; font-size: 0.80rem; display: inline-flex; align-items: center; gap: 6px; background: #e0f2fe; color: #0284c7; border: 1.5px solid #bae6fd; font-weight: 800;" title="Pega 3 estudiantes de muestra para probar la herramienta de inmediato">
+              <span>⚡ Cargar Datos de Ejemplo</span>
+            </button>
+            <button type="button" onclick="descargarPlantillaCsvEstudiantes()" class="dev-action-btn" style="padding: 8px 14px; font-size: 0.80rem; display: inline-flex; align-items: center; gap: 6px;">
+              <span>📥 Descargar Plantilla (.CSV)</span>
+            </button>
+          </div>
         </div>
 
         <!-- Paso 1: Seleccionar Escuela Destino -->
@@ -531,7 +536,7 @@
             1. Selecciona la Escuela / Sede de Destino: *
           </label>
           <select id="devImportEscuelaSelect" style="width: 100%; max-width: 420px; padding: 10px 14px; border-radius: 10px; border: 1.5px solid var(--border); background: var(--card-bg); color: var(--text-main); font-weight: 700; font-size: 0.90rem;">
-            <!-- Cargado dinámicamente -->
+            <option value="1">Soda Escolar Central (ESC01)</option>
           </select>
         </div>
 
@@ -3138,6 +3143,6 @@
   <script src="/js/sounds.js?v=9.6"></script>
   <script src="/js/jsQR.js"></script>
   <script src="/js/food-icons.js?v=1.1"></script>
-  <script src="/js/app.js?v=11.2"></script>
+  <script src="/js/app.js?v=12.2"></script>
 </body>
 </html>

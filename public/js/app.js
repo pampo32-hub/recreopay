@@ -67,7 +67,8 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   // Registrar Service Worker para PWA
   if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('/sw.js?v=8.5').then(reg => {
+    navigator.serviceWorker.register('/sw.js?v=12.2').then(reg => {
+      reg.update().catch(() => {});
       if ('Notification' in window && Notification.permission === 'granted') {
         subscribeDeviceToWebPush().catch(() => {});
       }
@@ -7685,6 +7686,44 @@ async function ejecutarBackupManualDev() {
 function descargarBackupDev(filename) {
   window.location.href = `/api/developer/backups/descargar/${filename}`;
 }
+window.descargarBackupDev = descargarBackupDev;
+window.cargarBackupsDev = cargarBackupsDev;
+window.ejecutarBackupManualDev = ejecutarBackupManualDev;
+
+// ==========================================
+// DESCARGA DIRECTA DE ARCHIVOS (ANTI POPUP-BLOCKER)
+// ==========================================
+async function descargarArchivoDirecto(url, defaultFilename) {
+  try {
+    const res = await fetch(url);
+    if (!res.ok) {
+      throw new Error(`El servidor respondió con código ${res.status}`);
+    }
+    const blob = await res.blob();
+    const blobUrl = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = blobUrl;
+    link.download = defaultFilename || 'reporte.csv';
+    document.body.appendChild(link);
+    link.click();
+    setTimeout(() => {
+      if (link.parentNode) link.parentNode.removeChild(link);
+      window.URL.revokeObjectURL(blobUrl);
+    }, 250);
+  } catch (err) {
+    console.error('Error al descargar archivo blob, usando fallback directo:', err);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = defaultFilename || 'reporte.csv';
+    link.target = '_blank';
+    document.body.appendChild(link);
+    link.click();
+    setTimeout(() => {
+      if (link.parentNode) link.parentNode.removeChild(link);
+    }, 250);
+  }
+}
+window.descargarArchivoDirecto = descargarArchivoDirecto;
 
 // ==========================================
 // CARGA MASIVA DE ESTUDIANTES (DEVELOPER)
@@ -7697,21 +7736,41 @@ async function cargarEscuelasSelectImportacion() {
 
   try {
     const res = await fetch('/api/developer/escuelas');
+    if (!res.ok) throw new Error('HTTP ' + res.status);
     const escuelas = await res.json();
-    select.innerHTML = escuelas.map(e => `
-      <option value="${e.id}">${escapeHtml(e.nombre)} (${escapeHtml(e.codigo)})</option>
-    `).join('');
+    if (Array.isArray(escuelas) && escuelas.length > 0) {
+      select.innerHTML = escuelas.map(e => `
+        <option value="${e.id}">${escapeHtml(e.nombre)} (${escapeHtml(e.codigo || 'Sede')})</option>
+      `).join('');
+    } else {
+      select.innerHTML = '<option value="1">Soda Escolar Central (ESC01)</option>';
+    }
   } catch (err) {
     console.error('Error cargando escuelas para importación:', err);
+    if (select.children.length === 0) {
+      select.innerHTML = '<option value="1">Soda Escolar Central (ESC01)</option>';
+    }
   }
 }
+window.cargarEscuelasSelectImportacion = cargarEscuelasSelectImportacion;
+
+function cargarEjemploImportacionDev() {
+  const txt = document.getElementById('devImportTextarea');
+  if (!txt) return;
+  txt.value = `Nombre Completo\tGrado\tSección\tSaldo Inicial\tAlergias\tTeléfono Padre
+Santiago Morales Castro\t5to\t5-B\t3000\tLactosa\t8888-1234
+Valeria Solano Gómez\t3ro\t3-A\t5000\tNinguna\t8765-4321
+Mateo Alvarado Pérez\t2do\t2-A\t1500\tManí\t8333-2211`;
+  analizarDatosImportacionDev();
+}
+window.cargarEjemploImportacionDev = cargarEjemploImportacionDev;
 
 function descargarPlantillaCsvEstudiantes() {
   const headers = ['Nombre Completo', 'Grado', 'Seccion', 'Saldo Inicial', 'Alergias', 'Telefono Padre'];
   const sampleRows = [
     ['Santiago Morales Castro', '5to', '5-B', '3000', 'Lactosa', '8888-1234'],
     ['Valeria Solano Gómez', '3ro', '3-A', '5000', 'Ninguna', '8765-4321'],
-    ['Mateo Alvarado Pérez', '2do', '2-A', '0', 'Maní', '8333-2211']
+    ['Mateo Alvarado Pérez', '2do', '2-A', '1500', 'Maní', '8333-2211']
   ];
   const csvContent = '\uFEFF' + [headers.join(','), ...sampleRows.map(r => r.map(c => `"${c}"`).join(','))].join('\r\n');
   const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
@@ -7721,9 +7780,12 @@ function descargarPlantillaCsvEstudiantes() {
   a.download = 'plantilla_estudiantes_sibopay.csv';
   document.body.appendChild(a);
   a.click();
-  document.body.removeChild(a);
-  URL.revokeObjectURL(url);
+  setTimeout(() => {
+    if (a.parentNode) a.parentNode.removeChild(a);
+    URL.revokeObjectURL(url);
+  }, 250);
 }
+window.descargarPlantillaCsvEstudiantes = descargarPlantillaCsvEstudiantes;
 
 function handleDevImportFile(event) {
   const file = event.target.files && event.target.files[0];
@@ -7740,6 +7802,7 @@ function handleDevImportFile(event) {
   };
   reader.readAsText(file);
 }
+window.handleDevImportFile = handleDevImportFile;
 
 function analizarDatosImportacionDev() {
   const textarea = document.getElementById('devImportTextarea');
@@ -7763,23 +7826,34 @@ function analizarDatosImportacionDev() {
 
     let delimiter = '\t';
     if (line.includes('\t')) delimiter = '\t';
-    else if (line.includes(',')) delimiter = ',';
     else if (line.includes(';')) delimiter = ';';
+    else if (line.includes(',')) delimiter = ',';
 
     const cols = line.split(delimiter).map(c => c.trim().replace(/^["']|["']$/g, ''));
     if (cols.length === 0 || !cols[0]) continue;
 
-    const firstColLower = cols[0].toLowerCase();
-    if (i === 0 && (firstColLower.includes('nombre') || firstColLower.includes('alumno') || firstColLower.includes('estudiante'))) {
+    // Saltar encabezados
+    const firstColLower = (cols[0] || '').toLowerCase();
+    const secondColLower = (cols[1] || '').toLowerCase();
+    if (i === 0 && (firstColLower.includes('nombre') || firstColLower.includes('alumno') || firstColLower.includes('estudiante') || secondColLower.includes('nombre'))) {
       continue;
     }
 
-    const nombre = cols[0];
-    const grado = cols[1] || 'General';
-    const seccion = cols[2] || 'A';
-    const saldo = parseInt(cols[3] || 0, 10) || 0;
-    const alergias = cols[4] || 'Ninguna conocida';
-    const tel = cols[5] || '';
+    // Detectar si la primera columna es un número secuencial (1, 2, 3...)
+    let offset = 0;
+    if (cols.length > 1 && /^\d+$/.test(cols[0]) && isNaN(cols[1])) {
+      offset = 1;
+    }
+
+    const nombre = cols[offset + 0] || '';
+    if (!nombre || nombre.length < 2) continue;
+
+    const grado = cols[offset + 1] || 'General';
+    const seccion = cols[offset + 2] || 'A';
+    const saldoRaw = String(cols[offset + 3] || '0').replace(/[^\d]/g, '');
+    const saldo = parseInt(saldoRaw, 10) || 0;
+    const alergias = cols[offset + 4] || 'Ninguna conocida';
+    const tel = cols[offset + 5] || '';
 
     parsedStudentsToImport.push({
       nombre_completo: nombre,
@@ -7792,7 +7866,7 @@ function analizarDatosImportacionDev() {
   }
 
   if (parsedStudentsToImport.length === 0) {
-    alert('No se detectaron alumnos válidos en el texto ingresado.');
+    alert('No se detectaron alumnos válidos en el texto ingresado. Asegúrate de incluir al menos los nombres de los estudiantes.');
     return;
   }
 
@@ -7811,8 +7885,12 @@ function analizarDatosImportacionDev() {
     `).join('');
   }
 
-  if (previewBox) previewBox.style.display = 'block';
+  if (previewBox) {
+    previewBox.style.display = 'block';
+    try { previewBox.scrollIntoView({ behavior: 'smooth', block: 'nearest' }); } catch (e) {}
+  }
 }
+window.analizarDatosImportacionDev = analizarDatosImportacionDev;
 
 async function ejecutarImportacionMasivaDev() {
   if (!parsedStudentsToImport || parsedStudentsToImport.length === 0) {
@@ -7860,9 +7938,15 @@ async function ejecutarImportacionMasivaDev() {
       `;
     }
 
-    document.getElementById('devImportPreviewBox').style.display = 'none';
-    document.getElementById('devImportTextarea').value = '';
+    const previewBox = document.getElementById('devImportPreviewBox');
+    if (previewBox) previewBox.style.display = 'none';
+    const txt = document.getElementById('devImportTextarea');
+    if (txt) txt.value = '';
     parsedStudentsToImport = [];
+
+    // Recargar usuarios/estudiantes en las demás vistas
+    if (typeof loadDevUsuarios === 'function') loadDevUsuarios();
+    if (typeof loadAdminData === 'function') loadAdminData();
 
   } catch (err) {
     if (window.sounds) window.sounds.playError();
@@ -7880,19 +7964,55 @@ async function ejecutarImportacionMasivaDev() {
     }
   }
 }
+window.ejecutarImportacionMasivaDev = ejecutarImportacionMasivaDev;
 
 // ==========================================
 // EXPORTACIÓN A EXCEL / CSV (ADMIN SODA)
 // ==========================================
-function exportarVentasCsv() {
-  const escuelaId = (window.currentAdminUser && window.currentAdminUser.escuela_id) || '';
-  window.open(`/api/admin/export/ventas.csv${escuelaId ? '?escuela_id=' + escuelaId : ''}`, '_blank');
+async function exportarVentasCsv() {
+  const btn = document.querySelector('[onclick*="exportarVentasCsv"]');
+  const origHtml = btn ? btn.innerHTML : '';
+  if (btn) {
+    btn.disabled = true;
+    btn.innerHTML = '<span>⏳ Generando...</span>';
+  }
+  try {
+    const escuelaId = (currentUser && currentUser.escuela_id) || '';
+    const url = `/api/admin/export/ventas.csv${escuelaId ? '?escuela_id=' + escuelaId : ''}`;
+    await descargarArchivoDirecto(url, `ventas_sibopay_${new Date().toISOString().slice(0, 10)}.csv`);
+  } catch (err) {
+    alert('Error al exportar ventas: ' + err.message);
+  } finally {
+    if (btn) {
+      btn.disabled = false;
+      btn.innerHTML = origHtml;
+    }
+  }
 }
+window.exportarVentasCsv = exportarVentasCsv;
 
-function exportarEstudiantesCsv() {
-  const escuelaId = (window.currentAdminUser && window.currentAdminUser.escuela_id) || '';
-  window.open(`/api/admin/export/estudiantes.csv${escuelaId ? '?escuela_id=' + escuelaId : ''}`, '_blank');
+async function exportarEstudiantesCsv() {
+  const btn = document.querySelector('[onclick*="exportarEstudiantesCsv"]');
+  const origHtml = btn ? btn.innerHTML : '';
+  if (btn) {
+    btn.disabled = true;
+    btn.innerHTML = '<span>⏳ Generando...</span>';
+  }
+  try {
+    const escuelaId = (currentUser && currentUser.escuela_id) || '';
+    const url = `/api/admin/export/estudiantes.csv${escuelaId ? '?escuela_id=' + escuelaId : ''}`;
+    await descargarArchivoDirecto(url, `estudiantes_sibopay_${new Date().toISOString().slice(0, 10)}.csv`);
+  } catch (err) {
+    alert('Error al exportar estudiantes: ' + err.message);
+  } finally {
+    if (btn) {
+      btn.disabled = false;
+      btn.innerHTML = origHtml;
+    }
+  }
 }
+window.exportarEstudiantesCsv = exportarEstudiantesCsv;
+
 
 
 
