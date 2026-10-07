@@ -1,0 +1,429 @@
+/* ==========================================================================
+   SIBOPAY DESKTOP WEB EXPERIENCE (desktop.css)
+   Exclusivo para computadoras y monitores de escritorio (>= 1024px).
+   Desacoplado de la PWA móvil: Los celulares (< 1024px) no se ven afectados.
+   Basado en la distribución, paleta de colores y tamaño de botones del Panel Admin.
+   ========================================================================== */
+
+@media (min-width: 1024px) {
+
+  /* --------------------------------------------------------------------------
+     1. CONTENEDORES GENERALES EN PANTALLA COMPLETA
+     -------------------------------------------------------------------------- */
+  .parent-container {
+    max-width: 100vw !important;
+    width: 100% !important;
+    padding: 18px 24px 60px 24px !important;
+    min-height: 100vh;
+    background: var(--bg-main, #f8fafc) !important;
+    box-sizing: border-box !important;
+    overflow-x: hidden !important;
+  }
+
+  .app-container {
+    max-width: 100vw !important;
+    width: 100% !important;
+    padding: 18px 24px 80px 24px !important;
+    min-height: 100vh;
+    background: var(--bg-main, #f8fafc) !important;
+    box-sizing: border-box !important;
+    overflow-x: hidden !important;
+  }
+
+  /* --------------------------------------------------------------------------
+     2. PORTAL DE PADRES: CABECERA IDÉNTICA A LA DEL ADMINISTRADOR
+     -------------------------------------------------------------------------- */
+  .parent-header {
+    background: var(--card-bg, #ffffff) !important;
+    border: 1px solid var(--border, #e2e8f0) !important;
+    border-radius: 18px !important;
+    padding: 14px 18px !important;
+    margin-bottom: 16px !important;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04) !important;
+    display: flex !important;
+    justify-content: space-between !important;
+    align-items: center !important;
+    flex-wrap: wrap !important;
+    gap: 12px !important;
+  }
+
+  .parent-badge {
+    display: flex !important;
+    align-items: center !important;
+    gap: 10px !important;
+  }
+
+  .parent-icon {
+    width: 38px !important;
+    height: 38px !important;
+    min-width: 38px !important;
+    border-radius: 10px !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    font-size: 1.05rem !important;
+    background: var(--bg-main, #f8fafc) !important;
+    color: #0284c7 !important;
+    border: 1.5px solid var(--border, #e2e8f0) !important;
+    padding: 0 !important;
+  }
+
+  .parent-badge h2 {
+    font-size: 1.15rem !important;
+    font-weight: 900 !important;
+    margin: 0 !important;
+    color: var(--text-main, #0f172a) !important;
+    line-height: 1.2 !important;
+  }
+
+  #parentLoggedName {
+    font-size: 0.76rem !important;
+    color: #0284c7 !important;
+    font-weight: 700 !important;
+    display: block !important;
+  }
+
+  .parent-header-actions {
+    display: flex !important;
+    gap: 8px !important;
+    align-items: center !important;
+  }
+
+  .parent-header-actions .theme-toggle-btn {
+    width: 34px !important;
+    height: 34px !important;
+    min-width: 34px !important;
+    border-radius: 9px !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    font-size: 0.95rem !important;
+    box-sizing: border-box !important;
+    margin: 0 !important;
+    border: 1.5px solid var(--border, #e2e8f0) !important;
+    background: var(--card-bg, #ffffff) !important;
+    color: var(--text-main, #334155) !important;
+    cursor: pointer !important;
+  }
+
+  .parent-header-actions .mode-btn {
+    height: 34px !important;
+    font-size: 0.82rem !important;
+    font-weight: 700 !important;
+    border-radius: 9px !important;
+    padding: 0 14px !important;
+    background: var(--card-bg, #ffffff) !important;
+    color: var(--text-main, #334155) !important;
+    border: 1.5px solid var(--border, #cbd5e1) !important;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04) !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    gap: 6px !important;
+    cursor: pointer !important;
+    transition: all 0.15s ease !important;
+  }
+
+  .parent-header-actions .mode-btn:hover {
+    background: var(--bg-main, #f8fafc) !important;
+    border-color: #94a3b8 !important;
+    color: var(--text-main, #0f172a) !important;
+  }
+
+  .parent-header-actions .logout-btn {
+    height: 34px !important;
+    font-size: 0.82rem !important;
+    font-weight: 800 !important;
+    border-radius: 9px !important;
+    padding: 0 14px !important;
+    background: #fef2f2 !important;
+    color: #991b1b !important;
+    border: 1px solid #fecaca !important;
+    box-shadow: 0 1px 3px rgba(220, 38, 38, 0.08) !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    gap: 6px !important;
+    cursor: pointer !important;
+    transition: all 0.15s ease !important;
+  }
+
+  .parent-header-actions .logout-btn:hover {
+    background: #fee2e2 !important;
+    border-color: #f87171 !important;
+    color: #7f1d1d !important;
+  }
+
+  /* --------------------------------------------------------------------------
+     3. PORTAL DE PADRES: CUADRÍCULA DE HIJOS VINCULADOS
+     -------------------------------------------------------------------------- */
+  .parent-children-grid {
+    display: grid !important;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)) !important;
+    gap: 14px !important;
+    margin-bottom: 18px !important;
+  }
+
+  .parent-child-card {
+    background: var(--card-bg, #ffffff) !important;
+    border: 1px solid var(--border, #e2e8f0) !important;
+    border-radius: 16px !important;
+    padding: 14px 16px !important;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03) !important;
+    cursor: pointer !important;
+    transition: all 0.2s ease !important;
+  }
+
+  .parent-child-card:hover {
+    transform: translateY(-2px) !important;
+    box-shadow: 0 4px 12px rgba(2, 132, 199, 0.12) !important;
+    border-color: #cbd5e1 !important;
+  }
+
+  .parent-child-card.active,
+  .parent-child-card.selected {
+    border: 2px solid #0284c7 !important;
+    background: #f0f9ff !important;
+    box-shadow: 0 0 0 3px rgba(2, 132, 199, 0.18), 0 4px 12px rgba(2, 132, 199, 0.12) !important;
+  }
+
+  /* --------------------------------------------------------------------------
+     4. PORTAL DE PADRES: DASHBOARD DEL HIJO SELECCIONADO
+     -------------------------------------------------------------------------- */
+  .parent-balance-card-refined {
+    background: var(--card-bg, #ffffff) !important;
+    border: 1px solid var(--border, #e2e8f0) !important;
+    border-radius: 18px !important;
+    padding: 18px 22px !important;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04) !important;
+    margin-bottom: 16px !important;
+  }
+
+  .parent-balance-amount-display span {
+    font-size: 2.2rem !important;
+    font-weight: 900 !important;
+    color: #0284c7 !important;
+    letter-spacing: -0.5px !important;
+  }
+
+  .parent-balance-btn-recharge {
+    height: 34px !important;
+    font-size: 0.82rem !important;
+    font-weight: 700 !important;
+    border-radius: 9px !important;
+    padding: 0 16px !important;
+    background: #0f172a !important;
+    color: #ffffff !important;
+    border: 1px solid #0f172a !important;
+    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.12) !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    gap: 6px !important;
+    cursor: pointer !important;
+    transition: all 0.15s ease !important;
+  }
+
+  .parent-balance-btn-recharge:hover {
+    background: #1e293b !important;
+    border-color: #1e293b !important;
+    box-shadow: 0 2px 5px rgba(15, 23, 42, 0.2) !important;
+  }
+
+  .parent-school-selector-pill {
+    background: var(--card-bg, #ffffff) !important;
+    border: 1px solid var(--border, #e2e8f0) !important;
+    border-radius: 14px !important;
+    padding: 10px 16px !important;
+    margin-bottom: 16px !important;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03) !important;
+  }
+
+  .parent-smart-search-card {
+    background: var(--card-bg, #ffffff) !important;
+    border: 1px solid var(--border, #e2e8f0) !important;
+    border-radius: 18px !important;
+    padding: 16px 20px !important;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04) !important;
+    margin-bottom: 16px !important;
+  }
+
+  /* Menú de Acciones Rápidas: En Grid Horizontal de Pantalla Ancha */
+  .parent-refined-menu-card {
+    display: grid !important;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)) !important;
+    gap: 12px !important;
+    background: transparent !important;
+    border: none !important;
+    padding: 0 !important;
+    box-shadow: none !important;
+    margin-bottom: 18px !important;
+  }
+
+  .parent-refined-menu-item {
+    background: var(--card-bg, #ffffff) !important;
+    border: 1px solid var(--border, #e2e8f0) !important;
+    border-radius: 14px !important;
+    padding: 14px 16px !important;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03) !important;
+    transition: all 0.15s ease !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+  }
+
+  .parent-refined-menu-item:hover {
+    background: var(--bg-main, #f8fafc) !important;
+    border-color: #cbd5e1 !important;
+    transform: translateY(-2px) !important;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06) !important;
+  }
+
+  .parent-card {
+    background: var(--card-bg, #ffffff) !important;
+    border: 1px solid var(--border, #e2e8f0) !important;
+    border-radius: 18px !important;
+    padding: 20px !important;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04) !important;
+    margin-bottom: 16px !important;
+  }
+
+  /* Subvistas de Padres (Límites, Restricciones, Historial, etc.) */
+  .parent-subview-header {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    margin-bottom: 16px !important;
+    padding-bottom: 12px !important;
+    border-bottom: 1px solid var(--border, #e2e8f0) !important;
+  }
+
+  .parent-subview-back-btn {
+    height: 34px !important;
+    font-size: 0.82rem !important;
+    font-weight: 700 !important;
+    border-radius: 9px !important;
+    padding: 0 14px !important;
+    background: var(--card-bg, #ffffff) !important;
+    border: 1.5px solid var(--border, #cbd5e1) !important;
+    color: var(--text-main, #334155) !important;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04) !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    gap: 6px !important;
+    cursor: pointer !important;
+    transition: all 0.15s ease !important;
+  }
+
+  .parent-subview-back-btn:hover {
+    background: var(--bg-main, #f8fafc) !important;
+    border-color: #94a3b8 !important;
+    color: var(--text-main, #0f172a) !important;
+    transform: none !important;
+  }
+
+  /* --------------------------------------------------------------------------
+     5. PORTAL ESTUDIANTE / SODA (app-container en desktop)
+     -------------------------------------------------------------------------- */
+  .top-bar {
+    background: var(--card-bg, #ffffff) !important;
+    border: 1px solid var(--border, #e2e8f0) !important;
+    border-radius: 18px !important;
+    padding: 14px 18px !important;
+    margin-bottom: 16px !important;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04) !important;
+    max-width: 100% !important;
+  }
+
+  .wallet-card {
+    background: var(--card-bg, #ffffff) !important;
+    border: 1px solid var(--border, #e2e8f0) !important;
+    border-radius: 18px !important;
+    padding: 18px 22px !important;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04) !important;
+    margin: 0 0 16px 0 !important;
+    max-width: 100% !important;
+  }
+
+  .products-grid {
+    display: grid !important;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)) !important;
+    gap: 14px !important;
+  }
+
+  /* --------------------------------------------------------------------------
+     6. MODO OSCURO EN DESKTOP (Coherencia exacta con el panel de administración)
+     -------------------------------------------------------------------------- */
+  body.dark-mode .parent-container,
+  body.dark-mode .app-container {
+    background: #0b1120 !important;
+  }
+
+  body.dark-mode .parent-header,
+  body.dark-mode .parent-balance-card-refined,
+  body.dark-mode .parent-school-selector-pill,
+  body.dark-mode .parent-smart-search-card,
+  body.dark-mode .parent-card,
+  body.dark-mode .parent-child-card,
+  body.dark-mode .parent-refined-menu-item,
+  body.dark-mode .top-bar,
+  body.dark-mode .wallet-card {
+    background: #1e293b !important;
+    border-color: #334155 !important;
+  }
+
+  body.dark-mode .parent-icon {
+    background: #0f172a !important;
+    border-color: #334155 !important;
+    color: #38bdf8 !important;
+  }
+
+  body.dark-mode .parent-header-actions .theme-toggle-btn,
+  body.dark-mode .parent-header-actions .mode-btn,
+  body.dark-mode .parent-subview-back-btn {
+    background: #1e293b !important;
+    border-color: #334155 !important;
+    color: #f1f5f9 !important;
+  }
+
+  body.dark-mode .parent-header-actions .mode-btn:hover,
+  body.dark-mode .parent-subview-back-btn:hover {
+    background: #334155 !important;
+    border-color: #475569 !important;
+  }
+
+  body.dark-mode .parent-header-actions .logout-btn {
+    background: rgba(239, 68, 68, 0.12) !important;
+    color: #fca5a5 !important;
+    border-color: rgba(239, 68, 68, 0.3) !important;
+  }
+
+  body.dark-mode .parent-header-actions .logout-btn:hover {
+    background: rgba(239, 68, 68, 0.2) !important;
+    border-color: #f87171 !important;
+  }
+
+  body.dark-mode .parent-balance-btn-recharge {
+    background: #0284c7 !important;
+    border-color: #0284c7 !important;
+    color: #ffffff !important;
+  }
+
+  body.dark-mode .parent-balance-btn-recharge:hover {
+    background: #0369a1 !important;
+    border-color: #0369a1 !important;
+  }
+
+  body.dark-mode .parent-child-card.active,
+  body.dark-mode .parent-child-card.selected {
+    border-color: #38bdf8 !important;
+    background: rgba(2, 132, 199, 0.15) !important;
+    box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.25) !important;
+  }
+
+  body.dark-mode .parent-refined-menu-item:hover {
+    background: #0f172a !important;
+  }
+
+  body.dark-mode .parent-balance-amount-display span {
+    color: #38bdf8 !important;
+  }
+
+}

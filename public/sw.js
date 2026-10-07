@@ -1,5 +1,5 @@
-// RecreoPay PWA Service Worker v9.3 - Actualización spinner SINPE S
-const CACHE_NAME = 'recreopay-v9.3';
+// RecreoPay PWA Service Worker v9.4 - Soporte Desktop Web Desacoplado
+const CACHE_NAME = 'recreopay-v9.4';
 const STATIC_ASSETS = [
   '/',
   '/index.html',
@@ -7,6 +7,7 @@ const STATIC_ASSETS = [
   '/carnet.html',
   '/manifest.json',
   '/css/styles.css',
+  '/css/desktop.css',
   '/js/app.js',
   '/js/pos.js',
   '/js/sounds.js',
