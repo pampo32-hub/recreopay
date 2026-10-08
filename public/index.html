@@ -684,6 +684,10 @@
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M16 22h2a2 2 0 0 0 2-2V7.5L14.5 2H6a2 2 0 0 0-2 2v3"/><path d="m3 12.5 3 3 6-6"/></svg>
         <span>Movimientos & Reversiones</span>
       </button>
+      <button class="admin-tab-btn" id="btnTabAdminHorarios" onclick="switchAdminTab('horarios')">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+        <span>Horarios & Recreos</span>
+      </button>
     </div>
 
     <!-- TAB 1: INVENTARIO Y STOCK -->
@@ -760,6 +764,38 @@
 
         <div id="adminSinpeRequestsList" style="display: flex; flex-direction: column; gap: 12px;">
           <!-- Solicitudes SINPE pendientes cargadas dinámicamente -->
+        </div>
+
+        <!-- BARRA DE EXPORTACIÓN EXCEL DE RECARGAS SINPE -->
+        <div style="margin-top: 16px; padding: 14px; background: #f8fafc; border: 1.5px solid #e2e8f0; border-radius: 12px;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; flex-wrap: wrap; gap: 8px;">
+            <strong style="font-size: 0.86rem; color: #0f172a; display: flex; align-items: center; gap: 6px;">
+              <span>📊 Exportar Reporte de Recargas / Depósitos (Excel)</span>
+            </strong>
+            <button type="button" onclick="descargarReporteRecargasExcel(true)" class="btn-saas btn-saas-outline" style="height: 28px; padding: 0 10px; font-size: 0.74rem; font-weight: 700; color: #0284c7; border-color: #bae6fd; background: #f0f9ff;" title="Descargar todas las recargas registradas sin filtro">
+              ⬇️ Todo el Historial
+            </button>
+          </div>
+          <div style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center;">
+            <div style="display: flex; align-items: center; gap: 4px; font-size: 0.76rem; color: #64748b;">
+              <span>Desde:</span>
+              <input type="date" id="inputExportRecargasDesde" style="padding: 5px 8px; font-size: 0.78rem; border-radius: 6px; border: 1px solid #cbd5e1; outline: none; background: white;">
+            </div>
+            <div style="display: flex; align-items: center; gap: 4px; font-size: 0.76rem; color: #64748b;">
+              <span>Hasta:</span>
+              <input type="date" id="inputExportRecargasHasta" style="padding: 5px 8px; font-size: 0.78rem; border-radius: 6px; border: 1px solid #cbd5e1; outline: none; background: white;">
+            </div>
+            <select id="selectExportRecargasEstado" style="padding: 5px 8px; font-size: 0.78rem; border-radius: 6px; border: 1px solid #cbd5e1; outline: none; background: white;">
+              <option value="todos">Todos los Estados</option>
+              <option value="aprobado">Solo Aprobadas</option>
+              <option value="pendiente">Solo Pendientes</option>
+              <option value="rechazado">Solo Rechazadas</option>
+            </select>
+            <button type="button" onclick="descargarReporteRecargasExcel(false)" class="btn-saas btn-saas-primary" style="height: 32px; padding: 0 14px; font-size: 0.78rem; font-weight: 800; display: inline-flex; align-items: center; gap: 5px;">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+              <span>Descargar Filtrado</span>
+            </button>
+          </div>
         </div>
       </div>
 
@@ -946,6 +982,75 @@
       <div id="adminStaffList" style="display: flex; flex-direction: column; gap: 10px;">
         <div style="text-align: center; color: var(--text-muted); padding: 30px; font-size: 0.88rem;">
           Cargando personal...
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB 6: HORARIOS ESCOLARES (RECREOS Y ALMUERZO) -->
+    <div id="adminTabContentHorarios" class="admin-card" style="display: none; max-width: 780px; margin: 0 auto;">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; flex-wrap: wrap; gap: 10px;">
+        <div>
+          <h3 style="margin: 0; font-size: 1.15rem; font-weight: 900; color: var(--text-main);">
+            ⏰ Horarios de Recreos y Almuerzo
+          </h3>
+          <p style="margin: 3px 0 0 0; font-size: 0.78rem; color: var(--text-muted);">
+            Configura los turnos específicos de tu escuela. Los pedidos anticipados de estudiantes y padres se agruparán bajo estos horarios.
+          </p>
+        </div>
+      </div>
+
+      <div style="background: var(--bg-main); border: 1.5px solid var(--border); border-radius: 14px; padding: 20px; display: flex; flex-direction: column; gap: 16px;">
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 14px;">
+          <!-- Primer Recreo -->
+          <div style="background: var(--card-bg); border: 1.5px solid var(--border); border-radius: 12px; padding: 14px; box-shadow: 0 1px 3px rgba(0,0,0,0.03);">
+            <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px;">
+              <span style="font-size: 1.3rem;">🔔</span>
+              <div>
+                <strong style="display: block; font-size: 0.90rem; color: var(--text-main);">1er Recreo</strong>
+                <span style="font-size: 0.72rem; color: var(--text-muted);">Turno de la Mañana</span>
+              </div>
+            </div>
+            <label style="display: block; font-size: 0.74rem; font-weight: 700; color: var(--text-muted); margin-bottom: 5px;">Hora de Inicio:</label>
+            <input type="time" id="inputAdminHoraRecreo1" value="09:30" style="width: 100%; padding: 8px 12px; border-radius: 8px; border: 1.5px solid var(--border); font-size: 1.05rem; font-weight: 800; color: var(--text-main); background: var(--bg-main); outline: none; box-sizing: border-box;">
+          </div>
+
+          <!-- Almuerzo -->
+          <div style="background: var(--card-bg); border: 1.5px solid var(--border); border-radius: 12px; padding: 14px; box-shadow: 0 1px 3px rgba(0,0,0,0.03);">
+            <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px;">
+              <span style="font-size: 1.3rem;">🍲</span>
+              <div>
+                <strong style="display: block; font-size: 0.90rem; color: var(--text-main);">Almuerzo</strong>
+                <span style="font-size: 0.72rem; color: var(--text-muted);">Comedor / Almuerzo</span>
+              </div>
+            </div>
+            <label style="display: block; font-size: 0.74rem; font-weight: 700; color: var(--text-muted); margin-bottom: 5px;">Hora de Inicio:</label>
+            <input type="time" id="inputAdminHoraAlmuerzo" value="11:45" style="width: 100%; padding: 8px 12px; border-radius: 8px; border: 1.5px solid var(--border); font-size: 1.05rem; font-weight: 800; color: var(--text-main); background: var(--bg-main); outline: none; box-sizing: border-box;">
+          </div>
+
+          <!-- Segundo Recreo -->
+          <div style="background: var(--card-bg); border: 1.5px solid var(--border); border-radius: 12px; padding: 14px; box-shadow: 0 1px 3px rgba(0,0,0,0.03);">
+            <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px;">
+              <span style="font-size: 1.3rem;">⏰</span>
+              <div>
+                <strong style="display: block; font-size: 0.90rem; color: var(--text-main);">2do Recreo</strong>
+                <span style="font-size: 0.72rem; color: var(--text-muted);">Turno de la Tarde</span>
+              </div>
+            </div>
+            <label style="display: block; font-size: 0.74rem; font-weight: 700; color: var(--text-muted); margin-bottom: 5px;">Hora de Inicio:</label>
+            <input type="time" id="inputAdminHoraRecreo2" value="13:45" style="width: 100%; padding: 8px 12px; border-radius: 8px; border: 1.5px solid var(--border); font-size: 1.05rem; font-weight: 800; color: var(--text-main); background: var(--bg-main); outline: none; box-sizing: border-box;">
+          </div>
+        </div>
+
+        <div style="background: #e0f2fe; border: 1.5px solid #bae6fd; border-radius: 10px; padding: 12px 14px; font-size: 0.78rem; color: #0369a1; display: flex; align-items: center; gap: 10px;">
+          <span style="font-size: 1.2rem;">💡</span>
+          <span>Al presionar <strong>Guardar Horarios</strong>, los cambios se aplican automáticamente para padres y estudiantes en el selector de pedidos y para los cajeros en la terminal POS.</span>
+        </div>
+
+        <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 6px;">
+          <button type="button" onclick="guardarHorariosEscolares()" class="btn-saas btn-saas-primary" style="padding: 10px 24px; font-size: 0.88rem; font-weight: 800; display: inline-flex; align-items: center; gap: 6px; box-shadow: 0 2px 8px rgba(2, 132, 199, 0.35);">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+            <span>Guardar Horarios</span>
+          </button>
         </div>
       </div>
     </div>
@@ -1916,14 +2021,7 @@
       </button>
     </div>
 
-    <!-- ENLACES DE ACCESO RÁPIDO PARA DEMO Y REVISIÓN -->
-    <div style="margin: 30px 16px; padding: 14px; background: var(--card-bg); border: 1px solid var(--border); border-radius: 14px; font-size: 0.82rem; text-align: center;">
-      <p style="font-weight: 700; margin-bottom: 8px; color: var(--text-main);">Acceso Rápido del Sistema:</p>
-      <div style="display: flex; justify-content: center; gap: 10px; flex-wrap: wrap;">
-        <a href="/pos.html" target="_blank" style="color: #0284c7; font-weight: 700; text-decoration: none; padding: 4px 10px; background: #e0f2fe; border-radius: 8px; display: inline-flex; align-items: center; gap: 6px;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="14" x="2" y="5" rx="2"/><line x1="2" x2="22" y1="10" y2="10"/></svg> Terminal Soda (Caja & QR)</a>
-        <a href="/carnet.html" target="_blank" style="color: #10b981; font-weight: 700; text-decoration: none; padding: 4px 10px; background: #d1fae5; border-radius: 8px; display: inline-flex; align-items: center; gap: 6px;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect width="12" height="8" x="6" y="14"/></svg> Carnés Físicos para Imprimir</a>
-      </div>
-    </div>
+
   </div>
 
   <!-- MODAL INMERSIVO: CÓDIGO QR PARA PRESENTAR EN LA SODA (DISEÑO SIBOPAY EXACTO) -->
@@ -3179,6 +3277,6 @@
   <script src="/js/sounds.js?v=9.6"></script>
   <script src="/js/jsQR.js"></script>
   <script src="/js/food-icons.js?v=1.1"></script>
-  <script src="/js/app.js?v=13.1"></script>
+  <script src="/js/app.js?v=13.2"></script>
 </body>
 </html>

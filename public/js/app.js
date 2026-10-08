@@ -64,6 +64,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     applyCardTheme(getSavedCardTheme());
   }
   checkHttpsEnvironment();
+  cargarHorariosPublicos();
 
   // Registrar Service Worker para PWA
   if ('serviceWorker' in navigator) {
@@ -1312,14 +1313,57 @@ function normalizeMomentoKey(val) {
   return v;
 }
 
+let currentSchoolHorarios = {
+  hora_recreo_1_fmt: '9:30 AM',
+  hora_almuerzo_fmt: '11:45 AM',
+  hora_recreo_2_fmt: '1:45 PM'
+};
+
+async function cargarHorariosPublicos() {
+  try {
+    const res = await fetch('/api/escuela/horarios');
+    const data = await res.json();
+    if (data && data.horarios) {
+      currentSchoolHorarios = data.horarios;
+      window.schoolHorarios = data.horarios;
+      actualizarTextosHorariosPreordenes();
+    }
+  } catch (e) {
+    console.warn('Error cargando horarios escolares:', e);
+  }
+}
+
+function actualizarTextosHorariosPreordenes() {
+  const h = window.schoolHorarios || currentSchoolHorarios || {};
+  const r1Text = h.hora_recreo_1_fmt || '9:30 AM';
+  const almText = h.hora_almuerzo_fmt || '11:45 AM';
+  const r2Text = h.hora_recreo_2_fmt || '1:45 PM';
+
+  const select = document.getElementById('momentoEntregaSelect');
+  if (select) {
+    const prev = select.value;
+    select.innerHTML = `
+      <option value="recreo_1">🔔 1er Recreo de la Mañana (${r1Text})</option>
+      <option value="almuerzo">🍲 Hora de Almuerzo (${almText})</option>
+      <option value="recreo_2">⏰ 2do Recreo de la Tarde (${r2Text})</option>
+    `;
+    if (prev) select.value = prev;
+  }
+}
+
 function getMomentoBadge(val) {
   const key = normalizeMomentoKey(val);
+  const h = window.schoolHorarios || currentSchoolHorarios || {};
+  const r1Text = h.hora_recreo_1_fmt || '9:30 AM';
+  const almText = h.hora_almuerzo_fmt || '11:45 AM';
+  const r2Text = h.hora_recreo_2_fmt || '1:45 PM';
+
   switch (key) {
     case 'recreo_1':
       return {
         key: 'recreo_1',
-        title: '1er Recreo (9:30 AM)',
-        full: '1er Recreo de la Mañana (9:30 AM)',
+        title: `1er Recreo (${r1Text})`,
+        full: `1er Recreo de la Mañana (${r1Text})`,
         icon: '🔔',
         bg: '#fffbeb',
         border: '#f59e0b',
@@ -1331,8 +1375,8 @@ function getMomentoBadge(val) {
     case 'almuerzo':
       return {
         key: 'almuerzo',
-        title: 'Almuerzo (11:45 AM)',
-        full: 'Hora de Almuerzo (11:45 AM)',
+        title: `Almuerzo (${almText})`,
+        full: `Hora de Almuerzo (${almText})`,
         icon: '🍲',
         bg: '#f0fdf4',
         border: '#16a34a',
@@ -1344,8 +1388,8 @@ function getMomentoBadge(val) {
     case 'recreo_2':
       return {
         key: 'recreo_2',
-        title: '2do Recreo (1:45 PM)',
-        full: '2do Recreo de la Tarde (1:45 PM)',
+        title: `2do Recreo (${r2Text})`,
+        full: `2do Recreo de la Tarde (${r2Text})`,
         icon: '⏰',
         bg: '#eef2ff',
         border: '#6366f1',
@@ -1376,7 +1420,7 @@ function getMomentoBadge(val) {
         bg: '#f8fafc',
         border: '#0284c7',
         text: '#0369a1',
-        badgeBg: '#e0f2fe',
+        badgeBg: '#e0e7fe',
         badgeColor: '#0369a1',
         badgeBorder: '#bae6fd'
       };
@@ -2646,6 +2690,25 @@ function initStudentSSE() {
       }
       if (typeof loadDevDisenos === 'function' && currentUser && currentUser.rol === 'developer') {
         loadDevDisenos();
+      }
+    } catch (err) {}
+  });
+
+  sse.addEventListener('horarios_actualizados', (e) => {
+    try {
+      const data = JSON.parse(e.data);
+      if (data) {
+        currentSchoolHorarios = data;
+        window.schoolHorarios = data;
+        actualizarTextosHorariosPreordenes();
+        if (currentUser && currentUser.rol === 'admin') {
+          const inpR1 = document.getElementById('inputAdminHoraRecreo1');
+          const inpAlm = document.getElementById('inputAdminHoraAlmuerzo');
+          const inpR2 = document.getElementById('inputAdminHoraRecreo2');
+          if (inpR1) inpR1.value = currentSchoolHorarios.hora_recreo_1 || '09:30';
+          if (inpAlm) inpAlm.value = currentSchoolHorarios.hora_almuerzo || '11:45';
+          if (inpR2) inpR2.value = currentSchoolHorarios.hora_recreo_2 || '13:45';
+        }
       }
     } catch (err) {}
   });
@@ -4541,7 +4604,7 @@ async function confirmLinkValidatedChild() {
 // ==========================================
 
 function switchAdminTab(tabName) {
-  const tabs = ['inventario', 'estudiantes', 'recarga', 'movimientos', 'personal'];
+  const tabs = ['inventario', 'estudiantes', 'recarga', 'movimientos', 'personal', 'horarios'];
   tabs.forEach(t => {
     const btn = document.getElementById(`btnTabAdmin${t.charAt(0).toUpperCase() + t.slice(1)}`);
     const content = document.getElementById(`adminTabContent${t.charAt(0).toUpperCase() + t.slice(1)}`);
@@ -4558,9 +4621,99 @@ function switchAdminTab(tabName) {
     if (!adminSelectedStudent) {
       clearAdminSelectedStudent();
     }
+  } else if (tabName === 'horarios') {
+    cargarHorariosAdmin();
   }
 
   if (window.sounds) window.sounds.playTap();
+}
+
+async function cargarHorariosAdmin() {
+  try {
+    const res = await fetch('/api/escuela/horarios');
+    const data = await res.json();
+    if (data && data.horarios) {
+      currentSchoolHorarios = data.horarios;
+      window.schoolHorarios = data.horarios;
+
+      const inpR1 = document.getElementById('inputAdminHoraRecreo1');
+      const inpAlm = document.getElementById('inputAdminHoraAlmuerzo');
+      const inpR2 = document.getElementById('inputAdminHoraRecreo2');
+
+      if (inpR1) inpR1.value = currentSchoolHorarios.hora_recreo_1 || '09:30';
+      if (inpAlm) inpAlm.value = currentSchoolHorarios.hora_almuerzo || '11:45';
+      if (inpR2) inpR2.value = currentSchoolHorarios.hora_recreo_2 || '13:45';
+
+      actualizarTextosHorariosPreordenes();
+    }
+  } catch (err) {
+    console.error('Error cargando horarios admin:', err);
+  }
+}
+
+async function guardarHorariosEscolares() {
+  const inpR1 = document.getElementById('inputAdminHoraRecreo1');
+  const inpAlm = document.getElementById('inputAdminHoraAlmuerzo');
+  const inpR2 = document.getElementById('inputAdminHoraRecreo2');
+
+  const hora1 = inpR1 ? inpR1.value : '09:30';
+  const alm = inpAlm ? inpAlm.value : '11:45';
+  const hora2 = inpR2 ? inpR2.value : '13:45';
+
+  if (!hora1 || !alm || !hora2) {
+    alert('Por favor especifica las horas de los 3 turnos (1er Recreo, Almuerzo y 2do Recreo)');
+    return;
+  }
+
+  try {
+    const res = await fetch('/api/admin/escuela/horarios', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        escuela_id: 1,
+        hora_recreo_1: hora1,
+        hora_almuerzo: alm,
+        hora_recreo_2: hora2
+      })
+    });
+    const data = await res.json();
+    if (data.success && data.horarios) {
+      currentSchoolHorarios = data.horarios;
+      window.schoolHorarios = data.horarios;
+      actualizarTextosHorariosPreordenes();
+      if (window.sounds) window.sounds.playCoin();
+      alert(`✅ Horarios escolares guardados con éxito:\n• 1er Recreo: ${data.horarios.hora_recreo_1_fmt}\n• Almuerzo: ${data.horarios.hora_almuerzo_fmt}\n• 2do Recreo: ${data.horarios.hora_recreo_2_fmt}`);
+    } else {
+      alert('Error guardando horarios: ' + (data.error || 'Ocurrió un error inesperado'));
+    }
+  } catch (err) {
+    alert('Error al comunicarse con el servidor: ' + err.message);
+  }
+}
+
+function descargarReporteRecargasExcel(descargarTodo = false) {
+  let url = '/api/admin/export/recargas.csv';
+  if (!descargarTodo) {
+    const desde = document.getElementById('inputExportRecargasDesde')?.value || '';
+    const hasta = document.getElementById('inputExportRecargasHasta')?.value || '';
+    const estado = document.getElementById('selectExportRecargasEstado')?.value || 'todos';
+
+    const params = new URLSearchParams();
+    if (desde) params.append('desde', desde);
+    if (hasta) params.append('hasta', hasta);
+    if (estado && estado !== 'todos') params.append('estado', estado);
+
+    const qs = params.toString();
+    if (qs) url += '?' + qs;
+  }
+
+  const link = document.createElement('a');
+  link.href = url;
+  link.target = '_blank';
+  link.download = '';
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
 }
 
 async function loadAdminData() {
@@ -4597,6 +4750,9 @@ async function loadAdminData() {
 
     // 5. Cargar solicitudes SINPE pendientes para badge y sección
     loadAdminSinpeRequests();
+
+    // 6. Cargar horarios escolares para la pestaña de configuración
+    cargarHorariosAdmin();
   } catch (err) {
     console.error('Error cargando datos de administración:', err);
   }

@@ -32,7 +32,10 @@ const {
   expirarPreordenesVencidas,
   cancelarPreorden,
   despacharPreordenTransaction,
-  enriquecerEstudianteFinanzas
+  enriquecerEstudianteFinanzas,
+  obtenerHorariosEscuela,
+  actualizarHorariosEscuela,
+  formatTime12h
 } = require('./db');
 const { checkSinpeEmailsOnce, simularSinpeEmail } = require('./sinpeImapService');
 const { normalizarCodigoDetalle, parseSinpeEmail } = require('./sinpeParser');
@@ -1923,6 +1926,137 @@ app.get('/api/admin/export/estudiantes.csv', (req, res) => {
     res.setHeader('Content-Type', 'text/csv; charset=utf-8');
     res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
     res.send(csvOutput);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Exportar Recargas y Depósitos SINPE a CSV / Excel
+app.get('/api/admin/export/recargas.csv', (req, res) => {
+  try {
+    const escuelaId = req.query.escuela_id ? parseInt(req.query.escuela_id, 10) : null;
+    const { desde, hasta, estado } = req.query;
+
+    let query = `
+      SELECT s.id, s.creado_en, s.comprobante_sinpe, s.codigo_detalle, s.monto_colones, s.estado, s.notas,
+             e.codigo_estudiante, e.nombre_completo as estudiante_nombre, e.grado, e.seccion,
+             COALESCE(u.nombre, e.padre_nombre) as padre_nombre,
+             COALESCE(u.telefono, e.padre_telefono) as padre_telefono,
+             u_aprob.nombre as aprobado_por_nombre
+      FROM solicitudes_recarga_sinpe s
+      JOIN estudiantes e ON s.estudiante_id = e.id
+      LEFT JOIN usuarios u ON s.padre_usuario_id = u.id
+      LEFT JOIN usuarios u_aprob ON s.aprobado_por_usuario_id = u_aprob.id
+      WHERE 1=1
+    `;
+    const params = [];
+
+    if (escuelaId) {
+      query += ` AND (s.escuela_id = ? OR s.escuela_id IS NULL) `;
+      params.push(escuelaId);
+    }
+
+    if (desde && desde.trim()) {
+      query += ` AND s.creado_en >= ? `;
+      params.push(`${desde.trim()} 00:00:00`);
+    }
+
+    if (hasta && hasta.trim()) {
+      query += ` AND s.creado_en <= ? `;
+      params.push(`${hasta.trim()} 23:59:59`);
+    }
+
+    if (estado && estado.trim() && estado.trim() !== 'todos') {
+      query += ` AND s.estado = ? `;
+      params.push(estado.trim());
+    }
+
+    query += ` ORDER BY s.id DESC LIMIT 5000`;
+
+    const recargas = db.prepare(query).all(...params);
+
+    const headers = [
+      'ID Solicitud',
+      'Fecha y Hora',
+      'Comprobante SINPE',
+      'Código Verificación',
+      'Estudiante',
+      'Carné Estudiante',
+      'Grado y Sección',
+      'Padre / Tutor',
+      'Teléfono Padre',
+      'Monto (CRC)',
+      'Estado',
+      'Verificado Por',
+      'Notas'
+    ];
+
+    const csvData = recargas.map(r => {
+      const fechaFmt = r.creado_en ? new Date(r.creado_en).toLocaleString('es-CR') : '';
+      const gradoSeccion = [r.grado, r.seccion].filter(Boolean).join(' - ') || 'N/A';
+      let estLabel = r.estado;
+      if (r.estado === 'aprobado') estLabel = 'Aprobada / Acreditada';
+      else if (r.estado === 'rechazado') estLabel = 'Rechazada';
+      else if (r.estado === 'pendiente') estLabel = 'Pendiente de Verificación';
+
+      return [
+        r.id,
+        fechaFmt,
+        r.comprobante_sinpe || '',
+        r.codigo_detalle || '',
+        r.estudiante_nombre || '',
+        r.codigo_estudiante || '',
+        gradoSeccion,
+        r.padre_nombre || 'Padre de Familia',
+        r.padre_telefono || '',
+        r.monto_colones || 0,
+        estLabel,
+        r.aprobado_por_nombre || (r.estado === 'aprobado' ? 'Sistema / Cajero' : ''),
+        r.notas || ''
+      ];
+    });
+
+    const csvOutput = arrayToCsv(headers, csvData);
+    const dateTag = desde ? `${desde}_a_${hasta || desde}` : new Date().toISOString().slice(0, 10);
+    const filename = `recargas_sinpe_sibopay_${dateTag}.csv`;
+    res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    res.send(csvOutput);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Obtener Horarios de Recreos y Almuerzo de la Escuela
+app.get('/api/escuela/horarios', (req, res) => {
+  try {
+    const escuelaId = req.query.escuela_id ? parseInt(req.query.escuela_id, 10) : 1;
+    const horarios = obtenerHorariosEscuela(escuelaId);
+    res.json({ success: true, horarios });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Modificar Horarios de Recreos y Almuerzo de la Escuela (Admin)
+app.put('/api/admin/escuela/horarios', (req, res) => {
+  try {
+    const { escuela_id, hora_recreo_1, hora_almuerzo, hora_recreo_2 } = req.body;
+    const escuelaId = escuela_id ? parseInt(escuela_id, 10) : 1;
+    const actualizados = actualizarHorariosEscuela(escuelaId, {
+      hora_recreo_1,
+      hora_almuerzo,
+      hora_recreo_2
+    });
+
+    // Notificar en tiempo real por SSE
+    broadcastEvent('horarios_actualizados', actualizados);
+
+    res.json({ 
+      success: true, 
+      message: 'Horarios escolares actualizados correctamente', 
+      horarios: actualizados 
+    });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

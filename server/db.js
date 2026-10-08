@@ -118,9 +118,15 @@ function initDatabase() {
           nombre_sinpe VARCHAR(150) DEFAULT 'Soda Central',
           concesionario VARCHAR(150),
           activo BOOLEAN DEFAULT TRUE,
+          hora_recreo_1 VARCHAR(20) DEFAULT '09:30',
+          hora_almuerzo VARCHAR(20) DEFAULT '11:45',
+          hora_recreo_2 VARCHAR(20) DEFAULT '13:45',
           creado_en TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         );
       `);
+      try { db.exec("ALTER TABLE escuelas ADD COLUMN IF NOT EXISTS hora_recreo_1 VARCHAR(20) DEFAULT '09:30';"); } catch (_) {}
+      try { db.exec("ALTER TABLE escuelas ADD COLUMN IF NOT EXISTS hora_almuerzo VARCHAR(20) DEFAULT '11:45';"); } catch (_) {}
+      try { db.exec("ALTER TABLE escuelas ADD COLUMN IF NOT EXISTS hora_recreo_2 VARCHAR(20) DEFAULT '13:45';"); } catch (_) {}
     } catch (e) {}
 
     try {
@@ -312,6 +318,9 @@ function initDatabase() {
   try { db.exec('ALTER TABLE usuarios ADD COLUMN activo INTEGER DEFAULT 1'); } catch (e) {}
   try { db.exec('UPDATE usuarios SET activo = 1 WHERE activo IS NULL'); } catch (e) {}
   try { db.exec("UPDATE ordenes SET estado = 'cancelado' WHERE estado = 'expirado'"); } catch (e) {}
+  try { db.exec("ALTER TABLE escuelas ADD COLUMN hora_recreo_1 TEXT DEFAULT '09:30'"); } catch (e) {}
+  try { db.exec("ALTER TABLE escuelas ADD COLUMN hora_almuerzo TEXT DEFAULT '11:45'"); } catch (e) {}
+  try { db.exec("ALTER TABLE escuelas ADD COLUMN hora_recreo_2 TEXT DEFAULT '13:45'"); } catch (e) {}
 
   // 8. Relación N:M Padres - Estudiantes
   try {
@@ -812,16 +821,73 @@ function recargaSaldoTransaction({ estudianteId, monto, comprobanteSinpe, descri
   return transaction();
 }
 
+function formatTime12h(timeStr) {
+  if (!timeStr) return '';
+  const parts = String(timeStr).split(':');
+  let h = parseInt(parts[0], 10);
+  const m = parts[1] || '00';
+  if (isNaN(h)) return timeStr;
+  const ampm = h >= 12 ? 'PM' : 'AM';
+  h = h % 12;
+  if (h === 0) h = 12;
+  return `${h}:${m} ${ampm}`;
+}
+
+function obtenerHorariosEscuela(escuelaId = 1) {
+  try {
+    const row = db.prepare('SELECT id, codigo, nombre, hora_recreo_1, hora_almuerzo, hora_recreo_2 FROM escuelas WHERE id = ?').get(escuelaId || 1);
+    if (row) {
+      return {
+        id: row.id,
+        nombre: row.nombre,
+        hora_recreo_1: row.hora_recreo_1 || '09:30',
+        hora_almuerzo: row.hora_almuerzo || '11:45',
+        hora_recreo_2: row.hora_recreo_2 || '13:45',
+        hora_recreo_1_fmt: formatTime12h(row.hora_recreo_1 || '09:30'),
+        hora_almuerzo_fmt: formatTime12h(row.hora_almuerzo || '11:45'),
+        hora_recreo_2_fmt: formatTime12h(row.hora_recreo_2 || '13:45')
+      };
+    }
+  } catch (e) {
+    console.error('Error obteniendo horarios escuela:', e);
+  }
+  return {
+    id: 1,
+    nombre: 'Soda Escolar Central',
+    hora_recreo_1: '09:30',
+    hora_almuerzo: '11:45',
+    hora_recreo_2: '13:45',
+    hora_recreo_1_fmt: '9:30 AM',
+    hora_almuerzo_fmt: '11:45 AM',
+    hora_recreo_2_fmt: '1:45 PM'
+  };
+}
+
+function actualizarHorariosEscuela(escuelaId = 1, { hora_recreo_1, hora_almuerzo, hora_recreo_2 }) {
+  const r1 = hora_recreo_1 || '09:30';
+  const alm = hora_almuerzo || '11:45';
+  const r2 = hora_recreo_2 || '13:45';
+
+  db.prepare(`
+    UPDATE escuelas
+    SET hora_recreo_1 = ?, hora_almuerzo = ?, hora_recreo_2 = ?
+    WHERE id = ?
+  `).run(r1, alm, r2, escuelaId || 1);
+
+  return obtenerHorariosEscuela(escuelaId || 1);
+}
+
 /**
  * Traduce y estandariza el código o texto de momento de entrega a una etiqueta humana amigable
  */
-function formatMomentoLabel(momento) {
+function formatMomentoLabel(momento, escuelaId = 1) {
   const m = String(momento || '').toLowerCase().trim();
-  if (m === 'recreo_1' || m.includes('1er') || m.includes('9:30')) return '1er Recreo (9:30 AM)';
-  if (m === 'almuerzo' || m.includes('almuerzo') || m.includes('11:45')) return 'Almuerzo (11:45 AM)';
-  if (m === 'recreo_2' || m.includes('2do') || m.includes('1:45')) return '2do Recreo (1:45 PM)';
+  const horarios = obtenerHorariosEscuela(escuelaId);
+  if (m === 'recreo_1' || m.includes('1er') || m.includes('9:30')) return `1er Recreo (${horarios.hora_recreo_1_fmt})`;
+  if (m === 'almuerzo' || m.includes('almuerzo') || m.includes('11:45')) return `Almuerzo (${horarios.hora_almuerzo_fmt})`;
+  if (m === 'recreo_2' || m.includes('2do') || m.includes('1:45')) return `2do Recreo (${horarios.hora_recreo_2_fmt})`;
   if (m === 'inmediato' || m.includes('inmediato')) return 'Entrega Inmediata';
-  return momento || '1er Recreo (9:30 AM)';
+  return momento || `1er Recreo (${horarios.hora_recreo_1_fmt})`;
 }
 
 /**
@@ -1807,5 +1873,8 @@ module.exports = {
   expirarPreordenesVencidas,
   cancelarPreorden,
   despacharPreordenTransaction,
-  enriquecerEstudianteFinanzas
+  enriquecerEstudianteFinanzas,
+  obtenerHorariosEscuela,
+  actualizarHorariosEscuela,
+  formatTime12h
 };

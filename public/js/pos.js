@@ -101,6 +101,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   await loadCatalog();
   await loadPreOrders();
   await loadSinpeRequests();
+  await cargarHorariosPos();
   // La cámara se activa bajo demanda al cobrar o identificar, NO al entrar
   initSSE();
   initPistolScanner();
@@ -1322,14 +1323,51 @@ function normalizeMomentoKey(val) {
   return v;
 }
 
+let posSchoolHorarios = {
+  hora_recreo_1_fmt: '9:30 AM',
+  hora_almuerzo_fmt: '11:45 AM',
+  hora_recreo_2_fmt: '1:45 PM'
+};
+
+async function cargarHorariosPos() {
+  try {
+    const res = await fetch('/api/escuela/horarios');
+    const data = await res.json();
+    if (data && data.horarios) {
+      posSchoolHorarios = data.horarios;
+      actualizarPillsHorariosPos();
+    }
+  } catch (e) {
+    console.warn('Error cargando horarios en POS:', e);
+  }
+}
+
+function actualizarPillsHorariosPos() {
+  const r1Btn = document.querySelector('#filterPillRecreo_1 span:first-child');
+  const almBtn = document.querySelector('#filterPillAlmuerzo span:first-child');
+  const r2Btn = document.querySelector('#filterPillRecreo_2 span:first-child');
+
+  const r1Text = posSchoolHorarios.hora_recreo_1_fmt || '9:30 AM';
+  const almText = posSchoolHorarios.hora_almuerzo_fmt || '11:45 AM';
+  const r2Text = posSchoolHorarios.hora_recreo_2_fmt || '1:45 PM';
+
+  if (r1Btn) r1Btn.textContent = `🔔 1er Recreo (${r1Text})`;
+  if (almBtn) almBtn.textContent = `🍲 Almuerzo (${almText})`;
+  if (r2Btn) r2Btn.textContent = `⏰ 2do Recreo (${r2Text})`;
+}
+
 function getMomentoBadge(val) {
   const key = normalizeMomentoKey(val);
+  const r1Text = posSchoolHorarios.hora_recreo_1_fmt || '9:30 AM';
+  const almText = posSchoolHorarios.hora_almuerzo_fmt || '11:45 AM';
+  const r2Text = posSchoolHorarios.hora_recreo_2_fmt || '1:45 PM';
+
   switch (key) {
     case 'recreo_1':
       return {
         key: 'recreo_1',
-        title: '1er Recreo (9:30 AM)',
-        full: '1er Recreo de la Mañana (9:30 AM)',
+        title: `1er Recreo (${r1Text})`,
+        full: `1er Recreo de la Mañana (${r1Text})`,
         icon: '🔔',
         bg: '#fffbeb',
         border: '#f59e0b',
@@ -1341,8 +1379,8 @@ function getMomentoBadge(val) {
     case 'almuerzo':
       return {
         key: 'almuerzo',
-        title: 'Almuerzo (11:45 AM)',
-        full: 'Hora de Almuerzo (11:45 AM)',
+        title: `Almuerzo (${almText})`,
+        full: `Hora de Almuerzo (${almText})`,
         icon: '🍲',
         bg: '#f0fdf4',
         border: '#16a34a',
@@ -1354,8 +1392,8 @@ function getMomentoBadge(val) {
     case 'recreo_2':
       return {
         key: 'recreo_2',
-        title: '2do Recreo (1:45 PM)',
-        full: '2do Recreo de la Tarde (1:45 PM)',
+        title: `2do Recreo (${r2Text})`,
+        full: `2do Recreo de la Tarde (${r2Text})`,
         icon: '⏰',
         bg: '#eef2ff',
         border: '#6366f1',
@@ -1800,6 +1838,19 @@ function initSSE() {
 
   sseSource.addEventListener('recargar_catalogo', () => {
     loadCatalog();
+  });
+
+  sseSource.addEventListener('horarios_actualizados', (e) => {
+    try {
+      const data = JSON.parse(e.data);
+      if (data) {
+        posSchoolHorarios = data;
+        actualizarPillsHorariosPos();
+        renderPreOrdersList();
+      }
+    } catch (err) {
+      console.warn('Error en SSE horarios_actualizados:', err);
+    }
   });
 
   sseSource.addEventListener('cierre_caja_realizado', (e) => {
