@@ -30,6 +30,9 @@ if (isPg) {
     s = s.replace(/datetime\s*\(\s*['"]now['"][^)]*\)/gi, 'CURRENT_TIMESTAMP');
     s = s.replace(/strftime\s*\(\s*['"]%s['"]\s*,\s*['"]now['"]\s*\)/gi, 'EXTRACT(EPOCH FROM CURRENT_TIMESTAMP)');
     s = s.replace(/strftime\s*\(\s*['"]%s['"]\s*,\s*([^)]+)\s*\)/gi, 'EXTRACT(EPOCH FROM $1)');
+    s = s.replace(/strftime\s*\(\s*['"]%H:%M['"]\s*,\s*['"]now['"][^)]*\)/gi, "to_char(CURRENT_TIMESTAMP, 'HH24:MI')");
+    s = s.replace(/strftime\s*\(\s*['"]%Y-%m-%d['"]\s*,\s*['"]now['"][^)]*\)/gi, "to_char(CURRENT_TIMESTAMP, 'YYYY-MM-DD')");
+    s = s.replace(/strftime\s*\([^)]*\)/gi, "to_char(CURRENT_TIMESTAMP, 'HH24:MI')");
     s = s.replace(/date\s*\(\s*['"]now['"][^)]*\)/gi, 'CURRENT_DATE');
     s = s.replace(/date\s*\(\s*([^,)]+)(?:\s*,\s*['"]localtime['"])?\s*\)/gi, 'CAST($1 AS DATE)');
 
@@ -1583,10 +1586,26 @@ function expirarPreordenesVencidas({ motivo = 'tiempo_limite', escuelaId = null 
       params.push(escuelaId);
     }
   } else {
-    condition += ` AND (
-      date(creado_en, 'localtime') < date('now', 'localtime')
-      OR (date(creado_en, 'localtime') = date('now', 'localtime') AND strftime('%H:%M', 'now', 'localtime') >= '17:00')
-    )`;
+    // Cálculo seguro de fecha y hora local de Costa Rica (UTC-6) en JavaScript
+    const now = new Date();
+    const utcMs = now.getTime() + (now.getTimezoneOffset() * 60000);
+    const crDate = new Date(utcMs - (6 * 3600000));
+    const hora = crDate.getHours();
+    const yyyy = crDate.getFullYear();
+    const mm = String(crDate.getMonth() + 1).padStart(2, '0');
+    const dd = String(crDate.getDate()).padStart(2, '0');
+    const hoyStr = `${yyyy}-${mm}-${dd}`;
+
+    if (hora >= 17) {
+      // Pasadas las 5:00 PM: expiran todas las pre-órdenes de hoy o anteriores no retiradas
+      condition += " AND date(creado_en, 'localtime') <= ?";
+      params.push(hoyStr);
+    } else {
+      // Antes de las 5:00 PM: solo expiran pre-órdenes de días anteriores no retiradas
+      condition += " AND date(creado_en, 'localtime') < ?";
+      params.push(hoyStr);
+    }
+
     if (escuelaId) {
       condition += ' AND (escuela_id = ? OR escuela_id IS NULL)';
       params.push(escuelaId);
