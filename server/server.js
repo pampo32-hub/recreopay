@@ -92,19 +92,19 @@ app.use(cors());
 app.use(express.json({ limit: '25mb' }));
 app.use(express.urlencoded({ extended: true, limit: '25mb' }));
 
-// Limpieza de URL: redirige /desktop-preview.html a la raíz limpia /
-app.get('/desktop-preview.html', (req, res) => {
-  res.redirect(301, '/');
-});
-
-// Página principal / Landing Page oficial de SiboPay (URL limpia)
+// Página principal / Aplicación oficial de SiboPay (Inicio de sesión con fondo animado)
 app.get('/', (req, res) => {
-  res.sendFile(path.join(__dirname, '../public/desktop-preview.html'));
+  res.sendFile(path.join(__dirname, '../public/index.html'));
 });
 
-// Alias amigable para la app de estudiantes y padres
-app.get('/app', (req, res) => {
+// Alias amigables para la app
+app.get(['/app', '/login'], (req, res) => {
   res.sendFile(path.join(__dirname, '../public/index.html'));
+});
+
+// Landing page de presentación institucional
+app.get(['/desktop-preview.html', '/presentacion', '/landing', '/info'], (req, res) => {
+  res.sendFile(path.join(__dirname, '../public/desktop-preview.html'));
 });
 
 app.use(express.static(path.join(__dirname, '../public'), {

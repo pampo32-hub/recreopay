@@ -92,7 +92,7 @@
 
         <!-- Botones de Acción (Derecha) -->
         <div class="flex items-center gap-3">
-          <button onclick="toggleLoginModal(true)" class="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-black bg-sky-600 text-white hover:bg-sky-500 transition shadow-lg shadow-sky-600/25 active:scale-95">
+          <button onclick="window.location.href='/'" class="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-black bg-sky-600 text-white hover:bg-sky-500 transition shadow-lg shadow-sky-600/25 active:scale-95 cursor-pointer">
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
               <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/>
               <polyline points="10 17 15 12 10 7"/>
@@ -131,7 +131,7 @@
 
           <!-- Botones de Acción Directa -->
           <div class="flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-4 pt-2">
-            <button onclick="toggleLoginModal(true)" class="w-full sm:w-auto px-8 py-4 rounded-2xl bg-sky-600 hover:bg-sky-500 text-white font-black text-base shadow-xl shadow-sky-600/30 transition flex items-center justify-center gap-3">
+            <button onclick="window.location.href='/'" class="w-full sm:w-auto px-8 py-4 rounded-2xl bg-sky-600 hover:bg-sky-500 text-white font-black text-base shadow-xl shadow-sky-600/30 transition flex items-center justify-center gap-3 cursor-pointer">
               <span>Iniciar Sesión / Portal</span>
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg>
             </button>
@@ -617,7 +617,7 @@
           <a href="#sodas" class="hover:text-white transition">Sodas</a>
           <a href="#familias" class="hover:text-white transition">Familias</a>
           <a href="#mep" class="hover:text-white transition">Normativa MEP</a>
-          <button onclick="toggleLoginModal(true)" class="hover:text-white transition cursor-pointer">Iniciar Sesión</button>
+          <button onclick="window.location.href='/'" class="hover:text-white transition cursor-pointer">Iniciar Sesión</button>
           <a href="/carnet.html" target="_blank" class="hover:text-white transition">Carnés QR</a>
         </div>
       </div>
@@ -702,18 +702,19 @@
   <!-- SCRIPT PARA INTERACTIVIDAD -->
   <script>
     function toggleLoginModal(show) {
-      const modal = document.getElementById('modalLogin');
       if (show) {
-        modal.classList.remove('hidden');
-        modal.classList.add('flex');
+        window.location.href = '/';
       } else {
-        modal.classList.add('hidden');
-        modal.classList.remove('flex');
+        const modal = document.getElementById('modalLogin');
+        if (modal) {
+          modal.classList.add('hidden');
+          modal.classList.remove('flex');
+        }
       }
     }
 
     function quickLoginRole(role) {
-      toggleLoginModal(true);
+      window.location.href = '/';
     }
   </script>
 
