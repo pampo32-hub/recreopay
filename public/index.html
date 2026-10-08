@@ -12,7 +12,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="SiboPay">
   <meta name="mobile-web-app-capable" content="yes">
-  <link rel="stylesheet" href="/css/styles.css?v=13.7">
+  <link rel="stylesheet" href="/css/styles.css?v=13.9">
   <link rel="stylesheet" href="/css/desktop.css?v=2.2">
   <style>
     /* Transiciones suaves */
@@ -612,11 +612,15 @@
         </div>
       </div>
 
-      <!-- FILA DE ACCIONES RÁPIDAS: RECARGAR SALDO, TERMINAL POS, PANEL DEV -->
+      <!-- FILA DE ACCIONES RÁPIDAS: DASHBOARD, RECARGAR SALDO, TERMINAL POS, PANEL DEV -->
       <div class="admin-header-actions" style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap; width: 100%;">
         <button id="btnAdminDevPanel" onclick="switchAdminToDev()" class="btn-saas btn-saas-outline" style="display: none; border-color: #0284c7; color: #0284c7; height: 34px;" title="Volver al Panel Developer Master">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m18 16 4-4-4-4"/><path d="m6 8-4 4 4 4"/><path d="m14.5 4-5 16"/></svg>
           <span class="admin-btn-text">Panel Dev</span>
+        </button>
+        <button onclick="switchAdminTab('dashboard')" class="btn-saas btn-saas-outline" style="height: 34px; border-color: #0284c7; color: #0284c7; font-weight: 800; background: rgba(2, 132, 199, 0.05);" title="Ver Dashboard Ejecutivo de Métricas y Finanzas">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect width="7" height="9" x="3" y="3" rx="1"/><rect width="7" height="5" x="14" y="3" rx="1"/><rect width="7" height="9" x="14" y="12" rx="1"/><rect width="7" height="5" x="3" y="16" rx="1"/></svg>
+          <span class="admin-btn-text">📊 Dashboard</span>
         </button>
         <button onclick="switchAdminTab('recarga')" class="btn-saas btn-saas-primary" style="height: 34px;" title="Recargar saldo a un estudiante">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="14" x="2" y="5" rx="2"/><line x1="2" x2="22" y1="10" y2="10"/></svg>
@@ -663,7 +667,11 @@
 
     <!-- PESTAÑAS DE NAVEGACIÓN ADMIN -->
     <div class="admin-tabs">
-      <button class="admin-tab-btn active" id="btnTabAdminInventario" onclick="switchAdminTab('inventario')">
+      <button class="admin-tab-btn active" id="btnTabAdminDashboard" onclick="switchAdminTab('dashboard')">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="7" height="9" x="3" y="3" rx="1"/><rect width="7" height="5" x="14" y="3" rx="1"/><rect width="7" height="9" x="14" y="12" rx="1"/><rect width="7" height="5" x="3" y="16" rx="1"/></svg>
+        <span>Dashboard Ejecutivo</span>
+      </button>
+      <button class="admin-tab-btn" id="btnTabAdminInventario" onclick="switchAdminTab('inventario')">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m7.5 4.27 9 5.15"/><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22V12"/></svg>
         <span>Inventario & Stock</span>
       </button>
@@ -690,8 +698,151 @@
       </button>
     </div>
 
+    <!-- TAB 0: DASHBOARD EJECUTIVO -->
+    <div id="adminTabContentDashboard" class="admin-card">
+      <div class="admin-dash-container">
+        <!-- CABECERA DASHBOARD: TÍTULO Y SELECTORES DE PERÍODO -->
+        <div class="admin-dash-header">
+          <div>
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <span style="font-size: 1.3rem;">📊</span>
+              <h3 style="margin: 0; font-size: 1.15rem; font-weight: 800; color: var(--text-main);">Dashboard Ejecutivo & Finanzas</h3>
+            </div>
+            <p style="margin: 3px 0 0 0; font-size: 0.78rem; color: var(--text-muted);">
+              Métricas financieras, saldos circulantes en monederos y análisis operativo en tiempo real.
+            </p>
+          </div>
+          
+          <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+            <div class="admin-dash-period-pills" id="adminDashPeriodPills">
+              <button type="button" class="admin-dash-pill-btn active" data-periodo="hoy" onclick="cambiarPeriodoDashboard('hoy')">Hoy</button>
+              <button type="button" class="admin-dash-pill-btn" data-periodo="7dias" onclick="cambiarPeriodoDashboard('7dias')">7 Días</button>
+              <button type="button" class="admin-dash-pill-btn" data-periodo="mes" onclick="cambiarPeriodoDashboard('mes')">Este Mes</button>
+              <button type="button" class="admin-dash-pill-btn" data-periodo="todo" onclick="cambiarPeriodoDashboard('todo')">Histórico</button>
+            </div>
+            <button type="button" onclick="cargarDashboardAdmin()" class="btn-saas btn-saas-outline" style="height: 32px; padding: 0 10px; font-size: 0.78rem;" title="Recargar datos del Dashboard">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"/><path d="M16 21h5v-5"/></svg>
+              <span>Actualizar</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- BANNER DE ALERTAS OPERATIVAS (Oculto si no hay alertas) -->
+        <div id="adminDashAlertsContainer" style="display: none; flex-direction: column; gap: 8px;">
+          <!-- Dinámico -->
+        </div>
+
+        <!-- 4 TARJETAS KPI EJECUTIVAS -->
+        <div class="admin-dash-grid">
+          <!-- KPI 1: VENTAS TOTALES -->
+          <div class="admin-dash-kpi-card kpi-blue">
+            <div class="admin-dash-kpi-header">
+              <span class="admin-dash-kpi-title">Ventas Totales</span>
+              <div class="admin-dash-kpi-icon">💰</div>
+            </div>
+            <div class="admin-dash-kpi-val" id="dashKpiVentas">₡0</div>
+            <div class="admin-dash-kpi-meta">
+              <span>Órdenes cobradas: <strong id="dashKpiOrdenes" style="color: var(--text-main);">0</strong></span>
+              <span>Ticket promedio: <strong id="dashKpiTicketPromedio" style="color: #0284c7;">₡0</strong></span>
+            </div>
+          </div>
+
+          <!-- KPI 2: SALDO CIRCULANTE EN MONEDEROS -->
+          <div class="admin-dash-kpi-card kpi-green">
+            <div class="admin-dash-kpi-header">
+              <span class="admin-dash-kpi-title">Monederos Estudiantes</span>
+              <div class="admin-dash-kpi-icon">💳</div>
+            </div>
+            <div class="admin-dash-kpi-val" id="dashKpiSaldoCirculante">₡0</div>
+            <div class="admin-dash-kpi-meta">
+              <span>Disponible: <strong id="dashKpiSaldoDisponible" style="color: #10b981;">₡0</strong></span>
+              <span>Retenido preórdenes: <strong id="dashKpiSaldoRetenido" style="color: #f59e0b;">₡0</strong></span>
+            </div>
+          </div>
+
+          <!-- KPI 3: RECARGAS DEL PERÍODO -->
+          <div class="admin-dash-kpi-card kpi-purple">
+            <div class="admin-dash-kpi-header">
+              <span class="admin-dash-kpi-title">Recargas Ingresadas</span>
+              <div class="admin-dash-kpi-icon">📥</div>
+            </div>
+            <div class="admin-dash-kpi-val" id="dashKpiRecargas">₡0</div>
+            <div class="admin-dash-kpi-meta">
+              <span>SINPE Móvil: <strong id="dashKpiRecargasSinpe" style="color: #8b5cf6;">₡0</strong></span>
+              <span>Efectivo / Caja: <strong id="dashKpiRecargasEfectivo" style="color: var(--text-main);">₡0</strong></span>
+            </div>
+          </div>
+
+          <!-- KPI 4: DESPACHO Y PREÓRDENES -->
+          <div class="admin-dash-kpi-card kpi-amber">
+            <div class="admin-dash-kpi-header">
+              <span class="admin-dash-kpi-title">Canal de Venta</span>
+              <div class="admin-dash-kpi-icon">⏱️</div>
+            </div>
+            <div class="admin-dash-kpi-val" id="dashKpiCanalRatio">0% Pre-orden</div>
+            <div class="admin-dash-kpi-meta">
+              <span>Preórdenes: <strong id="dashKpiPreordenDetalle" style="color: var(--text-main);">₡0 (0 ord)</strong></span>
+              <span>Mostrador: <strong id="dashKpiMostradorDetalle" style="color: var(--text-main);">₡0 (0 ord)</strong></span>
+            </div>
+          </div>
+        </div>
+
+        <!-- SECCIÓN 2 COLUMNAS: MOMENTOS ESCOLARES Y TOP PRODUCTOS -->
+        <div class="admin-dash-split">
+          <!-- COLUMNA 1: VENTAS POR MOMENTO ESCOLAR -->
+          <div class="admin-dash-section">
+            <div class="admin-dash-section-title">
+              <span>🕒 Ventas por Momento Escolar</span>
+              <span style="font-size: 0.72rem; color: var(--text-muted); font-weight: 600;">Participación %</span>
+            </div>
+            <div id="adminDashMomentosList" style="display: flex; flex-direction: column; gap: 12px;">
+              <!-- Barras dinámicas de Primer Recreo, Almuerzo, Segundo Recreo, Mostrador -->
+            </div>
+          </div>
+
+          <!-- COLUMNA 2: TOP 5 PRODUCTOS MÁS VENDIDOS -->
+          <div class="admin-dash-section">
+            <div class="admin-dash-section-title">
+              <span>🏆 Top 5 Productos Más Vendidos</span>
+              <span style="font-size: 0.72rem; color: var(--text-muted); font-weight: 600;">Unidades & Total</span>
+            </div>
+            <div id="adminDashTopProductosList" style="display: flex; flex-direction: column; gap: 10px;">
+              <!-- Lista dinámica de Top Productos -->
+            </div>
+          </div>
+        </div>
+
+        <!-- SECCIÓN TENDENCIA SEMANAL: ÚLTIMOS 7 DÍAS -->
+        <div class="admin-dash-section">
+          <div class="admin-dash-section-title">
+            <span>📈 Tendencia Semanal de Ventas (Últimos 7 Días)</span>
+            <span style="font-size: 0.72rem; color: var(--text-muted); font-weight: 600;">Facturación diaria en ₡</span>
+          </div>
+          <div class="admin-dash-chart" id="adminDashChart7Dias">
+            <!-- 7 Columnas dinámicas -->
+          </div>
+        </div>
+
+        <!-- ACCIONES RÁPIDAS DE EXPORTACIÓN Y REPORTES -->
+        <div style="display: flex; gap: 10px; flex-wrap: wrap; justify-content: flex-end; padding-top: 10px; border-top: 1px solid var(--border, #e2e8f0);">
+          <button type="button" onclick="exportarVentasCsv()" class="btn-saas btn-saas-outline" style="height: 36px; border-color: #10b981; color: #166534; font-size: 0.82rem; font-weight: 800;">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            <span>Descargar Ventas XLSX</span>
+          </button>
+          <button type="button" onclick="descargarReporteRecargasExcel(true)" class="btn-saas btn-saas-outline" style="height: 36px; border-color: #8b5cf6; color: #6d28d9; font-size: 0.82rem; font-weight: 800;">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            <span>Descargar Recargas SINPE XLSX</span>
+          </button>
+          <button type="button" onclick="exportarEstudiantesCsv()" class="btn-saas btn-saas-outline" style="height: 36px; border-color: #0284c7; color: #0284c7; font-size: 0.82rem; font-weight: 800;">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            <span>Descargar Saldos Alumnos XLSX</span>
+          </button>
+        </div>
+      </div>
+    </div>
+
     <!-- TAB 1: INVENTARIO Y STOCK -->
-    <div id="adminTabContentInventario" class="admin-card">
+    <div id="adminTabContentInventario" class="admin-card" style="display: none;">
       <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; flex-wrap: wrap; gap: 10px;">
         <div>
           <h3 style="margin: 0; font-size: 1.1rem; font-weight: 800; color: var(--text-main);">Inventario y Existencias</h3>
@@ -3434,6 +3585,6 @@
   <script src="/js/sounds.js?v=13.8"></script>
   <script src="/js/jsQR.js"></script>
   <script src="/js/food-icons.js?v=1.1"></script>
-  <script src="/js/app.js?v=13.8"></script>
+  <script src="/js/app.js?v=13.9"></script>
 </body>
 </html>

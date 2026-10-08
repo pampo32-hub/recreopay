@@ -513,6 +513,208 @@ app.get('/api/admin/resumen', (req, res) => {
   }
 });
 
+// Dashboard Ejecutivo de Información y Finanzas de la Soda
+app.get('/api/admin/dashboard', (req, res) => {
+  try {
+    const periodo = req.query.periodo || 'hoy';
+    const ahora = new Date();
+    const fHoy = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Costa_Rica' }).format(ahora);
+    
+    let fechaInicio = fHoy;
+    let fechaFin = fHoy;
+    let usarFiltroFechas = true;
+
+    if (periodo === 'hoy') {
+      fechaInicio = fHoy;
+      fechaFin = fHoy;
+    } else if (periodo === '7dias' || periodo === 'semana') {
+      const d7 = new Date();
+      d7.setDate(d7.getDate() - 6);
+      fechaInicio = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Costa_Rica' }).format(d7);
+      fechaFin = fHoy;
+    } else if (periodo === 'mes') {
+      fechaInicio = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Costa_Rica' }).format(new Date(ahora.getFullYear(), ahora.getMonth(), 1));
+      fechaFin = fHoy;
+    } else if (periodo === 'todo') {
+      usarFiltroFechas = false;
+    } else if (req.query.desde) {
+      fechaInicio = req.query.desde;
+      fechaFin = req.query.hasta || fHoy;
+    }
+
+    // 1. Métricas Generales de Órdenes y Ventas
+    let sqlOrdenes = `
+      SELECT 
+        COALESCE(SUM(CASE WHEN estado != 'cancelado' THEN total_colones ELSE 0 END), 0) as total_ventas,
+        COALESCE(SUM(CASE WHEN estado != 'cancelado' THEN 1 ELSE 0 END), 0) as ordenes_cobradas,
+        ROUND(COALESCE(AVG(CASE WHEN estado != 'cancelado' THEN total_colones ELSE NULL END), 0)) as ticket_promedio,
+        COALESCE(SUM(CASE WHEN estado != 'cancelado' AND tipo_orden = 'preorden' THEN total_colones ELSE 0 END), 0) as ventas_preorden,
+        COALESCE(SUM(CASE WHEN estado != 'cancelado' AND tipo_orden = 'preorden' THEN 1 ELSE 0 END), 0) as ordenes_preorden,
+        COALESCE(SUM(CASE WHEN estado != 'cancelado' AND tipo_orden = 'mostrador' THEN total_colones ELSE 0 END), 0) as ventas_mostrador,
+        COALESCE(SUM(CASE WHEN estado != 'cancelado' AND tipo_orden = 'mostrador' THEN 1 ELSE 0 END), 0) as ordenes_mostrador,
+        COALESCE(SUM(CASE WHEN estado = 'entregado' THEN 1 ELSE 0 END), 0) as ordenes_entregadas,
+        COALESCE(SUM(CASE WHEN estado = 'cancelado' THEN 1 ELSE 0 END), 0) as ordenes_canceladas,
+        COALESCE(SUM(CASE WHEN estado IN ('pendiente', 'en_preparacion', 'listo') THEN 1 ELSE 0 END), 0) as ordenes_pendientes
+      FROM ordenes
+    `;
+    const paramsOrdenes = [];
+    if (usarFiltroFechas) {
+      sqlOrdenes += ` WHERE date(creado_en, 'localtime') >= ? AND date(creado_en, 'localtime') <= ?`;
+      paramsOrdenes.push(fechaInicio, fechaFin);
+    }
+    const ordenesStats = db.prepare(sqlOrdenes).get(...paramsOrdenes);
+
+    // 2. Desglose de Ventas por Momento Escolar
+    let sqlMomentos = `
+      SELECT momento_entrega, COALESCE(SUM(total_colones), 0) as total, COUNT(*) as cantidad
+      FROM ordenes
+      WHERE estado != 'cancelado'
+    `;
+    const paramsMomentos = [];
+    if (usarFiltroFechas) {
+      sqlMomentos += ` AND date(creado_en, 'localtime') >= ? AND date(creado_en, 'localtime') <= ?`;
+      paramsMomentos.push(fechaInicio, fechaFin);
+    }
+    sqlMomentos += ` GROUP BY momento_entrega`;
+    const rawMomentos = db.prepare(sqlMomentos).all(...paramsMomentos);
+
+    const mapaMomentos = {
+      'primer_recreo': { key: 'primer_recreo', label: '1er Recreo', total: 0, cantidad: 0, color: '#0284c7' },
+      'almuerzo': { key: 'almuerzo', label: 'Almuerzo', total: 0, cantidad: 0, color: '#10b981' },
+      'segundo_recreo': { key: 'segundo_recreo', label: '2do Recreo', total: 0, cantidad: 0, color: '#f59e0b' },
+      'inmediato': { key: 'inmediato', label: 'Mostrador / Inmediato', total: 0, cantidad: 0, color: '#6366f1' }
+    };
+
+    rawMomentos.forEach(m => {
+      let k = (m.momento_entrega || '').toLowerCase();
+      if (k === 'recreo_1' || k === 'primer_recreo') k = 'primer_recreo';
+      else if (k === 'recreo_2' || k === 'segundo_recreo') k = 'segundo_recreo';
+      else if (k === 'almuerzo') k = 'almuerzo';
+      else k = 'inmediato';
+
+      if (mapaMomentos[k]) {
+        mapaMomentos[k].total += m.total;
+        mapaMomentos[k].cantidad += m.cantidad;
+      }
+    });
+    const momentosList = Object.values(mapaMomentos);
+
+    // 3. Top 5 Productos Más Vendidos
+    let sqlTop = `
+      SELECT 
+        od.nombre_producto,
+        COALESCE(SUM(od.cantidad), 0) as cantidad_total,
+        COALESCE(SUM(od.subtotal), 0) as recaudacion_total
+      FROM orden_detalles od
+      JOIN ordenes o ON od.orden_id = o.id
+      WHERE o.estado != 'cancelado'
+    `;
+    const paramsTop = [];
+    if (usarFiltroFechas) {
+      sqlTop += ` AND date(o.creado_en, 'localtime') >= ? AND date(o.creado_en, 'localtime') <= ?`;
+      paramsTop.push(fechaInicio, fechaFin);
+    }
+    sqlTop += ` GROUP BY od.nombre_producto ORDER BY cantidad_total DESC, recaudacion_total DESC LIMIT 5`;
+    const topProductos = db.prepare(sqlTop).all(...paramsTop);
+
+    // 4. Recargas de Saldo
+    let sqlRecargas = `
+      SELECT 
+        COALESCE(SUM(monto_colones), 0) as total_recargas,
+        COALESCE(SUM(CASE WHEN tipo = 'recarga_sinpe' THEN monto_colones ELSE 0 END), 0) as recargas_sinpe,
+        COALESCE(SUM(CASE WHEN tipo = 'recarga_manual' THEN monto_colones ELSE 0 END), 0) as recargas_efectivo,
+        COUNT(*) as cantidad_recargas
+      FROM transacciones_saldo
+      WHERE tipo IN ('recarga_sinpe', 'recarga_manual') AND monto_colones > 0 AND (revertida IS NULL OR revertida = 0)
+    `;
+    const paramsRecargas = [];
+    if (usarFiltroFechas) {
+      sqlRecargas += ` AND date(fecha, 'localtime') >= ? AND date(fecha, 'localtime') <= ?`;
+      paramsRecargas.push(fechaInicio, fechaFin);
+    }
+    const recargasStats = db.prepare(sqlRecargas).get(...paramsRecargas);
+
+    // 5. Saldo Flotante en Monederos Estudiantiles
+    const saldoEstudiantes = db.prepare(`
+      SELECT 
+        COUNT(*) as total_estudiantes,
+        COALESCE(SUM(saldo_colones), 0) as saldo_total_estudiantes,
+        COALESCE(SUM(CASE WHEN tarjeta_bloqueada = 1 THEN 1 ELSE 0 END), 0) as tarjetas_bloqueadas
+      FROM estudiantes
+      WHERE activo = 1
+    `).get();
+
+    const saldoRetenidoRow = db.prepare(`
+      SELECT COALESCE(SUM(total_colones), 0) as saldo_retenido
+      FROM ordenes
+      WHERE tipo_orden = 'preorden' AND estado IN ('pendiente', 'en_preparacion', 'listo')
+    `).get();
+    const saldoRetenido = saldoRetenidoRow ? saldoRetenidoRow.saldo_retenido : 0;
+    const saldoDisponible = Math.max(0, (saldoEstudiantes.saldo_total_estudiantes || 0) - saldoRetenido);
+
+    // 6. Tendencia Últimos 7 Días
+    const tendencia7Dias = [];
+    const diasSemanaNombres = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
+    for (let i = 6; i >= 0; i--) {
+      const d = new Date();
+      d.setDate(d.getDate() - i);
+      const diaIso = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Costa_Rica' }).format(d);
+      const diaNum = new Intl.DateTimeFormat('es-CR', { timeZone: 'America/Costa_Rica', day: '2-digit', month: '2-digit' }).format(d);
+      const diaSem = diasSemanaNombres[d.getDay()];
+
+      const statDia = db.prepare(`
+        SELECT 
+          COALESCE(SUM(CASE WHEN estado != 'cancelado' THEN total_colones ELSE 0 END), 0) as ventas,
+          COALESCE(SUM(CASE WHEN estado != 'cancelado' THEN 1 ELSE 0 END), 0) as ordenes
+        FROM ordenes
+        WHERE date(creado_en, 'localtime') = ?
+      `).get(diaIso);
+
+      tendencia7Dias.push({
+        fecha: diaIso,
+        etiqueta: `${diaSem} ${diaNum}`,
+        ventas: statDia ? statDia.ventas : 0,
+        ordenes: statDia ? statDia.ordenes : 0
+      });
+    }
+
+    // 7. Alertas Operativas
+    const sinpePendientes = db.prepare(`
+      SELECT COUNT(*) as count FROM solicitudes_recarga_sinpe WHERE estado = 'pendiente'
+    `).get().count;
+
+    const prodsCriticos = db.prepare(`
+      SELECT COUNT(*) as count FROM productos WHERE control_stock = 1 AND (stock <= 3 OR disponible = 0)
+    `).get().count;
+
+    res.json({
+      periodo,
+      fecha_inicio: fechaInicio,
+      fecha_fin: fechaFin,
+      ordenes: ordenesStats,
+      recargas: recargasStats,
+      saldos: {
+        total_circulante: saldoEstudiantes.saldo_total_estudiantes,
+        retenido_preordenes: saldoRetenido,
+        disponible: saldoDisponible,
+        estudiantes_activos: saldoEstudiantes.total_estudiantes,
+        tarjetas_bloqueadas: saldoEstudiantes.tarjetas_bloqueadas
+      },
+      momentos: momentosList,
+      top_productos: topProductos,
+      tendencia_7dias: tendencia7Dias,
+      alertas: {
+        sinpe_pendientes: sinpePendientes,
+        productos_criticos: prodsCriticos,
+        tarjetas_bloqueadas: saldoEstudiantes.tarjetas_bloqueadas
+      }
+    });
+  } catch (err) {
+    console.error('Error en /api/admin/dashboard:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // Listado de inventario para admin
 app.get('/api/admin/productos', (req, res) => {
   try {

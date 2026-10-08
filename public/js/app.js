@@ -4627,8 +4627,228 @@ async function confirmLinkValidatedChild() {
 // PANEL DE ADMINISTRACIÓN DE LA SODA
 // ==========================================
 
+let dashboardPeriodoActual = 'hoy';
+
+async function cambiarPeriodoDashboard(periodo) {
+  dashboardPeriodoActual = periodo;
+  const container = document.getElementById('adminDashPeriodPills');
+  if (container) {
+    const buttons = container.querySelectorAll('.admin-dash-pill-btn');
+    buttons.forEach(btn => {
+      btn.classList.toggle('active', btn.dataset.periodo === periodo);
+    });
+  }
+  await cargarDashboardAdmin(periodo);
+}
+
+async function cargarDashboardAdmin(periodo = dashboardPeriodoActual) {
+  try {
+    const res = await fetch(`/api/admin/dashboard?periodo=${encodeURIComponent(periodo)}`);
+    if (!res.ok) throw new Error('Error al cargar datos del dashboard');
+    const data = await res.json();
+
+    // 1. KPI Ventas
+    const ord = data.ordenes || {};
+    const elVentas = document.getElementById('dashKpiVentas');
+    if (elVentas) elVentas.textContent = `₡${(ord.total_ventas || 0).toLocaleString('es-CR')}`;
+
+    const elOrdenes = document.getElementById('dashKpiOrdenes');
+    if (elOrdenes) elOrdenes.textContent = `${ord.ordenes_cobradas || 0} órdenes`;
+
+    const elTicket = document.getElementById('dashKpiTicketPromedio');
+    if (elTicket) elTicket.textContent = `₡${(ord.ticket_promedio || 0).toLocaleString('es-CR')} / ord`;
+
+    // 2. KPI Monederos Estudiantes
+    const saldos = data.saldos || {};
+    const elCirculante = document.getElementById('dashKpiSaldoCirculante');
+    if (elCirculante) elCirculante.textContent = `₡${(saldos.total_circulante || 0).toLocaleString('es-CR')}`;
+
+    const elDisponible = document.getElementById('dashKpiSaldoDisponible');
+    if (elDisponible) elDisponible.textContent = `₡${(saldos.disponible || 0).toLocaleString('es-CR')}`;
+
+    const elRetenido = document.getElementById('dashKpiSaldoRetenido');
+    if (elRetenido) elRetenido.textContent = `₡${(saldos.retenido_preordenes || 0).toLocaleString('es-CR')}`;
+
+    // 3. KPI Recargas
+    const rec = data.recargas || {};
+    const elRecargas = document.getElementById('dashKpiRecargas');
+    if (elRecargas) elRecargas.textContent = `₡${(rec.total_recargas || 0).toLocaleString('es-CR')}`;
+
+    const elRecSinpe = document.getElementById('dashKpiRecargasSinpe');
+    if (elRecSinpe) elRecSinpe.textContent = `₡${(rec.recargas_sinpe || 0).toLocaleString('es-CR')}`;
+
+    const elRecEfectivo = document.getElementById('dashKpiRecargasEfectivo');
+    if (elRecEfectivo) elRecEfectivo.textContent = `₡${(rec.recargas_efectivo || 0).toLocaleString('es-CR')} (${rec.cantidad_recargas || 0} recargas)`;
+
+    // 4. KPI Canales (Preorden vs Mostrador)
+    const totalVentas = ord.total_ventas || 0;
+    const ratioPreorden = totalVentas > 0 ? Math.round(((ord.ventas_preorden || 0) / totalVentas) * 100) : 0;
+    const elRatio = document.getElementById('dashKpiCanalRatio');
+    if (elRatio) elRatio.textContent = `${ratioPreorden}% Pre-orden`;
+
+    const elPreordenDet = document.getElementById('dashKpiPreordenDetalle');
+    if (elPreordenDet) elPreordenDet.textContent = `₡${(ord.ventas_preorden || 0).toLocaleString('es-CR')} (${ord.ordenes_preorden || 0} ord)`;
+
+    const elMostradorDet = document.getElementById('dashKpiMostradorDetalle');
+    if (elMostradorDet) elMostradorDet.textContent = `₡${(ord.ventas_mostrador || 0).toLocaleString('es-CR')} (${ord.ordenes_mostrador || 0} ord)`;
+
+    // 5. Momentos Escolares
+    const contMomentos = document.getElementById('adminDashMomentosList');
+    if (contMomentos) {
+      const momentos = data.momentos || [];
+      if (momentos.length === 0 || totalVentas === 0) {
+        contMomentos.innerHTML = `
+          <div style="text-align: center; padding: 20px 10px; color: var(--text-muted); font-size: 0.8rem;">
+            Sin registro de ventas en los recreos para este período.
+          </div>
+        `;
+      } else {
+        contMomentos.innerHTML = momentos.map(m => {
+          const pct = totalVentas > 0 ? Math.round((m.total / totalVentas) * 100) : 0;
+          return `
+            <div class="admin-dash-bar-row">
+              <div class="admin-dash-bar-meta">
+                <span style="display: flex; align-items: center; gap: 6px;">
+                  <span style="width: 8px; height: 8px; border-radius: 50%; background: ${m.color}; display: inline-block;"></span>
+                  <strong>${m.label}</strong>
+                  <span style="color: var(--text-muted); font-size: 0.72rem; font-weight: normal;">(${m.cantidad} órdenes)</span>
+                </span>
+                <span>₡${m.total.toLocaleString('es-CR')} <small style="color: var(--text-muted); font-weight: normal;">(${pct}%)</small></span>
+              </div>
+              <div class="admin-dash-bar-track">
+                <div class="admin-dash-bar-fill" style="width: ${pct}%; background: ${m.color};"></div>
+              </div>
+            </div>
+          `;
+        }).join('');
+      }
+    }
+
+    // 6. Top 5 Productos
+    const contTop = document.getElementById('adminDashTopProductosList');
+    if (contTop) {
+      const top = data.top_productos || [];
+      if (top.length === 0) {
+        contTop.innerHTML = `
+          <div style="text-align: center; padding: 20px 10px; color: var(--text-muted); font-size: 0.8rem;">
+            No hay productos vendidos en este período.
+          </div>
+        `;
+      } else {
+        const maxCant = Math.max(...top.map(t => t.cantidad_total || 1));
+        const medallas = ['🥇', '🥈', '🥉', '4º', '5º'];
+        contTop.innerHTML = top.map((p, idx) => {
+          const pct = Math.round(((p.cantidad_total || 0) / maxCant) * 100);
+          return `
+            <div style="display: flex; flex-direction: column; gap: 4px; padding: 6px 0; border-bottom: 1px dashed var(--border, #e2e8f0);">
+              <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.82rem;">
+                <span style="display: flex; align-items: center; gap: 6px; min-width: 0;">
+                  <span style="font-size: 0.85rem; font-weight: 800; width: 22px;">${medallas[idx] || (idx + 1)}</span>
+                  <strong style="color: var(--text-main); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${escapeHtml(p.nombre_producto)}</strong>
+                </span>
+                <span style="text-align: right; flex-shrink: 0; font-weight: 800; color: #0284c7;">
+                  ₡${(p.recaudacion_total || 0).toLocaleString('es-CR')}
+                  <span style="font-size: 0.72rem; color: var(--text-muted); font-weight: 600; display: block;">${p.cantidad_total} uds</span>
+                </span>
+              </div>
+              <div class="admin-dash-bar-track" style="height: 5px;">
+                <div class="admin-dash-bar-fill" style="width: ${pct}%; background: linear-gradient(90deg, #38bdf8, #0284c7);"></div>
+              </div>
+            </div>
+          `;
+        }).join('');
+      }
+    }
+
+    // 7. Gráfico Semanal 7 Días
+    const contChart = document.getElementById('adminDashChart7Dias');
+    if (contChart) {
+      const dias = data.tendencia_7dias || [];
+      const maxVenta = Math.max(...dias.map(d => d.ventas || 0), 1000);
+      contChart.innerHTML = dias.map(d => {
+        const heightPct = Math.max(4, Math.round(((d.ventas || 0) / maxVenta) * 100));
+        const tieneVentas = (d.ventas || 0) > 0;
+        return `
+          <div class="admin-dash-col" title="${d.fecha}: ₡${d.ventas.toLocaleString('es-CR')} (${d.ordenes} órdenes)">
+            <div class="admin-dash-col-val" style="color: ${tieneVentas ? 'var(--text-main)' : 'var(--text-muted)'}; font-weight: ${tieneVentas ? '800' : '600'};">
+              ${tieneVentas ? '₡' + (d.ventas >= 1000 ? Math.round(d.ventas / 1000) + 'k' : d.ventas) : '₡0'}
+            </div>
+            <div class="admin-dash-col-bar" style="height: ${heightPct}%; opacity: ${tieneVentas ? '1' : '0.2'};"></div>
+            <div class="admin-dash-col-lbl">${d.etiqueta}</div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    // 8. Alertas Operativas
+    const contAlerts = document.getElementById('adminDashAlertsContainer');
+    if (contAlerts) {
+      const alertas = data.alertas || {};
+      const alertItems = [];
+
+      if (alertas.sinpe_pendientes > 0) {
+        alertItems.push(`
+          <div style="background: rgba(245, 158, 11, 0.08); border: 1px solid rgba(245, 158, 11, 0.3); border-radius: 9px; padding: 9px 12px; display: flex; justify-content: space-between; align-items: center; gap: 8px;">
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <span style="font-size: 1rem;">🔔</span>
+              <span style="font-size: 0.8rem; font-weight: 700; color: #b45309;">
+                Hay <strong>${alertas.sinpe_pendientes}</strong> solicitud(es) de recarga SINPE Móvil pendientes de verificación.
+              </span>
+            </div>
+            <button type="button" onclick="switchAdminTab('recarga')" class="btn-saas btn-saas-outline" style="height: 26px; padding: 0 10px; font-size: 0.74rem; border-color: #f59e0b; color: #b45309;">
+              Revisar SINPE
+            </button>
+          </div>
+        `);
+      }
+
+      if (alertas.productos_criticos > 0) {
+        alertItems.push(`
+          <div style="background: rgba(239, 68, 68, 0.08); border: 1px solid rgba(239, 68, 68, 0.3); border-radius: 9px; padding: 9px 12px; display: flex; justify-content: space-between; align-items: center; gap: 8px;">
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <span style="font-size: 1rem;">⚠️</span>
+              <span style="font-size: 0.8rem; font-weight: 700; color: #b91c1c;">
+                Hay <strong>${alertas.productos_criticos}</strong> producto(s) en stock crítico o agotados en el inventario.
+              </span>
+            </div>
+            <button type="button" onclick="switchAdminTab('inventario')" class="btn-saas btn-saas-outline" style="height: 26px; padding: 0 10px; font-size: 0.74rem; border-color: #ef4444; color: #b91c1c;">
+              Ver Inventario
+            </button>
+          </div>
+        `);
+      }
+
+      if (alertas.tarjetas_bloqueadas > 0) {
+        alertItems.push(`
+          <div style="background: rgba(100, 116, 139, 0.08); border: 1px solid rgba(100, 116, 139, 0.25); border-radius: 9px; padding: 9px 12px; display: flex; justify-content: space-between; align-items: center; gap: 8px;">
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <span style="font-size: 1rem;">🚫</span>
+              <span style="font-size: 0.8rem; font-weight: 700; color: var(--text-main);">
+                Hay <strong>${alertas.tarjetas_bloqueadas}</strong> carné(s) escolar(es) con tarjeta bloqueada.
+              </span>
+            </div>
+            <button type="button" onclick="switchAdminTab('estudiantes')" class="btn-saas btn-saas-outline" style="height: 26px; padding: 0 10px; font-size: 0.74rem;">
+              Ver Carnés
+            </button>
+          </div>
+        `);
+      }
+
+      if (alertItems.length > 0) {
+        contAlerts.innerHTML = alertItems.join('');
+        contAlerts.style.display = 'flex';
+      } else {
+        contAlerts.innerHTML = '';
+        contAlerts.style.display = 'none';
+      }
+    }
+  } catch (err) {
+    console.error('Error al cargar dashboard ejecutivo:', err);
+  }
+}
+
 function switchAdminTab(tabName) {
-  const tabs = ['inventario', 'estudiantes', 'recarga', 'movimientos', 'personal', 'horarios'];
+  const tabs = ['dashboard', 'inventario', 'estudiantes', 'recarga', 'movimientos', 'personal', 'horarios'];
   tabs.forEach(t => {
     const btn = document.getElementById(`btnTabAdmin${t.charAt(0).toUpperCase() + t.slice(1)}`);
     const content = document.getElementById(`adminTabContent${t.charAt(0).toUpperCase() + t.slice(1)}`);
@@ -4636,7 +4856,9 @@ function switchAdminTab(tabName) {
     if (content) content.style.display = (t === tabName) ? 'block' : 'none';
   });
 
-  if (tabName === 'movimientos') {
+  if (tabName === 'dashboard') {
+    cargarDashboardAdmin();
+  } else if (tabName === 'movimientos') {
     loadAdminMovimientos();
   } else if (tabName === 'personal') {
     loadAdminStaff();
@@ -4773,6 +4995,9 @@ async function loadAdminData() {
 
     // 6. Cargar horarios escolares para la pestaña de configuración
     cargarHorariosAdmin();
+
+    // 7. Cargar Dashboard Ejecutivo
+    cargarDashboardAdmin();
   } catch (err) {
     console.error('Error cargando datos de administración:', err);
   }

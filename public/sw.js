@@ -1,5 +1,5 @@
-// SiboPay PWA Service Worker v13.8 - Sonidos desactivados en toda la aplicación
-const CACHE_NAME = 'sibopay-v13.8';
+// SiboPay PWA Service Worker v13.9 - Dashboard Ejecutivo de Soda
+const CACHE_NAME = 'sibopay-v13.9';
 const STATIC_ASSETS = [
   '/',
   '/index.html',
