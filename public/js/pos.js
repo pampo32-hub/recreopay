@@ -90,7 +90,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   // Registrar Service Worker para Notificaciones PWA
   if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('/sw.js?v=12.2').then((reg) => {
+    navigator.serviceWorker.register('/sw.js?v=13.0').then((reg) => {
       reg.update().catch(() => {});
       if ('Notification' in window && Notification.permission === 'granted') {
         subscribeDeviceToWebPush().catch(() => {});

@@ -1,5 +1,5 @@
-// SiboPay PWA Service Worker v12.2 - Alta Velocidad & Despacho
-const CACHE_NAME = 'sibopay-v12.2';
+// SiboPay PWA Service Worker v13.0 - Alta Velocidad & Despacho
+const CACHE_NAME = 'sibopay-v13.0';
 const STATIC_ASSETS = [
   '/',
   '/index.html',
