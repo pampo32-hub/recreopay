@@ -2804,33 +2804,50 @@ body.dark-mode .admin-action-btn-salir {
 
 .admin-tabs {
   display: flex;
+  flex-wrap: wrap;
+  align-items: center;
   gap: 8px;
   margin-bottom: 16px;
-  overflow-x: auto;
   padding-bottom: 4px;
-  scrollbar-width: none;
-}
-
-.admin-tabs::-webkit-scrollbar {
-  display: none;
 }
 
 .admin-tab-btn {
   background: var(--card-bg, #ffffff);
   border: 1px solid var(--border, #cbd5e1);
   color: var(--text-muted, #64748b);
-  padding: 8px 14px;
+  padding: 8px 13px;
   border-radius: 9px;
-  font-size: 0.82rem;
+  font-size: 0.81rem;
   font-weight: 700;
   cursor: pointer;
   display: flex;
   align-items: center;
-  gap: 7px;
+  gap: 6px;
   white-space: nowrap;
   transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
-  flex-shrink: 0;
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
+}
+
+@media (max-width: 1440px) {
+  .admin-tabs {
+    gap: 6px;
+  }
+  .admin-tab-btn {
+    padding: 7px 11px;
+    font-size: 0.77rem;
+    gap: 5px;
+  }
+}
+
+@media (max-width: 1150px) {
+  .admin-tabs {
+    gap: 5px;
+  }
+  .admin-tab-btn {
+    padding: 6px 9px;
+    font-size: 0.75rem;
+    gap: 4px;
+  }
 }
 
 .admin-tab-btn svg {
