@@ -1,5 +1,5 @@
-// SiboPay PWA Service Worker v13.3 - Alta Velocidad & Despacho
-const CACHE_NAME = 'sibopay-v13.3';
+// SiboPay PWA Service Worker v13.4 - Modales en app, Trazabilidad & Reportes Excel
+const CACHE_NAME = 'sibopay-v13.4';
 const STATIC_ASSETS = [
   '/',
   '/index.html',
@@ -9,6 +9,7 @@ const STATIC_ASSETS = [
   '/manifest.json',
   '/css/styles.css',
   '/css/desktop.css',
+  '/js/dialogs.js',
   '/js/app.js',
   '/js/pos.js',
   '/js/sounds.js',

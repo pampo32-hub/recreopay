@@ -2237,6 +2237,7 @@ async function loadSinpeRequests() {
     if (!res.ok) throw new Error(data.error);
 
     const solicitudes = data.solicitudes || [];
+    window.cachedSinpeRequests = solicitudes;
 
     if (badge) {
       if (solicitudes.length > 0) {
@@ -2351,7 +2352,12 @@ async function loadSinpeRequests() {
 
 async function procesarSinpePos(solicitudId, accion) {
   if (accion === 'aprobar') {
-    const ok = confirm('¿Confirmas que verificaste el comprobante y el dinero ya ingresó a la cuenta bancaria de la soda?');
+    const ok = await showAppConfirm({
+      title: 'Aprobar Recarga SINPE',
+      message: '¿Confirmas que verificaste el comprobante y el dinero ya ingresó a la cuenta bancaria de la soda?',
+      type: 'question',
+      confirmText: 'Sí, Aprobar'
+    });
     if (!ok) return;
 
     try {
@@ -2368,35 +2374,57 @@ async function procesarSinpePos(solicitudId, accion) {
       if (!res.ok) throw new Error(data.error);
 
       if (window.sounds) window.sounds.playCoin();
-      alert(`¡Recarga Aprobada!\nSe acreditaron ₡${data.resultado.monto.toLocaleString('es-CR')} al estudiante ${data.resultado.estudiante_nombre}.\nNuevo saldo: ₡${data.resultado.saldo_nuevo.toLocaleString('es-CR')}.`);
+      await showAppAlert({
+        title: '¡Recarga Aprobada!',
+        message: `Se acreditaron ₡${data.resultado.monto.toLocaleString('es-CR')} al estudiante ${data.resultado.estudiante_nombre}.\nNuevo saldo: ₡${data.resultado.saldo_nuevo.toLocaleString('es-CR')}.`,
+        type: 'success'
+      });
       loadSinpeRequests();
     } catch (err) {
       if (window.sounds) window.sounds.playError();
-      alert(`Error al aprobar recarga: ${err.message}`);
+      showAppAlert({
+        title: 'Error al Aprobar',
+        message: err.message,
+        type: 'error'
+      });
     }
   } else if (accion === 'rechazar') {
-    const motivo = prompt('Motivo del rechazo de la recarga:', 'Comprobante no coincide o fondos no recibidos');
-    if (motivo === null) return; // cancelado por usuario
+    const sol = (window.cachedSinpeRequests || []).find(s => s.id === solicitudId) || {};
+    abrirModalRechazoSinpe({
+      id: solicitudId,
+      estudiante_nombre: sol.estudiante_nombre,
+      monto_colones: sol.monto_colones,
+      comprobante: sol.comprobante_sinpe || sol.codigo_detalle,
+      onConfirm: async (motivo) => {
+        try {
+          const res = await fetch('/api/sinpe/procesar', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              solicitud_id: solicitudId,
+              accion: 'rechazar',
+              motivo: motivo || 'Rechazado por la soda',
+              usuario_id: null
+            })
+          });
+          const data = await res.json();
+          if (!res.ok) throw new Error(data.error);
 
-    try {
-      const res = await fetch('/api/sinpe/procesar', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          solicitud_id: solicitudId,
-          accion: 'rechazar',
-          motivo: motivo || 'Rechazado por la soda',
-          usuario_id: null
-        })
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error);
-
-      alert('La solicitud de recarga ha sido rechazada.');
-      loadSinpeRequests();
-    } catch (err) {
-      alert(`Error al rechazar recarga: ${err.message}`);
-    }
+          await showAppAlert({
+            title: 'Recarga Rechazada',
+            message: 'La solicitud de recarga ha sido rechazada y su motivo ha quedado guardado para trazabilidad.',
+            type: 'warning'
+          });
+          loadSinpeRequests();
+        } catch (err) {
+          showAppAlert({
+            title: 'Error al Rechazar',
+            message: err.message,
+            type: 'error'
+          });
+        }
+      }
+    });
   }
 }
 

@@ -342,7 +342,12 @@ async function handleRegisterPadreSubmit(event) {
     localStorage.setItem('recreopay_user', JSON.stringify(currentUser));
 
     if (window.sounds) window.sounds.playSuccess();
-    alert(`¡Bienvenido(a) a SiboPay, ${data.user.nombre}! Tu cuenta de padre fue creada exitosamente.`);
+    await showAppAlert({
+      title: '¡Bienvenido(a) a SiboPay!',
+      message: `Hola ${data.user.nombre}, tu cuenta de padre fue creada exitosamente.\n\nYa puedes vincular a tus hijos, asignar límites diarios y realizar recargas por SINPE Móvil de forma segura.`,
+      type: 'success',
+      confirmText: 'Entrar a mi Panel'
+    });
     await applyUserRoleSession();
   } catch (err) {
     if (errorMsg) {
@@ -5736,6 +5741,7 @@ async function loadAdminSinpeRequests() {
     if (!res.ok) throw new Error(data.error);
 
     const solicitudes = data.solicitudes || [];
+    window.cachedAdminSinpeRequests = solicitudes;
 
     if (tabBadge) {
       if (solicitudes.length > 0) {
@@ -5859,7 +5865,12 @@ async function loadAdminSinpeRequests() {
 
 async function procesarSinpeAdmin(solicitudId, accion) {
   if (accion === 'aprobar') {
-    const ok = confirm('¿Confirmas que verificaste el comprobante y el dinero ya ingresó a la cuenta bancaria de la soda?');
+    const ok = await showAppConfirm({
+      title: 'Aprobar Recarga SINPE',
+      message: '¿Confirmas que verificaste el comprobante y el dinero ya ingresó a la cuenta bancaria de la soda?',
+      type: 'question',
+      confirmText: 'Sí, Aprobar'
+    });
     if (!ok) return;
 
     try {
@@ -5876,37 +5887,59 @@ async function procesarSinpeAdmin(solicitudId, accion) {
       if (!res.ok) throw new Error(data.error);
 
       if (window.sounds) window.sounds.playCoin();
-      alert(`¡Recarga Aprobada!\nSe acreditaron ₡${data.resultado.monto.toLocaleString('es-CR')} al estudiante ${data.resultado.estudiante_nombre}.\nNuevo saldo: ₡${data.resultado.saldo_nuevo.toLocaleString('es-CR')}.`);
+      await showAppAlert({
+        title: '¡Recarga Aprobada!',
+        message: `Se acreditaron ₡${data.resultado.monto.toLocaleString('es-CR')} al estudiante ${data.resultado.estudiante_nombre}.\nNuevo saldo: ₡${data.resultado.saldo_nuevo.toLocaleString('es-CR')}.`,
+        type: 'success'
+      });
       loadAdminSinpeRequests();
       await loadAdminData();
     } catch (err) {
       if (window.sounds) window.sounds.playError();
-      alert(`Error al aprobar recarga: ${err.message}`);
+      showAppAlert({
+        title: 'Error al Aprobar',
+        message: err.message,
+        type: 'error'
+      });
     }
   } else if (accion === 'rechazar') {
-    const motivo = prompt('Motivo del rechazo de la recarga:', 'Comprobante no coincide o fondos no recibidos');
-    if (motivo === null) return;
+    const sol = (window.cachedAdminSinpeRequests || []).find(s => s.id === solicitudId) || {};
+    abrirModalRechazoSinpe({
+      id: solicitudId,
+      estudiante_nombre: sol.estudiante_nombre,
+      monto_colones: sol.monto_colones,
+      comprobante: sol.comprobante_sinpe || sol.codigo_detalle,
+      onConfirm: async (motivo) => {
+        try {
+          const res = await fetch('/api/sinpe/procesar', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              solicitud_id: solicitudId,
+              accion: 'rechazar',
+              motivo: motivo || 'Rechazado por la soda',
+              usuario_id: currentUser ? currentUser.id : null
+            })
+          });
+          const data = await res.json();
+          if (!res.ok) throw new Error(data.error);
 
-    try {
-      const res = await fetch('/api/sinpe/procesar', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          solicitud_id: solicitudId,
-          accion: 'rechazar',
-          motivo: motivo || 'Rechazado por la soda',
-          usuario_id: currentUser ? currentUser.id : null
-        })
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error);
-
-      alert('La solicitud de recarga ha sido rechazada.');
-      loadAdminSinpeRequests();
-      await loadAdminData();
-    } catch (err) {
-      alert(`Error al rechazar recarga: ${err.message}`);
-    }
+          await showAppAlert({
+            title: 'Recarga Rechazada',
+            message: 'La solicitud de recarga ha sido rechazada y su motivo ha quedado guardado para trazabilidad.',
+            type: 'warning'
+          });
+          loadAdminSinpeRequests();
+          await loadAdminData();
+        } catch (err) {
+          showAppAlert({
+            title: 'Error al Rechazar',
+            message: err.message,
+            type: 'error'
+          });
+        }
+      }
+    });
   }
 }
 
@@ -6173,8 +6206,8 @@ function renderAdminMovimientos() {
               ${m.codigo_orden ? `<span style="background: rgba(2, 132, 199, 0.1); color: #0284c7; padding: 1px 6px; border-radius: 4px; font-weight: 800; font-size: 0.7rem;">Ticket: ${m.codigo_orden}</span>` : ''}
             </div>
             ${m.descripcion ? `
-              <div style="font-size: 0.72rem; color: var(--text-muted); margin-top: 4px; background: rgba(148, 163, 184, 0.08); padding: 3px 8px; border-radius: 6px; line-height: 1.35; display: inline-block;">
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right: 4px; vertical-align: -2px;"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>${m.descripcion}
+              <div style="font-size: 0.74rem; color: ${isSinpeRechazado ? '#991b1b' : 'var(--text-muted)'}; margin-top: 4px; background: ${isSinpeRechazado ? '#fff1f2' : 'rgba(148, 163, 184, 0.08)'}; border: ${isSinpeRechazado ? '1px solid #fecdd3' : 'none'}; padding: ${isSinpeRechazado ? '4px 9px' : '3px 8px'}; border-radius: 6px; line-height: 1.35; display: inline-block; font-weight: ${isSinpeRechazado ? '700' : 'normal'};">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="${isSinpeRechazado ? '#e11d48' : 'currentColor'}" stroke-width="${isSinpeRechazado ? '2.5' : '2'}" style="margin-right: 4px; vertical-align: -2px;">${isSinpeRechazado ? '<circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>' : '<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/>'}</svg>${isSinpeRechazado ? '<strong style="color: #be123c;">Motivo del Rechazo:</strong> ' : ''}${m.descripcion.replace(/^SINPE Rechazado:\s*/, '')}
               </div>
             ` : ''}
           </div>
@@ -6210,13 +6243,12 @@ async function revertirMovimientoAdmin(transaccionId, monto, nombreEstudiante, t
     ? `Se restarán ₡${monto.toLocaleString('es-CR')} del monedero del estudiante.`
     : `Se devolverán ₡${monto.toLocaleString('es-CR')} al monedero del estudiante y se restaurará el stock de los productos.`;
 
-  const conf = confirm(
-    `¿Estás seguro de revertir ${accionTexto}?\n\n` +
-    `• Alumno: ${nombreEstudiante}\n` +
-    `• Monto: ₡${monto.toLocaleString('es-CR')}\n\n` +
-    `${efectoTexto}\n\n` +
-    `¿Deseas continuar con la reversión?`
-  );
+  const conf = await showAppConfirm({
+    title: 'Confirmar Reversión',
+    message: `¿Estás seguro de revertir ${accionTexto}?\n\n• Alumno: ${nombreEstudiante}\n• Monto: ₡${monto.toLocaleString('es-CR')}\n\n${efectoTexto}`,
+    type: 'danger',
+    confirmText: 'Sí, Revertir'
+  });
 
   if (!conf) return;
 

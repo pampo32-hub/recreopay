@@ -5856,4 +5856,173 @@ body.dark-mode .limit-preset-pill:hover {
   border-color: #38bdf8;
 }
 
+/* ========================================================
+   SISTEMA GLOBAL DE MODALES Y DIÁLOGOS DE LA APLICACIÓN (EN LUGAR DEL NAVEGADOR)
+   ======================================================== */
+.app-dialog-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.75);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 999999;
+  padding: 16px;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.2s ease, visibility 0.2s ease;
+  box-sizing: border-box;
+}
+
+.app-dialog-backdrop.active {
+  opacity: 1;
+  visibility: visible;
+}
+
+.app-dialog-card {
+  background: var(--card-bg, #ffffff);
+  color: var(--text-main, #0f172a);
+  border: 1px solid var(--border, #e2e8f0);
+  border-radius: 20px;
+  padding: 24px 22px;
+  max-width: 420px;
+  width: 100%;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.35);
+  transform: scale(0.92);
+  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  text-align: center;
+  box-sizing: border-box;
+}
+
+.app-dialog-backdrop.active .app-dialog-card {
+  transform: scale(1);
+}
+
+.app-dialog-icon {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.8rem;
+  margin-bottom: 14px;
+}
+
+.app-dialog-icon.success {
+  background: #dcfce7;
+  color: #166534;
+  border: 2px solid #86efac;
+}
+
+.app-dialog-icon.error, .app-dialog-icon.danger {
+  background: #fee2e2;
+  color: #991b1b;
+  border: 2px solid #fca5a5;
+}
+
+.app-dialog-icon.warning {
+  background: #fef3c7;
+  color: #92400e;
+  border: 2px solid #fde68a;
+}
+
+.app-dialog-icon.info {
+  background: #e0f2fe;
+  color: #0369a1;
+  border: 2px solid #7dd3fc;
+}
+
+.app-dialog-icon.question {
+  background: #eef2ff;
+  color: #4338ca;
+  border: 2px solid #c7d2fe;
+}
+
+.app-dialog-title {
+  font-size: 1.15rem;
+  font-weight: 900;
+  color: var(--text-main, #0f172a);
+  margin: 0 0 8px 0;
+  line-height: 1.3;
+}
+
+.app-dialog-message {
+  font-size: 0.88rem;
+  color: var(--text-muted, #475569);
+  line-height: 1.5;
+  margin: 0 0 20px 0;
+  white-space: pre-line;
+  word-break: break-word;
+}
+
+.app-dialog-actions {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+}
+
+.app-dialog-btn {
+  flex: 1;
+  min-height: 42px;
+  border-radius: 12px;
+  font-weight: 800;
+  font-size: 0.90rem;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s ease;
+  border: none;
+  padding: 0 16px;
+}
+
+.app-dialog-btn-primary {
+  background: #0284c7;
+  color: #ffffff;
+}
+.app-dialog-btn-primary:hover {
+  background: #0369a1;
+}
+
+.app-dialog-btn-success {
+  background: #16a34a;
+  color: #ffffff;
+}
+.app-dialog-btn-success:hover {
+  background: #15803d;
+}
+
+.app-dialog-btn-danger {
+  background: #dc2626;
+  color: #ffffff;
+}
+.app-dialog-btn-danger:hover {
+  background: #b91c1c;
+}
+
+.app-dialog-btn-secondary {
+  background: #f1f5f9;
+  color: #475569;
+  border: 1px solid #cbd5e1;
+}
+.app-dialog-btn-secondary:hover {
+  background: #e2e8f0;
+  color: #1e293b;
+}
+
+/* Opciones seleccionables del modal de rechazo SINPE */
+.sinpe-reject-option:hover {
+  border-color: #cbd5e1 !important;
+  background: #f8fafc;
+}
+.sinpe-reject-option:has(input:checked) {
+  border-color: #ef4444 !important;
+  background: #fef2f2 !important;
+  color: #991b1b !important;
+}
+
+
 

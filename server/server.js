@@ -1831,14 +1831,15 @@ function arrayToCsv(headers, rows) {
   const escapeCell = (cell) => {
     if (cell === null || cell === undefined) return '';
     const str = String(cell);
-    if (str.includes(',') || str.includes('"') || str.includes('\n') || str.includes('\r')) {
+    if (str.includes(';') || str.includes(',') || str.includes('"') || str.includes('\n') || str.includes('\r')) {
       return `"${str.replace(/"/g, '""')}"`;
     }
     return str;
   };
-  const headerLine = headers.map(escapeCell).join(',');
-  const rowLines = rows.map(r => r.map(escapeCell).join(','));
-  return '\uFEFF' + [headerLine, ...rowLines].join('\r\n');
+  const headerLine = headers.map(escapeCell).join(';');
+  const rowLines = rows.map(r => r.map(escapeCell).join(';'));
+  // \uFEFF es el BOM UTF-8 y sep=;\r\n indica a Microsoft Excel el separador exacto de columnas
+  return '\uFEFFsep=;\r\n' + [headerLine, ...rowLines].join('\r\n');
 }
 
 // Exportar Ventas a CSV
