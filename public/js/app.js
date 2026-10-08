@@ -2942,7 +2942,8 @@ function openParentSubView(viewKey, shouldScroll = true) {
     'parentSubViewAlergias',
     'parentSubViewLimites',
     'parentSubViewHistorial',
-    'parentSubViewCredenciales'
+    'parentSubViewCredenciales',
+    'parentSubViewDashboard'
   ];
   subViews.forEach(id => {
     const el = document.getElementById(id);
@@ -2966,6 +2967,7 @@ function openParentSubView(viewKey, shouldScroll = true) {
   else if (viewKey === 'historial') targetId = 'parentSubViewHistorial';
   else if (viewKey === 'credenciales') targetId = 'parentSubViewCredenciales';
   else if (viewKey === 'preordenes' || viewKey === 'menu') targetId = 'parentSubViewMenu';
+  else if (viewKey === 'dashboard') targetId = 'parentSubViewDashboard';
   else if (viewKey === 'resumen') targetId = 'parentSubViewResumen';
 
   const targetEl = document.getElementById(targetId);
@@ -2986,6 +2988,8 @@ function openParentSubView(viewKey, shouldScroll = true) {
 
   if (viewKey === 'preordenes' || viewKey === 'menu') {
     renderParentCatalog();
+  } else if (viewKey === 'dashboard') {
+    cargarDashboardPadres();
   } else if (viewKey === 'sinpe' && currentParentChild) {
     if (typeof ensureParentSinpeSession === 'function') {
       ensureParentSinpeSession(currentParentChild);
@@ -3004,6 +3008,181 @@ function openParentSubView(viewKey, shouldScroll = true) {
   }
 
   if (window.sounds) window.sounds.playTap();
+}
+
+// Variables y Funciones del Dashboard Ejecutivo de Padres
+let parentDashPeriodoActual = 'mes';
+let parentDashHijoActual = 'todos';
+
+function poblarSelectorHijosDashboardPadres() {
+  const select = document.getElementById('parentDashChildFilter');
+  if (!select) return;
+  const hijos = (currentUser && currentUser.hijos) ? currentUser.hijos : [];
+  
+  let html = `<option value="todos">👨‍👩‍👧‍👦 Todos mis hijos (Consolidado)</option>`;
+  hijos.forEach(h => {
+    html += `<option value="${h.id}">${escapeHtml(h.nombre_completo)} (${escapeHtml(h.grado || 'Estudiante')})</option>`;
+  });
+  select.innerHTML = html;
+  select.value = parentDashHijoActual;
+}
+
+async function cambiarPeriodoDashboardPadres(periodo) {
+  parentDashPeriodoActual = periodo;
+  const container = document.getElementById('parentDashPeriodPills');
+  if (container) {
+    const buttons = container.querySelectorAll('.admin-dash-pill-btn');
+    buttons.forEach(btn => {
+      btn.classList.toggle('active', btn.dataset.periodo === periodo);
+    });
+  }
+  await cargarDashboardPadres();
+}
+
+async function cambiarHijoDashboardPadres(estudianteId) {
+  parentDashHijoActual = estudianteId;
+  await cargarDashboardPadres();
+}
+
+async function cargarDashboardPadres() {
+  if (!currentUser || currentUser.rol !== 'padre') return;
+
+  poblarSelectorHijosDashboardPadres();
+
+  try {
+    let url = `/api/padres/dashboard?padre_usuario_id=${currentUser.id}&periodo=${encodeURIComponent(parentDashPeriodoActual)}`;
+    if (parentDashHijoActual && parentDashHijoActual !== 'todos') {
+      url += `&estudiante_id=${encodeURIComponent(parentDashHijoActual)}`;
+    }
+
+    const res = await fetch(url);
+    if (!res.ok) throw new Error('Error al cargar datos del dashboard de padres');
+    const data = await res.json();
+    const resumen = data.resumen || {};
+
+    // 1. KPI Saldo
+    const elSaldo = document.getElementById('parentDashKpiSaldo');
+    if (elSaldo) elSaldo.textContent = `₡${(resumen.saldo_disponible || 0).toLocaleString('es-CR')}`;
+
+    const elSaldoMeta = document.getElementById('parentDashKpiSaldoMeta');
+    if (elSaldoMeta) {
+      if ((resumen.saldo_retenido || 0) > 0) {
+        elSaldoMeta.innerHTML = `Retenido preórdenes: <strong style="color: #f59e0b;">₡${(resumen.saldo_retenido || 0).toLocaleString('es-CR')}</strong> • Total: ₡${(resumen.saldo_total || 0).toLocaleString('es-CR')}`;
+      } else {
+        elSaldoMeta.innerHTML = `Saldo total en monederos: <strong>₡${(resumen.saldo_total || 0).toLocaleString('es-CR')}</strong>`;
+      }
+    }
+
+    // 2. KPI Recargas
+    const elRecargas = document.getElementById('parentDashKpiRecargas');
+    if (elRecargas) elRecargas.textContent = `₡${(resumen.total_recargas || 0).toLocaleString('es-CR')}`;
+
+    const elRecargasMeta = document.getElementById('parentDashKpiRecargasMeta');
+    if (elRecargasMeta) {
+      elRecargasMeta.innerHTML = `SINPE Móvil: <strong>₡${(resumen.recargas_sinpe || 0).toLocaleString('es-CR')}</strong> (${resumen.cant_recargas || 0} recargas)`;
+    }
+
+    // 3. KPI Compras
+    const elCompras = document.getElementById('parentDashKpiCompras');
+    if (elCompras) elCompras.textContent = `₡${(resumen.total_compras || 0).toLocaleString('es-CR')}`;
+
+    const elComprasMeta = document.getElementById('parentDashKpiComprasMeta');
+    if (elComprasMeta) {
+      elComprasMeta.textContent = `${resumen.cant_compras || 0} compras despachadas`;
+    }
+
+    // 4. KPI Promedio
+    const elTicket = document.getElementById('parentDashKpiTicket');
+    if (elTicket) elTicket.textContent = `₡${(resumen.ticket_promedio || 0).toLocaleString('es-CR')}`;
+
+    const elTicketMeta = document.getElementById('parentDashKpiTicketMeta');
+    if (elTicketMeta) {
+      elTicketMeta.textContent = `Promedio de consumo por orden`;
+    }
+
+    // 5. Top Productos Consumidos
+    const contTop = document.getElementById('parentDashTopProductosList');
+    if (contTop) {
+      const top = data.top_productos || [];
+      if (top.length === 0) {
+        contTop.innerHTML = `
+          <div style="text-align: center; padding: 20px 10px; color: var(--text-muted); font-size: 0.8rem;">
+            No hay compras registradas en este período.
+          </div>
+        `;
+      } else {
+        const maxCant = Math.max(...top.map(t => t.cantidad_total || 1));
+        const medallas = ['🥇', '🥈', '🥉', '4º', '5º'];
+        contTop.innerHTML = top.map((p, idx) => {
+          const pct = Math.round(((p.cantidad_total || 0) / maxCant) * 100);
+          return `
+            <div style="display: flex; flex-direction: column; gap: 4px; padding: 6px 0; border-bottom: 1px dashed var(--border, #e2e8f0);">
+              <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.82rem;">
+                <span style="display: flex; align-items: center; gap: 6px; min-width: 0;">
+                  <span style="font-size: 0.85rem; font-weight: 800; width: 22px;">${medallas[idx] || (idx + 1)}</span>
+                  <strong style="color: var(--text-main); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${escapeHtml(p.nombre_producto)}</strong>
+                </span>
+                <span style="text-align: right; flex-shrink: 0; font-weight: 800; color: #0284c7;">
+                  ₡${(p.total_colones || 0).toLocaleString('es-CR')}
+                  <span style="font-size: 0.72rem; color: var(--text-muted); font-weight: 600; display: block;">${p.cantidad_total} uds</span>
+                </span>
+              </div>
+              <div class="admin-dash-bar-track" style="height: 5px;">
+                <div class="admin-dash-bar-fill" style="width: ${pct}%; background: linear-gradient(90deg, #34d399, #10b981);"></div>
+              </div>
+            </div>
+          `;
+        }).join('');
+      }
+    }
+
+    // 6. Últimos Movimientos
+    const contMov = document.getElementById('parentDashMovimientosList');
+    if (contMov) {
+      const movs = data.movimientos || [];
+      if (movs.length === 0) {
+        contMov.innerHTML = `
+          <div style="text-align: center; padding: 20px 10px; color: var(--text-muted); font-size: 0.8rem;">
+            Sin movimientos registrados para el período seleccionado.
+          </div>
+        `;
+      } else {
+        contMov.innerHTML = movs.map(m => {
+          const esIngreso = Number(m.monto_colones || 0) > 0;
+          const colorMonto = esIngreso ? '#16a34a' : '#0f172a';
+          const signo = esIngreso ? '+' : '';
+          const fechaFmt = m.fecha ? new Date(m.fecha).toLocaleString('es-CR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }) : '';
+          return `
+            <div style="display: flex; justify-content: space-between; align-items: center; padding: 8px 10px; background: var(--bg-main, #f8fafc); border-radius: 10px; font-size: 0.8rem; border: 1px solid var(--border, #e2e8f0);">
+              <div style="min-width: 0;">
+                <div style="font-weight: 800; color: var(--text-main); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                  ${escapeHtml(m.descripcion || m.tipo)}
+                </div>
+                <div style="font-size: 0.70rem; color: var(--text-muted); margin-top: 1px;">
+                  <span>${escapeHtml(m.estudiante_nombre)}</span> • <span>${fechaFmt}</span>
+                </div>
+              </div>
+              <div style="text-align: right; flex-shrink: 0; font-weight: 900; color: ${colorMonto}; margin-left: 10px;">
+                ${signo}₡${Math.abs(Number(m.monto_colones || 0)).toLocaleString('es-CR')}
+              </div>
+            </div>
+          `;
+        }).join('');
+      }
+    }
+  } catch (err) {
+    console.error('Error al cargar dashboard de padres:', err);
+  }
+}
+
+function descargarEstadoCuentaPadresExcel() {
+  if (!currentUser || currentUser.rol !== 'padre') return;
+  let url = `/api/padres/export/estado-cuenta.xlsx?padre_usuario_id=${currentUser.id}&periodo=${encodeURIComponent(parentDashPeriodoActual)}`;
+  if (parentDashHijoActual && parentDashHijoActual !== 'todos') {
+    url += `&estudiante_id=${encodeURIComponent(parentDashHijoActual)}`;
+  }
+  const dateTag = new Date().toISOString().slice(0, 10);
+  descargarArchivoDirecto(url, `estado_cuenta_familiar_${dateTag}.xlsx`);
 }
 
 function closeParentSubView(shouldScroll = true) {

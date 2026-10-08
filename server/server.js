@@ -473,6 +473,300 @@ app.post('/api/padres/restablecer-acceso', (req, res) => {
   }
 });
 
+// Dashboard Ejecutivo del Portal de Padres
+app.get('/api/padres/dashboard', (req, res) => {
+  try {
+    const padreUsuarioId = req.query.padre_usuario_id ? parseInt(req.query.padre_usuario_id, 10) : null;
+    if (!padreUsuarioId) return res.status(400).json({ error: 'Falta padre_usuario_id' });
+
+    // 1. Obtener hijos vinculados a este padre
+    let hijos = db.prepare(`
+      SELECT e.id, e.nombre_completo, e.grado, e.seccion, e.codigo_estudiante, e.codigo_carnet, e.saldo_colones, e.foto_url
+      FROM estudiantes e
+      JOIN padres_estudiantes pe ON e.id = pe.estudiante_id
+      WHERE pe.padre_usuario_id = ? AND e.activo = 1
+      ORDER BY e.nombre_completo ASC
+    `).all(padreUsuarioId);
+
+    if (hijos.length === 0) {
+      hijos = db.prepare(`
+        SELECT e.id, e.nombre_completo, e.grado, e.seccion, e.codigo_estudiante, e.codigo_carnet, e.saldo_colones, e.foto_url
+        FROM estudiantes e
+        WHERE e.padre_usuario_id = ? AND e.activo = 1
+        ORDER BY e.nombre_completo ASC
+      `).all(padreUsuarioId);
+    }
+
+    if (hijos.length === 0) {
+      return res.json({
+        periodo: req.query.periodo || 'mes',
+        hijos: [],
+        resumen: {
+          saldo_total: 0,
+          saldo_disponible: 0,
+          saldo_retenido: 0,
+          total_recargas: 0,
+          recargas_sinpe: 0,
+          recargas_efectivo: 0,
+          cant_recargas: 0,
+          total_compras: 0,
+          cant_compras: 0,
+          ticket_promedio: 0
+        },
+        top_productos: [],
+        movimientos: []
+      });
+    }
+
+    // 2. Filtrar por hijo si se especifica
+    const estudianteIdQuery = req.query.estudiante_id;
+    let targetIds = hijos.map(h => h.id);
+    if (estudianteIdQuery && estudianteIdQuery !== 'todos') {
+      const parsedId = parseInt(estudianteIdQuery, 10);
+      if (targetIds.includes(parsedId)) {
+        targetIds = [parsedId];
+      }
+    }
+    const inPlaceholders = targetIds.map(() => '?').join(',');
+
+    // 3. Manejo de período
+    const periodo = req.query.periodo || 'mes';
+    const ahora = new Date();
+    const fHoy = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Costa_Rica' }).format(ahora);
+    let fechaInicio = fHoy;
+    let fechaFin = fHoy;
+    let usarFiltroFechas = true;
+
+    if (periodo === 'hoy') {
+      fechaInicio = fHoy;
+      fechaFin = fHoy;
+    } else if (periodo === '30dias') {
+      const d30 = new Date();
+      d30.setDate(d30.getDate() - 29);
+      fechaInicio = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Costa_Rica' }).format(d30);
+      fechaFin = fHoy;
+    } else if (periodo === 'mes') {
+      fechaInicio = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Costa_Rica' }).format(new Date(ahora.getFullYear(), ahora.getMonth(), 1));
+      fechaFin = fHoy;
+    } else if (periodo === 'todo') {
+      usarFiltroFechas = false;
+    }
+
+    // 4. Saldo actual y retenido en preórdenes
+    const saldosRow = db.prepare(`
+      SELECT COALESCE(SUM(saldo_colones), 0) as total
+      FROM estudiantes
+      WHERE id IN (${inPlaceholders})
+    `).get(...targetIds);
+    const saldoTotal = saldosRow ? saldosRow.total : 0;
+
+    const retenidoRow = db.prepare(`
+      SELECT COALESCE(SUM(total_colones), 0) as total
+      FROM ordenes
+      WHERE estudiante_id IN (${inPlaceholders}) AND tipo_orden = 'preorden' AND estado IN ('pendiente', 'en_preparacion', 'listo')
+    `).get(...targetIds);
+    const saldoRetenido = retenidoRow ? retenidoRow.total : 0;
+    const saldoDisponible = Math.max(0, saldoTotal - saldoRetenido);
+
+    // 5. Recargas del período
+    let sqlRecargas = `
+      SELECT 
+        COALESCE(SUM(monto_colones), 0) as total_recargas,
+        COALESCE(SUM(CASE WHEN tipo = 'recarga_sinpe' THEN monto_colones ELSE 0 END), 0) as recargas_sinpe,
+        COALESCE(SUM(CASE WHEN tipo = 'recarga_manual' THEN monto_colones ELSE 0 END), 0) as recargas_efectivo,
+        COUNT(*) as cant_recargas
+      FROM transacciones_saldo
+      WHERE estudiante_id IN (${inPlaceholders})
+        AND tipo IN ('recarga_sinpe', 'recarga_manual')
+        AND monto_colones > 0
+        AND (revertida IS NULL OR revertida = 0)
+    `;
+    const paramsRecargas = [...targetIds];
+    if (usarFiltroFechas) {
+      sqlRecargas += ` AND date(fecha, 'localtime') >= ? AND date(fecha, 'localtime') <= ?`;
+      paramsRecargas.push(fechaInicio, fechaFin);
+    }
+    const recargasRow = db.prepare(sqlRecargas).get(...paramsRecargas) || {};
+
+    // 6. Compras / Consumo del período
+    let sqlCompras = `
+      SELECT 
+        COALESCE(SUM(total_colones), 0) as total_compras,
+        COUNT(*) as cant_compras,
+        ROUND(COALESCE(AVG(total_colones), 0)) as ticket_promedio
+      FROM ordenes
+      WHERE estudiante_id IN (${inPlaceholders}) AND estado != 'cancelado'
+    `;
+    const paramsCompras = [...targetIds];
+    if (usarFiltroFechas) {
+      sqlCompras += ` AND date(creado_en, 'localtime') >= ? AND date(creado_en, 'localtime') <= ?`;
+      paramsCompras.push(fechaInicio, fechaFin);
+    }
+    const comprasRow = db.prepare(sqlCompras).get(...paramsCompras) || {};
+
+    // 7. Top 5 Productos Consumidos
+    let sqlTop = `
+      SELECT 
+        od.nombre_producto,
+        COALESCE(SUM(od.cantidad), 0) as cantidad_total,
+        COALESCE(SUM(od.subtotal), 0) as total_colones
+      FROM orden_detalles od
+      JOIN ordenes o ON od.orden_id = o.id
+      WHERE o.estudiante_id IN (${inPlaceholders}) AND o.estado != 'cancelado'
+    `;
+    const paramsTop = [...targetIds];
+    if (usarFiltroFechas) {
+      sqlTop += ` AND date(o.creado_en, 'localtime') >= ? AND date(o.creado_en, 'localtime') <= ?`;
+      paramsTop.push(fechaInicio, fechaFin);
+    }
+    sqlTop += ` GROUP BY od.nombre_producto ORDER BY cantidad_total DESC, total_colones DESC LIMIT 5`;
+    const topProductos = db.prepare(sqlTop).all(...paramsTop);
+
+    // 8. Movimientos recientes (hasta 12)
+    let sqlMov = `
+      SELECT 
+        ts.id, ts.estudiante_id, e.nombre_completo as estudiante_nombre,
+        ts.tipo, ts.monto_colones, ts.descripcion, ts.fecha
+      FROM transacciones_saldo ts
+      JOIN estudiantes e ON ts.estudiante_id = e.id
+      WHERE ts.estudiante_id IN (${inPlaceholders})
+    `;
+    const paramsMov = [...targetIds];
+    if (usarFiltroFechas) {
+      sqlMov += ` AND date(ts.fecha, 'localtime') >= ? AND date(ts.fecha, 'localtime') <= ?`;
+      paramsMov.push(fechaInicio, fechaFin);
+    }
+    sqlMov += ` ORDER BY ts.fecha DESC, ts.id DESC LIMIT 12`;
+    const movimientos = db.prepare(sqlMov).all(...paramsMov);
+
+    res.json({
+      periodo,
+      fecha_inicio: fechaInicio,
+      fecha_fin: fechaFin,
+      hijos,
+      resumen: {
+        saldo_total: saldoTotal,
+        saldo_disponible: saldoDisponible,
+        saldo_retenido: saldoRetenido,
+        total_recargas: recargasRow.total_recargas || 0,
+        recargas_sinpe: recargasRow.recargas_sinpe || 0,
+        recargas_efectivo: recargasRow.recargas_efectivo || 0,
+        cant_recargas: recargasRow.cant_recargas || 0,
+        total_compras: comprasRow.total_compras || 0,
+        cant_compras: comprasRow.cant_compras || 0,
+        ticket_promedio: comprasRow.ticket_promedio || 0
+      },
+      top_productos: topProductos,
+      movimientos
+    });
+  } catch (err) {
+    console.error('Error en /api/padres/dashboard:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Exportar Estado de Cuenta Familiar a Excel
+app.get(['/api/padres/export/estado-cuenta.xlsx', '/api/padres/export/estado-cuenta.csv'], (req, res) => {
+  try {
+    const padreUsuarioId = req.query.padre_usuario_id ? parseInt(req.query.padre_usuario_id, 10) : null;
+    if (!padreUsuarioId) return res.status(400).json({ error: 'Falta padre_usuario_id' });
+
+    let hijos = db.prepare(`
+      SELECT e.id, e.nombre_completo, e.grado, e.seccion, e.codigo_estudiante
+      FROM estudiantes e
+      JOIN padres_estudiantes pe ON e.id = pe.estudiante_id
+      WHERE pe.padre_usuario_id = ? AND e.activo = 1
+    `).all(padreUsuarioId);
+
+    if (hijos.length === 0) {
+      hijos = db.prepare(`
+        SELECT e.id, e.nombre_completo, e.grado, e.seccion, e.codigo_estudiante
+        FROM estudiantes e
+        WHERE e.padre_usuario_id = ? AND e.activo = 1
+      `).all(padreUsuarioId);
+    }
+
+    if (hijos.length === 0) return res.status(404).json({ error: 'No hay estudiantes vinculados' });
+
+    const estudianteIdQuery = req.query.estudiante_id;
+    let targetIds = hijos.map(h => h.id);
+    if (estudianteIdQuery && estudianteIdQuery !== 'todos') {
+      const parsedId = parseInt(estudianteIdQuery, 10);
+      if (targetIds.includes(parsedId)) targetIds = [parsedId];
+    }
+    const inPlaceholders = targetIds.map(() => '?').join(',');
+
+    const periodo = req.query.periodo || 'mes';
+    const ahora = new Date();
+    const fHoy = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Costa_Rica' }).format(ahora);
+    let fechaInicio = fHoy;
+    let fechaFin = fHoy;
+    let usarFiltroFechas = true;
+
+    if (periodo === 'hoy') {
+      fechaInicio = fHoy;
+      fechaFin = fHoy;
+    } else if (periodo === '30dias') {
+      const d30 = new Date();
+      d30.setDate(d30.getDate() - 29);
+      fechaInicio = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Costa_Rica' }).format(d30);
+      fechaFin = fHoy;
+    } else if (periodo === 'mes') {
+      fechaInicio = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Costa_Rica' }).format(new Date(ahora.getFullYear(), ahora.getMonth(), 1));
+      fechaFin = fHoy;
+    } else if (periodo === 'todo') {
+      usarFiltroFechas = false;
+    }
+
+    let sqlMov = `
+      SELECT 
+        ts.id, ts.fecha, e.nombre_completo as estudiante_nombre, e.codigo_estudiante,
+        ts.tipo, ts.descripcion, ts.monto_colones, ts.saldo_posterior
+      FROM transacciones_saldo ts
+      JOIN estudiantes e ON ts.estudiante_id = e.id
+      WHERE ts.estudiante_id IN (${inPlaceholders})
+    `;
+    const paramsMov = [...targetIds];
+    if (usarFiltroFechas) {
+      sqlMov += ` AND date(ts.fecha, 'localtime') >= ? AND date(ts.fecha, 'localtime') <= ?`;
+      paramsMov.push(fechaInicio, fechaFin);
+    }
+    sqlMov += ` ORDER BY ts.fecha DESC, ts.id DESC LIMIT 1000`;
+    const transacciones = db.prepare(sqlMov).all(...paramsMov);
+
+    const tipoEtiquetas = {
+      'recarga_sinpe': 'Recarga SINPE Móvil',
+      'recarga_manual': 'Recarga en Caja',
+      'compra_mostrador': 'Compra Mostrador',
+      'preorden': 'Compra Pre-orden',
+      'reversion_recarga': 'Reversión Recarga',
+      'transferencia_enviada': 'Transferencia Enviada',
+      'transferencia_recibida': 'Transferencia Recibida'
+    };
+
+    const headers = ['Fecha y Hora', 'Estudiante', 'Código Est.', 'Tipo de Movimiento', 'Descripción', 'Monto (CRC)', 'Saldo Posterior (CRC)'];
+    const rows = transacciones.map(t => {
+      const fechaFmt = t.fecha ? new Date(t.fecha).toLocaleString('es-CR') : '';
+      const tipoTxt = tipoEtiquetas[t.tipo] || t.tipo;
+      return [
+        fechaFmt,
+        t.estudiante_nombre,
+        t.codigo_estudiante,
+        tipoTxt,
+        t.descripcion || '',
+        Number(t.monto_colones || 0),
+        Number(t.saldo_posterior || 0)
+      ];
+    });
+
+    const filenameBase = `estado_cuenta_familiar_${new Date().toISOString().slice(0, 10)}`;
+    responderExportacion(res, req, { sheetName: 'Estado de Cuenta', filenameBase, headers, rows });
+  } catch (err) {
+    console.error('Error al exportar estado de cuenta:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // ==========================================
 // ENDPOINTS DE ADMINISTRACIÓN DE LA SODA
 // ==========================================

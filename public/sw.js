@@ -1,5 +1,5 @@
-// SiboPay PWA Service Worker v13.9 - Dashboard Ejecutivo de Soda
-const CACHE_NAME = 'sibopay-v13.9';
+// SiboPay PWA Service Worker v14.0 - Dashboard Ejecutivo de Padres
+const CACHE_NAME = 'sibopay-v14.0';
 const STATIC_ASSETS = [
   '/',
   '/index.html',

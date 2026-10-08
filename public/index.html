@@ -12,7 +12,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="SiboPay">
   <meta name="mobile-web-app-capable" content="yes">
-  <link rel="stylesheet" href="/css/styles.css?v=13.9">
+  <link rel="stylesheet" href="/css/styles.css?v=14.0">
   <link rel="stylesheet" href="/css/desktop.css?v=2.2">
   <style>
     /* Transiciones suaves */
@@ -630,14 +630,6 @@
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="14" x="2" y="3" rx="2"/><line x1="8" x2="16" y1="21" y2="21"/><line x1="12" x2="12" y1="17" y2="21"/></svg>
           <span class="admin-btn-text">Terminal POS</span>
         </a>
-        <button type="button" onclick="exportarVentasCsv()" class="btn-saas btn-saas-outline" style="height: 34px; border-color: #10b981; color: #166534;" title="Descargar histórico de ventas a archivo Excel / CSV">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-          <span class="admin-btn-text">📊 Ventas Excel</span>
-        </button>
-        <button type="button" onclick="exportarEstudiantesCsv()" class="btn-saas btn-saas-outline" style="height: 34px; border-color: #0284c7; color: #0284c7;" title="Descargar listado de saldos de alumnos a Excel / CSV">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-          <span class="admin-btn-text">📋 Saldos Excel</span>
-        </button>
       </div>
     </header>
 
@@ -1377,6 +1369,15 @@
             </div>
             <span class="parent-nav-arrow" style="color: #16a34a;">›</span>
           </div>
+
+          <div class="parent-nav-box" data-view="dashboard" onclick="openParentSubView('dashboard')">
+            <div class="parent-nav-box-icon" style="background: rgba(2, 132, 199, 0.12); color: #0284c7;">📊</div>
+            <div class="parent-nav-box-text">
+              <strong style="color: #0284c7;">Dashboard Ejecutivo</strong>
+              <span>Saldos, compras y recargas</span>
+            </div>
+            <span class="parent-nav-arrow" style="color: #0284c7;">›</span>
+          </div>
         </aside>
 
         <!-- COLUMNA DERECHA: ESCENARIO DE CONTENIDO ACTIVO -->
@@ -1950,8 +1951,135 @@
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
             <span>Guardar Nuevas Credenciales</span>
           </button>
-      </div>
-        </main>
+        </div>
+
+        <!-- SUBVISTA: DASHBOARD EJECUTIVO FAMILIAR -->
+        <div id="parentSubViewDashboard" class="parent-subview" style="display: none;">
+          <div class="parent-subview-header">
+            <button type="button" onclick="closeParentSubView()" class="parent-subview-back-btn">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+              <span>Volver</span>
+            </button>
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <span style="font-size: 1.1rem;">📊</span>
+              <strong style="font-size: 0.92rem; color: var(--text-main);">Dashboard Ejecutivo Familiar</strong>
+            </div>
+          </div>
+
+          <div class="parent-card" style="background: var(--card-bg, #ffffff); border: 1px solid var(--border, #e2e8f0); border-radius: 18px; padding: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.03);">
+            <!-- BARRA DE CONTROLES: FILTRO DE HIJO, PERÍODO Y ACTUALIZAR -->
+            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; margin-bottom: 16px; padding-bottom: 14px; border-bottom: 1px solid var(--border, #e2e8f0);">
+              <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+                <div>
+                  <label for="parentDashChildFilter" style="display: block; font-size: 0.72rem; font-weight: 800; color: var(--text-muted); text-transform: uppercase; margin-bottom: 3px;">Estudiante:</label>
+                  <select id="parentDashChildFilter" onchange="cambiarHijoDashboardPadres(this.value)" style="padding: 6px 12px; border-radius: 9px; border: 1.5px solid var(--border); background: var(--bg-main); color: var(--text-main); font-size: 0.82rem; font-weight: 800; outline: none; cursor: pointer;">
+                    <option value="todos">👨‍👩‍👧‍👦 Todos mis hijos (Consolidado)</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label style="display: block; font-size: 0.72rem; font-weight: 800; color: var(--text-muted); text-transform: uppercase; margin-bottom: 3px;">Período:</label>
+                  <div class="admin-dash-period-pills" id="parentDashPeriodPills">
+                    <button type="button" class="admin-dash-pill-btn active" data-periodo="mes" onclick="cambiarPeriodoDashboardPadres('mes')">Este Mes</button>
+                    <button type="button" class="admin-dash-pill-btn" data-periodo="30dias" onclick="cambiarPeriodoDashboardPadres('30dias')">30 Días</button>
+                    <button type="button" class="admin-dash-pill-btn" data-periodo="hoy" onclick="cambiarPeriodoDashboardPadres('hoy')">Hoy</button>
+                    <button type="button" class="admin-dash-pill-btn" data-periodo="todo" onclick="cambiarPeriodoDashboardPadres('todo')">Histórico</button>
+                  </div>
+                </div>
+              </div>
+
+              <button type="button" onclick="cargarDashboardPadres()" class="btn-saas btn-saas-outline" style="height: 32px; padding: 0 10px; font-size: 0.76rem;" title="Recargar datos">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"/><path d="M16 21h5v-5"/></svg>
+                <span>Actualizar</span>
+              </button>
+            </div>
+
+            <!-- CUADRÍCULA DE 4 TARJETAS KPI EJECUTIVAS -->
+            <div class="admin-dash-grid" style="margin-bottom: 18px;">
+              <!-- KPI 1: SALDO DISPONIBLE -->
+              <div class="admin-dash-kpi-card kpi-blue">
+                <div class="admin-dash-kpi-header">
+                  <span class="admin-dash-kpi-title">Saldo Disponible</span>
+                  <div class="admin-dash-kpi-icon">💳</div>
+                </div>
+                <div class="admin-dash-kpi-val" id="parentDashKpiSaldo">₡0</div>
+                <div class="admin-dash-kpi-meta">
+                  <span id="parentDashKpiSaldoMeta">Retenido preórdenes: <strong>₡0</strong></span>
+                </div>
+              </div>
+
+              <!-- KPI 2: TOTAL RECARGADO -->
+              <div class="admin-dash-kpi-card kpi-purple">
+                <div class="admin-dash-kpi-header">
+                  <span class="admin-dash-kpi-title">Recargas del Período</span>
+                  <div class="admin-dash-kpi-icon">📥</div>
+                </div>
+                <div class="admin-dash-kpi-val" id="parentDashKpiRecargas">₡0</div>
+                <div class="admin-dash-kpi-meta">
+                  <span id="parentDashKpiRecargasMeta">SINPE Móvil: <strong>₡0 (0 recargas)</strong></span>
+                </div>
+              </div>
+
+              <!-- KPI 3: CONSUMO / COMPRAS -->
+              <div class="admin-dash-kpi-card kpi-green">
+                <div class="admin-dash-kpi-header">
+                  <span class="admin-dash-kpi-title">Compras en la Soda</span>
+                  <div class="admin-dash-kpi-icon">🥪</div>
+                </div>
+                <div class="admin-dash-kpi-val" id="parentDashKpiCompras">₡0</div>
+                <div class="admin-dash-kpi-meta">
+                  <span id="parentDashKpiComprasMeta">0 compras despachadas</span>
+                </div>
+              </div>
+
+              <!-- KPI 4: PROMEDIO POR COMPRA -->
+              <div class="admin-dash-kpi-card kpi-amber">
+                <div class="admin-dash-kpi-header">
+                  <span class="admin-dash-kpi-title">Promedio de Compra</span>
+                  <div class="admin-dash-kpi-icon">📊</div>
+                </div>
+                <div class="admin-dash-kpi-val" id="parentDashKpiTicket">₡0</div>
+                <div class="admin-dash-kpi-meta">
+                  <span id="parentDashKpiTicketMeta">Ticket promedio por orden</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- SECCIÓN 2 COLUMNAS: TOP PRODUCTOS CONSUMIDOS Y MOVIMIENTOS RECIENTES -->
+            <div class="admin-dash-split" style="margin-bottom: 18px;">
+              <!-- COLUMNA 1: TOP MERIENDAS CONSUMIDAS -->
+              <div class="admin-dash-section">
+                <div class="admin-dash-section-title">
+                  <span>🏆 Meriendas Más Consumidas</span>
+                  <span style="font-size: 0.72rem; color: var(--text-muted); font-weight: 600;">Unidades & Monto</span>
+                </div>
+                <div id="parentDashTopProductosList" style="display: flex; flex-direction: column; gap: 10px;">
+                  <!-- Dinámico -->
+                </div>
+              </div>
+
+              <!-- COLUMNA 2: ÚLTIMOS MOVIMIENTOS -->
+              <div class="admin-dash-section">
+                <div class="admin-dash-section-title">
+                  <span>📜 Movimientos Recientes</span>
+                  <span style="font-size: 0.72rem; color: var(--text-muted); font-weight: 600;">Compras & Recargas</span>
+                </div>
+                <div id="parentDashMovimientosList" style="display: flex; flex-direction: column; gap: 8px; max-height: 280px; overflow-y: auto;">
+                  <!-- Dinámico -->
+                </div>
+              </div>
+            </div>
+
+            <!-- BOTÓN EXPORTAR EXCEL ESTADO DE CUENTA -->
+            <div style="display: flex; justify-content: flex-end; padding-top: 12px; border-top: 1px solid var(--border, #e2e8f0);">
+              <button type="button" onclick="descargarEstadoCuentaPadresExcel()" class="btn-saas btn-saas-outline" style="height: 36px; border-color: #10b981; color: #166534; font-size: 0.82rem; font-weight: 800;">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                <span>Descargar Estado de Cuenta (Excel XLSX)</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </main>
       </div>
     </div>
   </div>
@@ -3585,6 +3713,6 @@
   <script src="/js/sounds.js?v=13.8"></script>
   <script src="/js/jsQR.js"></script>
   <script src="/js/food-icons.js?v=1.1"></script>
-  <script src="/js/app.js?v=13.9"></script>
+  <script src="/js/app.js?v=14.0"></script>
 </body>
 </html>
