@@ -245,10 +245,9 @@
           </div>
         </div>
 
-        <!-- FILTROS POR RECREO / HORARIO -->
-        <div class="pos-preorder-filter-bar">
+        <div class="pos-preorder-filter-bar" style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center;">
           <button type="button" class="pos-filter-pill active" id="filterPillTodos" onclick="filterPreOrdersByMomento('todos')">
-            <span>📋 Todos los Recreos</span>
+            <span>📋 Pendientes Activas</span>
             <span class="pos-pill-count" id="countFilterTodos">0</span>
           </button>
           <button type="button" class="pos-filter-pill" id="filterPillRecreo_1" onclick="filterPreOrdersByMomento('recreo_1')">
@@ -262,6 +261,10 @@
           <button type="button" class="pos-filter-pill" id="filterPillRecreo_2" onclick="filterPreOrdersByMomento('recreo_2')">
             <span>⏰ 2do Recreo (1:45 PM)</span>
             <span class="pos-pill-count" id="countFilterRecreo2">0</span>
+          </button>
+          <button type="button" class="pos-filter-pill" id="filterPillCanceladas" onclick="filterPreOrdersByMomento('canceladas')" style="margin-left: auto; border: 1.5px solid #fecaca; color: #991b1b; background: #fff1f2;" title="Ver pre-órdenes no retiradas que fueron canceladas y su dinero liberado">
+            <span>🚫 Canceladas</span>
+            <span class="pos-pill-count" id="countFilterCanceladas" style="background: #fee2e2; color: #991b1b; font-weight: 800;">0</span>
           </button>
         </div>
 
@@ -578,6 +581,6 @@
   <script src="/js/sounds.js?v=8.6"></script>
   <script src="/js/jsQR.js"></script>
   <script src="/js/food-icons.js?v=1.1"></script>
-  <script src="/js/pos.js?v=13.0"></script>
+  <script src="/js/pos.js?v=13.1"></script>
 </body>
 </html>

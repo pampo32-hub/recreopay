@@ -67,7 +67,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   // Registrar Service Worker para PWA
   if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('/sw.js?v=13.0').then(reg => {
+    navigator.serviceWorker.register('/sw.js?v=13.1').then(reg => {
       reg.update().catch(() => {});
       if ('Notification' in window && Notification.permission === 'granted') {
         subscribeDeviceToWebPush().catch(() => {});
@@ -3189,14 +3189,19 @@ async function loadActiveChildHistory(studentId) {
       const isPreorden = o.tipo_orden === 'preorden';
       const badge = getMomentoBadge(o.momento_entrega);
 
+      const isCanceled = o.estado === 'cancelado' || o.estado === 'expirado';
+      const isDelivered = o.estado === 'entregado';
+
       return `
         <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px dashed var(--border);">
           <div style="min-width: 0; flex: 1; padding-right: 8px;">
-            <div style="font-weight: 800; color: var(--text-main); font-size: 0.84rem; word-break: break-word;">${itemsStr}</div>
+            <div style="font-weight: 800; color: ${isCanceled ? 'var(--text-muted)' : 'var(--text-main)'}; font-size: 0.84rem; word-break: break-word; ${isCanceled ? 'text-decoration: line-through;' : ''}">${itemsStr}</div>
             <div style="font-size: 0.72rem; color: var(--text-muted); margin-top: 2px; display: flex; align-items: center; gap: 6px; flex-wrap: wrap;">
               <span>${fecha}</span>
               <span>•</span>
-              <span style="color: ${o.estado === 'entregado' ? '#10b981' : '#f59e0b'}; font-weight: 700;">${o.estado === 'entregado' ? 'Entregado' : 'Pendiente de retiro'}</span>
+              <span style="color: ${isDelivered ? '#10b981' : (isCanceled ? '#ef4444' : '#f59e0b')}; font-weight: 700;">
+                ${isDelivered ? 'Entregado' : (isCanceled ? '🚫 Cancelado (No retirado • Saldo liberado)' : 'Pendiente de retiro')}
+              </span>
               ${isPreorden ? `
                 <span style="background: ${badge.badgeBg}; color: ${badge.badgeColor}; border: 1px solid ${badge.badgeBorder}; padding: 1px 7px; border-radius: 6px; font-weight: 800; font-size: 0.7rem;">
                   ${badge.icon} ${badge.title}
@@ -3204,7 +3209,14 @@ async function loadActiveChildHistory(studentId) {
               ` : ''}
             </div>
           </div>
-          <strong style="color: #0284c7; font-size: 0.88rem; flex-shrink: 0;">-₡${(o.total_colones || 0).toLocaleString('es-CR')}</strong>
+          ${isCanceled ? `
+            <div style="text-align: right; flex-shrink: 0;">
+              <span style="text-decoration: line-through; color: #94a3b8; font-size: 0.78rem; display: block;">₡${(o.total_colones || 0).toLocaleString('es-CR')}</span>
+              <span style="color: #10b981; font-size: 0.72rem; font-weight: 800;">Liberado</span>
+            </div>
+          ` : `
+            <strong style="color: #0284c7; font-size: 0.88rem; flex-shrink: 0;">-₡${(o.total_colones || 0).toLocaleString('es-CR')}</strong>
+          `}
         </div>
       `;
     }).join('');

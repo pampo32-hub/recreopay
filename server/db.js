@@ -311,6 +311,7 @@ function initDatabase() {
   try { db.exec('UPDATE productos SET stock = 10 WHERE stock IS NULL'); } catch (e) {}
   try { db.exec('ALTER TABLE usuarios ADD COLUMN activo INTEGER DEFAULT 1'); } catch (e) {}
   try { db.exec('UPDATE usuarios SET activo = 1 WHERE activo IS NULL'); } catch (e) {}
+  try { db.exec("UPDATE ordenes SET estado = 'cancelado' WHERE estado = 'expirado'"); } catch (e) {}
 
   // 8. Relación N:M Padres - Estudiantes
   try {
@@ -1623,7 +1624,7 @@ function expirarPreordenesVencidas({ motivo = 'tiempo_limite', escuelaId = null 
 
     const stmtUpdateOrden = db.prepare(`
       UPDATE ordenes 
-      SET estado = 'expirado', observaciones = COALESCE(observaciones || ' | ', '') || ?
+      SET estado = 'cancelado', observaciones = COALESCE(observaciones || ' | ', '') || ?
       WHERE id = ?
     `);
 
@@ -1639,8 +1640,8 @@ function expirarPreordenesVencidas({ motivo = 'tiempo_limite', escuelaId = null 
 
     for (const ord of vencidas) {
       const obs = motivo === 'cierre_caja' 
-        ? 'Expirado por Cierre de Caja del turno' 
-        : 'Expirado automáticamente a las 5:00 PM por no retiro';
+        ? 'Cancelada por Cierre de Caja del turno (saldo liberado al estudiante)' 
+        : 'Cancelada automáticamente a las 5:00 PM por no retiro (saldo liberado al estudiante)';
       stmtUpdateOrden.run(obs, ord.id);
       liberadoColones += ord.total_colones;
 

@@ -90,7 +90,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   // Registrar Service Worker para Notificaciones PWA
   if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('/sw.js?v=13.0').then((reg) => {
+    navigator.serviceWorker.register('/sw.js?v=13.1').then((reg) => {
       reg.update().catch(() => {});
       if ('Notification' in window && Notification.permission === 'granted') {
         subscribeDeviceToWebPush().catch(() => {});
@@ -1401,8 +1401,9 @@ function filterPreOrdersByMomento(key) {
 function renderPreOrdersList() {
   const orders = cachedPreOrders || [];
 
-  // Conteo total de pendientes
-  const pendingOrders = orders.filter(o => o.estado !== 'entregado' && o.estado !== 'cancelado');
+  // Órdenes activas pendientes de entrega
+  const pendingOrders = orders.filter(o => o.estado !== 'entregado' && o.estado !== 'cancelado' && o.estado !== 'expirado');
+  const canceledOrders = orders.filter(o => o.estado === 'cancelado' || o.estado === 'expirado');
   const countTodosPending = pendingOrders.length;
   
   const badgeCount = document.getElementById('badgePreordenesCount');
@@ -1421,17 +1422,20 @@ function renderPreOrdersList() {
   const elR1 = document.getElementById('countFilterRecreo1');
   const elAlm = document.getElementById('countFilterAlmuerzo');
   const elR2 = document.getElementById('countFilterRecreo2');
+  const elCanceladas = document.getElementById('countFilterCanceladas');
   if (elTodos) elTodos.textContent = countTodosPending;
   if (elR1) elR1.textContent = countR1;
   if (elAlm) elAlm.textContent = countAlm;
   if (elR2) elR2.textContent = countR2;
+  if (elCanceladas) elCanceladas.textContent = canceledOrders.length;
 
   // Actualizar clase activa en los botones de filtro
   const pillMap = {
     'todos': 'filterPillTodos',
     'recreo_1': 'filterPillRecreo_1',
     'almuerzo': 'filterPillAlmuerzo',
-    'recreo_2': 'filterPillRecreo_2'
+    'recreo_2': 'filterPillRecreo_2',
+    'canceladas': 'filterPillCanceladas'
   };
   Object.keys(pillMap).forEach(k => {
     const btn = document.getElementById(pillMap[k]);
@@ -1439,17 +1443,33 @@ function renderPreOrdersList() {
   });
 
   // Filtrar según botón seleccionado
-  let filtered = orders;
-  if (currentPreOrderFilter !== 'todos') {
-    filtered = orders.filter(o => normalizeMomentoKey(o.momento_entrega) === currentPreOrderFilter);
+  let filtered = [];
+  if (currentPreOrderFilter === 'canceladas') {
+    filtered = canceledOrders;
+  } else if (currentPreOrderFilter === 'todos') {
+    // Por defecto en la cola de mostrador sólo mostramos las órdenes pendientes activas
+    filtered = pendingOrders;
+  } else {
+    filtered = pendingOrders.filter(o => normalizeMomentoKey(o.momento_entrega) === currentPreOrderFilter);
   }
 
   const list = document.getElementById('preOrdersList');
   if (!list) return;
 
   if (filtered.length === 0) {
+    if (currentPreOrderFilter === 'canceladas') {
+      list.innerHTML = `
+        <div style="text-align: center; color: #64748b; padding: 40px 20px; background: white; border-radius: 14px; border: 1.5px dashed #cbd5e1; margin-top: 4px;">
+          <span style="font-size: 2.2rem; display: block; margin-bottom: 8px;">✅</span>
+          <strong style="color: #334155; font-size: 0.95rem; display: block;">No hay pre-órdenes canceladas</strong>
+          <p style="font-size: 0.8rem; margin: 4px 0 0 0; color: #94a3b8;">Las órdenes no retiradas que se cancelen por Cierre de Caja o a las 5:00 PM aparecerán aquí con su monto liberado.</p>
+        </div>
+      `;
+      return;
+    }
+
     const filterNames = {
-      'todos': 'para hoy',
+      'todos': 'pendientes por entregar',
       'recreo_1': 'para el 1er Recreo (9:30 AM)',
       'almuerzo': 'para el Almuerzo (11:45 AM)',
       'recreo_2': 'para el 2do Recreo (1:45 PM)'
@@ -1457,7 +1477,7 @@ function renderPreOrdersList() {
     list.innerHTML = `
       <div style="text-align: center; color: #64748b; padding: 40px 20px; background: white; border-radius: 14px; border: 1.5px dashed #cbd5e1; margin-top: 4px;">
         <span style="font-size: 2.2rem; display: block; margin-bottom: 8px;">🥪</span>
-        <strong style="color: #334155; font-size: 0.95rem; display: block;">No hay pre-órdenes registradas ${filterNames[currentPreOrderFilter] || ''}</strong>
+        <strong style="color: #334155; font-size: 0.95rem; display: block;">No hay pre-órdenes ${filterNames[currentPreOrderFilter] || 'pendientes'}</strong>
         <p style="font-size: 0.8rem; margin: 4px 0 0 0; color: #94a3b8;">Las órdenes programadas para este horario aparecerán aquí automáticamente.</p>
       </div>
     `;
@@ -1469,34 +1489,38 @@ function renderPreOrdersList() {
     const items = Array.isArray(ord.items) ? ord.items : [];
     const itemsList = items.map(i => `${i.cantidad}× ${i.nombre}`).join(' • ');
     const badge = getMomentoBadge(ord.momento_entrega);
+    const isCanceled = ord.estado === 'cancelado' || ord.estado === 'expirado';
+    const isDelivered = ord.estado === 'entregado';
 
     return `
-      <div class="pos-preorder-card" style="border-left: 6px solid ${badge.border};">
-        <!-- Banner Superior de Horario Programado -->
-        <div class="pos-preorder-badge-banner" style="background: ${badge.bg}; border: 1.5px solid ${badge.badgeBorder}; color: ${badge.text};">
+      <div class="pos-preorder-card" style="border-left: 6px solid ${isCanceled ? '#ef4444' : badge.border}; ${isCanceled ? 'opacity: 0.94; background: #fffbfa;' : ''}">
+        <!-- Banner Superior de Horario Programado o Estado -->
+        <div class="pos-preorder-badge-banner" style="background: ${isCanceled ? '#fef2f2' : badge.bg}; border: 1.5px solid ${isCanceled ? '#fecaca' : badge.badgeBorder}; color: ${isCanceled ? '#991b1b' : badge.text};">
           <div style="display: flex; align-items: center; gap: 8px;">
-            <span style="font-size: 1.3rem;">${badge.icon}</span>
+            <span style="font-size: 1.3rem;">${isCanceled ? '🚫' : badge.icon}</span>
             <div>
-              <span style="font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.5px; opacity: 0.85; display: block; font-weight: 800;">ALISTAR PARA:</span>
-              <strong style="font-size: 0.96rem; letter-spacing: -0.2px;">${badge.full}</strong>
+              <span style="font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.5px; opacity: 0.85; display: block; font-weight: 800;">${isCanceled ? 'ESTADO:' : 'ALISTAR PARA:'}</span>
+              <strong style="font-size: 0.96rem; letter-spacing: -0.2px;">${isCanceled ? 'Pre-orden Cancelada (No Retirada)' : badge.full}</strong>
             </div>
           </div>
           <div style="display: flex; align-items: center; gap: 6px;">
-            ${ord.estado === 'entregado'
-              ? '<span class="saas-status-badge saas-status-active" style="padding: 4px 10px; font-weight: 800;"><span class="saas-dot"></span>Entregado</span>'
-              : '<span class="saas-status-badge saas-status-pending" style="padding: 4px 10px; background: #fef08a; color: #854d0e; border: 1px solid #fde047; font-weight: 800;"><span class="saas-dot" style="background: #eab308;"></span>Pendiente Alistar</span>'
+            ${isCanceled
+              ? '<span class="saas-status-badge" style="padding: 4px 10px; background: #fee2e2; color: #991b1b; border: 1px solid #fca5a5; font-weight: 800;"><span class="saas-dot" style="background: #ef4444;"></span>Cancelada</span>'
+              : isDelivered
+                ? '<span class="saas-status-badge saas-status-active" style="padding: 4px 10px; font-weight: 800;"><span class="saas-dot"></span>Entregado</span>'
+                : '<span class="saas-status-badge saas-status-pending" style="padding: 4px 10px; background: #fef08a; color: #854d0e; border: 1px solid #fde047; font-weight: 800;"><span class="saas-dot" style="background: #eab308;"></span>Pendiente Alistar</span>'
             }
           </div>
         </div>
 
         <div class="pos-preorder-header" style="margin-top: 2px;">
           <div class="pos-preorder-student">
-            <div class="pos-preorder-avatar" style="display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 0.9rem; background: linear-gradient(135deg, #0284c7, #0369a1); color: #ffffff;">
+            <div class="pos-preorder-avatar" style="display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 0.9rem; background: ${isCanceled ? '#94a3b8' : 'linear-gradient(135deg, #0284c7, #0369a1)'}; color: #ffffff;">
               ${getStudentInitials(ord.estudiante_nombre)}
             </div>
             <div>
               <div class="pos-preorder-name-row">
-                <strong class="pos-preorder-name">${ord.estudiante_nombre}</strong>
+                <strong class="pos-preorder-name" style="${isCanceled ? 'color: #475569;' : ''}">${ord.estudiante_nombre}</strong>
                 <span class="pos-preorder-grade">${ord.grado} • ${ord.seccion}</span>
               </div>
               <div class="pos-preorder-ticket-info" style="display: flex; align-items: center; gap: 6px; flex-wrap: wrap;">
@@ -1510,24 +1534,36 @@ function renderPreOrdersList() {
           </div>
         </div>
 
-        ${ord.notas ? `
+        ${ord.observaciones ? `
+          <div style="background: ${isCanceled ? '#fee2e2' : '#f8fafc'}; border: 1px solid ${isCanceled ? '#fca5a5' : '#e2e8f0'}; color: ${isCanceled ? '#991b1b' : '#475569'}; padding: 6px 10px; border-radius: 8px; font-size: 0.78rem; font-weight: 700;">
+            ℹ️ ${ord.observaciones}
+          </div>
+        ` : (ord.notas ? `
           <div style="background: #fef3c7; border: 1px solid #fde68a; color: #92400e; padding: 6px 10px; border-radius: 8px; font-size: 0.78rem; font-weight: 700;">
             📝 Nota del pedido: ${ord.notas}
           </div>
-        ` : ''}
+        ` : '')}
 
         <div class="pos-preorder-items-box" style="display: flex; align-items: center; gap: 8px;">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#0284c7" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0;"><path d="m7.5 4.27 9 5.15"/><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22V12"/></svg>
-          <span style="flex: 1; word-break: break-word;">${itemsList}</span>
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="${isCanceled ? '#94a3b8' : '#0284c7'}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0;"><path d="m7.5 4.27 9 5.15"/><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22V12"/></svg>
+          <span style="flex: 1; word-break: break-word; ${isCanceled ? 'color: #64748b; text-decoration: line-through;' : ''}">${itemsList}</span>
         </div>
 
         <div class="pos-preorder-footer">
           <div class="pos-preorder-total">
-            <span class="pos-preorder-total-label">${ord.estado === 'entregado' ? 'Total Cobrado:' : 'Total a Cobrar (Monto Flotante):'}</span>
-            <strong class="pos-preorder-total-val">₡${ord.total_colones.toLocaleString('es-CR')}</strong>
+            <span class="pos-preorder-total-label">${isCanceled ? 'Monto Liberado al Alumno:' : (isDelivered ? 'Total Cobrado:' : 'Total a Cobrar (Monto Flotante):')}</span>
+            <strong class="pos-preorder-total-val" style="${isCanceled ? 'color: #10b981;' : ''}">₡${ord.total_colones.toLocaleString('es-CR')}</strong>
           </div>
           <div>
-            ${ord.estado !== 'entregado' ? `
+            ${isCanceled ? `
+              <span class="saas-status-badge" style="padding: 6px 12px; font-size: 0.8rem; background: #fee2e2; color: #991b1b; border: 1px solid #fecaca; font-weight: 800;">
+                Saldo devuelto al disponible
+              </span>
+            ` : (isDelivered ? `
+              <span class="saas-status-badge saas-status-active" style="padding: 6px 12px; font-size: 0.8rem;">
+                <span class="saas-dot"></span>Cobrado y Entregado
+              </span>
+            ` : `
               <div style="display: flex; gap: 6px; align-items: center;">
                 <button onclick="updateOrderStatus(${ord.id}, 'entregado')" class="btn-saas pos-btn-entregar" title="Cobrar y entregar pedido al estudiante">
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
@@ -1537,11 +1573,7 @@ function renderPreOrdersList() {
                   ✕ Cancelar
                 </button>
               </div>
-            ` : `
-              <span class="saas-status-badge saas-status-active" style="padding: 6px 12px; font-size: 0.8rem;">
-                <span class="saas-dot"></span>Cobrado y Entregado
-              </span>
-            `}
+            `)}
           </div>
         </div>
       </div>
