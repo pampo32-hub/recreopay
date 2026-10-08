@@ -1,5 +1,5 @@
-// SiboPay PWA Service Worker v13.5 - Corrección apertura y trazabilidad modal rechazo SINPE
-const CACHE_NAME = 'sibopay-v13.5';
+// SiboPay PWA Service Worker v13.6 - Exportación nativa Excel XLSX con acentos limpios
+const CACHE_NAME = 'sibopay-v13.6';
 const STATIC_ASSETS = [
   '/',
   '/index.html',

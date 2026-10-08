@@ -4697,7 +4697,8 @@ async function guardarHorariosEscolares() {
 }
 
 function descargarReporteRecargasExcel(descargarTodo = false) {
-  let url = '/api/admin/export/recargas.csv';
+  let url = '/api/admin/export/recargas.xlsx';
+  let dateTag = new Date().toISOString().slice(0, 10);
   if (!descargarTodo) {
     const desde = document.getElementById('inputExportRecargasDesde')?.value || '';
     const hasta = document.getElementById('inputExportRecargasHasta')?.value || '';
@@ -4708,17 +4709,12 @@ function descargarReporteRecargasExcel(descargarTodo = false) {
     if (hasta) params.append('hasta', hasta);
     if (estado && estado !== 'todos') params.append('estado', estado);
 
+    if (desde) dateTag = `${desde}_a_${hasta || desde}`;
     const qs = params.toString();
     if (qs) url += '?' + qs;
   }
 
-  const link = document.createElement('a');
-  link.href = url;
-  link.target = '_blank';
-  link.download = '';
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
+  descargarArchivoDirecto(url, `recargas_sinpe_sibopay_${dateTag}.xlsx`);
 }
 
 async function loadAdminData() {
@@ -8051,7 +8047,7 @@ async function descargarArchivoDirecto(url, defaultFilename) {
     const blobUrl = window.URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = blobUrl;
-    link.download = defaultFilename || 'reporte.csv';
+    link.download = defaultFilename || 'reporte.xlsx';
     document.body.appendChild(link);
     link.click();
     setTimeout(() => {
@@ -8062,7 +8058,7 @@ async function descargarArchivoDirecto(url, defaultFilename) {
     console.error('Error al descargar archivo blob, usando fallback directo:', err);
     const link = document.createElement('a');
     link.href = url;
-    link.download = defaultFilename || 'reporte.csv';
+    link.download = defaultFilename || 'reporte.xlsx';
     link.target = '_blank';
     document.body.appendChild(link);
     link.click();
@@ -8326,8 +8322,8 @@ async function exportarVentasCsv() {
   }
   try {
     const escuelaId = (currentUser && currentUser.escuela_id) || '';
-    const url = `/api/admin/export/ventas.csv${escuelaId ? '?escuela_id=' + escuelaId : ''}`;
-    await descargarArchivoDirecto(url, `ventas_sibopay_${new Date().toISOString().slice(0, 10)}.csv`);
+    const url = `/api/admin/export/ventas.xlsx${escuelaId ? '?escuela_id=' + escuelaId : ''}`;
+    await descargarArchivoDirecto(url, `ventas_sibopay_${new Date().toISOString().slice(0, 10)}.xlsx`);
   } catch (err) {
     alert('Error al exportar ventas: ' + err.message);
   } finally {
@@ -8348,8 +8344,8 @@ async function exportarEstudiantesCsv() {
   }
   try {
     const escuelaId = (currentUser && currentUser.escuela_id) || '';
-    const url = `/api/admin/export/estudiantes.csv${escuelaId ? '?escuela_id=' + escuelaId : ''}`;
-    await descargarArchivoDirecto(url, `estudiantes_sibopay_${new Date().toISOString().slice(0, 10)}.csv`);
+    const url = `/api/admin/export/estudiantes.xlsx${escuelaId ? '?escuela_id=' + escuelaId : ''}`;
+    await descargarArchivoDirecto(url, `estudiantes_saldos_sibopay_${new Date().toISOString().slice(0, 10)}.xlsx`);
   } catch (err) {
     alert('Error al exportar estudiantes: ' + err.message);
   } finally {

@@ -1827,6 +1827,32 @@ app.post('/api/admin/movimientos/:id/revertir', (req, res) => {
 // ==========================================
 // EXPORTACIÓN A EXCEL / CSV (ADMIN SODA)
 // ==========================================
+let XLSX = null;
+try {
+  XLSX = require('xlsx');
+} catch (e) {
+  console.warn('Módulo XLSX no disponible, usando fallback CSV:', e.message);
+}
+
+function generarExcelWorkbook(sheetName, headers, rows) {
+  if (!XLSX) return null;
+  const wb = XLSX.utils.book_new();
+  const ws = XLSX.utils.aoa_to_sheet([headers, ...rows]);
+
+  // Auto-ajuste de anchos de columna para que el texto nunca salga cortado
+  ws['!cols'] = headers.map((h, i) => {
+    let maxLen = String(h || '').length;
+    for (let r = 0; r < Math.min(rows.length, 500); r++) {
+      const val = rows[r] && rows[r][i] !== undefined && rows[r][i] !== null ? String(rows[r][i]) : '';
+      if (val.length > maxLen) maxLen = val.length;
+    }
+    return { wch: Math.min(Math.max(maxLen + 3, 14), 45) };
+  });
+
+  XLSX.utils.book_append_sheet(wb, ws, sheetName.substring(0, 31));
+  return XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' });
+}
+
 function arrayToCsv(headers, rows) {
   const escapeCell = (cell) => {
     if (cell === null || cell === undefined) return '';
@@ -1838,12 +1864,36 @@ function arrayToCsv(headers, rows) {
   };
   const headerLine = headers.map(escapeCell).join(';');
   const rowLines = rows.map(r => r.map(escapeCell).join(';'));
-  // \uFEFF es el BOM UTF-8 y sep=;\r\n indica a Microsoft Excel el separador exacto de columnas
-  return '\uFEFFsep=;\r\n' + [headerLine, ...rowLines].join('\r\n');
+  // UTF-8 BOM puro (\uFEFF) sin "sep=;" (el sep=; provocaba que Excel cambiara la codificación a ANSI y rompiera los acentos)
+  return '\uFEFF' + [headerLine, ...rowLines].join('\r\n');
 }
 
-// Exportar Ventas a CSV
-app.get('/api/admin/export/ventas.csv', (req, res) => {
+function responderExportacion(res, req, { sheetName, filenameBase, headers, rows }) {
+  const isCsvRequested = req.path.endsWith('.csv');
+
+  // Si no se pide explícitamente .csv y XLSX está disponible, generar archivo nativo .xlsx
+  if (!isCsvRequested && XLSX) {
+    try {
+      const buf = generarExcelWorkbook(sheetName, headers, rows);
+      if (buf) {
+        res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+        res.setHeader('Content-Disposition', `attachment; filename="${filenameBase}.xlsx"`);
+        return res.send(buf);
+      }
+    } catch (err) {
+      console.error('Error generando XLSX, recurriendo a CSV:', err);
+    }
+  }
+
+  // Fallback a CSV limpio
+  const csvOutput = arrayToCsv(headers, rows);
+  res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+  res.setHeader('Content-Disposition', `attachment; filename="${filenameBase}.csv"`);
+  return res.send(csvOutput);
+}
+
+// Exportar Ventas a Excel / CSV
+app.get(['/api/admin/export/ventas.xlsx', '/api/admin/export/ventas.csv'], (req, res) => {
   try {
     const escuelaId = req.query.escuela_id ? parseInt(req.query.escuela_id, 10) : null;
     let query = `
@@ -1857,12 +1907,12 @@ app.get('/api/admin/export/ventas.csv', (req, res) => {
       query += ` WHERE e.escuela_id = ? `;
       params.push(escuelaId);
     }
-    query += ` ORDER BY o.id DESC LIMIT 2000`;
+    query += ` ORDER BY o.id DESC LIMIT 3000`;
 
     const ordenes = db.prepare(query).all(...params);
 
     const headers = ['Fecha y Hora', 'Código Orden', 'Estudiante', 'Código Est.', 'Tipo Orden', 'Horario Entrega', 'Total (CRC)', 'Estado'];
-    const csvData = ordenes.map(o => {
+    const rows = ordenes.map(o => {
       const fechaFmt = o.creado_en ? new Date(o.creado_en).toLocaleString('es-CR') : '';
       return [
         fechaFmt,
@@ -1871,23 +1921,20 @@ app.get('/api/admin/export/ventas.csv', (req, res) => {
         o.codigo_estudiante,
         o.tipo_orden === 'preorden' ? 'Pre-orden' : 'Mostrador',
         o.momento_entrega || 'Inmediato',
-        o.total_colones,
+        Number(o.total_colones || 0),
         o.estado
       ];
     });
 
-    const csvOutput = arrayToCsv(headers, csvData);
-    const filename = `ventas_sibopay_${new Date().toISOString().slice(0, 10)}.csv`;
-    res.setHeader('Content-Type', 'text/csv; charset=utf-8');
-    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
-    res.send(csvOutput);
+    const filenameBase = `ventas_sibopay_${new Date().toISOString().slice(0, 10)}`;
+    responderExportacion(res, req, { sheetName: 'Ventas', filenameBase, headers, rows });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
 
-// Exportar Saldos de Estudiantes a CSV
-app.get('/api/admin/export/estudiantes.csv', (req, res) => {
+// Exportar Saldos de Estudiantes a Excel / CSV
+app.get(['/api/admin/export/estudiantes.xlsx', '/api/admin/export/estudiantes.csv'], (req, res) => {
   try {
     const escuelaId = req.query.escuela_id ? parseInt(req.query.escuela_id, 10) : null;
     let query = `
@@ -1904,16 +1951,16 @@ app.get('/api/admin/export/estudiantes.csv', (req, res) => {
     }
     query += ` ORDER BY e.nombre_completo ASC`;
 
-    const rows = db.prepare(query).all(...params);
+    const rowsDb = db.prepare(query).all(...params);
     const headers = ['Código Estudiante', 'Nombre Completo', 'Grado', 'Sección', 'Saldo Actual (CRC)', 'Límite Diario (CRC)', 'Alergias / Salud', 'Veto Chatarra', 'Encargado / Padre', 'Teléfono Padre', 'Sede Escolar', 'Estado'];
 
-    const csvData = rows.map(r => [
+    const rows = rowsDb.map(r => [
       r.codigo_estudiante,
       r.nombre_completo,
       r.grado || '',
       r.seccion || '',
-      r.saldo_colones || 0,
-      r.limite_diario_colones || 3000,
+      Number(r.saldo_colones || 0),
+      Number(r.limite_diario_colones || 3000),
       r.alergias || 'Ninguna conocida',
       r.bloquear_chucherias ? 'SÍ (Veto Activo)' : 'NO',
       r.padre_nombre || '',
@@ -1922,18 +1969,15 @@ app.get('/api/admin/export/estudiantes.csv', (req, res) => {
       r.activo ? 'Activo' : 'Bloqueado'
     ]);
 
-    const csvOutput = arrayToCsv(headers, csvData);
-    const filename = `estudiantes_saldos_sibopay_${new Date().toISOString().slice(0, 10)}.csv`;
-    res.setHeader('Content-Type', 'text/csv; charset=utf-8');
-    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
-    res.send(csvOutput);
+    const filenameBase = `estudiantes_saldos_sibopay_${new Date().toISOString().slice(0, 10)}`;
+    responderExportacion(res, req, { sheetName: 'Saldos Estudiantes', filenameBase, headers, rows });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
 
-// Exportar Recargas y Depósitos SINPE a CSV / Excel
-app.get('/api/admin/export/recargas.csv', (req, res) => {
+// Exportar Recargas y Depósitos SINPE a Excel / CSV
+app.get(['/api/admin/export/recargas.xlsx', '/api/admin/export/recargas.csv'], (req, res) => {
   try {
     const escuelaId = req.query.escuela_id ? parseInt(req.query.escuela_id, 10) : null;
     const { desde, hasta, estado } = req.query;
@@ -1992,12 +2036,12 @@ app.get('/api/admin/export/recargas.csv', (req, res) => {
       'Notas'
     ];
 
-    const csvData = recargas.map(r => {
+    const rows = recargas.map(r => {
       const fechaFmt = r.creado_en ? new Date(r.creado_en).toLocaleString('es-CR') : '';
       const gradoSeccion = [r.grado, r.seccion].filter(Boolean).join(' - ') || 'N/A';
       let estLabel = r.estado;
-      if (r.estado === 'aprobado') estLabel = 'Aprobada / Acreditada';
-      else if (r.estado === 'rechazado') estLabel = 'Rechazada';
+      if (r.estado === 'aprobada' || r.estado === 'aprobado') estLabel = 'Aprobada / Acreditada';
+      else if (r.estado === 'rechazada' || r.estado === 'rechazado') estLabel = 'Rechazada';
       else if (r.estado === 'pendiente') estLabel = 'Pendiente de Verificación';
 
       return [
@@ -2010,19 +2054,16 @@ app.get('/api/admin/export/recargas.csv', (req, res) => {
         gradoSeccion,
         r.padre_nombre || 'Padre de Familia',
         r.padre_telefono || '',
-        r.monto_colones || 0,
+        Number(r.monto_colones || 0),
         estLabel,
-        r.aprobado_por_nombre || (r.estado === 'aprobado' ? 'Sistema / Cajero' : ''),
+        r.aprobado_por_nombre || ((r.estado === 'aprobada' || r.estado === 'aprobado') ? 'Sistema / Cajero' : ''),
         r.notas || ''
       ];
     });
 
-    const csvOutput = arrayToCsv(headers, csvData);
     const dateTag = desde ? `${desde}_a_${hasta || desde}` : new Date().toISOString().slice(0, 10);
-    const filename = `recargas_sinpe_sibopay_${dateTag}.csv`;
-    res.setHeader('Content-Type', 'text/csv; charset=utf-8');
-    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
-    res.send(csvOutput);
+    const filenameBase = `recargas_sinpe_sibopay_${dateTag}`;
+    responderExportacion(res, req, { sheetName: 'Recargas SINPE', filenameBase, headers, rows });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
