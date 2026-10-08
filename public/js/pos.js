@@ -2440,7 +2440,7 @@ function posLogout() {
     localStorage.removeItem('recreopay_user');
     sessionStorage.clear();
   } catch (e) {}
-  window.location.href = '/index.html?logout=true';
+  window.location.href = '/index.html';
 }
 window.posLogout = posLogout;
 

@@ -68,7 +68,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   // Registrar Service Worker para PWA
   if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('/sw.js?v=13.1').then(reg => {
+    navigator.serviceWorker.register('/sw.js?v=15.0').then(reg => {
       reg.update().catch(() => {});
       if ('Notification' in window && Notification.permission === 'granted') {
         subscribeDeviceToWebPush().catch(() => {});
@@ -84,6 +84,12 @@ document.addEventListener('DOMContentLoaded', async () => {
     localStorage.removeItem('recreopay_token');
     localStorage.removeItem('recreopay_user');
     sessionStorage.clear();
+    // Limpiar ?logout=true de la URL para que no persista en el navegador y no vuelva a cerrar sesión en F5
+    try {
+      if (window.history && window.history.replaceState) {
+        window.history.replaceState({}, document.title, window.location.pathname);
+      }
+    } catch (e) {}
   }
 
   // Verificar si hay sesión activa guardada
@@ -100,7 +106,11 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Mostrar pantalla de Login limpia (NO auto-login)
     showLoginView();
   } else {
-    await applyUserRoleSession();
+    try {
+      await applyUserRoleSession();
+    } catch (errRole) {
+      console.error('Error aplicando rol de usuario en sesión:', errRole);
+    }
   }
 
   initStudentSSE();
@@ -416,6 +426,13 @@ async function handleLoginSubmit(event) {
     localStorage.setItem('sibopay_user', JSON.stringify(currentUser));
     localStorage.setItem('recreopay_user', JSON.stringify(currentUser));
 
+    // Limpiar preventivamente cualquier parámetro residual de logout en la URL
+    try {
+      if (window.history && window.history.replaceState) {
+        window.history.replaceState({}, document.title, window.location.pathname);
+      }
+    } catch (e) {}
+
     if (window.sounds) window.sounds.playSuccess();
     await applyUserRoleSession();
   } catch (err) {
@@ -618,6 +635,11 @@ function logout(skipConfirm = false) {
     currentStudent = null;
     currentParentChild = null;
     adminSelectedStudent = null;
+    try {
+      if (window.history && window.history.replaceState) {
+        window.history.replaceState({}, document.title, window.location.pathname);
+      }
+    } catch (e) {}
     showLoginView();
     if (window.sounds) window.sounds.playTap();
   }
@@ -3060,6 +3082,11 @@ async function cargarDashboardPadres() {
     const data = await res.json();
     const resumen = data.resumen || {};
 
+    if (data.hijos && data.hijos.length > 0 && (!currentUser.hijos || currentUser.hijos.length === 0)) {
+      currentUser.hijos = data.hijos;
+      poblarSelectorHijosDashboardPadres();
+    }
+
     // 1. KPI Saldo
     const elSaldo = document.getElementById('parentDashKpiSaldo');
     if (elSaldo) elSaldo.textContent = `₡${(resumen.saldo_disponible || 0).toLocaleString('es-CR')}`;
@@ -3206,7 +3233,8 @@ function closeParentSubView(shouldScroll = true) {
     'parentSubViewAlergias',
     'parentSubViewLimites',
     'parentSubViewHistorial',
-    'parentSubViewCredenciales'
+    'parentSubViewCredenciales',
+    'parentSubViewDashboard'
   ];
   subViews.forEach(id => {
     const el = document.getElementById(id);

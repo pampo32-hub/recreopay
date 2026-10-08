@@ -1,5 +1,5 @@
-// SiboPay PWA Service Worker v14.0 - Dashboard Ejecutivo de Padres
-const CACHE_NAME = 'sibopay-v14.0';
+// SiboPay PWA Service Worker v15.0 - Dashboard Ejecutivo de Padres & Persistencia Sesión F5
+const CACHE_NAME = 'sibopay-v15.0';
 const STATIC_ASSETS = [
   '/',
   '/index.html',
