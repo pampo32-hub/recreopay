@@ -92,13 +92,13 @@
 
         <!-- Botones de Acción (Derecha) -->
         <div class="flex items-center gap-3">
-          <button onclick="window.location.href='/'" class="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-black bg-sky-600 text-white hover:bg-sky-500 transition shadow-lg shadow-sky-600/25 active:scale-95 cursor-pointer">
+          <button onclick="window.location.href='/app'" class="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-black bg-sky-600 text-white hover:bg-sky-500 transition shadow-lg shadow-sky-600/25 active:scale-95 cursor-pointer">
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
               <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/>
               <polyline points="10 17 15 12 10 7"/>
               <line x1="15" x2="3" y1="12" y2="12"/>
             </svg>
-            <span>Iniciar Sesión / Portal</span>
+            <span>Iniciar Sesión</span>
           </button>
         </div>
       </div>
@@ -131,7 +131,7 @@
 
           <!-- Botones de Acción Directa -->
           <div class="flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-4 pt-2">
-            <button onclick="window.location.href='/'" class="w-full sm:w-auto px-8 py-4 rounded-2xl bg-sky-600 hover:bg-sky-500 text-white font-black text-base shadow-xl shadow-sky-600/30 transition flex items-center justify-center gap-3 cursor-pointer">
+            <button onclick="window.location.href='/app'" class="w-full sm:w-auto px-8 py-4 rounded-2xl bg-sky-600 hover:bg-sky-500 text-white font-black text-base shadow-xl shadow-sky-600/30 transition flex items-center justify-center gap-3 cursor-pointer">
               <span>Iniciar Sesión / Portal</span>
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg>
             </button>
@@ -617,7 +617,7 @@
           <a href="#sodas" class="hover:text-white transition">Sodas</a>
           <a href="#familias" class="hover:text-white transition">Familias</a>
           <a href="#mep" class="hover:text-white transition">Normativa MEP</a>
-          <button onclick="window.location.href='/'" class="hover:text-white transition cursor-pointer">Iniciar Sesión</button>
+          <button onclick="window.location.href='/app'" class="hover:text-white transition cursor-pointer">Iniciar Sesión</button>
           <a href="/carnet.html" target="_blank" class="hover:text-white transition">Carnés QR</a>
         </div>
       </div>
@@ -634,87 +634,13 @@
     </div>
   </footer>
 
-  <!-- MODAL FLOTANTE DE INICIO DE SESIÓN INTEGRADO -->
-  <div id="modalLogin" class="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-sm hidden items-center justify-center p-4">
-    <div class="bg-white rounded-3xl max-w-md w-full p-6 sm:p-8 shadow-2xl relative animate-in fade-in duration-200">
-      
-      <!-- Botón Cerrar Modal -->
-      <button onclick="toggleLoginModal(false)" class="absolute top-5 right-5 text-slate-400 hover:text-slate-700 p-1.5 rounded-full hover:bg-slate-100 transition">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-      </button>
-
-      <div class="text-center mb-6">
-        <img src="img/sibopay-emblem.png" alt="SiboPay" class="w-16 h-16 object-contain mx-auto mb-3 drop-shadow-lg">
-        <h3 class="text-xl font-black text-slate-900">Ingresar a Sibo<span class="text-sky-600">Pay</span></h3>
-        <p class="text-xs text-slate-500 mt-1">Acceso seguro para padres, estudiantes y personal de soda</p>
-      </div>
-
-      <!-- Selector de Roles con Iconos Finos y Elegantes -->
-      <div class="space-y-2 mb-6">
-        <div class="text-[10px] font-black uppercase tracking-wider text-slate-400 mb-2">Selecciona tu perfil de acceso:</div>
-        <div class="grid grid-cols-2 gap-3">
-          <button onclick="window.location.href='/index.html'" class="group p-3.5 rounded-2xl border border-slate-200 hover:border-sky-500 bg-white hover:bg-sky-50/50 text-left transition-all shadow-xs flex items-center gap-3">
-            <div class="w-10 h-10 rounded-xl bg-sky-50 text-sky-600 border border-sky-100 flex items-center justify-center group-hover:scale-105 group-hover:bg-sky-600 group-hover:text-white transition-all flex-shrink-0">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/>
-                <circle cx="9" cy="7" r="3.5"/>
-                <path d="M22 21v-2a4 4 0 0 0-3-3.87"/>
-                <path d="M16 3.13a3.5 3.5 0 0 1 0 7.75"/>
-              </svg>
-            </div>
-            <div>
-              <div class="text-xs font-black text-slate-800 group-hover:text-sky-600 transition-colors">Padres</div>
-              <div class="text-[10px] font-medium text-slate-400">Portal familiar</div>
-            </div>
-          </button>
-
-          <button onclick="window.location.href='/index.html'" class="group p-3.5 rounded-2xl border border-slate-200 hover:border-slate-800 bg-white hover:bg-slate-50 text-left transition-all shadow-xs flex items-center gap-3">
-            <div class="w-10 h-10 rounded-xl bg-slate-100 text-slate-700 border border-slate-200 flex items-center justify-center group-hover:scale-105 group-hover:bg-slate-900 group-hover:text-white transition-all flex-shrink-0">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-                <rect width="20" height="14" x="2" y="3" rx="2"/>
-                <line x1="8" x2="16" y1="21" y2="21"/>
-                <line x1="12" x2="12" y1="17" y2="21"/>
-              </svg>
-            </div>
-            <div>
-              <div class="text-xs font-black text-slate-800 group-hover:text-slate-900 transition-colors">Soda / Caja</div>
-              <div class="text-[10px] font-medium text-slate-400">Terminal y cobros</div>
-            </div>
-          </button>
-        </div>
-      </div>
-
-      <div class="pt-4 border-t border-slate-100 text-center">
-        <a href="/index.html" class="inline-flex items-center justify-center w-full py-3 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-extrabold text-xs transition">
-          Ir a la Aplicación Principal
-        </a>
-        <p class="text-[11px] text-slate-500 mt-3 leading-normal">
-          Al iniciar sesión, aceptas nuestros 
-          <a href="/terminos" target="_blank" class="text-sky-600 font-bold underline underline-offset-2">Términos y Condiciones</a> 
-          y nuestra 
-          <a href="/privacidad" target="_blank" class="text-sky-600 font-bold underline underline-offset-2">Política de Privacidad</a>.
-        </p>
-      </div>
-
-    </div>
-  </div>
-
-  <!-- SCRIPT PARA INTERACTIVIDAD -->
+  <!-- SCRIPT PARA REDIRECCIÓN DIRECTA A LA APP -->
   <script>
-    function toggleLoginModal(show) {
-      if (show) {
-        window.location.href = '/';
-      } else {
-        const modal = document.getElementById('modalLogin');
-        if (modal) {
-          modal.classList.add('hidden');
-          modal.classList.remove('flex');
-        }
-      }
+    function toggleLoginModal() {
+      window.location.href = '/app';
     }
-
-    function quickLoginRole(role) {
-      window.location.href = '/';
+    function quickLoginRole() {
+      window.location.href = '/app';
     }
   </script>
 
