@@ -1523,18 +1523,23 @@ function renderPreOrdersList() {
 
         <div class="pos-preorder-footer">
           <div class="pos-preorder-total">
-            <span class="pos-preorder-total-label">Total Cobrado:</span>
+            <span class="pos-preorder-total-label">${ord.estado === 'entregado' ? 'Total Cobrado:' : 'Total a Cobrar (Monto Flotante):'}</span>
             <strong class="pos-preorder-total-val">₡${ord.total_colones.toLocaleString('es-CR')}</strong>
           </div>
           <div>
             ${ord.estado !== 'entregado' ? `
-              <button onclick="updateOrderStatus(${ord.id}, 'entregado')" class="btn-saas pos-btn-entregar" title="Marcar como entregado al estudiante">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
-                <span>Entregar Pedido</span>
-              </button>
+              <div style="display: flex; gap: 6px; align-items: center;">
+                <button onclick="updateOrderStatus(${ord.id}, 'entregado')" class="btn-saas pos-btn-entregar" title="Cobrar y entregar pedido al estudiante">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                  <span>Cobrar y Entregar</span>
+                </button>
+                <button type="button" onclick="cancelarPreordenManual(${ord.id})" class="btn-saas" style="padding: 6px 10px; font-size: 0.76rem; font-weight: 700; color: #dc2626; background: #fef2f2; border: 1.5px solid #fecaca; border-radius: 8px; cursor: pointer;" title="Cancelar pre-orden y liberar saldo flotante al estudiante">
+                  ✕ Cancelar
+                </button>
+              </div>
             ` : `
               <span class="saas-status-badge saas-status-active" style="padding: 6px 12px; font-size: 0.8rem;">
-                <span class="saas-dot"></span>Despachado en Soda
+                <span class="saas-dot"></span>Cobrado y Entregado
               </span>
             `}
           </div>
@@ -1563,18 +1568,112 @@ async function loadPreOrders() {
 
 async function updateOrderStatus(orderId, nuevoEstado) {
   try {
+    let cajeroId = 6;
+    const storedUser = localStorage.getItem('sibopay_user') || localStorage.getItem('recreopay_user');
+    if (storedUser) {
+      try {
+        const u = JSON.parse(storedUser);
+        if (u && u.id) cajeroId = u.id;
+      } catch (e) {}
+    }
+
     const res = await fetch(`/api/ordenes/${orderId}/estado`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ estado: nuevoEstado })
+      body: JSON.stringify({ estado: nuevoEstado, cajero_id: cajeroId })
     });
-    if (!res.ok) throw new Error('Error actualizando orden');
+    const data = await res.json();
+    if (!res.ok) {
+      throw new Error(data.error || 'Error actualizando orden');
+    }
     if (window.sounds) window.sounds.playCoin();
     loadPreOrders();
+    loadCatalog();
   } catch (e) {
     alert(e.message);
   }
 }
+
+// Cancelación manual de pre-orden desde mostrador (libera fondos y retorna inventario)
+async function cancelarPreordenManual(orderId) {
+  const razon = prompt(
+    "¿Deseas cancelar esta pre-orden?\n\nEl monto retenido se liberará de inmediato al disponible del estudiante y el producto volverá al inventario.\n\nMotivo de cancelación (opcional):",
+    "Cancelada a solicitud de la soda / estudiante"
+  );
+  if (razon === null) return;
+
+  try {
+    const res = await fetch(`/api/ordenes/${orderId}/estado`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ estado: 'cancelado', motivo: razon })
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Error cancelando orden');
+    if (window.sounds) window.sounds.playSuccess();
+    await loadPreOrders();
+    await loadCatalog();
+    alert('✅ Pre-orden cancelada. El saldo flotante ha sido liberado al estudiante.');
+  } catch (err) {
+    alert('❌ ' + err.message);
+  }
+}
+window.cancelarPreordenManual = cancelarPreordenManual;
+
+// Cierre de Caja del Día: finaliza jornada y expira pre-órdenes no retiradas
+async function ejecutarCierreDeCaja() {
+  const confirma = confirm(
+    "¿Deseas realizar el Cierre de Caja del turno?\n\n" +
+    "Esta acción:\n" +
+    "• Finalizará la jornada de ventas de la soda.\n" +
+    "• Cancelará todas las pre-órdenes pendientes no retiradas.\n" +
+    "• Liberará de inmediato el saldo retenido devolviéndolo al disponible de los estudiantes.\n" +
+    "• Restituirá el inventario de los productos reservados."
+  );
+
+  if (!confirma) return;
+
+  try {
+    let escuelaId = 1;
+    const storedUser = localStorage.getItem('sibopay_user') || localStorage.getItem('recreopay_user');
+    if (storedUser) {
+      try {
+        const u = JSON.parse(storedUser);
+        if (u && u.escuela_id) escuelaId = u.escuela_id;
+      } catch (e) {}
+    }
+
+    const res = await fetch('/api/pos/cierre-caja', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ escuela_id: escuelaId })
+    });
+
+    const data = await res.json();
+    if (!res.ok) {
+      if (window.sounds) window.sounds.playError();
+      throw new Error(data.error || 'Error al ejecutar el cierre de caja');
+    }
+
+    if (window.sounds) window.sounds.playSuccess();
+    await loadPreOrders();
+    await loadCatalog();
+
+    const cantExp = data.ordenes_expiradas || 0;
+    const montoLib = (data.monto_liberado_colones || 0).toLocaleString('es-CR');
+
+    alert(
+      `🌙 CIERRE DE CAJA COMPLETADO CON ÉXITO\n\n` +
+      `• Pre-órdenes no retiradas canceladas: ${cantExp}\n` +
+      `• Monto liberado al disponible de alumnos: ₡${montoLib}\n\n` +
+      `El turno ha sido liquidado correctamente.`
+    );
+  } catch (err) {
+    console.error('Error en cierre de caja:', err);
+    alert('❌ ' + err.message);
+  }
+}
+window.ejecutarCierreDeCaja = ejecutarCierreDeCaja;
 
 // Despacho Express en 3 segundos mediante escaneo de QR
 async function dispatchPreOrderExpress(qrToken) {
@@ -1661,6 +1760,52 @@ function initSSE() {
 
   sseSource.addEventListener('orden_actualizada', () => {
     loadPreOrders();
+  });
+
+  sseSource.addEventListener('preordenes_actualizadas', () => {
+    loadPreOrders();
+  });
+
+  sseSource.addEventListener('recargar_catalogo', () => {
+    loadCatalog();
+  });
+
+  sseSource.addEventListener('cierre_caja_realizado', (e) => {
+    try {
+      const res = JSON.parse(e.data);
+      console.log('🌙 [POS] SSE cierre_caja_realizado:', res);
+      loadPreOrders();
+      loadCatalog();
+      const count = res.count || 0;
+      const monto = (res.liberadoColones || 0).toLocaleString('es-CR');
+      showInAppNotification({
+        title: '🌙 Cierre de Caja Realizado',
+        message: count > 0
+          ? `Se cancelaron ${count} pre-orden(es) no retiradas y se liberaron ₡${monto} al disponible de los estudiantes.`
+          : `Turno cerrado sin pre-órdenes pendientes por liberar.`,
+        buttonText: 'Ver Pre-Órdenes'
+      });
+    } catch (err) {
+      console.warn('Error en SSE cierre_caja_realizado:', err);
+    }
+  });
+
+  sseSource.addEventListener('preordenes_expiradas', (e) => {
+    try {
+      const res = JSON.parse(e.data);
+      console.log('⏳ [POS] SSE preordenes_expiradas:', res);
+      loadPreOrders();
+      loadCatalog();
+      if (res && res.count > 0) {
+        showInAppNotification({
+          title: '⏳ Pre-órdenes Expiradas',
+          message: `Se expiraron ${res.count} pre-orden(es) pendientes por límite de horario y se liberaron ₡${(res.liberadoColones || 0).toLocaleString('es-CR')}.`,
+          buttonText: 'Ver Pre-Órdenes'
+        });
+      }
+    } catch (err) {
+      console.warn('Error en SSE preordenes_expiradas:', err);
+    }
   });
 
   // Disparo recibido desde pistola remota (teléfono celular)

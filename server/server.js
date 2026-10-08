@@ -28,7 +28,11 @@ const {
   guardarSuscripcionPush,
   obtenerSuscripcionesPush,
   eliminarSuscripcionPush,
-  formatMomentoLabel
+  formatMomentoLabel,
+  expirarPreordenesVencidas,
+  cancelarPreorden,
+  despacharPreordenTransaction,
+  enriquecerEstudianteFinanzas
 } = require('./db');
 const { checkSinpeEmailsOnce, simularSinpeEmail } = require('./sinpeImapService');
 const { normalizarCodigoDetalle, parseSinpeEmail } = require('./sinpeParser');
@@ -266,13 +270,7 @@ app.post('/api/auth/login', (req, res) => {
         `).get();
       }
       if (estudiante) {
-        const gastoHoy = db.prepare(`
-          SELECT COALESCE(SUM(ABS(monto_colones)), 0) as total
-          FROM transacciones_saldo
-          WHERE estudiante_id = ? AND monto_colones < 0 AND date(fecha, 'localtime') = date('now', 'localtime')
-        `).get(estudiante.id).total;
-        estudiante.gastado_hoy = gastoHoy;
-        estudiante.disponible_hoy = Math.max(0, (estudiante.limite_diario_colones || 0) - gastoHoy);
+        estudiante = enriquecerEstudianteFinanzas(estudiante);
       }
     } else if (user.rol === 'padre') {
       hijos = db.prepare(`
@@ -291,18 +289,7 @@ app.post('/api/auth/login', (req, res) => {
           WHERE e.padre_usuario_id = ?
         `).all(user.id);
       }
-      hijos = hijos.map(h => {
-        const gastoHoy = db.prepare(`
-          SELECT COALESCE(SUM(ABS(monto_colones)), 0) as total
-          FROM transacciones_saldo
-          WHERE estudiante_id = ? AND monto_colones < 0 AND date(fecha, 'localtime') = date('now', 'localtime')
-        `).get(h.id).total;
-        return {
-          ...h,
-          gastado_hoy: gastoHoy,
-          disponible_hoy: Math.max(0, (h.limite_diario_colones || 0) - gastoHoy)
-        };
-      });
+      hijos = hijos.map(h => enriquecerEstudianteFinanzas(h));
     }
 
     res.json({
@@ -454,18 +441,7 @@ app.get('/api/padres/mis-hijos', (req, res) => {
       `).all(padre_usuario_id);
     }
 
-    const hijosEnriquecidos = hijos.map(h => {
-      const gastoHoy = db.prepare(`
-        SELECT COALESCE(SUM(ABS(monto_colones)), 0) as total
-        FROM transacciones_saldo
-        WHERE estudiante_id = ? AND monto_colones < 0 AND date(fecha, 'localtime') = date('now', 'localtime')
-      `).get(h.id).total;
-      return {
-        ...h,
-        gastado_hoy: gastoHoy,
-        disponible_hoy: Math.max(0, (h.limite_diario_colones || 0) - gastoHoy)
-      };
-    });
+    const hijosEnriquecidos = hijos.map(h => enriquecerEstudianteFinanzas(h));
 
     res.json({ success: true, hijos: hijosEnriquecidos });
   } catch (err) {
@@ -1971,10 +1947,7 @@ app.get('/api/estudiantes', (req, res) => {
       WHERE activo = 1 
       ORDER BY grado, seccion, nombre_completo
     `).all();
-    const listWithDisp = list.map(e => ({
-      ...e,
-      disponible_hoy: Math.max(0, (e.limite_diario_colones || 0) - (e.gastado_hoy || 0))
-    }));
+    const listWithDisp = list.map(e => enriquecerEstudianteFinanzas(e));
     res.json(listWithDisp);
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -1987,12 +1960,7 @@ app.get('/api/estudiantes/:id', (req, res) => {
     const est = db.prepare('SELECT * FROM estudiantes WHERE id = ?').get(req.params.id);
     if (!est) return res.status(404).json({ error: 'Estudiante no encontrado' });
 
-    // Gastado hoy
-    const gastoHoy = db.prepare(`
-      SELECT COALESCE(SUM(ABS(monto_colones)), 0) as total
-      FROM transacciones_saldo
-      WHERE estudiante_id = ? AND monto_colones < 0 AND date(fecha, 'localtime') = date('now', 'localtime')
-    `).get(est.id).total;
+    const finanzas = enriquecerEstudianteFinanzas(est);
 
     // Transacciones recientes
     const transacciones = db.prepare(`
@@ -2009,9 +1977,7 @@ app.get('/api/estudiantes/:id', (req, res) => {
     `).all(est.id);
 
     res.json({
-      ...est,
-      gastado_hoy: gastoHoy,
-      disponible_hoy: Math.max(0, est.limite_diario_colones - gastoHoy),
+      ...finanzas,
       transacciones,
       ordenes_activas: ordenesActivas
     });
@@ -2071,11 +2037,7 @@ app.get('/api/estudiantes/qr/:token', (req, res) => {
       return res.status(404).json({ error: 'Código QR no reconocido en la base de datos de la escuela' });
     }
 
-    const gastoHoy = db.prepare(`
-      SELECT COALESCE(SUM(ABS(monto_colones)), 0) as total
-      FROM transacciones_saldo
-      WHERE estudiante_id = ? AND monto_colones < 0 AND date(fecha, 'localtime') = date('now', 'localtime')
-    `).get(est.id).total;
+    const finanzas = enriquecerEstudianteFinanzas(est);
 
     // Verificar si tiene pre-órdenes listas para retirar en el recreo
     const preordenesPendientes = db.prepare(`
@@ -2095,9 +2057,7 @@ app.get('/api/estudiantes/qr/:token', (req, res) => {
     }));
 
     res.json({
-      ...est,
-      gastado_hoy: gastoHoy,
-      disponible_hoy: Math.max(0, est.limite_diario_colones - gastoHoy),
+      ...finanzas,
       preordenes_pendientes: preordenesFormateadas
     });
   } catch (error) {
@@ -2108,7 +2068,23 @@ app.get('/api/estudiantes/qr/:token', (req, res) => {
 // Generar imagen QR en PNG/SVG para el carné
 app.get('/api/qr-image/:token', async (req, res) => {
   try {
-    const qrDataUrl = await QRCode.toDataURL(req.params.token, {
+    const rawToken = req.params.token;
+    const est = db.prepare('SELECT * FROM estudiantes WHERE qr_token = ? OR codigo_estudiante = ?').get(rawToken, rawToken);
+
+    // Si el estudiante existe y su QR está bloqueado por superar límite diario (sin pre-órdenes pendientes)
+    if (est && !req.query.bypass) {
+      const finanzas = enriquecerEstudianteFinanzas(est);
+      if (finanzas.qr_bloqueado) {
+        return res.status(403).json({
+          error: 'Código QR bloqueado: Límite diario alcanzado y no hay pre-órdenes pendientes para retirar.',
+          bloqueado: true,
+          limite_diario: finanzas.limite_diario_colones,
+          disponible_hoy: finanzas.disponible_hoy
+        });
+      }
+    }
+
+    const qrDataUrl = await QRCode.toDataURL(rawToken, {
       width: 350,
       margin: 3,
       errorCorrectionLevel: 'H',
@@ -2871,33 +2847,58 @@ app.get('/api/ordenes', (req, res) => {
   }
 });
 
-// Actualizar estado de una orden (Cocina -> Listo -> Entregado)
+// Actualizar estado de una orden (Cocina -> Listo -> Entregado / Cancelado)
 app.put('/api/ordenes/:id/estado', (req, res) => {
   try {
-    const { estado } = req.body;
+    const { estado, motivo, cajero_id } = req.body;
     const ordenId = req.params.id;
 
-    const entregadoEn = estado === 'entregado' ? new Date().toISOString() : null;
+    const ord = db.prepare('SELECT * FROM ordenes WHERE id = ?').get(ordenId);
+    if (!ord) return res.status(404).json({ error: 'Orden no encontrada' });
 
-    db.prepare(`
-      UPDATE ordenes 
-      SET estado = ?, entregado_en = COALESCE(?, entregado_en)
-      WHERE id = ?
-    `).run(estado, entregadoEn, ordenId);
+    let actualizada;
+    if (estado === 'entregado') {
+      // Si es preorden y no ha sido debitada todavía
+      const yaDebitada = db.prepare('SELECT COUNT(*) as count FROM transacciones_saldo WHERE orden_id = ?').get(ordenId).count > 0;
+      if (ord.tipo_orden === 'preorden' && !yaDebitada) {
+        const despacho = despacharPreordenTransaction({ ordenId, cajeroId: cajero_id || 6 });
+        actualizada = despacho.orden;
+        broadcastEvent('estudiante_actualizado', despacho.estudiante);
+        broadcastEvent('saldo_actualizado', despacho.estudiante);
+      } else {
+        db.prepare("UPDATE ordenes SET estado = 'entregado', entregado_en = datetime('now', 'localtime') WHERE id = ?").run(ordenId);
+        actualizada = db.prepare('SELECT * FROM ordenes WHERE id = ?').get(ordenId);
+      }
+    } else if (estado === 'cancelado') {
+      cancelarPreorden(ordenId, motivo || 'Cancelada desde terminal');
+      actualizada = db.prepare('SELECT * FROM ordenes WHERE id = ?').get(ordenId);
+      const est = db.prepare('SELECT * FROM estudiantes WHERE id = ?').get(ord.estudiante_id);
+      if (est) {
+        const finEst = enriquecerEstudianteFinanzas(est);
+        broadcastEvent('estudiante_actualizado', finEst);
+        broadcastEvent('saldo_actualizado', finEst);
+      }
+      broadcastEvent('recargar_catalogo', {});
+    } else {
+      db.prepare(`
+        UPDATE ordenes 
+        SET estado = ?
+        WHERE id = ?
+      `).run(estado, ordenId);
+      actualizada = db.prepare('SELECT * FROM ordenes WHERE id = ?').get(ordenId);
+    }
 
-    const actualizada = db.prepare('SELECT * FROM ordenes WHERE id = ?').get(ordenId);
     broadcastEvent('orden_actualizada', actualizada);
-
     res.json(actualizada);
   } catch (error) {
     res.status(400).json({ error: error.message });
   }
 });
 
-// Despacho ultra-rápido en fila de pre-órdenes mediante escaneo de QR
+// Despacho ultra-rápido en fila de pre-órdenes mediante escaneo de QR (con débito contable oficial)
 app.post('/api/ordenes/despachar-qr', (req, res) => {
   try {
-    const { qr_token } = req.body;
+    const { qr_token, cajero_id } = req.body;
     if (!qr_token) return res.status(400).json({ error: 'Se requiere el código QR del estudiante' });
 
     const est = db.prepare('SELECT * FROM estudiantes WHERE qr_token = ? OR codigo_estudiante = ?').get(qr_token, qr_token);
@@ -2916,8 +2917,8 @@ app.post('/api/ordenes/despachar-qr', (req, res) => {
       });
     }
 
-    // Marcar como entregada
-    db.prepare("UPDATE ordenes SET estado = 'entregado', entregado_en = datetime('now', 'localtime') WHERE id = ?").run(preorden.id);
+    // Efectuar débito financiero formal y marcar entregada
+    const despacho = despacharPreordenTransaction({ ordenId: preorden.id, cajeroId: cajero_id || 6 });
 
     // Obtener detalles para mostrar en pantalla de caja
     const items = db.prepare(`
@@ -2929,8 +2930,8 @@ app.post('/api/ordenes/despachar-qr', (req, res) => {
 
     const responseData = {
       exito: true,
-      mensaje: `¡Pre-orden ${preorden.codigo_orden} despachada con éxito!`,
-      estudiante: est,
+      mensaje: `¡Pre-orden ${preorden.codigo_orden} cobrada y despachada con éxito!`,
+      estudiante: despacho.estudiante,
       orden: {
         id: preorden.id,
         codigo: preorden.codigo_orden,
@@ -2942,11 +2943,48 @@ app.post('/api/ordenes/despachar-qr', (req, res) => {
     };
 
     broadcastEvent('orden_despachada', responseData);
+    broadcastEvent('orden_actualizada', despacho.orden);
+    broadcastEvent('estudiante_actualizado', despacho.estudiante);
+    broadcastEvent('saldo_actualizado', despacho.estudiante);
+
     res.json(responseData);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
 });
+
+// Cierre de caja del día: expira y libera pre-órdenes no retiradas
+app.post('/api/pos/cierre-caja', (req, res) => {
+  try {
+    const { escuela_id } = req.body;
+    const resultado = expirarPreordenesVencidas({ motivo: 'cierre_caja', escuelaId: escuela_id || 1 });
+    broadcastEvent('cierre_caja_realizado', resultado);
+    broadcastEvent('recargar_catalogo', {});
+    broadcastEvent('preordenes_actualizadas', {});
+    res.json({
+      exito: true,
+      mensaje: `Cierre de caja completado con éxito. ${resultado.count} pre-orden(es) no retiradas fueron canceladas y su monto fue liberado al disponible de los estudiantes.`,
+      ordenes_expiradas: resultado.count,
+      monto_liberado_colones: resultado.liberadoColones
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Verificador automático periódico de preórdenes vencidas (cada 60 segundos)
+setInterval(() => {
+  try {
+    const exp = expirarPreordenesVencidas({ motivo: 'tiempo_limite' });
+    if (exp && exp.count > 0) {
+      console.log(`[AUTO-EXPIRACION] ${exp.count} pre-orden(es) vencidas canceladas. Liberado: ₡${exp.liberadoColones}`);
+      broadcastEvent('preordenes_expiradas', exp);
+      broadcastEvent('recargar_catalogo', {});
+    }
+  } catch (e) {
+    console.warn('[AUTO-EXPIRACION] Error en verificación periódica:', e.message);
+  }
+}, 60 * 1000);
 
 // Información de conectividad y túnel HTTPS
 app.get('/api/server-info', (req, res) => {

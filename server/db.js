@@ -724,7 +724,7 @@ function debitoCompraTransaction({ estudianteId, montoTotal, ordenId, descripcio
     `).get(estudianteId);
 
     const totalGastadoHoy = gastoHoyRow ? gastoHoyRow.total_gastado_hoy : 0;
-    if (totalGastadoHoy + montoTotal > est.limite_diario_colones) {
+    if (tipoOrden !== 'preorden' && totalGastadoHoy + montoTotal > est.limite_diario_colones) {
       const disponibleHoy = Math.max(0, est.limite_diario_colones - totalGastadoHoy);
       throw new Error(`Límite diario superado. Su límite por día es ₡${est.limite_diario_colones.toLocaleString('es-CR')}. Disponible hoy: ₡${disponibleHoy.toLocaleString('es-CR')}`);
     }
@@ -863,13 +863,44 @@ function crearOrdenCompleta({ estudianteId, tipoOrden, momentoEntrega, notas, it
     const estadoInicial = tipoOrden === 'mostrador' ? 'entregado' : 'pendiente';
     const entregadoEn = tipoOrden === 'mostrador' ? new Date().toISOString() : null;
 
-    // Consultar estudiante para registrar saldos históricos y evitar campos NULL
+    // Consultar estudiante para registrar saldos y validaciones
     const est = db.prepare('SELECT * FROM estudiantes WHERE id = ?').get(estudianteId);
     if (!est) throw new Error(`Estudiante #${estudianteId} no existe`);
+    if (!est.activo) throw new Error('La cuenta del estudiante se encuentra inactiva');
+    if (est.tarjeta_bloqueada) throw new Error('⛔ Tarjeta suspendida por la administración de la soda.');
+
+    // Calcular saldo retenido actual en pre-órdenes flotantes pendientes
+    const retenidoRow = db.prepare(`
+      SELECT COALESCE(SUM(total_colones), 0) as total_retenido
+      FROM ordenes
+      WHERE estudiante_id = ? AND tipo_orden = 'preorden' AND estado IN ('pendiente', 'en_preparacion', 'listo')
+    `).get(estudianteId);
+    const saldoRetenidoActual = retenidoRow ? retenidoRow.total_retenido : 0;
+    const saldoDisponibleActual = Math.max(0, est.saldo_colones - saldoRetenidoActual);
+
+    // Gastado hoy en compras de mostrador
+    const gastoHoyRow = db.prepare(`
+      SELECT COALESCE(SUM(ABS(monto_colones)), 0) as total_gastado_hoy
+      FROM transacciones_saldo
+      WHERE estudiante_id = ? AND monto_colones < 0 AND date(fecha, 'localtime') = date('now', 'localtime')
+    `).get(estudianteId);
+    const totalGastadoHoy = gastoHoyRow ? gastoHoyRow.total_gastado_hoy : 0;
+    const disponibleHoyActual = Math.max(0, (est.limite_diario_colones || 0) - totalGastadoHoy - saldoRetenidoActual);
+
+    // Validación de solvencia de saldo disponible y límite diario
+    if (saldoDisponibleActual < totalColones) {
+      throw new Error(`Saldo disponible insuficiente. Saldo total: ₡${est.saldo_colones.toLocaleString('es-CR')}, Retenido en pre-órdenes: ₡${saldoRetenidoActual.toLocaleString('es-CR')}, Disponible: ₡${saldoDisponibleActual.toLocaleString('es-CR')}, Total orden: ₡${totalColones.toLocaleString('es-CR')}`);
+    }
+
+    if (disponibleHoyActual < totalColones) {
+      throw new Error(`Límite diario superado. Su límite por día es ₡${(est.limite_diario_colones || 0).toLocaleString('es-CR')}. Disponible hoy considerando pedidos pendientes: ₡${disponibleHoyActual.toLocaleString('es-CR')}`);
+    }
+
     const saldoAnterior = est.saldo_colones;
-    const saldoPosterior = Math.max(0, saldoAnterior - totalColones);
+    // Si es preorden, no se descuenta de saldo_colones aún; queda como monto flotante
+    const saldoPosterior = tipoOrden === 'mostrador' ? Math.max(0, saldoAnterior - totalColones) : saldoAnterior;
     const cajeroVal = (tipoOrden === 'mostrador' ? 6 : 1);
-    const obsVal = (tipoOrden === 'mostrador' ? 'Venta realizada en mostrador' : 'Pre-orden retiro en recreo');
+    const obsVal = (tipoOrden === 'mostrador' ? 'Venta realizada en mostrador' : 'Pre-orden con monto retenido');
     const notasVal = notas || '';
     const momentoVal = momentoEntrega || (tipoOrden === 'mostrador' ? 'inmediato' : 'recreo_1');
 
@@ -898,7 +929,7 @@ function crearOrdenCompleta({ estudianteId, tipoOrden, momentoEntrega, notas, it
 
     const ordenId = resultOrden.lastInsertRowid;
 
-    // Insertar detalle de productos y descontar inventario
+    // Insertar detalle de productos y descontar/reservar inventario
     const insertDetalle = db.prepare(`
       INSERT INTO orden_detalles (orden_id, producto_id, nombre_producto, cantidad, precio_unitario, subtotal)
       VALUES (?, ?, ?, ?, ?, ?)
@@ -909,7 +940,7 @@ function crearOrdenCompleta({ estudianteId, tipoOrden, momentoEntrega, notas, it
       const nombreProd = det.nombre || `Producto #${det.producto_id}`;
       insertDetalle.run(ordenId, det.producto_id, nombreProd, det.cantidad, det.precio_unitario, det.subtotal);
 
-      // Descontar inventario si tiene control de stock activo
+      // Descontar inventario si tiene control de stock activo (reservado)
       const prod = db.prepare('SELECT control_stock, stock FROM productos WHERE id = ?').get(det.producto_id);
       if (prod && prod.control_stock === 1) {
         const nuevoStock = Math.max(0, prod.stock - det.cantidad);
@@ -928,14 +959,47 @@ function crearOrdenCompleta({ estudianteId, tipoOrden, momentoEntrega, notas, it
       }
     }
 
-    // Efectuar débito financiero
-    const resultadoDebito = debitoCompraTransaction({
-      estudianteId,
-      montoTotal: totalColones,
-      ordenId,
-      descripcion: `Orden ${codigoOrden} (${tipoOrden})`,
-      tipoOrden: tipoOrden === 'mostrador' ? 'compra_mostrador' : 'preorden'
-    });
+    let resultadoFinanciero;
+    if (tipoOrden === 'mostrador') {
+      // Efectuar débito financiero en mostrador
+      resultadoFinanciero = debitoCompraTransaction({
+        estudianteId,
+        montoTotal: totalColones,
+        ordenId,
+        descripcion: `Orden ${codigoOrden} (mostrador)`,
+        tipoOrden: 'compra_mostrador'
+      });
+      resultadoFinanciero.estudiante.saldo_total = resultadoFinanciero.estudiante.saldo_nuevo;
+      resultadoFinanciero.estudiante.saldo_retenido = saldoRetenidoActual;
+      resultadoFinanciero.estudiante.saldo_disponible = Math.max(0, resultadoFinanciero.estudiante.saldo_nuevo - saldoRetenidoActual);
+    } else {
+      // Pre-orden: El dinero queda como saldo retenido / flotante sin débito inmediato
+      const nuevoSaldoRetenido = saldoRetenidoActual + totalColones;
+      const nuevoSaldoDisp = Math.max(0, est.saldo_colones - nuevoSaldoRetenido);
+      const nuevoDispHoy = Math.max(0, (est.limite_diario_colones || 0) - totalGastadoHoy - nuevoSaldoRetenido);
+
+      resultadoFinanciero = {
+        exito: true,
+        monto_flotante: true,
+        estudiante: {
+          id: est.id,
+          nombre: est.nombre_completo,
+          grado: est.grado,
+          seccion: est.seccion,
+          foto_url: est.foto_url,
+          saldo_total: est.saldo_colones,
+          saldo_anterior: est.saldo_colones,
+          saldo_nuevo: est.saldo_colones,
+          saldo_retenido: nuevoSaldoRetenido,
+          saldo_disponible: nuevoSaldoDisp,
+          limite_diario: est.limite_diario_colones,
+          gastado_hoy: totalGastadoHoy,
+          disponible_hoy: nuevoDispHoy,
+          tiene_preordenes_pendientes: true,
+          qr_bloqueado: false
+        }
+      };
+    }
 
     return {
       orden_id: ordenId,
@@ -953,7 +1017,7 @@ function crearOrdenCompleta({ estudianteId, tipoOrden, momentoEntrega, notas, it
       detalles: detallesParaInsertar,
       items: detallesParaInsertar,
       productosActualizados,
-      financiero: resultadoDebito
+      financiero: resultadoFinanciero
     };
   });
 
@@ -1502,6 +1566,205 @@ function eliminarSuscripcionPush(endpoint) {
   return db.prepare('DELETE FROM push_subscriptions WHERE endpoint = ?').run(endpoint);
 }
 
+/**
+ * Expira automáticamente pre-órdenes no retiradas (por cierre de caja o fin de jornada a las 5:00 PM)
+ * Restituye el inventario y libera el saldo retenido.
+ */
+function expirarPreordenesVencidas({ motivo = 'tiempo_limite', escuelaId = null } = {}) {
+  let condition = `
+    tipo_orden = 'preorden' 
+    AND estado IN ('pendiente', 'en_preparacion', 'listo')
+  `;
+  const params = [];
+
+  if (motivo === 'cierre_caja') {
+    if (escuelaId) {
+      condition += ' AND (escuela_id = ? OR escuela_id IS NULL)';
+      params.push(escuelaId);
+    }
+  } else {
+    condition += ` AND (
+      date(creado_en, 'localtime') < date('now', 'localtime')
+      OR (date(creado_en, 'localtime') = date('now', 'localtime') AND strftime('%H:%M', 'now', 'localtime') >= '17:00')
+    )`;
+    if (escuelaId) {
+      condition += ' AND (escuela_id = ? OR escuela_id IS NULL)';
+      params.push(escuelaId);
+    }
+  }
+
+  const vencidas = db.prepare(`SELECT * FROM ordenes WHERE ${condition}`).all(...params);
+  if (!vencidas || vencidas.length === 0) {
+    return { count: 0, liberadoColones: 0, ordenes: [] };
+  }
+
+  const tx = db.transaction(() => {
+    let liberadoColones = 0;
+    const ordenesExpiradas = [];
+
+    const stmtUpdateOrden = db.prepare(`
+      UPDATE ordenes 
+      SET estado = 'expirado', observaciones = COALESCE(observaciones || ' | ', '') || ?
+      WHERE id = ?
+    `);
+
+    const stmtGetDetalles = db.prepare(`
+      SELECT producto_id, cantidad FROM orden_detalles WHERE orden_id = ?
+    `);
+
+    const stmtRestoreStock = db.prepare(`
+      UPDATE productos 
+      SET stock = stock + ?, disponible = 1
+      WHERE id = ? AND control_stock = 1
+    `);
+
+    for (const ord of vencidas) {
+      const obs = motivo === 'cierre_caja' 
+        ? 'Expirado por Cierre de Caja del turno' 
+        : 'Expirado automáticamente a las 5:00 PM por no retiro';
+      stmtUpdateOrden.run(obs, ord.id);
+      liberadoColones += ord.total_colones;
+
+      const detalles = stmtGetDetalles.all(ord.id);
+      for (const det of detalles) {
+        stmtRestoreStock.run(det.cantidad, det.producto_id);
+      }
+
+      ordenesExpiradas.push(ord);
+    }
+
+    return {
+      count: vencidas.length,
+      liberadoColones,
+      ordenes: ordenesExpiradas
+    };
+  });
+
+  return tx();
+}
+
+/**
+ * Cancela una pre-orden individual y devuelve el stock
+ */
+function cancelarPreorden(ordenId, motivo = 'Cancelada') {
+  const ord = db.prepare("SELECT * FROM ordenes WHERE id = ?").get(ordenId);
+  if (!ord) throw new Error('Orden no encontrada');
+  if (ord.estado === 'entregado') throw new Error('No se puede cancelar una orden ya entregada');
+  if (ord.estado === 'cancelado' || ord.estado === 'expirado') throw new Error(`Esta orden ya se encuentra ${ord.estado}`);
+
+  const tx = db.transaction(() => {
+    db.prepare(`
+      UPDATE ordenes 
+      SET estado = 'cancelado', observaciones = COALESCE(observaciones || ' | ', '') || ?
+      WHERE id = ?
+    `).run(motivo, ordenId);
+
+    const detalles = db.prepare('SELECT producto_id, cantidad FROM orden_detalles WHERE orden_id = ?').all(ordenId);
+    for (const det of detalles) {
+      db.prepare('UPDATE productos SET stock = stock + ?, disponible = 1 WHERE id = ? AND control_stock = 1').run(det.cantidad, det.producto_id);
+    }
+
+    return ord;
+  });
+
+  return tx();
+}
+
+/**
+ * Despacha y cobra formalmente una pre-orden en la soda (POS)
+ */
+function despacharPreordenTransaction({ ordenId, cajeroId = 6 }) {
+  const transaction = db.transaction(() => {
+    const preorden = db.prepare('SELECT * FROM ordenes WHERE id = ?').get(ordenId);
+    if (!preorden) throw new Error('Pre-orden no encontrada');
+    if (preorden.estado === 'entregado') throw new Error('Esta pre-orden ya fue entregada previamente');
+    if (preorden.estado === 'cancelado' || preorden.estado === 'expirado') {
+      throw new Error(`Esta pre-orden se encuentra ${preorden.estado} y no puede ser despachada`);
+    }
+
+    const est = db.prepare('SELECT * FROM estudiantes WHERE id = ?').get(preorden.estudiante_id);
+    if (!est) throw new Error('Estudiante no encontrado');
+
+    // Efectuar débito oficial de saldo
+    const resDebito = debitoCompraTransaction({
+      estudianteId: est.id,
+      montoTotal: preorden.total_colones,
+      ordenId: preorden.id,
+      descripcion: `Cobro Pre-orden ${preorden.codigo_orden} (${formatMomentoLabel(preorden.momento_entrega)})`,
+      tipoOrden: 'preorden'
+    });
+
+    db.prepare(`
+      UPDATE ordenes 
+      SET estado = 'entregado', entregado_en = datetime('now', 'localtime'), cajero_id = ?,
+          saldo_anterior = ?, saldo_posterior = ?
+      WHERE id = ?
+    `).run(cajeroId, est.saldo_colones, resDebito.estudiante.saldo_nuevo, preorden.id);
+
+    const ordenActualizada = db.prepare('SELECT * FROM ordenes WHERE id = ?').get(preorden.id);
+    const finanzasActualizadas = enriquecerEstudianteFinanzas(db.prepare('SELECT * FROM estudiantes WHERE id = ?').get(est.id));
+
+    return {
+      orden: ordenActualizada,
+      estudiante: finanzasActualizadas,
+      debito: resDebito
+    };
+  });
+
+  return transaction();
+}
+
+/**
+ * Enriquece el objeto de estudiante con su desglose financiero de saldo total,
+ * saldo retenido (preórdenes flotantes), saldo disponible, gasto hoy, límite disponible
+ * y estado de bloqueo de QR.
+ */
+function enriquecerEstudianteFinanzas(est) {
+  if (!est) return null;
+  // Revisión previa de posibles pre-órdenes vencidas
+  expirarPreordenesVencidas();
+
+  const gastoHoyRow = db.prepare(`
+    SELECT COALESCE(SUM(ABS(monto_colones)), 0) as total
+    FROM transacciones_saldo
+    WHERE estudiante_id = ? AND monto_colones < 0 AND date(fecha, 'localtime') = date('now', 'localtime')
+  `).get(est.id);
+  const gastadoHoy = gastoHoyRow ? gastoHoyRow.total : 0;
+
+  const retenidoRow = db.prepare(`
+    SELECT COALESCE(SUM(total_colones), 0) as total_retenido
+    FROM ordenes
+    WHERE estudiante_id = ? AND tipo_orden = 'preorden' AND estado IN ('pendiente', 'en_preparacion', 'listo')
+  `).get(est.id);
+  const saldoRetenido = retenidoRow ? retenidoRow.total_retenido : 0;
+
+  const limiteDiario = est.limite_diario_colones || 0;
+  const saldoTotal = est.saldo_colones || 0;
+  const saldoDisponible = Math.max(0, saldoTotal - saldoRetenido);
+  const disponibleHoy = Math.max(0, limiteDiario - gastadoHoy - saldoRetenido);
+
+  const preordenesPendientesCount = db.prepare(`
+    SELECT COUNT(*) as count FROM ordenes
+    WHERE estudiante_id = ? AND tipo_orden = 'preorden' AND estado IN ('pendiente', 'en_preparacion', 'listo')
+  `).get(est.id).count;
+
+  const tienePreordenes = preordenesPendientesCount > 0;
+  // El QR se bloquea si el estudiante alcanzó su límite diario (disponible_hoy <= 0) Y NO tiene preórdenes pendientes
+  const qrBloqueado = (disponibleHoy <= 0 && !tienePreordenes) || est.tarjeta_bloqueada === 1;
+
+  return {
+    ...est,
+    saldo_total: saldoTotal,
+    saldo_retenido: saldoRetenido,
+    saldo_disponible: saldoDisponible,
+    gastado_hoy: gastadoHoy,
+    disponible_hoy: disponibleHoy,
+    tiene_preordenes_pendientes: tienePreordenes,
+    preordenes_pendientes_count: preordenesPendientesCount,
+    qr_bloqueado: qrBloqueado
+  };
+}
+
 module.exports = {
   db,
   initDatabase,
@@ -1520,5 +1783,9 @@ module.exports = {
   guardarSuscripcionPush,
   obtenerSuscripcionesPush,
   eliminarSuscripcionPush,
-  formatMomentoLabel
+  formatMomentoLabel,
+  expirarPreordenesVencidas,
+  cancelarPreorden,
+  despacharPreordenTransaction,
+  enriquecerEstudianteFinanzas
 };

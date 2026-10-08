@@ -728,9 +728,32 @@ function updateStudentUI() {
     applyCardTheme(getSavedCardTheme());
   }
 
-  // Saldo en colones
-  document.getElementById('walletBalance').textContent = `₡${currentStudent.saldo_colones.toLocaleString('es-CR')}`;
-  document.getElementById('balanceLabel').textContent = 'SALDO DISPONIBLE';
+  // Saldo total, retenido y disponible para gastar
+  const saldoTotal = (typeof currentStudent.saldo_total === 'number') 
+    ? currentStudent.saldo_total 
+    : (currentStudent.saldo_colones || 0);
+  const saldoRetenido = currentStudent.saldo_retenido || 0;
+  const saldoDisponible = (typeof currentStudent.saldo_disponible === 'number')
+    ? currentStudent.saldo_disponible
+    : Math.max(0, saldoTotal - saldoRetenido);
+
+  document.getElementById('walletBalance').textContent = `₡${saldoDisponible.toLocaleString('es-CR')}`;
+  document.getElementById('balanceLabel').textContent = saldoRetenido > 0 ? 'DISPONIBLE PARA GASTAR' : 'SALDO DISPONIBLE';
+  
+  // Desglose transparente cuando hay monto retenido en pre-órdenes
+  const breakdownBox = document.getElementById('breakdownSaldoBox');
+  if (breakdownBox) {
+    if (saldoRetenido > 0) {
+      breakdownBox.style.display = 'block';
+      const lblTot = document.getElementById('lblSaldoTotalBreakdown');
+      if (lblTot) lblTot.textContent = `₡${saldoTotal.toLocaleString('es-CR')}`;
+      const lblRet = document.getElementById('lblSaldoRetenidoBreakdown');
+      if (lblRet) lblRet.textContent = `₡${saldoRetenido.toLocaleString('es-CR')}`;
+    } else {
+      breakdownBox.style.display = 'none';
+    }
+  }
+
   const coin = document.getElementById('kidsCoinIcon');
   if (coin) coin.style.display = 'none';
   const qrBtn = document.getElementById('qrBtnText');
@@ -743,10 +766,29 @@ function updateStudentUI() {
   const gastadoHoy = currentStudent.gastado_hoy || 0;
   const disponibleHoy = (typeof currentStudent.disponible_hoy === 'number')
     ? currentStudent.disponible_hoy
-    : Math.max(0, limiteDiario - gastadoHoy);
+    : Math.max(0, limiteDiario - gastadoHoy - saldoRetenido);
 
   document.getElementById('dailyLimitText').textContent = `₡${limiteDiario.toLocaleString('es-CR')}`;
   document.getElementById('dailyAvailableText').textContent = `Disponible hoy: ₡${disponibleHoy.toLocaleString('es-CR')}`;
+
+  const tienePreordenes = Boolean(currentStudent.tiene_preordenes_pendientes || (currentStudent.preordenes_pendientes_count > 0));
+  const qrBloqueadoPorLimite = disponibleHoy <= 0 && !tienePreordenes;
+
+  // Banner informativo si alcanzó su límite diario
+  const bannerLimitBlocked = document.getElementById('bannerQrDailyLimitBlocked');
+  if (bannerLimitBlocked) {
+    if (disponibleHoy <= 0) {
+      bannerLimitBlocked.style.display = 'flex';
+      const msgEl = document.getElementById('bannerQrDailyLimitMsg');
+      if (msgEl) {
+        msgEl.textContent = tienePreordenes
+          ? 'Has alcanzado tu límite diario de consumo. Tu código QR solo podrá ser escaneado en la soda para retirar tu Pre-Orden.'
+          : `Has alcanzado tu límite diario de ₡${limiteDiario.toLocaleString('es-CR')} asignado por tus padres. La generación del código QR para compras está bloqueada hasta mañana.`;
+      }
+    } else {
+      bannerLimitBlocked.style.display = 'none';
+    }
+  }
 
   // Alerta de Tarjeta Bloqueada
   const bannerBlocked = document.getElementById('bannerCardBlocked');
@@ -757,11 +799,28 @@ function updateStudentUI() {
     if (currentStudent.tarjeta_bloqueada) {
       btn.style.opacity = '0.45';
       btn.style.pointerEvents = 'none';
+    } else if (qrBloqueadoPorLimite) {
+      btn.style.opacity = '0.55';
+      btn.style.filter = 'grayscale(0.85)';
+      btn.title = 'Límite diario alcanzado: no puedes generar QR para compras';
+      btn.style.pointerEvents = 'auto'; // Permitir clic para mostrar el mensaje explicativo
     } else {
       btn.style.opacity = '1';
+      btn.style.filter = 'none';
       btn.style.pointerEvents = 'auto';
     }
   });
+
+  const pwaNavQr = document.getElementById('pwaNavQr');
+  if (pwaNavQr) {
+    if (qrBloqueadoPorLimite) {
+      pwaNavQr.style.opacity = '0.55';
+      pwaNavQr.title = 'Límite diario alcanzado';
+    } else {
+      pwaNavQr.style.opacity = '1';
+      pwaNavQr.title = '';
+    }
+  }
 
   // Gray-out del botón Transferir cuando los padres lo desactivan
   const btnCardTransfer = document.getElementById('btnCardTransfer');
@@ -1362,7 +1421,7 @@ async function submitPreOrder() {
 
     if (window.sounds) window.sounds.playSuccess();
 
-    alert(`¡Pre-Orden confirmada con éxito!\n\n📋 Código de retiro: ${data.codigo_orden}\n⏰ Horario: ${momentoBadge.full}\n💰 Total rebajado: ₡${data.total_colones.toLocaleString('es-CR')}\n\nPodrás retirarla en la soda durante el recreo programado presentando tu carné QR.`);
+    alert(`¡Pre-Orden confirmada con éxito!\n\n📋 Código de retiro: ${data.codigo_orden}\n⏰ Horario: ${momentoBadge.full}\n🔒 Monto reservado (flotante): ₡${data.total_colones.toLocaleString('es-CR')}\n\nNota: Este saldo queda retenido y se rebajará formalmente en la soda al retirar tu pedido presentando tu carné QR.`);
 
     // Limpiar carrito y recargar datos del estudiante o padre
     cart = [];
@@ -1383,7 +1442,7 @@ async function submitPreOrder() {
     alert(`No se pudo procesar: ${err.message}`);
   } finally {
     btn.disabled = false;
-    btn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg> <span>Confirmar y Pagar Pre-Orden</span>';
+    btn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg> <span>Confirmar Pre-Orden (Monto Flotante)</span>';
   }
 }
 
@@ -1392,6 +1451,31 @@ async function submitPreOrder() {
 // ==========================================
 
 function openQrModal() {
+  if (currentStudent) {
+    const limiteDiario = currentStudent.limite_diario_colones || 0;
+    const gastadoHoy = currentStudent.gastado_hoy || 0;
+    const saldoRetenido = currentStudent.saldo_retenido || 0;
+    const disponibleHoy = (typeof currentStudent.disponible_hoy === 'number')
+      ? currentStudent.disponible_hoy
+      : Math.max(0, limiteDiario - gastadoHoy - saldoRetenido);
+
+    const tienePreordenes = Boolean(currentStudent.tiene_preordenes_pendientes || (currentStudent.preordenes_pendientes_count > 0));
+
+    // Si superó su límite diario y NO tiene pre-órdenes pendientes, bloquear apertura
+    if (disponibleHoy <= 0 && !tienePreordenes) {
+      if (window.sounds) window.sounds.playError();
+      alert(`⛔ Límite Diario Alcanzado\n\nHas consumido tu límite máximo diario de ₡${limiteDiario.toLocaleString('es-CR')} establecido por tus padres.\n\nNo es posible generar códigos QR para nuevas compras hasta la siguiente jornada escolar.`);
+      resetPwaNavActive();
+      return;
+    }
+
+    // Si tiene pre-órdenes pendientes pero agotó el límite diario de mostrador, mostrar aviso informativo
+    const preBanner = document.getElementById('qrPreorderOnlyBanner');
+    if (preBanner) {
+      preBanner.style.display = (disponibleHoy <= 0 && tienePreordenes) ? 'block' : 'none';
+    }
+  }
+
   if (window.sounds) window.sounds.playScanChirp();
   document.getElementById('modalQr').style.display = 'flex';
 }
@@ -2717,10 +2801,13 @@ function renderParentDashboardView() {
             </div>
             ${isBlocked ? '<span style="font-size: 0.65rem; background: #fee2e2; color: #dc2626; padding: 2px 6px; border-radius: 4px; font-weight: 800; flex-shrink: 0;">BLOQUEADO</span>' : ''}
           </div>
-          <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1px solid var(--border); padding-top: 8px; margin-top: 2px; width: 100%;">
-            <span style="font-size: 0.74rem; color: var(--text-muted); font-weight: 700;">Saldo:</span>
+          <div style="display: flex; justify-content: space-between; align-items: flex-end; border-top: 1px solid var(--border); padding-top: 8px; margin-top: 2px; width: 100%;">
+            <div>
+              <span style="font-size: 0.72rem; color: var(--text-muted); font-weight: 700; display: block;">Disponible:</span>
+              ${(h.saldo_retenido || 0) > 0 ? `<span style="font-size: 0.65rem; color: #b45309; font-weight: 800;">(₡${h.saldo_retenido.toLocaleString('es-CR')} retenido)</span>` : ''}
+            </div>
             <strong style="font-size: 1.05rem; color: #0284c7; font-weight: 900; letter-spacing: -0.3px;">
-              ₡${(h.saldo_colones || 0).toLocaleString('es-CR')}
+              ₡${((typeof h.saldo_disponible === 'number') ? h.saldo_disponible : (h.saldo_colones - (h.saldo_retenido || 0))).toLocaleString('es-CR')}
             </strong>
           </div>
         </div>
@@ -2991,7 +3078,21 @@ function renderActiveChildDetails(child) {
   }
   if (name) name.textContent = child.nombre_completo;
   if (meta) meta.textContent = `${child.grado} - Sección ${child.seccion} • Cód: ${child.codigo_estudiante}`;
-  if (balance) balance.textContent = `₡${(child.saldo_colones || 0).toLocaleString('es-CR')}`;
+  const saldoTotal = (typeof child.saldo_total === 'number') ? child.saldo_total : (child.saldo_colones || 0);
+  const saldoRetenido = child.saldo_retenido || 0;
+  const saldoDisponible = (typeof child.saldo_disponible === 'number') ? child.saldo_disponible : Math.max(0, saldoTotal - saldoRetenido);
+
+  if (balance) balance.textContent = `₡${saldoDisponible.toLocaleString('es-CR')}`;
+
+  const retenidoNote = document.getElementById('parentActiveChildRetenidoNote');
+  if (retenidoNote) {
+    if (saldoRetenido > 0) {
+      retenidoNote.style.display = 'block';
+      retenidoNote.innerHTML = `🔒 Saldo total: <strong>₡${saldoTotal.toLocaleString('es-CR')}</strong> &nbsp;|&nbsp; Retenido en pre-órdenes: <strong style="color: #92400e;">₡${saldoRetenido.toLocaleString('es-CR')}</strong>`;
+    } else {
+      retenidoNote.style.display = 'none';
+    }
+  }
 
   const currentLimit = child.limite_diario_colones || 3000;
   if (lblLimit) lblLimit.textContent = `₡${currentLimit.toLocaleString('es-CR')} / día`;
@@ -3011,7 +3112,14 @@ function renderActiveChildDetails(child) {
   const summaryName = document.getElementById('parentSummaryChildName');
   const summaryAllergies = document.getElementById('parentSummaryAllergyStatus');
 
-  if (summaryBalance) summaryBalance.textContent = `₡${(child.saldo_colones || 0).toLocaleString('es-CR')}`;
+  if (summaryBalance) summaryBalance.textContent = `₡${saldoDisponible.toLocaleString('es-CR')}`;
+  const summarySub = document.getElementById('parentSummaryRetenidoSubtitle');
+  if (summarySub) {
+    summarySub.textContent = saldoRetenido > 0 
+      ? `● ₡${saldoRetenido.toLocaleString('es-CR')} retenido en pre-órdenes` 
+      : '● Disponible para compras';
+    summarySub.style.color = saldoRetenido > 0 ? '#b45309' : '#10b981';
+  }
   if (summaryLimit) summaryLimit.textContent = `₡${currentLimit.toLocaleString('es-CR')}`;
   if (summaryName) summaryName.textContent = child.nombre_completo || 'Estudiante';
 
