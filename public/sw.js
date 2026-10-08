@@ -1,5 +1,5 @@
-// SiboPay PWA Service Worker v13.7 - Modal Ver Motivo de Rechazo SINPE en Portal de Padres
-const CACHE_NAME = 'sibopay-v13.7';
+// SiboPay PWA Service Worker v13.8 - Sonidos desactivados en toda la aplicación
+const CACHE_NAME = 'sibopay-v13.8';
 const STATIC_ASSETS = [
   '/',
   '/index.html',

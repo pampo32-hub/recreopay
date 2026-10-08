@@ -450,34 +450,8 @@
     let lastScannedToken = null;
     let lastScannedTime = 0;
     let sseSource = null;
-    let audioCtx = null;
-
-    // Inicializar Audio Web sintético (beeper de pistola POS)
-    function playLaserBeep() {
-      try {
-        if (!audioCtx) {
-          audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-        }
-        if (audioCtx.state === 'suspended') {
-          audioCtx.resume();
-        }
-        const osc = audioCtx.createOscillator();
-        const gain = audioCtx.createGain();
-
-        // Tono agudo característico de pistola lectora de supermercado (2400Hz)
-        osc.type = 'sine';
-        osc.frequency.setValueAtTime(2400, audioCtx.currentTime);
-        gain.gain.setValueAtTime(0.35, audioCtx.currentTime);
-        gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.08);
-
-        osc.connect(gain);
-        gain.connect(audioCtx.destination);
-        osc.start();
-        osc.stop(audioCtx.currentTime + 0.08);
-      } catch (e) {
-        console.warn('Audio feedback error:', e);
-      }
-    }
+    // Inicializar Audio Web sintético (beeper de pistola POS) - DESACTIVADO
+    function playLaserBeep() {}
 
     // Vibración háptica
     function vibratePhone() {
@@ -719,11 +693,6 @@
     window.addEventListener('DOMContentLoaded', () => {
       initSSEConnection();
       startScannerCamera();
-
-      // Desbloquear AudioContext al primer toque
-      document.body.addEventListener('click', () => {
-        if (!audioCtx) playLaserBeep();
-      }, { once: true });
     });
   </script>
 </body>
