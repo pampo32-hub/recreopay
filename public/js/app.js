@@ -1736,14 +1736,24 @@ function renderParentHistory() {
       fecha = new Date(t.fecha).toLocaleDateString('es-CR', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
     } catch(e) {}
 
+    const safeDesc = (t.descripcion || '').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+    const safeComp = (t.comprobante_sinpe || '').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+
     return `
-      <div style="display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid #f1f5f9;">
+      <div style="display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid #f1f5f9; align-items: center;">
         <div>
           <div style="font-weight: 700; color: ${color};">${t.descripcion || t.tipo}</div>
           <div style="font-size: 0.7rem; color: #94a3b8;">${fecha}</div>
         </div>
-        <div style="font-weight: 800; color: ${isSinpeRechazado ? '#be123c' : (esPositivo ? '#10b981' : '#ef4444')};">
-          ${isSinpeRechazado ? '₡' + Math.abs(t.monto_colones).toLocaleString('es-CR') + ' (Rechazado)' : signo + '₡' + Math.abs(t.monto_colones).toLocaleString('es-CR')}
+        <div style="text-align: right; display: flex; flex-direction: column; align-items: flex-end; gap: 3px;">
+          <div style="font-weight: 800; color: ${isSinpeRechazado ? '#be123c' : (esPositivo ? '#10b981' : '#ef4444')};">
+            ${isSinpeRechazado ? '₡' + Math.abs(t.monto_colones).toLocaleString('es-CR') + ' (Rechazado)' : signo + '₡' + Math.abs(t.monto_colones).toLocaleString('es-CR')}
+          </div>
+          ${isSinpeRechazado ? `
+            <button type="button" onclick="verMotivoRechazoSinpe({ monto_colones: ${Math.abs(t.monto_colones)}, comprobante_sinpe: '${safeComp}', notas: '${safeDesc}', creado_en: '${t.fecha || ''}' })" style="background: #fff1f2; color: #be123c; border: 1px solid #fecdd3; border-radius: 5px; padding: 2px 7px; font-size: 0.65rem; font-weight: 800; cursor: pointer; display: inline-flex; align-items: center; gap: 3px;" title="Ver motivo">
+              <span>Ver motivo</span>
+            </button>
+          ` : ''}
         </div>
       </div>
     `;
@@ -3968,6 +3978,8 @@ async function loadParentSinpeRequests(studentId) {
     if (!res.ok) throw new Error(data.error);
 
     const solicitudes = data.solicitudes || [];
+    window._parentSinpeSolicitudes = solicitudes;
+
     if (solicitudes.length === 0) {
       box.style.display = 'none';
       list.innerHTML = '';
@@ -3975,10 +3987,11 @@ async function loadParentSinpeRequests(studentId) {
     }
 
     box.style.display = 'block';
-    list.innerHTML = solicitudes.slice(0, 5).map(s => {
+    list.innerHTML = solicitudes.slice(0, 10).map(s => {
       const fecha = new Date(s.creado_en).toLocaleString('es-CR', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
       let badgeStyle = '';
       let badgeText = '';
+      const isRechazado = s.estado === 'rechazada' || s.estado === 'rechazado';
 
       if (s.estado === 'pendiente') {
         badgeStyle = 'background: #fef3c7; color: #b45309; border: 1px solid #fde68a;';
@@ -3994,13 +4007,19 @@ async function loadParentSinpeRequests(studentId) {
       const refLabel = s.codigo_detalle ? `Cód: ${s.codigo_detalle}` : `Comp: #${s.comprobante_sinpe}`;
 
       return `
-        <div style="background: white; border: 1px solid #e2e8f0; border-radius: 8px; padding: 8px 10px; display: flex; justify-content: space-between; align-items: center; font-size: 0.76rem;">
+        <div style="background: ${isRechazado ? '#fff8f8' : 'white'}; border: 1px solid ${isRechazado ? '#fecaca' : '#e2e8f0'}; border-radius: 8px; padding: 8px 10px; display: flex; justify-content: space-between; align-items: center; font-size: 0.76rem; transition: all 0.15s ease;">
           <div>
             <div style="font-weight: 800; color: #0f172a;">₡${s.monto_colones.toLocaleString('es-CR')} <span style="font-weight: 600; color: #166534; font-family: monospace;">(${refLabel})</span></div>
             <div style="font-size: 0.68rem; color: #94a3b8;">${fecha}</div>
           </div>
-          <div>
+          <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 4px;">
             <span style="font-size: 0.7rem; font-weight: 800; padding: 3px 8px; border-radius: 6px; ${badgeStyle}">${badgeText}</span>
+            ${isRechazado ? `
+              <button type="button" onclick="verMotivoRechazoSinpe(${s.id})" style="background: #fff1f2; color: #be123c; border: 1.5px solid #fecdd3; border-radius: 6px; padding: 2px 8px; font-size: 0.68rem; font-weight: 800; cursor: pointer; display: inline-flex; align-items: center; gap: 4px; box-shadow: 0 1px 2px rgba(190, 18, 60, 0.08); transition: all 0.15s ease;" title="Ver motivo del rechazo">
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                <span>Ver motivo</span>
+              </button>
+            ` : ''}
           </div>
         </div>
       `;

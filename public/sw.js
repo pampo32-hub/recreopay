@@ -1,5 +1,5 @@
-// SiboPay PWA Service Worker v13.6 - Exportación nativa Excel XLSX con acentos limpios
-const CACHE_NAME = 'sibopay-v13.6';
+// SiboPay PWA Service Worker v13.7 - Modal Ver Motivo de Rechazo SINPE en Portal de Padres
+const CACHE_NAME = 'sibopay-v13.7';
 const STATIC_ASSETS = [
   '/',
   '/index.html',

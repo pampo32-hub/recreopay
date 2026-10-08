@@ -385,4 +385,151 @@
       await fn(motivoFinal);
     }
   };
+
+  // ========================================================
+  // LÓGICA DEL MODAL DE DETALLE DE RECHAZO SINPE (PORTAL DE PADRES)
+  // ========================================================
+  function ensureParentMotivoRechazoModalDom() {
+    let modal = document.getElementById('modalParentVerMotivoRechazo');
+    if (!modal) {
+      modal = document.createElement('div');
+      modal.id = 'modalParentVerMotivoRechazo';
+      modal.className = 'modal-qr-backdrop';
+      modal.style.display = 'none';
+      modal.style.zIndex = '99999';
+      modal.setAttribute('onclick', 'cerrarModalParentMotivoRechazo(event)');
+      modal.innerHTML = `
+        <div class="modal-qr-card" onclick="event.stopPropagation()" style="max-width: 440px; text-align: left; padding: 22px; border-radius: 18px; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.2), 0 8px 10px -6px rgba(0,0,0,0.2);">
+          <div style="display: flex; align-items: center; justify-content: space-between; border-bottom: 1.5px solid var(--border, #e2e8f0); padding-bottom: 10px; margin-bottom: 14px;">
+            <div style="display: flex; align-items: center; gap: 10px;">
+              <div style="width: 36px; height: 36px; border-radius: 10px; background: #fee2e2; color: #dc2626; display: flex; align-items: center; justify-content: center; font-size: 1.15rem; flex-shrink: 0;">
+                🚫
+              </div>
+              <div>
+                <h3 style="margin: 0; font-size: 1.05rem; font-weight: 900; color: #991b1b;">Recarga No Acreditada</h3>
+                <span style="font-size: 0.72rem; color: var(--text-muted, #64748b);">Detalle del rechazo reportado por la soda</span>
+              </div>
+            </div>
+            <button type="button" onclick="cerrarModalParentMotivoRechazo()" style="background: none; border: none; font-size: 1.3rem; color: var(--text-muted, #64748b); cursor: pointer; padding: 4px;" title="Cerrar">✕</button>
+          </div>
+          <div style="background: rgba(148, 163, 184, 0.08); border: 1px solid var(--border, #e2e8f0); border-radius: 10px; padding: 10px 12px; margin-bottom: 12px; font-size: 0.80rem; line-height: 1.45;">
+            <div style="display: flex; justify-content: space-between;">
+              <span style="color: var(--text-muted, #64748b);">Estudiante:</span>
+              <strong id="parentMotivoEstudiante" style="color: var(--text-main, #0f172a);">-</strong>
+            </div>
+            <div style="display: flex; justify-content: space-between; margin-top: 3px;">
+              <span style="color: var(--text-muted, #64748b);">Monto Solicitado:</span>
+              <strong id="parentMotivoMonto" style="color: #0284c7; font-size: 0.92rem;">₡0</strong>
+            </div>
+            <div style="display: flex; justify-content: space-between; margin-top: 3px;">
+              <span style="color: var(--text-muted, #64748b);">Referencia / Cód:</span>
+              <strong id="parentMotivoComprobante" style="color: var(--text-main, #334155); font-family: monospace;">-</strong>
+            </div>
+            <div style="display: flex; justify-content: space-between; margin-top: 3px;">
+              <span style="color: var(--text-muted, #64748b);">Fecha de Solicitud:</span>
+              <span id="parentMotivoFecha" style="color: var(--text-muted, #64748b); font-size: 0.76rem;">-</span>
+            </div>
+          </div>
+          <div style="background: #fff1f2; border: 1.5px solid #fecdd3; border-radius: 12px; padding: 12px 14px; margin-bottom: 12px;">
+            <div style="font-size: 0.72rem; font-weight: 800; color: #be123c; text-transform: uppercase; letter-spacing: 0.5px; display: flex; align-items: center; gap: 5px;">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+              <span>Motivo indicado por la soda:</span>
+            </div>
+            <div id="parentMotivoTexto" style="font-size: 0.88rem; font-weight: 800; color: #991b1b; margin-top: 5px; line-height: 1.45;">
+              Fondos no verificados en la cuenta bancaria de la soda.
+            </div>
+          </div>
+          <div style="font-size: 0.74rem; color: #64748b; line-height: 1.42; display: flex; gap: 8px; align-items: flex-start; padding: 10px 12px; border-radius: 10px; background: #f8fafc; border: 1px solid #e2e8f0; margin-bottom: 16px;">
+            <span style="font-size: 1rem; line-height: 1.1;">ℹ️</span>
+            <span>
+              Si realizaste la transferencia correctamente desde tu banco, por favor comunícate con la administración de la soda escolar y presenta el comprobante oficial para su verificación manual.
+            </span>
+          </div>
+          <button type="button" onclick="cerrarModalParentMotivoRechazo()" class="btn-saas btn-saas-primary" style="width: 100%; height: 38px; font-weight: 800; font-size: 0.88rem; justify-content: center; cursor: pointer;">
+            Entendido
+          </button>
+        </div>
+      `;
+      document.body.appendChild(modal);
+    }
+    return modal;
+  }
+
+  window.verMotivoRechazoSinpe = function(dataOrId) {
+    let sol = null;
+    if (dataOrId && typeof dataOrId === 'object') {
+      sol = dataOrId;
+    } else if (dataOrId !== undefined && dataOrId !== null) {
+      const list = window._parentSinpeSolicitudes || [];
+      sol = list.find(x => x.id === Number(dataOrId));
+    }
+    
+    if (!sol) {
+      console.warn('Solicitud SINPE no encontrada para mostrar motivo');
+      return;
+    }
+
+    ensureParentMotivoRechazoModalDom();
+
+    const estEl = document.getElementById('parentMotivoEstudiante');
+    const montoEl = document.getElementById('parentMotivoMonto');
+    const compEl = document.getElementById('parentMotivoComprobante');
+    const fechaEl = document.getElementById('parentMotivoFecha');
+    const textoEl = document.getElementById('parentMotivoTexto');
+
+    const estNombre = (window.currentParentChild && window.currentParentChild.nombre_completo) 
+      || sol.estudiante_nombre 
+      || (window.currentStudent && window.currentStudent.nombre_completo) 
+      || 'Estudiante';
+    const monto = Number(sol.monto_colones || sol.monto || 0);
+    const ref = sol.codigo_detalle 
+      ? `Cód: ${sol.codigo_detalle}` 
+      : (sol.comprobante_sinpe ? `#${sol.comprobante_sinpe}` : 'N/A');
+    
+    let fecha = sol.creado_en || sol.fecha || '';
+    try {
+      if (fecha) {
+        fecha = new Date(fecha).toLocaleString('es-CR', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+      }
+    } catch(e) {}
+
+    let motivo = sol.notas || sol.descripcion || '';
+    motivo = motivo.replace(/^SINPE Rechazado:\s*/i, '').replace(/\(Comprobante\s*#?[^)]*\)/i, '').trim();
+    if (!motivo) {
+      motivo = 'Fondos no verificados o no recibidos en la cuenta bancaria de la soda escolar.';
+    }
+
+    if (estEl) estEl.textContent = estNombre;
+    if (montoEl) montoEl.textContent = `₡${monto.toLocaleString('es-CR')}`;
+    if (compEl) compEl.textContent = ref;
+    if (fechaEl) fechaEl.textContent = fecha || 'Reciente';
+    if (textoEl) textoEl.textContent = motivo;
+
+    const modal = document.getElementById('modalParentVerMotivoRechazo');
+    if (modal) {
+      modal.style.display = 'flex';
+      if (window.sounds && typeof window.sounds.playNotice === 'function') {
+        window.sounds.playNotice();
+      }
+    }
+  };
+
+  window.cerrarModalParentMotivoRechazo = function(event) {
+    if (event && event.target && event.target.closest && event.target.closest('.modal-qr-card') && event.target !== event.currentTarget) {
+      return;
+    }
+    const modal = document.getElementById('modalParentVerMotivoRechazo');
+    if (modal) {
+      modal.style.display = 'none';
+    }
+  };
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+      const parentModal = document.getElementById('modalParentVerMotivoRechazo');
+      if (parentModal && parentModal.style.display !== 'none') {
+        window.cerrarModalParentMotivoRechazo();
+      }
+    }
+  });
 })();
