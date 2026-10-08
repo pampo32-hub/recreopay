@@ -2338,16 +2338,22 @@ body.dark-mode .floating-cart-bar {
   font-size: 0.76rem;
   text-align: center;
   margin: 6px 0 0 0;
-  line-height: 1.45;
+  line-height: 1.5;
   font-weight: 600;
-  max-width: 330px;
+  max-width: 380px;
 }
 
 .splash-disclaimer a {
   color: #ffffff;
   font-weight: 900;
   text-decoration: underline;
+  text-underline-offset: 3px;
   cursor: pointer;
+  transition: opacity 0.2s ease;
+}
+
+.splash-disclaimer a:hover {
+  opacity: 0.85;
 }
 
 /* ==========================================================================

@@ -251,16 +251,11 @@ function switchSheetView(view) {
 }
 
 function openTerminosModal() {
-  const modal = document.getElementById('modalTerminosSiboPay');
-  if (modal) modal.style.display = 'flex';
+  window.open('/terminos', '_blank');
 }
 
-function closeTerminosModal(e) {
-  if (e && e.target && !e.target.classList.contains('modal-overlay') && e.target.tagName !== 'BUTTON') {
-    return;
-  }
-  const modal = document.getElementById('modalTerminosSiboPay');
-  if (modal) modal.style.display = 'none';
+function closeTerminosModal() {
+  // Modal eliminado: ahora redirige directamente a /terminos
 }
 
 function switchLoginTab(tab) {

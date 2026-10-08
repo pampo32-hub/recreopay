@@ -12,7 +12,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="SiboPay">
   <meta name="mobile-web-app-capable" content="yes">
-  <link rel="stylesheet" href="/css/styles.css?v=12.3">
+  <link rel="stylesheet" href="/css/styles.css?v=12.4">
   <link rel="stylesheet" href="/css/desktop.css?v=2.2">
   <style>
     /* Transiciones suaves */
@@ -50,7 +50,9 @@
 
         <p class="splash-disclaimer">
           Al iniciar sesión y registrarse, acepta nuestros 
-          <a onclick="openTerminosModal()">términos y condiciones</a>.
+          <a href="/terminos" target="_blank" rel="noopener noreferrer">Términos y Condiciones</a> 
+          y nuestra 
+          <a href="/privacidad" target="_blank" rel="noopener noreferrer">Política de Privacidad</a>.
         </p>
       </div>
     </div>
@@ -180,31 +182,6 @@
       </div>
     </div>
 
-    <!-- MODAL INFORMATIVO DE TÉRMINOS Y CONDICIONES -->
-    <div id="modalTerminosSiboPay" class="modal-overlay" style="display: none; z-index: 10001;" onclick="closeTerminosModal(event)">
-      <div class="modal-card" style="max-width: 500px; max-height: 85vh; display: flex; flex-direction: column;" onclick="event.stopPropagation()">
-        <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #e2e8f0; padding-bottom: 12px; margin-bottom: 14px;">
-          <div style="display: flex; align-items: center; gap: 8px;">
-            <img src="/img/sibopay-emblem.png" alt="SiboPay" style="width: 24px; height: 24px; object-fit: contain;">
-            <h3 style="margin: 0; font-size: 1.15rem; font-weight: 800; color: #0f172a;">Términos y Condiciones</h3>
-          </div>
-          <button type="button" onclick="closeTerminosModal()" style="background: #f1f5f9; border: none; width: 30px; height: 30px; border-radius: 50%; cursor: pointer; font-weight: 800;">✕</button>
-        </div>
-        <div style="overflow-y: auto; padding-right: 6px; font-size: 0.85rem; color: #334155; line-height: 1.6;">
-          <p><strong>1. Uso de SiboPay:</strong> SiboPay es una plataforma de monedero estudiantil y pagos digitales para sodas y comedores escolares. El uso de la cuenta es personal e intransferible.</p>
-          <p><strong>2. Recargas SINPE Móvil:</strong> Las recargas se realizan vía SINPE Móvil oficial. El monto transferido debe coincidir exactamente con el monto seleccionado en el sistema y debe incluirse el código de referencia que inicia con <code>SIBO-</code> para su correcta acreditación.</p>
-          <p><strong>3. Carné Estudiantil y QR:</strong> Los estudiantes utilizan su carné escolar o código QR para realizar compras en la soda escolar de acuerdo con el saldo disponible asignado por sus padres o encargados.</p>
-          <p><strong>4. Privacidad y Seguridad:</strong> La información personal se encuentra protegida y encriptada, utilizándose únicamente para la gestión de compras y saldos escolares.</p>
-          <div style="margin-top: 14px; text-align: center;">
-            <a href="/terminos" target="_blank" style="color: #0284c7; font-weight: 700; text-decoration: underline; margin-right: 12px;">Ver Términos Completos ↗</a>
-            <a href="/privacidad" target="_blank" style="color: #0284c7; font-weight: 700; text-decoration: underline;">Política de Privacidad ↗</a>
-          </div>
-        </div>
-        <div style="margin-top: 16px; pt: 12px; border-top: 1px solid #e2e8f0; text-align: right;">
-          <button type="button" onclick="closeTerminosModal()" class="btn-primary" style="padding: 8px 20px; font-size: 0.88rem; border-radius: 10px;">Entendido</button>
-        </div>
-      </div>
-    </div>
   </div>
 
   <!-- PANEL MASTER DEVELOPER (#viewDeveloper) -->
