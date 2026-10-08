@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>SiboPay POS - Terminal de Mostrador y Despacho</title>
   <link rel="icon" type="image/png" href="/img/sibopay-emblem.png">
-  <link rel="stylesheet" href="/css/styles.css?v=10.7">
+  <link rel="stylesheet" href="/css/styles.css?v=13.3">
   <style>
     /* Estilos específicos de terminal de alta velocidad */
     .student-badge-scanned {
@@ -233,21 +233,21 @@
             </div>
             <p style="font-size: 0.78rem; color: #64748b; margin: 3px 0 0 0;">Los estudiantes con pre-orden retiran en segundos escaneando su carné aquí.</p>
           </div>
-          <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
-            <button onclick="openPreOrderScanModal()" class="btn-saas btn-saas-primary" style="height: 36px; padding: 0 14px;">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
-              <span>Escanear QR para Entregar</span>
+          <div style="display: flex; gap: 6px; align-items: center; flex-wrap: wrap;">
+            <button onclick="openPreOrderScanModal()" class="btn-saas btn-saas-primary" style="height: 32px; padding: 0 12px; font-size: 0.76rem; border-radius: 8px;">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+              <span>Escanear QR</span>
             </button>
-            <button onclick="loadPreOrders()" class="btn-saas btn-saas-outline" style="height: 36px; padding: 0 12px;">
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M3 21v-5h5"/></svg>
+            <button onclick="loadPreOrders()" class="btn-saas btn-saas-outline" style="height: 32px; padding: 0 10px; font-size: 0.76rem; border-radius: 8px;">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M3 21v-5h5"/></svg>
               <span>Refrescar</span>
             </button>
           </div>
         </div>
 
-        <div class="pos-preorder-filter-bar" style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center;">
+        <div class="pos-preorder-filter-bar">
           <button type="button" class="pos-filter-pill active" id="filterPillTodos" onclick="filterPreOrdersByMomento('todos')">
-            <span>📋 Pendientes Activas</span>
+            <span>📋 Activas</span>
             <span class="pos-pill-count" id="countFilterTodos">0</span>
           </button>
           <button type="button" class="pos-filter-pill" id="filterPillRecreo_1" onclick="filterPreOrdersByMomento('recreo_1')">
@@ -262,13 +262,13 @@
             <span>⏰ 2do Recreo (1:45 PM)</span>
             <span class="pos-pill-count" id="countFilterRecreo2">0</span>
           </button>
-          <button type="button" class="pos-filter-pill" id="filterPillCanceladas" onclick="filterPreOrdersByMomento('canceladas')" style="margin-left: auto; border: 1.5px solid #fecaca; color: #991b1b; background: #fff1f2;" title="Ver pre-órdenes no retiradas que fueron canceladas y su dinero liberado">
+          <button type="button" class="pos-filter-pill pos-filter-pill-canceladas" id="filterPillCanceladas" onclick="filterPreOrdersByMomento('canceladas')" title="Ver pre-órdenes no retiradas que fueron canceladas y su dinero liberado">
             <span>🚫 Canceladas</span>
-            <span class="pos-pill-count" id="countFilterCanceladas" style="background: #fee2e2; color: #991b1b; font-weight: 800;">0</span>
+            <span class="pos-pill-count" id="countFilterCanceladas">0</span>
           </button>
         </div>
 
-        <div id="preOrdersList" style="display: flex; flex-direction: column; gap: 12px;">
+        <div id="preOrdersList" style="display: flex; flex-direction: column; gap: 8px;">
           <!-- Lista de pre-órdenes -->
         </div>
       </div>
@@ -585,6 +585,6 @@
   <script src="/js/sounds.js?v=8.6"></script>
   <script src="/js/jsQR.js"></script>
   <script src="/js/food-icons.js?v=1.1"></script>
-  <script src="/js/pos.js?v=13.2"></script>
+  <script src="/js/pos.js?v=13.3"></script>
 </body>
 </html>
