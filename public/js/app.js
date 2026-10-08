@@ -1346,9 +1346,10 @@ let currentSchoolHorarios = {
   hora_recreo_2_fmt: '1:45 PM'
 };
 
-async function cargarHorariosPublicos() {
+async function cargarHorariosPublicos(forcedEscuelaId) {
   try {
-    const res = await fetch('/api/escuela/horarios');
+    const escId = forcedEscuelaId || (currentUser && currentUser.escuela_id) || (currentStudent && currentStudent.escuela_id) || 1;
+    const res = await fetch(`/api/escuela/horarios?escuela_id=${escId}`);
     const data = await res.json();
     if (data && data.horarios) {
       currentSchoolHorarios = data.horarios;
@@ -2431,6 +2432,8 @@ function initStudentSSE() {
   sse.addEventListener('nueva_orden', (e) => {
     try {
       const data = JSON.parse(e.data);
+      const myEscId = (currentUser && currentUser.escuela_id) || (currentStudent && currentStudent.escuela_id) || null;
+      if (data.escuela_id && myEscId && Number(data.escuela_id) !== Number(myEscId)) return;
       const estId = Number(data.estudiante_id || (data.financiero && data.financiero.estudiante && data.financiero.estudiante.id));
       const myId = currentStudent ? Number(currentStudent.id) : (currentUser && currentUser.estudiante ? Number(currentUser.estudiante.id) : null);
 
@@ -2474,6 +2477,8 @@ function initStudentSSE() {
   sse.addEventListener('saldo_actualizado', (e) => {
     try {
       const data = JSON.parse(e.data);
+      const myEscId = (currentUser && currentUser.escuela_id) || (currentStudent && currentStudent.escuela_id) || null;
+      if (data.escuela_id && myEscId && Number(data.escuela_id) !== Number(myEscId)) return;
       const estId = Number(data.estudiante_id || data.id);
       const myId = currentStudent ? Number(currentStudent.id) : (currentUser && currentUser.estudiante ? Number(currentUser.estudiante.id) : null);
 
@@ -2505,6 +2510,10 @@ function initStudentSSE() {
 
   sse.addEventListener('solicitud_sinpe_procesada', (e) => {
     try {
+      const data = e.data ? JSON.parse(e.data) : null;
+      const myEscId = (currentUser && currentUser.escuela_id) || (currentStudent && currentStudent.escuela_id) || null;
+      if (data && data.escuela_id && myEscId && Number(data.escuela_id) !== Number(myEscId)) return;
+
       if (currentUser && ['admin', 'cajero', 'personal', 'dev', 'soda'].includes(currentUser.rol)) {
         loadAdminSinpeRequests();
       }
@@ -2520,6 +2529,8 @@ function initStudentSSE() {
   sse.addEventListener('transferencia_realizada', (e) => {
     try {
       const data = JSON.parse(e.data);
+      const myEscId = (currentUser && currentUser.escuela_id) || (currentStudent && currentStudent.escuela_id) || null;
+      if (data.escuela_id && myEscId && Number(data.escuela_id) !== Number(myEscId)) return;
       const myId = currentStudent ? Number(currentStudent.id) : (currentUser && currentUser.estudiante ? Number(currentUser.estudiante.id) : null);
       if (myId && data.receptor && Number(data.receptor.id) === myId) {
         if (window.sounds) window.sounds.playCoin();
@@ -2549,6 +2560,8 @@ function initStudentSSE() {
   sse.addEventListener('recarga_exitosa', (e) => {
     try {
       const data = JSON.parse(e.data);
+      const myEscId = (currentUser && currentUser.escuela_id) || (currentStudent && currentStudent.escuela_id) || null;
+      if (data.escuela_id && myEscId && Number(data.escuela_id) !== Number(myEscId)) return;
       const estId = Number(data.estudiante_id || data.id);
       const myId = currentStudent ? Number(currentStudent.id) : (currentUser && currentUser.estudiante ? Number(currentUser.estudiante.id) : null);
 
@@ -2580,6 +2593,8 @@ function initStudentSSE() {
   sse.addEventListener('solicitud_sinpe_nueva', (e) => {
     try {
       const sol = JSON.parse(e.data);
+      const myEscId = (currentUser && currentUser.escuela_id) || (currentStudent && currentStudent.escuela_id) || null;
+      if (sol.escuela_id && myEscId && Number(sol.escuela_id) !== Number(myEscId)) return;
       const isAdminOrStaff = currentUser && ['admin', 'cajero', 'personal', 'dev', 'soda'].includes(currentUser.rol);
 
       if (isAdminOrStaff) {
@@ -2617,6 +2632,8 @@ function initStudentSSE() {
   sse.addEventListener('producto_actualizado', (e) => {
     try {
       const prod = JSON.parse(e.data);
+      const myEscId = (currentUser && currentUser.escuela_id) || (currentStudent && currentStudent.escuela_id) || null;
+      if (prod && prod.escuela_id && myEscId && Number(prod.escuela_id) !== Number(myEscId)) return;
       // Actualizar en el catálogo de estudiantes
       const idx = products.findIndex(p => p.id === prod.id);
       if (idx !== -1) {
@@ -4850,7 +4867,8 @@ async function cambiarPeriodoDashboard(periodo) {
 
 async function cargarDashboardAdmin(periodo = dashboardPeriodoActual) {
   try {
-    const res = await fetch(`/api/admin/dashboard?periodo=${encodeURIComponent(periodo)}`);
+    const escId = (currentUser && currentUser.escuela_id) || 1;
+    const res = await fetch(`/api/admin/dashboard?periodo=${encodeURIComponent(periodo)}&escuela_id=${escId}`);
     if (!res.ok) throw new Error('Error al cargar datos del dashboard');
     const data = await res.json();
 
@@ -5083,7 +5101,8 @@ function switchAdminTab(tabName) {
 
 async function cargarHorariosAdmin() {
   try {
-    const res = await fetch('/api/escuela/horarios');
+    const escId = (currentUser && currentUser.escuela_id) || 1;
+    const res = await fetch(`/api/escuela/horarios?escuela_id=${escId}`);
     const data = await res.json();
     if (data && data.horarios) {
       currentSchoolHorarios = data.horarios;
@@ -5119,11 +5138,12 @@ async function guardarHorariosEscolares() {
   }
 
   try {
+    const escId = (currentUser && currentUser.escuela_id) || 1;
     const res = await fetch('/api/admin/escuela/horarios', {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        escuela_id: 1,
+        escuela_id: escId,
         hora_recreo_1: hora1,
         hora_almuerzo: alm,
         hora_recreo_2: hora2
@@ -5145,7 +5165,8 @@ async function guardarHorariosEscolares() {
 }
 
 function descargarReporteRecargasExcel(descargarTodo = false) {
-  let url = '/api/admin/export/recargas.xlsx';
+  const escId = (currentUser && currentUser.escuela_id) || 1;
+  let url = `/api/admin/export/recargas.xlsx?escuela_id=${escId}`;
   let dateTag = new Date().toISOString().slice(0, 10);
   if (!descargarTodo) {
     const desde = document.getElementById('inputExportRecargasDesde')?.value || '';
@@ -5159,7 +5180,7 @@ function descargarReporteRecargasExcel(descargarTodo = false) {
 
     if (desde) dateTag = `${desde}_a_${hasta || desde}`;
     const qs = params.toString();
-    if (qs) url += '?' + qs;
+    if (qs) url += '&' + qs;
   }
 
   descargarArchivoDirecto(url, `recargas_sinpe_sibopay_${dateTag}.xlsx`);
@@ -5167,8 +5188,9 @@ function descargarReporteRecargasExcel(descargarTodo = false) {
 
 async function loadAdminData() {
   try {
+    const escId = (currentUser && currentUser.escuela_id) || 1;
     // 1. Cargar resumen y métricas
-    const resResumen = await fetch('/api/admin/resumen');
+    const resResumen = await fetch(`/api/admin/resumen?escuela_id=${escId}`);
     adminStats = await resResumen.json();
 
     document.getElementById('adminStatVentas').textContent = `₡${adminStats.ventas_hoy.toLocaleString('es-CR')}`;
@@ -5178,19 +5200,19 @@ async function loadAdminData() {
     document.getElementById('adminStatCriticos').textContent = adminStats.productos_bajo_stock;
 
     // 2. Cargar productos de inventario
-    const resProd = await fetch('/api/admin/productos');
+    const resProd = await fetch(`/api/admin/productos?escuela_id=${escId}`);
     adminProducts = await resProd.json();
     renderAdminInventory(adminProducts);
 
     // 3. Cargar estudiantes
-    const resEst = await fetch('/api/estudiantes');
+    const resEst = await fetch(`/api/estudiantes?escuela_id=${escId}`);
     students = await resEst.json();
     renderAdminStudents(students);
     populateAdminRecargaStudents(students);
 
     // 4. Si las categorías están vacías, cargarlas para los modales
     if (!categories || categories.length === 0) {
-      const resCat = await fetch('/api/productos');
+      const resCat = await fetch(`/api/productos?escuela_id=${escId}`);
       const dataCat = await resCat.json();
       if (dataCat && dataCat.categorias) {
         categories = dataCat.categorias;
@@ -5309,10 +5331,11 @@ function renderAdminInventory(list) {
 
 async function quickAdjustStock(prodId, delta) {
   try {
+    const escId = (currentUser && currentUser.escuela_id) || 1;
     const res = await fetch(`/api/admin/productos/${prodId}/ajuste-rapido`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ delta })
+      body: JSON.stringify({ delta, escuela_id: escId })
     });
     if (!res.ok) throw new Error('Error ajustando stock');
     if (window.sounds) window.sounds.playCoin();
@@ -5332,10 +5355,11 @@ async function saveProductStock(prodId) {
   }
 
   try {
+    const escId = (currentUser && currentUser.escuela_id) || 1;
     const res = await fetch(`/api/admin/productos/${prodId}/stock`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ stock: nuevoStock, control_stock: 1 })
+      body: JSON.stringify({ stock: nuevoStock, control_stock: 1, escuela_id: escId })
     });
     if (!res.ok) throw new Error('Error guardando stock');
     if (window.sounds) window.sounds.playSuccess();
@@ -5420,10 +5444,11 @@ async function toggleBlockCard(studentId, newBlocked) {
   if (!confirm(`¿Estás seguro de que deseas ${actionText}?`)) return;
 
   try {
+    const escId = (currentUser && currentUser.escuela_id) || 1;
     const res = await fetch(`/api/admin/estudiantes/${studentId}/bloquear`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ tarjeta_bloqueada: newBlocked })
+      body: JSON.stringify({ tarjeta_bloqueada: newBlocked, escuela_id: escId })
     });
     if (!res.ok) throw new Error('Error actualizando estado de tarjeta');
 
@@ -5466,6 +5491,7 @@ async function submitNewStudent(event) {
   btn.textContent = 'Creando usuario y carné...';
 
   try {
+    const escId = (currentUser && currentUser.escuela_id) || 1;
     const res = await fetch('/api/admin/estudiantes', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -5479,7 +5505,8 @@ async function submitNewStudent(event) {
         alergias,
         padre_nombre: padre,
         padre_telefono: tel,
-        prefijo
+        prefijo,
+        escuela_id: escId
       })
     });
 
@@ -6135,7 +6162,8 @@ async function submitAdminManualRecharge() {
       body: JSON.stringify({
         monto,
         descripcion: descripcion || 'Pago en efectivo en mostrador de soda',
-        metodo: 'Efectivo en mostrador'
+        metodo: 'Efectivo en mostrador',
+        escuela_id: (currentUser && currentUser.escuela_id) || 1
       })
     });
 
@@ -6178,10 +6206,8 @@ async function loadAdminSinpeRequests() {
   if (!list) return;
 
   try {
-    let url = '/api/sinpe/solicitudes?estado=pendiente';
-    if (currentUser && currentUser.escuela_id) {
-      url += `&escuela_id=${currentUser.escuela_id}`;
-    }
+    const escId = (currentUser && currentUser.escuela_id) || 1;
+    let url = `/api/sinpe/solicitudes?estado=pendiente&escuela_id=${escId}`;
 
     const res = await fetch(url);
     const data = await res.json();
@@ -6321,13 +6347,15 @@ async function procesarSinpeAdmin(solicitudId, accion) {
     if (!ok) return;
 
     try {
+      const escId = (currentUser && currentUser.escuela_id) || 1;
       const res = await fetch('/api/sinpe/procesar', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           solicitud_id: solicitudId,
           accion: 'aprobar',
-          usuario_id: currentUser ? currentUser.id : null
+          usuario_id: currentUser ? currentUser.id : null,
+          escuela_id: escId
         })
       });
       const data = await res.json();
@@ -6359,6 +6387,7 @@ async function procesarSinpeAdmin(solicitudId, accion) {
         comprobante: sol.comprobante_sinpe || sol.codigo_detalle,
         onConfirm: async (motivo) => {
           try {
+            const escId = (currentUser && currentUser.escuela_id) || 1;
             const res = await fetch('/api/sinpe/procesar', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
@@ -6366,7 +6395,8 @@ async function procesarSinpeAdmin(solicitudId, accion) {
                 solicitud_id: solicitudId,
                 accion: 'rechazar',
                 motivo: motivo || 'Rechazado por la soda',
-                usuario_id: currentUser ? currentUser.id : null
+                usuario_id: currentUser ? currentUser.id : null,
+                escuela_id: escId
               })
             });
             const data = await res.json();
@@ -6412,7 +6442,8 @@ async function loadAdminMovimientos() {
       </div>
     `;
 
-    const res = await fetch('/api/admin/movimientos?limit=100&_t=' + Date.now());
+    const escId = (currentUser && currentUser.escuela_id) || 1;
+    const res = await fetch(`/api/admin/movimientos?limit=100&escuela_id=${escId}&_t=` + Date.now());
     if (!res.ok) throw new Error('Error al cargar movimientos desde el servidor');
     adminMovimientosData = await res.json();
     renderAdminMovimientos();
@@ -6704,14 +6735,16 @@ async function revertirMovimientoAdmin(transaccionId, monto, nombreEstudiante, t
   if (!conf) return;
 
   try {
-    const res = await fetch(`/api/admin/movimientos/${transaccionId}/revertir`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        usuario_id: currentUser ? currentUser.id : null,
-        usuario_rol: currentUser ? currentUser.rol : 'admin'
-      })
-    });
+      const escId = (currentUser && currentUser.escuela_id) || 1;
+      const res = await fetch(`/api/admin/movimientos/${transaccionId}/revertir`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          usuario_id: currentUser ? currentUser.id : null,
+          usuario_rol: currentUser ? currentUser.rol : 'admin',
+          escuela_id: escId
+        })
+      });
 
     const data = await res.json();
     if (!res.ok) throw new Error(data.error);
@@ -6737,7 +6770,8 @@ async function populateCategorySelect(selectedId) {
 
   if (!categories || categories.length === 0) {
     try {
-      const res = await fetch('/api/productos');
+      const escId = (currentUser && currentUser.escuela_id) || 1;
+      const res = await fetch(`/api/productos?escuela_id=${escId}`);
       const data = await res.json();
       if (data && data.categorias) categories = data.categorias;
     } catch (e) {
@@ -6862,7 +6896,8 @@ async function submitAdminProduct(e) {
     descripcion,
     control_stock,
     stock,
-    cumple_mep
+    cumple_mep,
+    escuela_id: (currentUser && currentUser.escuela_id) || 1
   };
 
   const isEdit = !!idVal;
@@ -6901,7 +6936,8 @@ async function handleDeleteProduct() {
   if (!conf) return;
 
   try {
-    const res = await fetch(`/api/admin/productos/${idVal}`, {
+    const escId = (currentUser && currentUser.escuela_id) || 1;
+    const res = await fetch(`/api/admin/productos/${idVal}?escuela_id=${escId}`, {
       method: 'DELETE'
     });
     const data = await res.json();
@@ -6935,7 +6971,8 @@ async function loadAdminStaff() {
       </div>
     `;
 
-    const res = await fetch('/api/admin/personal');
+    const escId = (currentUser && currentUser.escuela_id) || 1;
+    const res = await fetch(`/api/admin/personal?escuela_id=${escId}`);
     if (!res.ok) throw new Error('Error al cargar la lista de personal');
     adminStaffList = await res.json();
     renderAdminStaff(adminStaffList);
@@ -6998,6 +7035,7 @@ function renderAdminStaff(list) {
             <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
               <strong style="font-size: 0.95rem; font-weight: 800; color: var(--text-main); line-height: 1.2;">${s.nombre}</strong>
               <span class="staff-role-badge staff-role-${s.rol}">${roleSvg} ${roleLabel}</span>
+              ${s.escuela_nombre ? `<span style="font-size:0.75rem; background:rgba(2,132,199,0.1); color:#0284c7; padding:2px 8px; border-radius:12px; font-weight:700;">🏫 ${escapeHtml(s.escuela_nombre)}</span>` : ''}
               ${isBlocked 
                 ? '<span class="saas-status-badge saas-status-blocked"><span class="saas-dot"></span>Bloqueado</span>' 
                 : '<span class="saas-status-badge saas-status-active"><span class="saas-dot"></span>Activo</span>'
@@ -7147,7 +7185,8 @@ async function submitAdminStaff(e) {
     nombre,
     rol,
     telefono,
-    email
+    email,
+    escuela_id: (currentUser && currentUser.escuela_id) || 1
   };
 
   if (!isEdit) {
@@ -7185,10 +7224,11 @@ async function toggleBlockStaff(staffId, nuevoEstado) {
   if (!conf) return;
 
   try {
+    const escId = (currentUser && currentUser.escuela_id) || 1;
     const res = await fetch(`/api/admin/personal/${staffId}/estado`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ activo: nuevoEstado })
+      body: JSON.stringify({ activo: nuevoEstado, escuela_id: escId })
     });
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || 'Error al cambiar estado del empleado');
@@ -7206,7 +7246,8 @@ async function deleteStaff(staffId, nombre) {
   if (!conf) return;
 
   try {
-    const res = await fetch(`/api/admin/personal/${staffId}`, {
+    const escId = (currentUser && currentUser.escuela_id) || 1;
+    const res = await fetch(`/api/admin/personal/${staffId}?escuela_id=${escId}`, {
       method: 'DELETE'
     });
     const data = await res.json();

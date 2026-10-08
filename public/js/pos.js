@@ -11,6 +11,17 @@ let isScanningActive = true;
 let posMobileActiveView = 'catalog';
 let CLOUDFLARE_TUNNEL_URL = 'https://somewhat-ships-looksmart-optical.trycloudflare.com';
 
+function getPosEscuelaId() {
+  const storedUser = localStorage.getItem('sibopay_user') || localStorage.getItem('recreopay_user');
+  if (storedUser) {
+    try {
+      const u = JSON.parse(storedUser);
+      if (u && u.escuela_id) return u.escuela_id;
+    } catch (e) {}
+  }
+  return 1;
+}
+
 // Helper universal para iniciales de estudiantes (ej. Mateo Alvarado -> MA, Sofía Jiménez -> SJ)
 function getStudentInitials(fullName) {
   if (!fullName || typeof fullName !== 'string') return 'ES';
@@ -143,16 +154,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 // Cargar catálogo de productos
 async function loadCatalog() {
   try {
-    let url = '/api/productos';
-    const storedUser = localStorage.getItem('sibopay_user') || localStorage.getItem('recreopay_user');
-    if (storedUser) {
-      try {
-        const u = JSON.parse(storedUser);
-        if (u && u.escuela_id) {
-          url += `?escuela_id=${u.escuela_id}`;
-        }
-      } catch (e) {}
-    }
+    const url = `/api/productos?escuela_id=${getPosEscuelaId()}`;
     const res = await fetch(url);
     const data = await res.json();
     posCategories = data.categorias;
@@ -460,7 +462,7 @@ async function saveQuickProduct(e) {
     const res = await fetch('/api/productos/rapido', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ nombre, precio_colones: precio })
+      body: JSON.stringify({ nombre, precio_colones: precio, escuela_id: getPosEscuelaId() })
     });
     const data = await res.json();
 
@@ -835,7 +837,7 @@ async function onQrCodeDetected(token) {
 
   if (posModalMode === 'identificar' || posCart.length === 0) {
     try {
-      const res = await fetch(`/api/estudiantes/qr/${encodeURIComponent(token)}`);
+      const res = await fetch(`/api/estudiantes/qr/${encodeURIComponent(token)}?escuela_id=${getPosEscuelaId()}`);
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
 
@@ -1134,7 +1136,7 @@ async function handlePistolBarcodeScan(rawToken) {
   // Si no hay productos en el carrito, identificar al alumno para mostrador
   if (posCart.length === 0) {
     try {
-      const res = await fetch(`/api/estudiantes/qr/${encodeURIComponent(token)}`);
+      const res = await fetch(`/api/estudiantes/qr/${encodeURIComponent(token)}?escuela_id=${getPosEscuelaId()}`);
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
 
@@ -1164,7 +1166,7 @@ async function handlePistolBarcodeScan(rawToken) {
 
   try {
     // 1. Buscar estudiante por token o código
-    const resEst = await fetch(`/api/estudiantes/qr/${encodeURIComponent(token)}`);
+    const resEst = await fetch(`/api/estudiantes/qr/${encodeURIComponent(token)}?escuela_id=${getPosEscuelaId()}`);
     const student = await resEst.json();
     if (!resEst.ok) throw new Error(student.error || 'Carné escolar no encontrado');
 
@@ -1199,7 +1201,8 @@ async function handlePistolBarcodeScan(rawToken) {
         estudiante_id: student.id,
         tipo_orden: 'mostrador',
         momento_entrega: 'inmediato',
-        items
+        items,
+        escuela_id: getPosEscuelaId()
       })
     });
 
@@ -1621,7 +1624,7 @@ function renderPreOrdersList() {
 
 async function loadPreOrders() {
   try {
-    const res = await fetch('/api/ordenes?tipo=preorden');
+    const res = await fetch(`/api/ordenes?tipo=preorden&escuela_id=${getPosEscuelaId()}`);
     const orders = await res.json();
 
     if (!Array.isArray(orders)) {
@@ -1650,7 +1653,7 @@ async function updateOrderStatus(orderId, nuevoEstado) {
     const res = await fetch(`/api/ordenes/${orderId}/estado`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ estado: nuevoEstado, cajero_id: cajeroId })
+      body: JSON.stringify({ estado: nuevoEstado, cajero_id: cajeroId, escuela_id: getPosEscuelaId() })
     });
     const data = await res.json();
     if (!res.ok) {
@@ -1676,7 +1679,7 @@ async function cancelarPreordenManual(orderId) {
     const res = await fetch(`/api/ordenes/${orderId}/estado`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ estado: 'cancelado', motivo: razon })
+      body: JSON.stringify({ estado: 'cancelado', motivo: razon, escuela_id: getPosEscuelaId() })
     });
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || 'Error cancelando orden');
@@ -1704,14 +1707,7 @@ async function ejecutarCierreDeCaja() {
   if (!confirma) return;
 
   try {
-    let escuelaId = 1;
-    const storedUser = localStorage.getItem('sibopay_user') || localStorage.getItem('recreopay_user');
-    if (storedUser) {
-      try {
-        const u = JSON.parse(storedUser);
-        if (u && u.escuela_id) escuelaId = u.escuela_id;
-      } catch (e) {}
-    }
+    const escuelaId = getPosEscuelaId();
 
     const res = await fetch('/api/pos/cierre-caja', {
       method: 'POST',
@@ -1751,7 +1747,7 @@ async function dispatchPreOrderExpress(qrToken) {
     const res = await fetch('/api/ordenes/despachar-qr', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ qr_token: qrToken })
+      body: JSON.stringify({ qr_token: qrToken, escuela_id: getPosEscuelaId() })
     });
 
     const data = await res.json();
@@ -1818,6 +1814,7 @@ function initSSE() {
   sseSource.addEventListener('nueva_orden', (e) => {
     try {
       const orden = JSON.parse(e.data);
+      if (orden && orden.escuela_id && Number(orden.escuela_id) !== Number(getPosEscuelaId())) return;
       if (window.sounds) window.sounds.playSuccess();
       loadPreOrders();
       if (orden && orden.tipo_orden === 'preorden') {
@@ -1844,6 +1841,7 @@ function initSSE() {
     try {
       const data = JSON.parse(e.data);
       if (data) {
+        if (data.escuela_id && Number(data.escuela_id) !== Number(getPosEscuelaId())) return;
         posSchoolHorarios = data;
         actualizarPillsHorariosPos();
         renderPreOrdersList();
@@ -1856,6 +1854,7 @@ function initSSE() {
   sseSource.addEventListener('cierre_caja_realizado', (e) => {
     try {
       const res = JSON.parse(e.data);
+      if (res && res.escuela_id && Number(res.escuela_id) !== Number(getPosEscuelaId())) return;
       console.log('🌙 [POS] SSE cierre_caja_realizado:', res);
       loadPreOrders();
       loadCatalog();
@@ -1876,6 +1875,7 @@ function initSSE() {
   sseSource.addEventListener('preordenes_expiradas', (e) => {
     try {
       const res = JSON.parse(e.data);
+      if (res && res.escuela_id && Number(res.escuela_id) !== Number(getPosEscuelaId())) return;
       console.log('⏳ [POS] SSE preordenes_expiradas:', res);
       loadPreOrders();
       loadCatalog();
@@ -1895,6 +1895,7 @@ function initSSE() {
   sseSource.addEventListener('pistola_scan', async (e) => {
     try {
       const data = JSON.parse(e.data);
+      if (data && data.escuela_id && Number(data.escuela_id) !== Number(getPosEscuelaId())) return;
       if (data && data.token) {
         console.log('📡 [POS] Disparo recibido desde pistola remota (teléfono):', data.token);
 
@@ -1925,6 +1926,7 @@ function initSSE() {
   sseSource.addEventListener('producto_actualizado', (e) => {
     try {
       const prod = JSON.parse(e.data);
+      if (prod && prod.escuela_id && Number(prod.escuela_id) !== Number(getPosEscuelaId())) return;
       const idx = posProducts.findIndex(p => p.id === prod.id);
       if (idx !== -1) {
         if (prod.eliminado) {
@@ -1968,6 +1970,7 @@ function initSSE() {
   sseSource.addEventListener('solicitud_sinpe_nueva', (e) => {
     try {
       const sol = JSON.parse(e.data);
+      if (sol && sol.escuela_id && Number(sol.escuela_id) !== Number(getPosEscuelaId())) return;
       const montoFmt = (sol.monto_colones || 0).toLocaleString('es-CR');
       const estudianteNombre = sol.estudiante_nombre || 'Estudiante';
       const comp = sol.comprobante_sinpe || '';
@@ -1992,8 +1995,12 @@ function initSSE() {
     }
   });
 
-  sseSource.addEventListener('solicitud_sinpe_procesada', () => {
-    loadSinpeRequests();
+  sseSource.addEventListener('solicitud_sinpe_procesada', (e) => {
+    try {
+      const data = e.data ? JSON.parse(e.data) : null;
+      if (data && data.escuela_id && Number(data.escuela_id) !== Number(getPosEscuelaId())) return;
+      loadSinpeRequests();
+    } catch (err) {}
   });
 }
 
@@ -2224,14 +2231,7 @@ async function loadSinpeRequests() {
   if (!list) return;
 
   try {
-    let url = '/api/sinpe/solicitudes?estado=pendiente';
-    const storedUser = localStorage.getItem('sibopay_user') || localStorage.getItem('recreopay_user');
-    if (storedUser) {
-      try {
-        const u = JSON.parse(storedUser);
-        if (u && u.escuela_id) url += `&escuela_id=${u.escuela_id}`;
-      } catch (e) {}
-    }
+    const url = `/api/sinpe/solicitudes?estado=pendiente&escuela_id=${getPosEscuelaId()}`;
     const res = await fetch(url);
     const data = await res.json();
     if (!res.ok) throw new Error(data.error);
@@ -2367,7 +2367,8 @@ async function procesarSinpePos(solicitudId, accion) {
         body: JSON.stringify({
           solicitud_id: solicitudId,
           accion: 'aprobar',
-          usuario_id: null
+          usuario_id: null,
+          escuela_id: getPosEscuelaId()
         })
       });
       const data = await res.json();
@@ -2405,7 +2406,8 @@ async function procesarSinpePos(solicitudId, accion) {
                 solicitud_id: solicitudId,
                 accion: 'rechazar',
                 motivo: motivo || 'Rechazado por la soda',
-                usuario_id: null
+                usuario_id: null,
+                escuela_id: getPosEscuelaId()
               })
             });
             const data = await res.json();

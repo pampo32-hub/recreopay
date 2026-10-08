@@ -172,7 +172,7 @@ setInterval(() => {
 // Disparo remoto desde la pistola móvil (teléfono) hacia la caja POS
 app.post('/api/pos/remote-scan', (req, res) => {
   try {
-    const { token, deviceName } = req.body;
+    const { token, deviceName, escuela_id } = req.body;
     if (!token) return res.status(400).json({ error: 'Token requerido' });
 
     console.log(`📡 [PISTOLA REMOTA] Disparo recibido desde ${deviceName || 'teléfono'}: ${token}`);
@@ -181,6 +181,7 @@ app.post('/api/pos/remote-scan', (req, res) => {
     broadcastEvent('pistola_scan', {
       token: String(token).trim(),
       deviceName: deviceName || 'Pistola Teléfono',
+      escuela_id: escuela_id ? parseInt(escuela_id, 10) : null,
       timestamp: Date.now()
     });
 
@@ -257,20 +258,18 @@ app.post('/api/auth/login', (req, res) => {
         WHERE e.usuario_id = ?
       `).get(user.id);
       if (!estudiante) {
-        estudiante = db.prepare(`
+        let sqlEst = `
           SELECT e.*, esc.nombre as escuela_nombre, esc.codigo as escuela_codigo, esc.telefono_sinpe, esc.nombre_sinpe
           FROM estudiantes e
           LEFT JOIN escuelas esc ON esc.id = e.escuela_id
-          WHERE LOWER(e.nombre_completo) LIKE ?
-        `).get(`%${cleanUser}%`);
-      }
-      if (!estudiante) {
-        estudiante = db.prepare(`
-          SELECT e.*, esc.nombre as escuela_nombre, esc.codigo as escuela_codigo, esc.telefono_sinpe, esc.nombre_sinpe
-          FROM estudiantes e
-          LEFT JOIN escuelas esc ON esc.id = e.escuela_id
-          ORDER BY e.id ASC LIMIT 1
-        `).get();
+          WHERE (LOWER(e.codigo_estudiante) = ? OR LOWER(e.nombre_completo) LIKE ?)
+        `;
+        const paramsEst = [cleanUser, `%${cleanUser}%`];
+        if (user.escuela_id) {
+          sqlEst += ' AND e.escuela_id = ?';
+          paramsEst.push(user.escuela_id);
+        }
+        estudiante = db.prepare(sqlEst).get(...paramsEst);
       }
       if (estudiante) {
         estudiante = enriquecerEstudianteFinanzas(estudiante);
@@ -774,25 +773,46 @@ app.get(['/api/padres/export/estado-cuenta.xlsx', '/api/padres/export/estado-cue
 // Métricas y Resumen Ejecutivo
 app.get('/api/admin/resumen', (req, res) => {
   try {
-    const ventasHoy = db.prepare(`
+    const escuelaId = req.query.escuela_id ? parseInt(req.query.escuela_id, 10) : null;
+
+    let sqlVentas = `
       SELECT COALESCE(SUM(total_colones), 0) as total, COUNT(*) as cantidad
       FROM ordenes 
       WHERE date(creado_en, 'localtime') = date('now', 'localtime')
-    `).get();
+    `;
+    const paramsVentas = [];
+    if (escuelaId) {
+      sqlVentas += ` AND escuela_id = ?`;
+      paramsVentas.push(escuelaId);
+    }
+    const ventasHoy = db.prepare(sqlVentas).get(...paramsVentas) || { total: 0, cantidad: 0 };
 
-    const statsEst = db.prepare(`
+    let sqlEst = `
       SELECT 
         COUNT(*) as total_estudiantes,
         COALESCE(SUM(CASE WHEN tarjeta_bloqueada = 1 THEN 1 ELSE 0 END), 0) as tarjetas_bloqueadas,
         COALESCE(SUM(saldo_colones), 0) as saldo_total
       FROM estudiantes WHERE activo = 1
-    `).get();
+    `;
+    const paramsEst = [];
+    if (escuelaId) {
+      sqlEst += ` AND escuela_id = ?`;
+      paramsEst.push(escuelaId);
+    }
+    const statsEst = db.prepare(sqlEst).get(...paramsEst) || { total_estudiantes: 0, tarjetas_bloqueadas: 0, saldo_total: 0 };
 
-    const productosBajoStock = db.prepare(`
+    let sqlProds = `
       SELECT COUNT(*) as count 
       FROM productos 
       WHERE control_stock = 1 AND (stock <= 3 OR disponible = 0)
-    `).get().count;
+    `;
+    const paramsProds = [];
+    if (escuelaId) {
+      sqlProds += ` AND escuela_id = ?`;
+      paramsProds.push(escuelaId);
+    }
+    const productosBajoStockRow = db.prepare(sqlProds).get(...paramsProds);
+    const productosBajoStock = productosBajoStockRow ? productosBajoStockRow.count : 0;
 
     res.json({
       ventas_hoy: ventasHoy.total,
@@ -811,6 +831,7 @@ app.get('/api/admin/resumen', (req, res) => {
 app.get('/api/admin/dashboard', (req, res) => {
   try {
     const periodo = req.query.periodo || 'hoy';
+    const escuelaId = req.query.escuela_id ? parseInt(req.query.escuela_id, 10) : null;
     const ahora = new Date();
     const fHoy = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Costa_Rica' }).format(ahora);
     
@@ -850,10 +871,15 @@ app.get('/api/admin/dashboard', (req, res) => {
         COALESCE(SUM(CASE WHEN estado = 'cancelado' THEN 1 ELSE 0 END), 0) as ordenes_canceladas,
         COALESCE(SUM(CASE WHEN estado IN ('pendiente', 'en_preparacion', 'listo') THEN 1 ELSE 0 END), 0) as ordenes_pendientes
       FROM ordenes
+      WHERE 1=1
     `;
     const paramsOrdenes = [];
+    if (escuelaId) {
+      sqlOrdenes += ` AND escuela_id = ?`;
+      paramsOrdenes.push(escuelaId);
+    }
     if (usarFiltroFechas) {
-      sqlOrdenes += ` WHERE date(creado_en, 'localtime') >= ? AND date(creado_en, 'localtime') <= ?`;
+      sqlOrdenes += ` AND date(creado_en, 'localtime') >= ? AND date(creado_en, 'localtime') <= ?`;
       paramsOrdenes.push(fechaInicio, fechaFin);
     }
     const ordenesStats = db.prepare(sqlOrdenes).get(...paramsOrdenes);
@@ -865,6 +891,10 @@ app.get('/api/admin/dashboard', (req, res) => {
       WHERE estado != 'cancelado'
     `;
     const paramsMomentos = [];
+    if (escuelaId) {
+      sqlMomentos += ` AND escuela_id = ?`;
+      paramsMomentos.push(escuelaId);
+    }
     if (usarFiltroFechas) {
       sqlMomentos += ` AND date(creado_en, 'localtime') >= ? AND date(creado_en, 'localtime') <= ?`;
       paramsMomentos.push(fechaInicio, fechaFin);
@@ -904,6 +934,10 @@ app.get('/api/admin/dashboard', (req, res) => {
       WHERE o.estado != 'cancelado'
     `;
     const paramsTop = [];
+    if (escuelaId) {
+      sqlTop += ` AND o.escuela_id = ?`;
+      paramsTop.push(escuelaId);
+    }
     if (usarFiltroFechas) {
       sqlTop += ` AND date(o.creado_en, 'localtime') >= ? AND date(o.creado_en, 'localtime') <= ?`;
       paramsTop.push(fechaInicio, fechaFin);
@@ -914,35 +948,52 @@ app.get('/api/admin/dashboard', (req, res) => {
     // 4. Recargas de Saldo
     let sqlRecargas = `
       SELECT 
-        COALESCE(SUM(monto_colones), 0) as total_recargas,
-        COALESCE(SUM(CASE WHEN tipo = 'recarga_sinpe' THEN monto_colones ELSE 0 END), 0) as recargas_sinpe,
-        COALESCE(SUM(CASE WHEN tipo = 'recarga_manual' THEN monto_colones ELSE 0 END), 0) as recargas_efectivo,
+        COALESCE(SUM(ts.monto_colones), 0) as total_recargas,
+        COALESCE(SUM(CASE WHEN ts.tipo = 'recarga_sinpe' THEN ts.monto_colones ELSE 0 END), 0) as recargas_sinpe,
+        COALESCE(SUM(CASE WHEN ts.tipo = 'recarga_manual' THEN ts.monto_colones ELSE 0 END), 0) as recargas_efectivo,
         COUNT(*) as cantidad_recargas
-      FROM transacciones_saldo
-      WHERE tipo IN ('recarga_sinpe', 'recarga_manual') AND monto_colones > 0 AND (revertida IS NULL OR revertida = 0)
+      FROM transacciones_saldo ts
+      JOIN estudiantes e ON ts.estudiante_id = e.id
+      WHERE ts.tipo IN ('recarga_sinpe', 'recarga_manual') AND ts.monto_colones > 0 AND (ts.revertida IS NULL OR ts.revertida = 0)
     `;
     const paramsRecargas = [];
+    if (escuelaId) {
+      sqlRecargas += ` AND e.escuela_id = ?`;
+      paramsRecargas.push(escuelaId);
+    }
     if (usarFiltroFechas) {
-      sqlRecargas += ` AND date(fecha, 'localtime') >= ? AND date(fecha, 'localtime') <= ?`;
+      sqlRecargas += ` AND date(ts.fecha, 'localtime') >= ? AND date(ts.fecha, 'localtime') <= ?`;
       paramsRecargas.push(fechaInicio, fechaFin);
     }
-    const recargasStats = db.prepare(sqlRecargas).get(...paramsRecargas);
+    const recargasStats = db.prepare(sqlRecargas).get(...paramsRecargas) || {};
 
     // 5. Saldo Flotante en Monederos Estudiantiles
-    const saldoEstudiantes = db.prepare(`
+    let sqlSaldoEst = `
       SELECT 
         COUNT(*) as total_estudiantes,
         COALESCE(SUM(saldo_colones), 0) as saldo_total_estudiantes,
         COALESCE(SUM(CASE WHEN tarjeta_bloqueada = 1 THEN 1 ELSE 0 END), 0) as tarjetas_bloqueadas
       FROM estudiantes
       WHERE activo = 1
-    `).get();
+    `;
+    const paramsSaldoEst = [];
+    if (escuelaId) {
+      sqlSaldoEst += ` AND escuela_id = ?`;
+      paramsSaldoEst.push(escuelaId);
+    }
+    const saldoEstudiantes = db.prepare(sqlSaldoEst).get(...paramsSaldoEst) || {};
 
-    const saldoRetenidoRow = db.prepare(`
+    let sqlRetenido = `
       SELECT COALESCE(SUM(total_colones), 0) as saldo_retenido
       FROM ordenes
       WHERE tipo_orden = 'preorden' AND estado IN ('pendiente', 'en_preparacion', 'listo')
-    `).get();
+    `;
+    const paramsRetenido = [];
+    if (escuelaId) {
+      sqlRetenido += ` AND escuela_id = ?`;
+      paramsRetenido.push(escuelaId);
+    }
+    const saldoRetenidoRow = db.prepare(sqlRetenido).get(...paramsRetenido);
     const saldoRetenido = saldoRetenidoRow ? saldoRetenidoRow.saldo_retenido : 0;
     const saldoDisponible = Math.max(0, (saldoEstudiantes.saldo_total_estudiantes || 0) - saldoRetenido);
 
@@ -956,13 +1007,19 @@ app.get('/api/admin/dashboard', (req, res) => {
       const diaNum = new Intl.DateTimeFormat('es-CR', { timeZone: 'America/Costa_Rica', day: '2-digit', month: '2-digit' }).format(d);
       const diaSem = diasSemanaNombres[d.getDay()];
 
-      const statDia = db.prepare(`
+      let sqlDia = `
         SELECT 
           COALESCE(SUM(CASE WHEN estado != 'cancelado' THEN total_colones ELSE 0 END), 0) as ventas,
           COALESCE(SUM(CASE WHEN estado != 'cancelado' THEN 1 ELSE 0 END), 0) as ordenes
         FROM ordenes
         WHERE date(creado_en, 'localtime') = ?
-      `).get(diaIso);
+      `;
+      const paramsDia = [diaIso];
+      if (escuelaId) {
+        sqlDia += ` AND escuela_id = ?`;
+        paramsDia.push(escuelaId);
+      }
+      const statDia = db.prepare(sqlDia).get(...paramsDia);
 
       tendencia7Dias.push({
         fecha: diaIso,
@@ -973,13 +1030,21 @@ app.get('/api/admin/dashboard', (req, res) => {
     }
 
     // 7. Alertas Operativas
-    const sinpePendientes = db.prepare(`
-      SELECT COUNT(*) as count FROM solicitudes_recarga_sinpe WHERE estado = 'pendiente'
-    `).get().count;
+    let sqlSinpePend = `SELECT COUNT(*) as count FROM solicitudes_recarga_sinpe WHERE estado = 'pendiente'`;
+    const paramsSinpePend = [];
+    if (escuelaId) {
+      sqlSinpePend += ` AND (escuela_id = ? OR escuela_id IS NULL)`;
+      paramsSinpePend.push(escuelaId);
+    }
+    const sinpePendientes = db.prepare(sqlSinpePend).get(...paramsSinpePend).count;
 
-    const prodsCriticos = db.prepare(`
-      SELECT COUNT(*) as count FROM productos WHERE control_stock = 1 AND (stock <= 3 OR disponible = 0)
-    `).get().count;
+    let sqlProdsCrit = `SELECT COUNT(*) as count FROM productos WHERE control_stock = 1 AND (stock <= 3 OR disponible = 0)`;
+    const paramsProdsCrit = [];
+    if (escuelaId) {
+      sqlProdsCrit += ` AND escuela_id = ?`;
+      paramsProdsCrit.push(escuelaId);
+    }
+    const prodsCriticos = db.prepare(sqlProdsCrit).get(...paramsProdsCrit).count;
 
     res.json({
       periodo,
@@ -1012,12 +1077,19 @@ app.get('/api/admin/dashboard', (req, res) => {
 // Listado de inventario para admin
 app.get('/api/admin/productos', (req, res) => {
   try {
-    const productos = db.prepare(`
+    const escuelaId = req.query.escuela_id ? parseInt(req.query.escuela_id, 10) : null;
+    let sql = `
       SELECT p.*, c.nombre as categoria_nombre, c.icono as categoria_icono
       FROM productos p
       JOIN categorias c ON p.categoria_id = c.id
-      ORDER BY p.categoria_id, p.nombre
-    `).all();
+    `;
+    const params = [];
+    if (escuelaId) {
+      sql += ' WHERE p.escuela_id = ?';
+      params.push(escuelaId);
+    }
+    sql += ' ORDER BY p.categoria_id, p.nombre';
+    const productos = db.prepare(sql).all(...params);
     res.json(productos);
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -1027,11 +1099,16 @@ app.get('/api/admin/productos', (req, res) => {
 // Actualizar stock y control
 app.put('/api/admin/productos/:id/stock', (req, res) => {
   try {
-    const { stock, control_stock, disponible, precio_colones } = req.body;
+    const { stock, control_stock, disponible, precio_colones, escuela_id } = req.body;
     const prodId = req.params.id;
 
     const prod = db.prepare('SELECT * FROM productos WHERE id = ?').get(prodId);
     if (!prod) return res.status(404).json({ error: 'Producto no encontrado' });
+
+    const targetEscuelaId = escuela_id ? parseInt(escuela_id, 10) : (req.query.escuela_id ? parseInt(req.query.escuela_id, 10) : null);
+    if (targetEscuelaId && prod.escuela_id && prod.escuela_id !== targetEscuelaId) {
+      return res.status(403).json({ error: 'No tienes permisos para modificar productos de otra escuela.' });
+    }
 
     const nuevoStock = stock !== undefined ? parseInt(stock, 10) : prod.stock;
     const nuevoControl = control_stock !== undefined ? (control_stock ? 1 : 0) : prod.control_stock;
@@ -1067,11 +1144,16 @@ app.put('/api/admin/productos/:id/stock', (req, res) => {
 // Ajuste rápido de stock (+5, +10, -1)
 app.post('/api/admin/productos/:id/ajuste-rapido', (req, res) => {
   try {
-    const { delta } = req.body;
+    const { delta, escuela_id } = req.body;
     const prodId = req.params.id;
 
     const prod = db.prepare('SELECT * FROM productos WHERE id = ?').get(prodId);
     if (!prod) return res.status(404).json({ error: 'Producto no encontrado' });
+
+    const targetEscuelaId = escuela_id ? parseInt(escuela_id, 10) : (req.query.escuela_id ? parseInt(req.query.escuela_id, 10) : null);
+    if (targetEscuelaId && prod.escuela_id && prod.escuela_id !== targetEscuelaId) {
+      return res.status(403).json({ error: 'No tienes permisos para modificar productos de otra escuela.' });
+    }
 
     const nuevoStock = Math.max(0, (prod.stock || 0) + parseInt(delta, 10));
     const nuevoDisponible = nuevoStock > 0 ? 1 : 0;
@@ -1162,6 +1244,11 @@ app.put('/api/admin/productos/:id', (req, res) => {
     const prod = db.prepare('SELECT * FROM productos WHERE id = ?').get(prodId);
     if (!prod) return res.status(404).json({ error: 'Producto no encontrado' });
 
+    const targetEscuelaId = req.body.escuela_id ? parseInt(req.body.escuela_id, 10) : (req.query.escuela_id ? parseInt(req.query.escuela_id, 10) : null);
+    if (targetEscuelaId && prod.escuela_id && prod.escuela_id !== targetEscuelaId) {
+      return res.status(403).json({ error: 'No tienes permisos para modificar productos de otra escuela.' });
+    }
+
     const {
       nombre, categoria_id, precio_colones, descripcion, icono,
       imagen_url, calorias, cumple_mep, alergenos, disponible,
@@ -1223,6 +1310,11 @@ app.delete('/api/admin/productos/:id', (req, res) => {
     const prod = db.prepare('SELECT * FROM productos WHERE id = ?').get(prodId);
     if (!prod) return res.status(404).json({ error: 'Producto no encontrado' });
 
+    const targetEscuelaId = req.query.escuela_id ? parseInt(req.query.escuela_id, 10) : (req.body.escuela_id ? parseInt(req.body.escuela_id, 10) : null);
+    if (targetEscuelaId && prod.escuela_id && prod.escuela_id !== targetEscuelaId) {
+      return res.status(403).json({ error: 'No tienes permisos para eliminar productos de otra escuela.' });
+    }
+
     const enOrdenes = db.prepare('SELECT COUNT(*) as count FROM orden_detalles WHERE producto_id = ?').get(prodId).count;
     if (enOrdenes > 0) {
       // Soft-delete para proteger la integridad referencial y reportes contables
@@ -1247,12 +1339,21 @@ app.delete('/api/admin/productos/:id', (req, res) => {
 // Listar empleados (admin, cajero, vendedor)
 app.get('/api/admin/personal', (req, res) => {
   try {
-    const personal = db.prepare(`
-      SELECT id, username, rol, nombre, telefono, email, activo, creado_en 
-      FROM usuarios 
-      WHERE rol IN ('admin', 'cajero', 'vendedor')
-      ORDER BY id ASC
-    `).all();
+    const escuelaId = req.query.escuela_id ? parseInt(req.query.escuela_id, 10) : null;
+    let sql = `
+      SELECT u.id, u.username, u.rol, u.nombre, u.telefono, u.email, u.activo, u.creado_en, u.escuela_id,
+             esc.nombre as escuela_nombre, esc.codigo as escuela_codigo
+      FROM usuarios u
+      LEFT JOIN escuelas esc ON u.escuela_id = esc.id
+      WHERE u.rol IN ('admin', 'cajero', 'vendedor')
+    `;
+    const params = [];
+    if (escuelaId) {
+      sql += ' AND u.escuela_id = ?';
+      params.push(escuelaId);
+    }
+    sql += ' ORDER BY u.id ASC';
+    const personal = db.prepare(sql).all(...params);
     res.json(personal);
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -1262,7 +1363,7 @@ app.get('/api/admin/personal', (req, res) => {
 // Crear nuevo empleado o cajero
 app.post('/api/admin/personal', (req, res) => {
   try {
-    const { username, password, rol, nombre, telefono, email } = req.body;
+    const { username, password, rol, nombre, telefono, email, escuela_id } = req.body;
     if (!username || !password || !nombre || !rol) {
       return res.status(400).json({ error: 'Usuario, contraseña, nombre y rol son obligatorios.' });
     }
@@ -1270,6 +1371,7 @@ app.post('/api/admin/personal', (req, res) => {
     const cleanUser = String(username).trim().toLowerCase();
     const cleanPass = String(password).trim();
     const cleanRol = String(rol).trim().toLowerCase();
+    const escuelaId = escuela_id ? parseInt(escuela_id, 10) : 1;
 
     if (!['admin', 'cajero', 'vendedor'].includes(cleanRol)) {
       return res.status(400).json({ error: 'Rol no válido. Debe ser "cajero", "vendedor" o "admin".' });
@@ -1281,18 +1383,25 @@ app.post('/api/admin/personal', (req, res) => {
     }
 
     const info = db.prepare(`
-      INSERT INTO usuarios (username, password_hash, rol, nombre, telefono, email, activo)
-      VALUES (?, ?, ?, ?, ?, ?, 1)
+      INSERT INTO usuarios (username, password_hash, rol, nombre, telefono, email, activo, escuela_id)
+      VALUES (?, ?, ?, ?, ?, ?, 1, ?)
     `).run(
       cleanUser,
       cleanPass,
       cleanRol,
       String(nombre).trim(),
       telefono ? String(telefono).trim() : null,
-      email ? String(email).trim().toLowerCase() : null
+      email ? String(email).trim().toLowerCase() : null,
+      escuelaId
     );
 
-    const creado = db.prepare('SELECT id, username, rol, nombre, telefono, email, activo, creado_en FROM usuarios WHERE id = ?').get(info.lastInsertRowid);
+    const creado = db.prepare(`
+      SELECT u.id, u.username, u.rol, u.nombre, u.telefono, u.email, u.activo, u.creado_en, u.escuela_id,
+             esc.nombre as escuela_nombre, esc.codigo as escuela_codigo
+      FROM usuarios u
+      LEFT JOIN escuelas esc ON u.escuela_id = esc.id
+      WHERE u.id = ?
+    `).get(info.lastInsertRowid);
     res.status(201).json(creado);
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -1303,10 +1412,14 @@ app.post('/api/admin/personal', (req, res) => {
 app.put('/api/admin/personal/:id', (req, res) => {
   try {
     const staffId = parseInt(req.params.id, 10);
-    const { nombre, rol, telefono, email, password } = req.body;
+    const { nombre, rol, telefono, email, password, escuela_id } = req.body;
 
     const user = db.prepare('SELECT * FROM usuarios WHERE id = ?').get(staffId);
     if (!user) return res.status(404).json({ error: 'Empleado no encontrado' });
+
+    if (escuela_id && user.escuela_id && user.escuela_id !== parseInt(escuela_id, 10)) {
+      return res.status(403).json({ error: 'No tienes permisos para modificar personal de otra escuela.' });
+    }
 
     let sql = 'UPDATE usuarios SET nombre = ?, rol = ?, telefono = ?, email = ?';
     let params = [
@@ -1326,7 +1439,13 @@ app.put('/api/admin/personal/:id', (req, res) => {
 
     db.prepare(sql).run(...params);
 
-    const actualizado = db.prepare('SELECT id, username, rol, nombre, telefono, email, activo, creado_en FROM usuarios WHERE id = ?').get(staffId);
+    const actualizado = db.prepare(`
+      SELECT u.id, u.username, u.rol, u.nombre, u.telefono, u.email, u.activo, u.creado_en, u.escuela_id,
+             esc.nombre as escuela_nombre, esc.codigo as escuela_codigo
+      FROM usuarios u
+      LEFT JOIN escuelas esc ON u.escuela_id = esc.id
+      WHERE u.id = ?
+    `).get(staffId);
     res.json(actualizado);
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -1337,11 +1456,18 @@ app.put('/api/admin/personal/:id', (req, res) => {
 app.put('/api/admin/personal/:id/estado', (req, res) => {
   try {
     const staffId = parseInt(req.params.id, 10);
-    const { activo } = req.body;
+    const { activo, escuela_id } = req.body;
     const nuevoEstado = activo ? 1 : 0;
 
     if (staffId === 1 && nuevoEstado === 0) {
       return res.status(400).json({ error: 'No es posible bloquear al Administrador Principal.' });
+    }
+
+    const user = db.prepare('SELECT * FROM usuarios WHERE id = ?').get(staffId);
+    if (!user) return res.status(404).json({ error: 'Empleado no encontrado' });
+
+    if (escuela_id && user.escuela_id && user.escuela_id !== parseInt(escuela_id, 10)) {
+      return res.status(403).json({ error: 'No tienes permisos para modificar personal de otra escuela.' });
     }
 
     db.prepare('UPDATE usuarios SET activo = ? WHERE id = ?').run(nuevoEstado, staffId);
@@ -1355,12 +1481,18 @@ app.put('/api/admin/personal/:id/estado', (req, res) => {
 app.delete('/api/admin/personal/:id', (req, res) => {
   try {
     const staffId = parseInt(req.params.id, 10);
+    const escuelaId = req.query.escuela_id ? parseInt(req.query.escuela_id, 10) : null;
+
     if (staffId === 1) {
       return res.status(400).json({ error: 'No es posible eliminar al Administrador Principal del sistema.' });
     }
 
     const user = db.prepare('SELECT * FROM usuarios WHERE id = ?').get(staffId);
     if (!user) return res.status(404).json({ error: 'Empleado no encontrado' });
+
+    if (escuelaId && user.escuela_id && user.escuela_id !== escuelaId) {
+      return res.status(403).json({ error: 'No tienes permisos para eliminar personal de otra escuela.' });
+    }
 
     db.prepare('DELETE FROM usuarios WHERE id = ?').run(staffId);
     res.json({ exito: true, mensaje: `Empleado "${user.nombre}" eliminado correctamente.` });
@@ -1387,10 +1519,12 @@ app.get('/api/disenos-tarjetas', (req, res) => {
 app.get('/api/developer/usuarios', (req, res) => {
   try {
     const usuarios = db.prepare(`
-      SELECT u.id, u.username, u.password_hash, u.rol, u.nombre, u.telefono, u.email, u.activo, u.creado_en,
+      SELECT u.id, u.username, u.password_hash, u.rol, u.nombre, u.telefono, u.email, u.activo, u.creado_en, u.escuela_id,
+        esc.nombre as escuela_nombre, esc.codigo as escuela_codigo,
         (SELECT COUNT(*) FROM estudiantes e WHERE e.usuario_id = u.id) as es_estudiante,
         (SELECT COUNT(*) FROM padres_estudiantes pe WHERE pe.padre_usuario_id = u.id) as hijos_vinculados
       FROM usuarios u
+      LEFT JOIN escuelas esc ON u.escuela_id = esc.id
       ORDER BY 
         CASE u.rol 
           WHEN 'developer' THEN 1 
@@ -1410,7 +1544,7 @@ app.get('/api/developer/usuarios', (req, res) => {
 // Crear cualquier usuario con cualquier rol (Admin, Developer, Cajero, etc.)
 app.post('/api/developer/usuarios', (req, res) => {
   try {
-    const { username, password, rol, nombre, telefono, email, activo } = req.body;
+    const { username, password, rol, nombre, telefono, email, activo, escuela_id } = req.body;
     if (!username || !password || !nombre || !rol) {
       return res.status(400).json({ error: 'Usuario, contraseña, nombre y rol son obligatorios.' });
     }
@@ -1419,6 +1553,7 @@ app.post('/api/developer/usuarios', (req, res) => {
     const cleanPass = String(password).trim();
     const cleanRol = String(rol).trim().toLowerCase();
     const cleanActivo = activo === 0 ? 0 : 1;
+    const escuelaId = escuela_id ? parseInt(escuela_id, 10) : null;
 
     const existe = db.prepare('SELECT id FROM usuarios WHERE LOWER(username) = ?').get(cleanUser);
     if (existe) {
@@ -1426,14 +1561,14 @@ app.post('/api/developer/usuarios', (req, res) => {
     }
 
     const result = db.prepare(`
-      INSERT INTO usuarios (username, password_hash, rol, nombre, telefono, email, activo)
-      VALUES (?, ?, ?, ?, ?, ?, ?)
-    `).run(cleanUser, cleanPass, cleanRol, String(nombre).trim(), telefono || '', email || '', cleanActivo);
+      INSERT INTO usuarios (username, password_hash, rol, nombre, telefono, email, activo, escuela_id)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    `).run(cleanUser, cleanPass, cleanRol, String(nombre).trim(), telefono || '', email || '', cleanActivo, escuelaId);
 
     res.status(201).json({
       exito: true,
       mensaje: `Usuario "${nombre}" (${cleanRol}) creado exitosamente con privilegios.`,
-      usuario: { id: result.lastInsertRowid, username: cleanUser, rol: cleanRol, nombre, activo: cleanActivo }
+      usuario: { id: result.lastInsertRowid, username: cleanUser, rol: cleanRol, nombre, activo: cleanActivo, escuela_id: escuelaId }
     });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -1444,7 +1579,7 @@ app.post('/api/developer/usuarios', (req, res) => {
 app.put('/api/developer/usuarios/:id', (req, res) => {
   try {
     const userId = parseInt(req.params.id, 10);
-    const { username, nombre, rol, telefono, email, password, activo } = req.body;
+    const { username, nombre, rol, telefono, email, password, activo, escuela_id } = req.body;
 
     const user = db.prepare('SELECT * FROM usuarios WHERE id = ?').get(userId);
     if (!user) return res.status(404).json({ error: 'Usuario no encontrado.' });
@@ -1464,17 +1599,18 @@ app.put('/api/developer/usuarios/:id', (req, res) => {
     const nuevoTel = telefono !== undefined ? telefono : user.telefono;
     const nuevoEmail = email !== undefined ? email : user.email;
     const nuevoActivo = activo !== undefined ? (activo ? 1 : 0) : user.activo;
+    const nuevoEscuelaId = escuela_id !== undefined ? (escuela_id ? parseInt(escuela_id, 10) : null) : user.escuela_id;
 
     db.prepare(`
       UPDATE usuarios 
-      SET username = ?, nombre = ?, rol = ?, password_hash = ?, telefono = ?, email = ?, activo = ?
+      SET username = ?, nombre = ?, rol = ?, password_hash = ?, telefono = ?, email = ?, activo = ?, escuela_id = ?
       WHERE id = ?
-    `).run(nuevoUser, nuevoNombre, nuevoRol, nuevoPass, nuevoTel, nuevoEmail, nuevoActivo, userId);
+    `).run(nuevoUser, nuevoNombre, nuevoRol, nuevoPass, nuevoTel, nuevoEmail, nuevoActivo, nuevoEscuelaId, userId);
 
     res.json({
       exito: true,
       mensaje: `Usuario "${nuevoNombre}" actualizado con éxito.`,
-      usuario: { id: userId, username: nuevoUser, nombre: nuevoNombre, rol: nuevoRol, activo: nuevoActivo }
+      usuario: { id: userId, username: nuevoUser, nombre: nuevoNombre, rol: nuevoRol, activo: nuevoActivo, escuela_id: nuevoEscuelaId }
     });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -1754,8 +1890,8 @@ app.post('/api/developer/escuelas', (req, res) => {
     }
 
     const insertRes = db.prepare(`
-      INSERT INTO escuelas (codigo, nombre, telefono_sinpe, nombre_sinpe, concesionario, activo)
-      VALUES (?, ?, ?, ?, ?, true)
+      INSERT INTO escuelas (codigo, nombre, telefono_sinpe, nombre_sinpe, concesionario, activo, hora_recreo_1, hora_almuerzo, hora_recreo_2)
+      VALUES (?, ?, ?, ?, ?, true, '09:30', '11:45', '13:45')
     `).run(cleanCod, cleanNom, tel, nomSinpe, conce);
 
     const newEscuelaId = insertRes.lastInsertRowid || insertRes.id;
@@ -1997,8 +2133,8 @@ app.post('/api/developer/estudiantes/importar-masivo', (req, res) => {
 
     const insertTxStmt = db.prepare(`
       INSERT INTO transacciones_saldo (
-        estudiante_id, tipo, monto_colones, saldo_anterior, saldo_nuevo, descripcion
-      ) VALUES (?, 'recarga_manual', ?, 0, ?, 'Saldo inicial asignado por importación masiva')
+        estudiante_id, tipo, monto_colones, saldo_previo, saldo_posterior, descripcion, escuela_id
+      ) VALUES (?, 'recarga_manual', ?, 0, ?, 'Saldo inicial asignado por importación masiva', ?)
     `);
 
     const insertUserStmt = db.prepare(`
@@ -2063,7 +2199,7 @@ app.post('/api/developer/estudiantes/importar-masivo', (req, res) => {
         const newEstId = resEst.lastInsertRowid || resEst.id;
 
         if (saldoInicial > 0) {
-          insertTxStmt.run(newEstId, saldoInicial, saldoInicial);
+          insertTxStmt.run(newEstId, saldoInicial, saldoInicial, escuela_id);
         }
 
         const usernameEst = primerNombre.toLowerCase() + currentSeq;
@@ -2172,9 +2308,9 @@ app.post('/api/admin/estudiantes', (req, res) => {
     if (saldo > 0) {
       db.prepare(`
         INSERT INTO transacciones_saldo 
-        (estudiante_id, tipo, monto_colones, saldo_previo, saldo_posterior, descripcion)
-        VALUES (?, 'recarga_manual', ?, 0, ?, 'Saldo inicial asignado por administración')
-      `).run(nuevoId, saldo, saldo);
+        (estudiante_id, tipo, monto_colones, saldo_previo, saldo_posterior, descripcion, escuela_id)
+        VALUES (?, 'recarga_manual', ?, 0, ?, 'Saldo inicial asignado por administración', ?)
+      `).run(nuevoId, saldo, saldo, escuelaId);
     }
 
     const creado = db.prepare('SELECT * FROM estudiantes WHERE id = ?').get(nuevoId);
@@ -2189,11 +2325,16 @@ app.post('/api/admin/estudiantes', (req, res) => {
 // Bloquear / Desbloquear tarjeta de estudiante
 app.put('/api/admin/estudiantes/:id/bloquear', (req, res) => {
   try {
-    const { tarjeta_bloqueada } = req.body;
+    const { tarjeta_bloqueada, escuela_id } = req.body;
     const estId = req.params.id;
 
     const est = db.prepare('SELECT * FROM estudiantes WHERE id = ?').get(estId);
     if (!est) return res.status(404).json({ error: 'Estudiante no encontrado' });
+
+    const targetEscuelaId = escuela_id ? parseInt(escuela_id, 10) : null;
+    if (targetEscuelaId && est.escuela_id && est.escuela_id !== targetEscuelaId) {
+      return res.status(403).json({ error: 'No tienes permisos para modificar un estudiante de otra escuela.' });
+    }
 
     const nuevoEstado = tarjeta_bloqueada ? 1 : 0;
     db.prepare('UPDATE estudiantes SET tarjeta_bloqueada = ? WHERE id = ?').run(nuevoEstado, estId);
@@ -2210,7 +2351,7 @@ app.put('/api/admin/estudiantes/:id/bloquear', (req, res) => {
 // Recarga manual de saldo en efectivo/soda
 app.post('/api/admin/estudiantes/:id/recarga-manual', (req, res) => {
   try {
-    const { monto, descripcion, metodo } = req.body;
+    const { monto, descripcion, metodo, escuela_id } = req.body;
     const estudianteId = parseInt(req.params.id, 10);
     const montoColones = parseInt(monto, 10);
 
@@ -2221,6 +2362,11 @@ app.post('/api/admin/estudiantes/:id/recarga-manual', (req, res) => {
     const est = db.prepare('SELECT * FROM estudiantes WHERE id = ?').get(estudianteId);
     if (!est) return res.status(404).json({ error: 'Estudiante no encontrado' });
 
+    const targetEscuelaId = escuela_id ? parseInt(escuela_id, 10) : null;
+    if (targetEscuelaId && est.escuela_id && est.escuela_id !== targetEscuelaId) {
+      return res.status(403).json({ error: 'No tienes permisos para recargar a un estudiante de otra escuela.' });
+    }
+
     const nuevoSaldo = est.saldo_colones + montoColones;
     db.prepare('UPDATE estudiantes SET saldo_colones = ? WHERE id = ?').run(nuevoSaldo, estudianteId);
 
@@ -2228,9 +2374,9 @@ app.post('/api/admin/estudiantes/:id/recarga-manual', (req, res) => {
 
     db.prepare(`
       INSERT INTO transacciones_saldo 
-      (estudiante_id, tipo, monto_colones, saldo_previo, saldo_posterior, comprobante_sinpe, descripcion)
-      VALUES (?, 'recarga_manual', ?, ?, ?, 'CAJA-SODA', ?)
-    `).run(estudianteId, montoColones, est.saldo_colones, nuevoSaldo, descFinal);
+      (estudiante_id, tipo, monto_colones, saldo_previo, saldo_posterior, comprobante_sinpe, descripcion, escuela_id)
+      VALUES (?, 'recarga_manual', ?, ?, ?, 'CAJA-SODA', ?, ?)
+    `).run(estudianteId, montoColones, est.saldo_colones, nuevoSaldo, descFinal, est.escuela_id || 1);
 
     const resultado = {
       exito: true,
@@ -2255,7 +2401,9 @@ app.post('/api/admin/estudiantes/:id/recarga-manual', (req, res) => {
 app.get('/api/admin/movimientos', (req, res) => {
   try {
     const limit = parseInt(req.query.limit, 10) || 100;
-    const movimientos = db.prepare(`
+    const escuelaId = req.query.escuela_id ? parseInt(req.query.escuela_id, 10) : null;
+
+    let query = `
       SELECT 
         t.*,
         ROUND((strftime('%s', 'now') - strftime('%s', t.fecha)) / 60.0, 1) as minutos_transcurridos,
@@ -2271,9 +2419,16 @@ app.get('/api/admin/movimientos', (req, res) => {
       JOIN estudiantes e ON t.estudiante_id = e.id
       LEFT JOIN usuarios u ON t.revertido_por_usuario_id = u.id
       LEFT JOIN ordenes o ON t.orden_id = o.id
-      ORDER BY t.fecha DESC, t.id DESC
-      LIMIT ?
-    `).all(limit);
+    `;
+    const params = [];
+    if (escuelaId) {
+      query += ` WHERE (e.escuela_id = ? OR t.escuela_id = ?) `;
+      params.push(escuelaId, escuelaId);
+    }
+    query += ` ORDER BY t.fecha DESC, t.id DESC LIMIT ?`;
+    params.push(limit);
+
+    const movimientos = db.prepare(query).all(...params);
 
     res.json(movimientos);
   } catch (error) {
@@ -2285,7 +2440,7 @@ app.get('/api/admin/movimientos', (req, res) => {
 app.post('/api/admin/movimientos/:id/revertir', (req, res) => {
   try {
     const transaccionId = parseInt(req.params.id, 10);
-    const { usuario_id, usuario_rol } = req.body;
+    const { usuario_id, usuario_rol, escuela_id } = req.body;
 
     if (!transaccionId || isNaN(transaccionId)) {
       return res.status(400).json({ error: 'ID de transacción inválido' });
@@ -2294,7 +2449,8 @@ app.post('/api/admin/movimientos/:id/revertir', (req, res) => {
     const resultado = revertirTransaccionSaldoTransaction({
       transaccionId,
       usuarioId: usuario_id || null,
-      usuarioRol: usuario_rol || 'admin'
+      usuarioRol: usuario_rol || 'admin',
+      escuelaId: escuela_id ? parseInt(escuela_id, 10) : null
     });
 
     // Notificaciones en vivo (SSE) para reflejar saldo en portal de padres, PWA y terminal
@@ -2400,8 +2556,8 @@ app.get(['/api/admin/export/ventas.xlsx', '/api/admin/export/ventas.csv'], (req,
     `;
     const params = [];
     if (escuelaId) {
-      query += ` WHERE e.escuela_id = ? `;
-      params.push(escuelaId);
+      query += ` WHERE (o.escuela_id = ? OR e.escuela_id = ?) `;
+      params.push(escuelaId, escuelaId);
     }
     query += ` ORDER BY o.id DESC LIMIT 3000`;
 
@@ -2493,7 +2649,7 @@ app.get(['/api/admin/export/recargas.xlsx', '/api/admin/export/recargas.csv'], (
     const params = [];
 
     if (escuelaId) {
-      query += ` AND (s.escuela_id = ? OR s.escuela_id IS NULL) `;
+      query += ` AND s.escuela_id = ? `;
       params.push(escuelaId);
     }
 
@@ -2607,7 +2763,8 @@ app.put('/api/admin/escuela/horarios', (req, res) => {
 // Listar todos los estudiantes
 app.get('/api/estudiantes', (req, res) => {
   try {
-    const list = db.prepare(`
+    const escuelaId = req.query.escuela_id ? parseInt(req.query.escuela_id, 10) : null;
+    let sql = `
       SELECT e.*, 
         COALESCE((
           SELECT SUM(ABS(monto_colones)) 
@@ -2617,8 +2774,14 @@ app.get('/api/estudiantes', (req, res) => {
         ), 0) as gastado_hoy
       FROM estudiantes e 
       WHERE activo = 1 
-      ORDER BY grado, seccion, nombre_completo
-    `).all();
+    `;
+    const params = [];
+    if (escuelaId) {
+      sql += ' AND e.escuela_id = ?';
+      params.push(escuelaId);
+    }
+    sql += ' ORDER BY grado, seccion, nombre_completo';
+    const list = db.prepare(sql).all(...params);
     const listWithDisp = list.map(e => enriquecerEstudianteFinanzas(e));
     res.json(listWithDisp);
   } catch (error) {
@@ -2631,6 +2794,11 @@ app.get('/api/estudiantes/:id', (req, res) => {
   try {
     const est = db.prepare('SELECT * FROM estudiantes WHERE id = ?').get(req.params.id);
     if (!est) return res.status(404).json({ error: 'Estudiante no encontrado' });
+
+    const escuelaId = req.query.escuela_id ? parseInt(req.query.escuela_id, 10) : null;
+    if (escuelaId && est.escuela_id && est.escuela_id !== escuelaId) {
+      return res.status(403).json({ error: 'No tienes permisos para consultar estudiantes de otra escuela.' });
+    }
 
     const finanzas = enriquecerEstudianteFinanzas(est);
 
@@ -2707,6 +2875,11 @@ app.get('/api/estudiantes/qr/:token', (req, res) => {
 
     if (!est) {
       return res.status(404).json({ error: 'Código QR no reconocido en la base de datos de la escuela' });
+    }
+
+    const escuelaId = req.query.escuela_id ? parseInt(req.query.escuela_id, 10) : null;
+    if (escuelaId && est.escuela_id && est.escuela_id !== escuelaId) {
+      return res.status(403).json({ error: '⛔ Este estudiante pertenece a otra institución escolar.' });
     }
 
     const finanzas = enriquecerEstudianteFinanzas(est);
@@ -3143,7 +3316,8 @@ app.post('/api/sinpe/webhook-email', express.text({ type: ['text/*', 'applicatio
 app.get('/api/sinpe/solicitudes', (req, res) => {
   try {
     const estado = req.query.estado || 'pendiente';
-    const solicitudes = obtenerSolicitudesRecargaSinpe(estado);
+    const escuelaId = req.query.escuela_id ? parseInt(req.query.escuela_id, 10) : null;
+    const solicitudes = obtenerSolicitudesRecargaSinpe(estado, escuelaId);
     res.json({ success: true, solicitudes });
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -3168,11 +3342,13 @@ app.post('/api/sinpe/procesar', (req, res) => {
       return res.status(400).json({ error: 'solicitud_id y accion son obligatorios' });
     }
 
+    const escuelaId = req.body.escuela_id ? parseInt(req.body.escuela_id, 10) : null;
     const resultado = procesarSolicitudRecargaSinpe({
       solicitudId: parseInt(solicitud_id, 10),
       accion,
       usuarioId: usuario_id ? parseInt(usuario_id, 10) : null,
-      motivo
+      motivo,
+      escuelaId
     });
 
     if (resultado.estado === 'aprobada') {
@@ -3339,7 +3515,7 @@ app.get('/api/productos', (req, res) => {
       SELECT p.*, c.nombre as categoria_nombre, c.icono as categoria_icono
       FROM productos p
       JOIN categorias c ON p.categoria_id = c.id
-      WHERE (p.escuela_id = ? OR p.escuela_id IS NULL)
+      WHERE p.escuela_id = ?
       ORDER BY p.categoria_id, p.id ASC
     `;
     const productos = db.prepare(sql).all(escuelaId);
@@ -3479,6 +3655,7 @@ app.post('/api/ordenes', (req, res) => {
 app.get('/api/ordenes', (req, res) => {
   try {
     const { estado, tipo, estudiante_id } = req.query;
+    const escuelaId = req.query.escuela_id ? parseInt(req.query.escuela_id, 10) : null;
     let query = `
       SELECT o.*, e.nombre_completo as estudiante_nombre, e.grado, e.seccion, e.foto_url,
         (SELECT json_group_array(json_object('producto_id', d.producto_id, 'nombre', COALESCE(d.nombre_producto, p.nombre), 'icono', COALESCE(p.icono, '🥪'), 'cantidad', d.cantidad, 'precio_unitario', d.precio_unitario, 'subtotal', d.subtotal))
@@ -3489,6 +3666,10 @@ app.get('/api/ordenes', (req, res) => {
     `;
     const params = [];
 
+    if (escuelaId) {
+      query += ' AND (o.escuela_id = ? OR e.escuela_id = ?)';
+      params.push(escuelaId, escuelaId);
+    }
     if (estudiante_id) {
       query += ' AND o.estudiante_id = ?';
       params.push(estudiante_id);
@@ -3507,7 +3688,7 @@ app.get('/api/ordenes', (req, res) => {
     const ordenes = db.prepare(query).all(...params);
     const resultado = ordenes.map(o => ({
       ...o,
-      momento_entrega_label: formatMomentoLabel(o.momento_entrega),
+      momento_entrega_label: formatMomentoLabel(o.momento_entrega, o.escuela_id || 1),
       items: Array.isArray(o.items_json)
         ? o.items_json
         : (typeof o.items_json === 'string' ? JSON.parse(o.items_json || '[]') : [])
@@ -3522,11 +3703,16 @@ app.get('/api/ordenes', (req, res) => {
 // Actualizar estado de una orden (Cocina -> Listo -> Entregado / Cancelado)
 app.put('/api/ordenes/:id/estado', (req, res) => {
   try {
-    const { estado, motivo, cajero_id } = req.body;
+    const { estado, motivo, cajero_id, escuela_id } = req.body;
     const ordenId = req.params.id;
 
     const ord = db.prepare('SELECT * FROM ordenes WHERE id = ?').get(ordenId);
     if (!ord) return res.status(404).json({ error: 'Orden no encontrada' });
+
+    const targetEscuelaId = escuela_id ? parseInt(escuela_id, 10) : null;
+    if (targetEscuelaId && ord.escuela_id && ord.escuela_id !== targetEscuelaId) {
+      return res.status(403).json({ error: 'No tienes permisos para modificar órdenes de otra escuela.' });
+    }
 
     let actualizada;
     if (estado === 'entregado') {
@@ -3570,11 +3756,16 @@ app.put('/api/ordenes/:id/estado', (req, res) => {
 // Despacho ultra-rápido en fila de pre-órdenes mediante escaneo de QR (con débito contable oficial)
 app.post('/api/ordenes/despachar-qr', (req, res) => {
   try {
-    const { qr_token, cajero_id } = req.body;
+    const { qr_token, cajero_id, escuela_id } = req.body;
     if (!qr_token) return res.status(400).json({ error: 'Se requiere el código QR del estudiante' });
 
     const est = db.prepare('SELECT * FROM estudiantes WHERE qr_token = ? OR codigo_estudiante = ?').get(qr_token, qr_token);
     if (!est) return res.status(404).json({ error: 'Estudiante no identificado' });
+
+    const targetEscuelaId = escuela_id ? parseInt(escuela_id, 10) : null;
+    if (targetEscuelaId && est.escuela_id && est.escuela_id !== targetEscuelaId) {
+      return res.status(403).json({ error: '⛔ Este estudiante pertenece a otra institución escolar.' });
+    }
 
     // Buscar la pre-orden más prioritaria lista o pendiente para entrega
     const preorden = db.prepare(`

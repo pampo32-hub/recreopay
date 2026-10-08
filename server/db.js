@@ -196,6 +196,22 @@ function initDatabase() {
       db.exec('ALTER TABLE transacciones_saldo ADD COLUMN IF NOT EXISTS revertida INTEGER DEFAULT 0;');
       db.exec('ALTER TABLE transacciones_saldo ADD COLUMN IF NOT EXISTS revertido_por_usuario_id INTEGER REFERENCES usuarios(id);');
       db.exec('ALTER TABLE transacciones_saldo ADD COLUMN IF NOT EXISTS revertido_en TIMESTAMP;');
+      db.exec('ALTER TABLE transacciones_saldo ADD COLUMN IF NOT EXISTS escuela_id INTEGER DEFAULT 1 REFERENCES escuelas(id);');
+      db.exec('ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS escuela_id INTEGER DEFAULT 1 REFERENCES escuelas(id);');
+      db.exec('ALTER TABLE estudiantes ADD COLUMN IF NOT EXISTS escuela_id INTEGER DEFAULT 1 REFERENCES escuelas(id);');
+      db.exec('ALTER TABLE productos ADD COLUMN IF NOT EXISTS escuela_id INTEGER DEFAULT 1 REFERENCES escuelas(id);');
+      db.exec('ALTER TABLE ordenes ADD COLUMN IF NOT EXISTS escuela_id INTEGER DEFAULT 1 REFERENCES escuelas(id);');
+      db.exec('ALTER TABLE solicitudes_recarga_sinpe ADD COLUMN IF NOT EXISTS escuela_id INTEGER DEFAULT 1 REFERENCES escuelas(id);');
+      
+      // Normalización de seguridad: asociar transacciones y entidades sin escuela a su escuela real
+      db.exec(`
+        UPDATE usuarios SET escuela_id = 1 WHERE escuela_id IS NULL;
+        UPDATE productos SET escuela_id = 1 WHERE escuela_id IS NULL;
+        UPDATE estudiantes SET escuela_id = 1 WHERE escuela_id IS NULL;
+        UPDATE ordenes SET escuela_id = 1 WHERE escuela_id IS NULL;
+        UPDATE solicitudes_recarga_sinpe SET escuela_id = 1 WHERE escuela_id IS NULL;
+        UPDATE transacciones_saldo SET escuela_id = COALESCE((SELECT e.escuela_id FROM estudiantes e WHERE e.id = transacciones_saldo.estudiante_id), 1) WHERE escuela_id IS NULL;
+      `);
     } catch (e) {}
 
     seedUsuarios();
@@ -343,6 +359,10 @@ function initDatabase() {
   try { db.exec('ALTER TABLE transacciones_saldo ADD COLUMN revertida INTEGER DEFAULT 0'); } catch (e) {}
   try { db.exec('ALTER TABLE transacciones_saldo ADD COLUMN revertido_por_usuario_id INTEGER REFERENCES usuarios(id)'); } catch (e) {}
   try { db.exec('ALTER TABLE transacciones_saldo ADD COLUMN revertido_en DATETIME'); } catch (e) {}
+  try { db.exec('ALTER TABLE transacciones_saldo ADD COLUMN escuela_id INTEGER DEFAULT 1'); } catch (e) {}
+  try { db.exec('ALTER TABLE usuarios ADD COLUMN escuela_id INTEGER DEFAULT 1'); } catch (e) {}
+  try { db.exec('ALTER TABLE productos ADD COLUMN escuela_id INTEGER DEFAULT 1'); } catch (e) {}
+  try { db.exec('ALTER TABLE estudiantes ADD COLUMN escuela_id INTEGER DEFAULT 1'); } catch (e) {}
 
   // 9.1 Garantizar nombre_producto histórico en orden_detalles
   try { db.exec('ALTER TABLE orden_detalles ADD COLUMN nombre_producto TEXT'); } catch (e) {}
@@ -396,6 +416,7 @@ function initDatabase() {
       );
     `);
     try { db.exec('ALTER TABLE solicitudes_recarga_sinpe ADD COLUMN codigo_detalle TEXT;'); } catch (_) {}
+    try { db.exec('ALTER TABLE solicitudes_recarga_sinpe ADD COLUMN escuela_id INTEGER DEFAULT 1 REFERENCES escuelas(id);'); } catch (_) {}
   } catch (e) {}
 
   // 11b. Transacciones Bancarias SINPE Detectadas por Correo / IMAP
@@ -747,10 +768,11 @@ function debitoCompraTransaction({ estudianteId, montoTotal, ordenId, descripcio
     db.prepare('UPDATE estudiantes SET saldo_colones = ? WHERE id = ?').run(nuevoSaldo, estudianteId);
 
     // 5. Registrar auditoría financiera
+    const escuelaId = (est && est.escuela_id) ? est.escuela_id : 1;
     db.prepare(`
       INSERT INTO transacciones_saldo 
-      (estudiante_id, tipo, monto_colones, saldo_previo, saldo_posterior, orden_id, descripcion)
-      VALUES (?, ?, ?, ?, ?, ?, ?)
+      (estudiante_id, tipo, monto_colones, saldo_previo, saldo_posterior, orden_id, descripcion, escuela_id)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
     `).run(
       estudianteId,
       tipoOrden,
@@ -758,7 +780,8 @@ function debitoCompraTransaction({ estudianteId, montoTotal, ordenId, descripcio
       est.saldo_colones,
       nuevoSaldo,
       ordenId || null,
-      descripcion || 'Compra en soda escolar'
+      descripcion || 'Compra en soda escolar',
+      escuelaId
     );
 
     const nuevoGastadoHoy = totalGastadoHoy + montoTotal;
@@ -787,7 +810,7 @@ function debitoCompraTransaction({ estudianteId, montoTotal, ordenId, descripcio
 /**
  * Realiza una recarga de saldo (Ej. Vía SINPE Móvil)
  */
-function recargaSaldoTransaction({ estudianteId, monto, comprobanteSinpe, descripcion }) {
+function recargaSaldoTransaction({ estudianteId, monto, comprobanteSinpe, descripcion, escuelaId: forcedEscuelaId }) {
   const transaction = db.transaction(() => {
     const est = db.prepare('SELECT * FROM estudiantes WHERE id = ?').get(estudianteId);
     if (!est) throw new Error('Estudiante no encontrado');
@@ -796,17 +819,19 @@ function recargaSaldoTransaction({ estudianteId, monto, comprobanteSinpe, descri
     const nuevoSaldo = est.saldo_colones + monto;
     db.prepare('UPDATE estudiantes SET saldo_colones = ? WHERE id = ?').run(nuevoSaldo, estudianteId);
 
+    const escuelaId = forcedEscuelaId || ((est && est.escuela_id) ? est.escuela_id : 1);
     db.prepare(`
       INSERT INTO transacciones_saldo 
-      (estudiante_id, tipo, monto_colones, saldo_previo, saldo_posterior, comprobante_sinpe, descripcion)
-      VALUES (?, 'recarga_sinpe', ?, ?, ?, ?, ?)
+      (estudiante_id, tipo, monto_colones, saldo_previo, saldo_posterior, comprobante_sinpe, descripcion, escuela_id)
+      VALUES (?, 'recarga_sinpe', ?, ?, ?, ?, ?, ?)
     `).run(
       estudianteId,
       monto,
       est.saldo_colones,
       nuevoSaldo,
       comprobanteSinpe || 'SINPE-APP',
-      descripcion || `Recarga SINPE Móvil por ₡${monto.toLocaleString('es-CR')}`
+      descripcion || `Recarga SINPE Móvil por ₡${monto.toLocaleString('es-CR')}`,
+      escuelaId
     );
 
     return {
@@ -814,7 +839,8 @@ function recargaSaldoTransaction({ estudianteId, monto, comprobanteSinpe, descri
       estudiante_id: est.id,
       nombre: est.nombre_completo,
       saldo_anterior: est.saldo_colones,
-      saldo_nuevo: nuevoSaldo
+      saldo_nuevo: nuevoSaldo,
+      escuela_id: escuelaId
     };
   });
 
@@ -897,6 +923,12 @@ function crearOrdenCompleta({ estudianteId, tipoOrden, momentoEntrega, notas, it
   const transaction = db.transaction(() => {
     if (!items || items.length === 0) throw new Error('La orden no contiene productos');
 
+    // Consultar estudiante para registrar saldos y validaciones
+    const est = db.prepare('SELECT * FROM estudiantes WHERE id = ?').get(estudianteId);
+    if (!est) throw new Error(`Estudiante #${estudianteId} no existe`);
+    if (!est.activo) throw new Error('La cuenta del estudiante se encuentra inactiva');
+    if (est.tarjeta_bloqueada) throw new Error('⛔ Tarjeta suspendida por la administración de la soda.');
+
     // Calcular total y validar productos
     let totalColones = 0;
     const detallesParaInsertar = [];
@@ -904,6 +936,9 @@ function crearOrdenCompleta({ estudianteId, tipoOrden, momentoEntrega, notas, it
     for (const item of items) {
       const prod = db.prepare('SELECT * FROM productos WHERE id = ?').get(item.producto_id);
       if (!prod) throw new Error(`Producto #${item.producto_id} no existe`);
+      if (prod.escuela_id && est.escuela_id && prod.escuela_id !== est.escuela_id) {
+        throw new Error(`El producto "${prod.nombre}" no pertenece a la escuela del estudiante.`);
+      }
       if (!prod.disponible) throw new Error(`El producto "${prod.nombre}" no está disponible en este momento`);
 
       const cantidad = parseInt(item.cantidad, 10) || 1;
@@ -932,12 +967,6 @@ function crearOrdenCompleta({ estudianteId, tipoOrden, momentoEntrega, notas, it
     // Estado inicial: si es mostrador nace entregado; si es preorden nace pendiente
     const estadoInicial = tipoOrden === 'mostrador' ? 'entregado' : 'pendiente';
     const entregadoEn = tipoOrden === 'mostrador' ? new Date().toISOString() : null;
-
-    // Consultar estudiante para registrar saldos y validaciones
-    const est = db.prepare('SELECT * FROM estudiantes WHERE id = ?').get(estudianteId);
-    if (!est) throw new Error(`Estudiante #${estudianteId} no existe`);
-    if (!est.activo) throw new Error('La cuenta del estudiante se encuentra inactiva');
-    if (est.tarjeta_bloqueada) throw new Error('⛔ Tarjeta suspendida por la administración de la soda.');
 
     // Calcular saldo retenido actual en pre-órdenes flotantes pendientes
     const retenidoRow = db.prepare(`
@@ -1076,12 +1105,13 @@ function crearOrdenCompleta({ estudianteId, tipoOrden, momentoEntrega, notas, it
       id: ordenId,
       codigo_orden: codigoOrden,
       estudiante_id: estudianteId,
+      escuela_id: escuelaId,
       estudiante_nombre: est.nombre_completo,
       grado: est.grado,
       seccion: est.seccion,
       tipo_orden: tipoOrden,
       momento_entrega: momentoVal,
-      momento_entrega_label: formatMomentoLabel(momentoVal),
+      momento_entrega_label: formatMomentoLabel(momentoVal, escuelaId),
       estado: estadoInicial,
       total_colones: totalColones,
       detalles: detallesParaInsertar,
@@ -1141,6 +1171,9 @@ function transferenciaP2PTransaction({ emisorId, qrReceptor, receptorId, monto, 
     if (emisor.id === receptor.id) {
       throw new Error('No puedes transferirte saldo a ti mismo');
     }
+    if (emisor.escuela_id && receptor.escuela_id && emisor.escuela_id !== receptor.escuela_id) {
+      throw new Error('⛔ No es posible transferir saldo a un estudiante de otra institución escolar.');
+    }
 
     // 4. Validar monto
     const montoColones = parseInt(monto, 10);
@@ -1168,15 +1201,15 @@ function transferenciaP2PTransaction({ emisorId, qrReceptor, receptorId, monto, 
 
     db.prepare(`
       INSERT INTO transacciones_saldo 
-      (estudiante_id, tipo, monto_colones, saldo_previo, saldo_posterior, descripcion)
-      VALUES (?, 'transferencia_enviada', ?, ?, ?, ?)
-    `).run(emisor.id, -montoColones, emisor.saldo_colones, nuevoSaldoEmisor, descEmisor);
+      (estudiante_id, tipo, monto_colones, saldo_previo, saldo_posterior, descripcion, escuela_id)
+      VALUES (?, 'transferencia_enviada', ?, ?, ?, ?, ?)
+    `).run(emisor.id, -montoColones, emisor.saldo_colones, nuevoSaldoEmisor, descEmisor, emisor.escuela_id || 1);
 
     db.prepare(`
       INSERT INTO transacciones_saldo 
-      (estudiante_id, tipo, monto_colones, saldo_previo, saldo_posterior, descripcion)
-      VALUES (?, 'transferencia_recibida', ?, ?, ?, ?)
-    `).run(receptor.id, montoColones, receptor.saldo_colones, nuevoSaldoReceptor, descReceptor);
+      (estudiante_id, tipo, monto_colones, saldo_previo, saldo_posterior, descripcion, escuela_id)
+      VALUES (?, 'transferencia_recibida', ?, ?, ?, ?, ?)
+    `).run(receptor.id, montoColones, receptor.saldo_colones, nuevoSaldoReceptor, descReceptor, receptor.escuela_id || 1);
 
     return {
       exito: true,
@@ -1208,7 +1241,7 @@ function transferenciaP2PTransaction({ emisorId, qrReceptor, receptorId, monto, 
  * Rol cajero: solo permitido en los primeros 10 minutos
  * Rol admin: permitido en cualquier momento
  */
-function revertirTransaccionSaldoTransaction({ transaccionId, usuarioId, usuarioRol }) {
+function revertirTransaccionSaldoTransaction({ transaccionId, usuarioId, usuarioRol, escuelaId }) {
   const transaction = db.transaction(() => {
     // 1. Obtener la transacción original y los minutos transcurridos
     const tx = db.prepare(`
@@ -1242,6 +1275,13 @@ function revertirTransaccionSaldoTransaction({ transaccionId, usuarioId, usuario
       throw new Error('El estudiante asociado a este movimiento no fue encontrado');
     }
 
+    if (escuelaId && est.escuela_id && est.escuela_id !== escuelaId) {
+      throw new Error('⛔ No tienes permisos para revertir movimientos de otra institución escolar.');
+    }
+    if (escuelaId && tx.escuela_id && tx.escuela_id !== escuelaId) {
+      throw new Error('⛔ No tienes permisos para revertir movimientos de otra institución escolar.');
+    }
+
     let resultado = {};
 
     // 4. Caso A: Reversión de Recarga de Dinero (monto positivo ingresado al monedero)
@@ -1262,14 +1302,15 @@ function revertirTransaccionSaldoTransaction({ transaccionId, usuarioId, usuario
       // Registrar auditoría de reversión
       db.prepare(`
         INSERT INTO transacciones_saldo 
-        (estudiante_id, tipo, monto_colones, saldo_previo, saldo_posterior, comprobante_sinpe, descripcion)
-        VALUES (?, 'reversion_recarga', ?, ?, ?, 'REVERSION', ?)
+        (estudiante_id, tipo, monto_colones, saldo_previo, saldo_posterior, comprobante_sinpe, descripcion, escuela_id)
+        VALUES (?, 'reversion_recarga', ?, ?, ?, 'REVERSION', ?, ?)
       `).run(
         est.id,
         -montoRevertir,
         est.saldo_colones,
         nuevoSaldo,
-        `Reversión de recarga #${tx.id} (${tx.descripcion || 'Recarga'})`
+        `Reversión de recarga #${tx.id} (${tx.descripcion || 'Recarga'})`,
+        est.escuela_id || 1
       );
 
       resultado = {
@@ -1323,15 +1364,16 @@ function revertirTransaccionSaldoTransaction({ transaccionId, usuarioId, usuario
       // Registrar auditoría de reembolso
       db.prepare(`
         INSERT INTO transacciones_saldo 
-        (estudiante_id, tipo, monto_colones, saldo_previo, saldo_posterior, orden_id, descripcion)
-        VALUES (?, 'reembolso', ?, ?, ?, ?, ?)
+        (estudiante_id, tipo, monto_colones, saldo_previo, saldo_posterior, orden_id, descripcion, escuela_id)
+        VALUES (?, 'reembolso', ?, ?, ?, ?, ?, ?)
       `).run(
         est.id,
         montoReembolso,
         est.saldo_colones,
         nuevoSaldo,
         tx.orden_id || null,
-        `Reembolso por anulación de cobro #${tx.id} (${tx.descripcion || 'Compra mostrador'})`
+        `Reembolso por anulación de cobro #${tx.id} (${tx.descripcion || 'Compra mostrador'})`,
+        est.escuela_id || 1
       );
 
       resultado = {
@@ -1500,7 +1542,7 @@ function obtenerSolicitudesRecargaSinpe(filtroEstado = 'pendiente', escuelaId = 
     params.push(filtroEstado);
   }
   if (escuelaId) {
-    conditions.push('(s.escuela_id = ? OR s.escuela_id IS NULL)');
+    conditions.push('s.escuela_id = ?');
     params.push(escuelaId);
   }
 
@@ -1527,10 +1569,13 @@ function obtenerSolicitudesRecargaPorEstudiante(estudianteId) {
 /**
  * Procesa (aprueba o rechaza) una solicitud de recarga SINPE
  */
-function procesarSolicitudRecargaSinpe({ solicitudId, accion, usuarioId, motivo }) {
+function procesarSolicitudRecargaSinpe({ solicitudId, accion, usuarioId, motivo, escuelaId }) {
   const transaction = db.transaction(() => {
     const sol = db.prepare('SELECT * FROM solicitudes_recarga_sinpe WHERE id = ?').get(solicitudId);
     if (!sol) throw new Error('Solicitud de recarga no encontrada');
+    if (escuelaId && sol.escuela_id && Number(sol.escuela_id) !== Number(escuelaId)) {
+      throw new Error('No autorizado: La solicitud pertenece a otra escuela');
+    }
     if (sol.estado !== 'pendiente') throw new Error(`Esta solicitud ya fue ${sol.estado}`);
 
     if (accion === 'aprobar') {
@@ -1538,7 +1583,8 @@ function procesarSolicitudRecargaSinpe({ solicitudId, accion, usuarioId, motivo 
         estudianteId: sol.estudiante_id,
         monto: sol.monto_colones,
         comprobanteSinpe: sol.comprobante_sinpe,
-        descripcion: `Recarga SINPE aprobada en soda (Comprobante #${sol.comprobante_sinpe})`
+        descripcion: `Recarga SINPE aprobada en soda (Comprobante #${sol.comprobante_sinpe})`,
+        escuelaId: sol.escuela_id || escuelaId || 1
       });
 
       db.prepare(`
@@ -1553,7 +1599,8 @@ function procesarSolicitudRecargaSinpe({ solicitudId, accion, usuarioId, motivo 
         estudiante_id: sol.estudiante_id,
         monto: sol.monto_colones,
         saldo_nuevo: resultadoSaldo.saldo_nuevo,
-        estudiante_nombre: resultadoSaldo.nombre
+        estudiante_nombre: resultadoSaldo.nombre,
+        escuela_id: sol.escuela_id || escuelaId || 1
       };
     } else if (accion === 'rechazar') {
       const est = db.prepare('SELECT * FROM estudiantes WHERE id = ?').get(sol.estudiante_id);
@@ -1572,15 +1619,16 @@ function procesarSolicitudRecargaSinpe({ solicitudId, accion, usuarioId, motivo 
 
       db.prepare(`
         INSERT INTO transacciones_saldo 
-        (estudiante_id, tipo, monto_colones, saldo_previo, saldo_posterior, comprobante_sinpe, descripcion)
-        VALUES (?, 'sinpe_rechazado', ?, ?, ?, ?, ?)
+        (estudiante_id, tipo, monto_colones, saldo_previo, saldo_posterior, comprobante_sinpe, descripcion, escuela_id)
+        VALUES (?, 'sinpe_rechazado', ?, ?, ?, ?, ?, ?)
       `).run(
         sol.estudiante_id,
         sol.monto_colones,
         saldoActual,
         saldoActual,
         sol.comprobante_sinpe || (sol.codigo_detalle ? `Cód: ${sol.codigo_detalle}` : 'SINPE-RECHAZADO'),
-        descTrazabilidad
+        descTrazabilidad,
+        sol.escuela_id || escuelaId || 1
       );
 
       return {
@@ -1589,7 +1637,8 @@ function procesarSolicitudRecargaSinpe({ solicitudId, accion, usuarioId, motivo 
         estudiante_id: sol.estudiante_id,
         monto: sol.monto_colones,
         estudiante_nombre: est ? est.nombre_completo : 'Estudiante',
-        motivo: motivoRechazo
+        motivo: motivoRechazo,
+        escuela_id: sol.escuela_id || escuelaId || 1
       };
     } else {
       throw new Error('Acción no válida (usar aprobar o rechazar)');
@@ -1649,7 +1698,7 @@ function expirarPreordenesVencidas({ motivo = 'tiempo_limite', escuelaId = null 
 
   if (motivo === 'cierre_caja') {
     if (escuelaId) {
-      condition += ' AND (escuela_id = ? OR escuela_id IS NULL)';
+      condition += ' AND escuela_id = ?';
       params.push(escuelaId);
     }
   } else {
@@ -1674,7 +1723,7 @@ function expirarPreordenesVencidas({ motivo = 'tiempo_limite', escuelaId = null 
     }
 
     if (escuelaId) {
-      condition += ' AND (escuela_id = ? OR escuela_id IS NULL)';
+      condition += ' AND escuela_id = ?';
       params.push(escuelaId);
     }
   }
