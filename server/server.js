@@ -481,7 +481,7 @@ app.get('/api/padres/dashboard', (req, res) => {
 
     // 1. Obtener hijos vinculados a este padre
     let hijos = db.prepare(`
-      SELECT e.id, e.nombre_completo, e.grado, e.seccion, e.codigo_estudiante, e.codigo_carnet, e.saldo_colones, e.foto_url
+      SELECT e.id, e.nombre_completo, e.grado, e.seccion, e.codigo_estudiante, e.saldo_colones, e.foto_url
       FROM estudiantes e
       JOIN padres_estudiantes pe ON e.id = pe.estudiante_id
       WHERE pe.padre_usuario_id = ? AND e.activo = 1
@@ -490,7 +490,7 @@ app.get('/api/padres/dashboard', (req, res) => {
 
     if (hijos.length === 0) {
       hijos = db.prepare(`
-        SELECT e.id, e.nombre_completo, e.grado, e.seccion, e.codigo_estudiante, e.codigo_carnet, e.saldo_colones, e.foto_url
+        SELECT e.id, e.nombre_completo, e.grado, e.seccion, e.codigo_estudiante, e.saldo_colones, e.foto_url
         FROM estudiantes e
         WHERE e.padre_usuario_id = ? AND e.activo = 1
         ORDER BY e.nombre_completo ASC
