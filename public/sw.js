@@ -1,5 +1,5 @@
-// SiboPay PWA Service Worker v13.4 - Modales en app, Trazabilidad & Reportes Excel
-const CACHE_NAME = 'sibopay-v13.4';
+// SiboPay PWA Service Worker v13.5 - Corrección apertura y trazabilidad modal rechazo SINPE
+const CACHE_NAME = 'sibopay-v13.5';
 const STATIC_ASSETS = [
   '/',
   '/index.html',

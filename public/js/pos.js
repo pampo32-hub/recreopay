@@ -2389,42 +2389,46 @@ async function procesarSinpePos(solicitudId, accion) {
       });
     }
   } else if (accion === 'rechazar') {
-    const sol = (window.cachedSinpeRequests || []).find(s => s.id === solicitudId) || {};
-    abrirModalRechazoSinpe({
-      id: solicitudId,
-      estudiante_nombre: sol.estudiante_nombre,
-      monto_colones: sol.monto_colones,
-      comprobante: sol.comprobante_sinpe || sol.codigo_detalle,
-      onConfirm: async (motivo) => {
-        try {
-          const res = await fetch('/api/sinpe/procesar', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              solicitud_id: solicitudId,
-              accion: 'rechazar',
-              motivo: motivo || 'Rechazado por la soda',
-              usuario_id: null
-            })
-          });
-          const data = await res.json();
-          if (!res.ok) throw new Error(data.error);
+    const sol = (window.cachedSinpeRequests || []).find(s => s.id == solicitudId) || {};
+    if (typeof window.abrirModalRechazoSinpe === 'function') {
+      window.abrirModalRechazoSinpe({
+        id: solicitudId,
+        estudiante_nombre: sol.estudiante_nombre,
+        monto_colones: sol.monto_colones,
+        comprobante: sol.comprobante_sinpe || sol.codigo_detalle,
+        onConfirm: async (motivo) => {
+          try {
+            const res = await fetch('/api/sinpe/procesar', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                solicitud_id: solicitudId,
+                accion: 'rechazar',
+                motivo: motivo || 'Rechazado por la soda',
+                usuario_id: null
+              })
+            });
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.error);
 
-          await showAppAlert({
-            title: 'Recarga Rechazada',
-            message: 'La solicitud de recarga ha sido rechazada y su motivo ha quedado guardado para trazabilidad.',
-            type: 'warning'
-          });
-          loadSinpeRequests();
-        } catch (err) {
-          showAppAlert({
-            title: 'Error al Rechazar',
-            message: err.message,
-            type: 'error'
-          });
+            await showAppAlert({
+              title: 'Recarga Rechazada',
+              message: 'La solicitud de recarga ha sido rechazada y su motivo ha quedado guardado para trazabilidad.',
+              type: 'warning'
+            });
+            loadSinpeRequests();
+          } catch (err) {
+            showAppAlert({
+              title: 'Error al Rechazar',
+              message: err.message,
+              type: 'error'
+            });
+          }
         }
-      }
-    });
+      });
+    } else {
+      console.error('abrirModalRechazoSinpe no está disponible globalmente');
+    }
   }
 }
 

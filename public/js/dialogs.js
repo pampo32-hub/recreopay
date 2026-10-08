@@ -161,6 +161,108 @@
   // ========================================================
   let currentSinpeRejectData = null;
 
+  function ensureSinpeRejectModalDom() {
+    let modal = document.getElementById('modalRechazarSinpe');
+    if (!modal) {
+      modal = document.createElement('div');
+      modal.className = 'modal-qr-backdrop';
+      modal.id = 'modalRechazarSinpe';
+      modal.style.cssText = 'display: none; z-index: 99999;';
+      modal.setAttribute('onclick', 'cerrarModalRechazoSinpe(event)');
+      modal.innerHTML = `
+        <div class="modal-qr-card" onclick="event.stopPropagation()" style="max-width: 440px; text-align: left; padding: 22px; border-radius: 18px;">
+          <!-- Encabezado -->
+          <div style="display: flex; align-items: center; justify-content: space-between; border-bottom: 1.5px solid var(--border, #e2e8f0); padding-bottom: 10px; margin-bottom: 14px;">
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <span style="font-size: 1.3rem;">🚫</span>
+              <div>
+                <h3 style="margin: 0; font-size: 1.05rem; font-weight: 900; color: #991b1b;">Rechazar Recarga SINPE</h3>
+                <span style="font-size: 0.72rem; color: var(--text-muted, #64748b);">Trazabilidad detallada para la soda y el padre</span>
+              </div>
+            </div>
+            <button type="button" onclick="cerrarModalRechazoSinpe()" style="background: none; border: none; font-size: 1.3rem; color: var(--text-muted, #64748b); cursor: pointer; padding: 4px;">✕</button>
+          </div>
+
+          <!-- Resumen de Solicitud -->
+          <div style="background: rgba(148, 163, 184, 0.08); border: 1px solid var(--border, #e2e8f0); border-radius: 10px; padding: 10px 12px; margin-bottom: 14px; font-size: 0.80rem; line-height: 1.45;">
+            <div style="display: flex; justify-content: space-between;">
+              <span style="color: var(--text-muted, #64748b);">Estudiante:</span>
+              <strong id="rechazoSinpeEstudiante" style="color: var(--text-main, #0f172a);">-</strong>
+            </div>
+            <div style="display: flex; justify-content: space-between; margin-top: 3px;">
+              <span style="color: var(--text-muted, #64748b);">Monto Solicitado:</span>
+              <strong id="rechazoSinpeMonto" style="color: #0284c7; font-size: 0.92rem;">₡0</strong>
+            </div>
+            <div style="display: flex; justify-content: space-between; margin-top: 3px;">
+              <span style="color: var(--text-muted, #64748b);">Comprobante / Cód:</span>
+              <strong id="rechazoSinpeComprobante" style="color: var(--text-main, #334155);">-</strong>
+            </div>
+          </div>
+
+          <!-- Motivo de Rechazo (Opciones Rápidas) -->
+          <label style="display: block; font-size: 0.78rem; font-weight: 800; color: var(--text-main, #0f172a); margin-bottom: 6px;">
+            Selecciona el motivo del rechazo:
+          </label>
+          <div style="display: flex; flex-direction: column; gap: 7px; margin-bottom: 12px;">
+            <label class="sinpe-reject-option" style="display: flex; align-items: center; gap: 8px; padding: 8px 10px; border: 1.5px solid var(--border, #e2e8f0); border-radius: 9px; cursor: pointer; font-size: 0.78rem; font-weight: 700; color: var(--text-main, #334155);">
+              <input type="radio" name="sinpeRejectReason" value="fondos_no_recibidos" checked onchange="toggleSinpeRejectInputs()">
+              <span>🚫 Fondos no recibidos en cuenta bancaria</span>
+            </label>
+            <label class="sinpe-reject-option" style="display: flex; align-items: center; gap: 8px; padding: 8px 10px; border: 1.5px solid var(--border, #e2e8f0); border-radius: 9px; cursor: pointer; font-size: 0.78rem; font-weight: 700; color: var(--text-main, #334155);">
+              <input type="radio" name="sinpeRejectReason" value="monto_no_coincide" onchange="toggleSinpeRejectInputs()">
+              <span>⚠️ Monto no coincide con comprobante</span>
+            </label>
+            <label class="sinpe-reject-option" style="display: flex; align-items: center; gap: 8px; padding: 8px 10px; border: 1.5px solid var(--border, #e2e8f0); border-radius: 9px; cursor: pointer; font-size: 0.78rem; font-weight: 700; color: var(--text-main, #334155);">
+              <input type="radio" name="sinpeRejectReason" value="comprobante_invalido" onchange="toggleSinpeRejectInputs()">
+              <span>📄 Comprobante falso, duplicado o ilegible</span>
+            </label>
+            <label class="sinpe-reject-option" style="display: flex; align-items: center; gap: 8px; padding: 8px 10px; border: 1.5px solid var(--border, #e2e8f0); border-radius: 9px; cursor: pointer; font-size: 0.78rem; font-weight: 700; color: var(--text-main, #334155);">
+              <input type="radio" name="sinpeRejectReason" value="telefono_no_coincide" onchange="toggleSinpeRejectInputs()">
+              <span>📱 Teléfono o destinatario no coincide</span>
+            </label>
+            <label class="sinpe-reject-option" style="display: flex; align-items: center; gap: 8px; padding: 8px 10px; border: 1.5px solid var(--border, #e2e8f0); border-radius: 9px; cursor: pointer; font-size: 0.78rem; font-weight: 700; color: var(--text-main, #334155);">
+              <input type="radio" name="sinpeRejectReason" value="otro" onchange="toggleSinpeRejectInputs()">
+              <span>✏️ Otro motivo personalizado</span>
+            </label>
+          </div>
+
+          <!-- Campo de Monto Real cuando el monto no coincide -->
+          <div id="sinpeRejectMontoContainer" style="display: none; background: #fffbeb; border: 1px solid #fde68a; border-radius: 10px; padding: 10px; margin-bottom: 12px;">
+            <label style="display: block; font-size: 0.75rem; font-weight: 800; color: #92400e; margin-bottom: 4px;">
+              ¿De cuánto era realmente el SINPE recibido? (₡):
+            </label>
+            <input type="number" id="sinpeRejectMontoReal" placeholder="Ej: 1000" style="width: 100%; height: 36px; padding: 0 10px; border: 1.5px solid #fcd34d; border-radius: 8px; font-size: 0.88rem; font-weight: 800; color: #92400e; box-sizing: border-box;" oninput="updateSinpeRejectPreview()">
+            <span id="sinpeRejectMontoPreview" style="display: block; font-size: 0.72rem; color: #b45309; margin-top: 4px; font-weight: 600;">
+              Se intentaron recargar ₡0 pero el SINPE fue de ₡0
+            </span>
+          </div>
+
+          <!-- Notas o detalles adicionales -->
+          <div style="margin-bottom: 16px;">
+            <label style="display: block; font-size: 0.75rem; font-weight: 700; color: var(--text-muted, #64748b); margin-bottom: 4px;">
+              Detalle u observación adicional (opcional):
+            </label>
+            <input type="text" id="sinpeRejectNotasExtra" placeholder="Ej: Fondos no figuran en estado bancario al corte" style="width: 100%; height: 36px; padding: 0 10px; border: 1px solid var(--border, #cbd5e1); border-radius: 8px; font-size: 0.80rem; box-sizing: border-box;">
+          </div>
+
+          <!-- Botones de Acción -->
+          <div style="display: flex; gap: 8px; justify-content: flex-end;">
+            <button type="button" onclick="cerrarModalRechazoSinpe()" class="btn-saas btn-saas-outline" style="height: 36px; padding: 0 14px; font-weight: 700; cursor: pointer;">
+              Cancelar
+            </button>
+            <button type="button" id="btnConfirmarRechazoSinpe" onclick="confirmarRechazoSinpeModal()" class="btn-saas" style="height: 36px; padding: 0 16px; background: #dc2626; color: #ffffff; border: 1px solid #dc2626; font-weight: 800; cursor: pointer;">
+              Confirmar Rechazo
+            </button>
+          </div>
+        </div>
+      `;
+      document.body.appendChild(modal);
+    } else if (modal.parentElement !== document.body) {
+      document.body.appendChild(modal);
+    }
+    return modal;
+  }
+
   window.abrirModalRechazoSinpe = function({ id, estudiante_nombre, monto_colones, comprobante, onConfirm }) {
     currentSinpeRejectData = {
       id,
@@ -170,7 +272,7 @@
       onConfirm
     };
 
-    const modal = document.getElementById('modalRechazarSinpe');
+    const modal = ensureSinpeRejectModalDom();
     if (!modal) return;
 
     const estEl = document.getElementById('rechazoSinpeEstudiante');
