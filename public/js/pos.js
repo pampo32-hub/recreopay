@@ -115,6 +115,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   await cargarHorariosPos();
   // La cámara se activa bajo demanda al cobrar o identificar, NO al entrar
   initSSE();
+  cargarAvisosActivosPos();
   initPistolScanner();
   initQuickProductEvents();
 
@@ -2094,7 +2095,97 @@ function initSSE() {
       loadSinpeRequests();
     } catch (err) {}
   });
+
+  // Avisos globales en tiempo real en la terminal POS
+  sseSource.addEventListener('aviso_publicado', () => {
+    cargarAvisosActivosPos();
+  });
+  sseSource.addEventListener('aviso_estado_cambiado', () => {
+    cargarAvisosActivosPos();
+  });
+  sseSource.addEventListener('aviso_eliminado', () => {
+    cargarAvisosActivosPos();
+  });
 }
+
+// ==========================================
+// DIFUSIÓN DE AVISOS EN POS
+// ==========================================
+let dismissedAvisosPos = [];
+try {
+  const stored = SafeStorage.getItem('sibopay_dismissed_avisos_pos');
+  if (stored) dismissedAvisosPos = JSON.parse(stored);
+} catch (e) {
+  dismissedAvisosPos = [];
+}
+
+function descartarAvisoPos(id) {
+  if (!dismissedAvisosPos.includes(id)) {
+    dismissedAvisosPos.push(id);
+    try {
+      SafeStorage.setItem('sibopay_dismissed_avisos_pos', JSON.stringify(dismissedAvisosPos));
+    } catch (e) {}
+  }
+  const el = document.getElementById(`posAvisoBanner-${id}`);
+  if (el) {
+    el.style.transition = 'all 0.3s ease';
+    el.style.opacity = '0';
+    el.style.transform = 'translateY(-8px)';
+    setTimeout(() => { if (el) el.remove(); }, 300);
+  }
+}
+window.descartarAvisoPos = descartarAvisoPos;
+
+async function cargarAvisosActivosPos() {
+  const container = document.getElementById('posGlobalBannerContainer');
+  if (!container) return;
+
+  try {
+    const escId = getPosEscuelaId() || 1;
+    const res = await fetch(`/api/avisos/activos?escuela_id=${escId}&audiencia=pos`);
+    const data = await res.json();
+    const avisos = (data && data.avisos) || [];
+
+    const visibles = avisos.filter(a => {
+      const isDesc = a.descartable === 1 || a.descartable === true;
+      if (isDesc && dismissedAvisosPos.includes(a.id)) return false;
+      return true;
+    });
+
+    const estilos = {
+      info: { bg: '#eff6ff', border: '#93c5fd', title: '#1e40af', text: '#1e3a8a', icon: 'ℹ️' },
+      promo: { bg: '#f5f3ff', border: '#c4b5fd', title: '#6b21a8', text: '#581c87', icon: '🎉' },
+      alerta: { bg: '#fffbeb', border: '#fde68a', title: '#92400e', text: '#78350f', icon: '⚠️' },
+      urgente: { bg: '#fff1f2', border: '#fecdd3', title: '#9f1239', text: '#881337', icon: '🚨' }
+    };
+
+    container.innerHTML = visibles.map(a => {
+      const st = estilos[a.tipo] || estilos.info;
+      const isDesc = a.descartable === 1 || a.descartable === true;
+      return `
+        <div id="posAvisoBanner-${a.id}" style="background: ${st.bg}; border: 1.5px solid ${st.border}; border-radius: 12px; padding: 10px 14px; display: flex; align-items: flex-start; gap: 10px; box-shadow: 0 2px 6px rgba(0,0,0,0.04); position: relative;">
+          <span style="font-size: 1.25rem; flex-shrink: 0; line-height: 1.2;">${st.icon}</span>
+          <div style="flex: 1; min-width: 0; padding-right: ${isDesc ? '22px' : '0'};">
+            <strong style="display: block; font-size: 0.86rem; color: ${st.title}; line-height: 1.25; margin-bottom: 2px;">
+              ${escapeHtml(a.titulo)}
+            </strong>
+            <span style="font-size: 0.78rem; color: ${st.text}; line-height: 1.35; display: block;">
+              ${escapeHtml(a.mensaje)}
+            </span>
+          </div>
+          ${isDesc ? `
+            <button type="button" onclick="descartarAvisoPos(${a.id})" style="position: absolute; top: 8px; right: 8px; background: none; border: none; font-size: 1.05rem; cursor: pointer; color: ${st.title}; line-height: 1; padding: 2px 5px; opacity: 0.7;" title="Cerrar aviso" onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.7'">
+              ✕
+            </button>
+          ` : ''}
+        </div>
+      `;
+    }).join('');
+  } catch (err) {
+    console.error('Error cargando avisos POS:', err);
+  }
+}
+window.cargarAvisosActivosPos = cargarAvisosActivosPos;
 
 // ==========================================
 // SISTEMA DE NOTIFICACIONES PUSH & EN-APP (RECARGAS SINPE)

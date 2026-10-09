@@ -592,6 +592,7 @@ async function applyUserRoleSession() {
     }
     await loadAdminData();
     setupAdminSmartSearch();
+    cargarAvisosActivos();
   } else if (currentUser.rol === 'padre') {
     if (viewAdmin) viewAdmin.style.display = 'none';
     if (viewPadres) viewPadres.style.display = 'block'; // PANEL DEDICADO COMPLETO (NO MODAL)
@@ -600,6 +601,7 @@ async function applyUserRoleSession() {
     
     await loadInitialData();
     await loadParentDashboard();
+    cargarAvisosActivos();
 
     // Si el padre tenía una sub-pantalla abierta (ej: recarga SINPE al ir al banco y volver), restaurarla exactamente
     try {
@@ -635,6 +637,7 @@ async function applyUserRoleSession() {
       currentStudent = currentUser.estudiante;
       currentAppMode = 'teens';
       updateStudentUI();
+      cargarAvisosActivos();
     }
 
     // En segundo plano y en paralelo: sincronizar datos frescos sin congelar la pantalla
@@ -3392,16 +3395,69 @@ function initStudentSSE() {
       const parentTit = document.getElementById('parentSinpeTitular');
       if (parentTit && data.nombre_sinpe) parentTit.textContent = data.nombre_sinpe;
 
+      // Actualizar estado de suspensión en vivo para los padres
+      const bannerSusp = document.getElementById('parentSinpeSuspendedBanner');
+      const msgSusp = document.getElementById('parentSinpeSuspendedMsg');
+      const formFields = document.getElementById('parentSinpeFormFields');
+
+      if (data.sinpe_activo === false) {
+        if (bannerSusp) bannerSusp.style.display = 'flex';
+        if (msgSusp && data.sinpe_mensaje_suspension) msgSusp.textContent = data.sinpe_mensaje_suspension;
+        if (formFields) {
+          formFields.style.opacity = '0.4';
+          formFields.style.pointerEvents = 'none';
+        }
+      } else if (data.sinpe_activo === true) {
+        if (bannerSusp) bannerSusp.style.display = 'none';
+        if (formFields) {
+          formFields.style.opacity = '1';
+          formFields.style.pointerEvents = 'auto';
+        }
+      }
+
       // Actualizar campos del admin si está en su panel
       if (currentUser && currentUser.rol === 'admin') {
         const inpTel = document.getElementById('inputAdminTelefonoSinpe');
         const inpTitular = document.getElementById('inputAdminTitularSinpe');
-        if (inpTel) inpTel.value = data.telefono_sinpe || '';
-        if (inpTitular) inpTitular.value = data.nombre_sinpe || '';
+        const chkActivo = document.getElementById('chkAdminSinpeActivo');
+        const txtMsg = document.getElementById('txtAdminSinpeMensajeSuspension');
+        if (inpTel && data.telefono_sinpe) inpTel.value = data.telefono_sinpe;
+        if (inpTitular && data.nombre_sinpe) inpTitular.value = data.nombre_sinpe;
+        if (chkActivo && data.sinpe_activo !== undefined) chkActivo.checked = data.sinpe_activo;
+        if (txtMsg && data.sinpe_mensaje_suspension) txtMsg.value = data.sinpe_mensaje_suspension;
         if (typeof actualizarPreviewAdminSinpe === 'function') actualizarPreviewAdminSinpe();
       }
     } catch (err) {
       console.warn('Error en SSE escuela_sinpe_actualizado:', err);
+    }
+  });
+
+  // Avisos globales publicados, modificados o eliminados en tiempo real
+  sse.addEventListener('aviso_publicado', (e) => {
+    try {
+      if (typeof cargarAvisosActivos === 'function') cargarAvisosActivos();
+      if (currentUser && currentUser.rol === 'admin' && typeof loadAdminAvisos === 'function') loadAdminAvisos();
+      if (window.sounds) window.sounds.playTap();
+    } catch (err) {
+      console.warn('Error en SSE aviso_publicado:', err);
+    }
+  });
+
+  sse.addEventListener('aviso_estado_cambiado', (e) => {
+    try {
+      if (typeof cargarAvisosActivos === 'function') cargarAvisosActivos();
+      if (currentUser && currentUser.rol === 'admin' && typeof loadAdminAvisos === 'function') loadAdminAvisos();
+    } catch (err) {
+      console.warn('Error en SSE aviso_estado_cambiado:', err);
+    }
+  });
+
+  sse.addEventListener('aviso_eliminado', (e) => {
+    try {
+      if (typeof cargarAvisosActivos === 'function') cargarAvisosActivos();
+      if (currentUser && currentUser.rol === 'admin' && typeof loadAdminAvisos === 'function') loadAdminAvisos();
+    } catch (err) {
+      console.warn('Error en SSE aviso_eliminado:', err);
     }
   });
 
@@ -4744,6 +4800,27 @@ async function obtenerNuevoCodigoSinpe() {
       body: JSON.stringify({ estudiante_id: studentId })
     });
     const data = await res.json();
+
+    const bannerSusp = document.getElementById('parentSinpeSuspendedBanner');
+    const msgSusp = document.getElementById('parentSinpeSuspendedMsg');
+    const formFields = document.getElementById('parentSinpeFormFields');
+
+    if (data.suspended) {
+      if (bannerSusp) bannerSusp.style.display = 'flex';
+      if (msgSusp && data.mensaje_suspension) msgSusp.textContent = data.mensaje_suspension;
+      if (formFields) {
+        formFields.style.opacity = '0.4';
+        formFields.style.pointerEvents = 'none';
+      }
+      return;
+    } else {
+      if (bannerSusp) bannerSusp.style.display = 'none';
+      if (formFields) {
+        formFields.style.opacity = '1';
+        formFields.style.pointerEvents = 'auto';
+      }
+    }
+
     if (data.success && data.codigo) {
       currentSinpeCode = data.codigo;
       if (display) display.textContent = data.codigo;
@@ -4933,6 +5010,15 @@ function closeModalSinpeTerms(event) {
 }
 
 async function executeParentSinpeRecharge() {
+  const bannerSusp = document.getElementById('parentSinpeSuspendedBanner');
+  if (bannerSusp && bannerSusp.style.display !== 'none') {
+    showSinpeModal('error', {
+      title: 'Recargas Temporalmente Suspendidas',
+      message: document.getElementById('parentSinpeSuspendedMsg')?.textContent || 'Las recargas por SINPE Móvil se encuentran temporalmente en pausa técnica.'
+    });
+    return;
+  }
+
   if (!currentParentChild) {
     showSinpeModal('error', {
       title: 'Estudiante no seleccionado',
@@ -6230,9 +6316,15 @@ async function cargarHorariosAdmin() {
       const esc = dataInfo.escuela;
       const inpTel = document.getElementById('inputAdminTelefonoSinpe');
       const inpTitular = document.getElementById('inputAdminTitularSinpe');
+      const chkActivo = document.getElementById('chkAdminSinpeActivo');
+      const txtMsg = document.getElementById('txtAdminSinpeMensajeSuspension');
+
       if (inpTel) inpTel.value = esc.telefono_sinpe || '8888-8888';
       if (inpTitular) inpTitular.value = esc.nombre_sinpe || esc.nombre || 'Soda Escolar';
+      if (chkActivo) chkActivo.checked = esc.sinpe_activo !== false;
+      if (txtMsg && esc.sinpe_mensaje_suspension) txtMsg.value = esc.sinpe_mensaje_suspension;
       actualizarPreviewAdminSinpe();
+      loadAdminAvisos();
 
       currentSchoolHorarios = {
         hora_recreo_1: esc.hora_recreo_1 || '09:30',
@@ -6283,23 +6375,41 @@ function actualizarPreviewAdminSinpe() {
   const inpTitular = document.getElementById('inputAdminTitularSinpe');
   const prevTel = document.getElementById('previewAdminSinpeTel');
   const prevTitular = document.getElementById('previewAdminSinpeTitular');
+  const chkActivo = document.getElementById('chkAdminSinpeActivo');
+  const lblEstado = document.getElementById('lblAdminSinpeActivoEstado');
+  const toggleTrack = document.getElementById('toggleTrackSinpe');
+  const toggleThumb = document.getElementById('toggleThumbSinpe');
 
   const telVal = inpTel ? (inpTel.value.trim() || '8888-8888') : '8888-8888';
   const titularVal = inpTitular ? (inpTitular.value.trim() || 'Soda Escolar') : 'Soda Escolar';
 
   if (prevTel) prevTel.textContent = telVal;
   if (prevTitular) prevTitular.textContent = titularVal;
+
+  const isActivo = chkActivo ? chkActivo.checked : true;
+  if (lblEstado) {
+    lblEstado.textContent = isActivo ? 'Habilitado' : 'Suspendido';
+    lblEstado.style.color = isActivo ? '#16a34a' : '#ef4444';
+  }
+  if (toggleTrack && toggleThumb) {
+    toggleTrack.style.background = isActivo ? '#16a34a' : '#ef4444';
+    toggleThumb.style.transform = isActivo ? 'translateX(20px)' : 'translateX(0px)';
+  }
 }
 window.actualizarPreviewAdminSinpe = actualizarPreviewAdminSinpe;
 
 async function guardarAdminSinpeConfig() {
   const inpTel = document.getElementById('inputAdminTelefonoSinpe');
   const inpTitular = document.getElementById('inputAdminTitularSinpe');
+  const chkActivo = document.getElementById('chkAdminSinpeActivo');
+  const txtMsg = document.getElementById('txtAdminSinpeMensajeSuspension');
   const btn = document.getElementById('btnGuardarAdminSinpe');
   const lblBtn = document.getElementById('lblBtnGuardarAdminSinpe');
 
   let tel = inpTel ? inpTel.value.trim() : '';
   const titular = inpTitular ? inpTitular.value.trim() : '';
+  const sinpeActivo = chkActivo ? chkActivo.checked : true;
+  const sinpeMensaje = txtMsg ? txtMsg.value.trim() : '';
 
   if (!tel) {
     alert('Por favor ingresa el número telefónico para SINPE Móvil.');
@@ -6332,7 +6442,9 @@ async function guardarAdminSinpeConfig() {
       body: JSON.stringify({
         escuela_id: escId,
         telefono_sinpe: tel,
-        nombre_sinpe: titular
+        nombre_sinpe: titular,
+        sinpe_activo: sinpeActivo,
+        sinpe_mensaje_suspension: sinpeMensaje
       })
     });
 
@@ -6342,9 +6454,10 @@ async function guardarAdminSinpeConfig() {
     }
 
     if (window.sounds) window.sounds.playCoin();
+    const estadoTxt = data.escuela.sinpe_activo ? 'HABILITADO (Recepción activa)' : 'SUSPENDIDO (Pausa técnica activa)';
     await showAppAlert({
       title: '¡Datos SINPE Actualizados!',
-      message: `El número de cobro SINPE Móvil de tu soda se actualizó exitosamente en caliente.\n\n• Teléfono: ${data.escuela.telefono_sinpe}\n• Titular: ${data.escuela.nombre_sinpe}\n\nA partir de este momento, todos los padres de familia verán estos nuevos datos de transferencia en su aplicación.`,
+      message: `La configuración de SINPE Móvil se actualizó exitosamente en caliente.\n\n• Estado: ${estadoTxt}\n• Teléfono: ${data.escuela.telefono_sinpe}\n• Titular: ${data.escuela.nombre_sinpe}\n\nA partir de este momento, todos los padres de familia verán estos cambios reflejados en tiempo real.`,
       type: 'success',
       confirmText: 'Entendido'
     });
@@ -6357,6 +6470,324 @@ async function guardarAdminSinpeConfig() {
   }
 }
 window.guardarAdminSinpeConfig = guardarAdminSinpeConfig;
+
+// ==========================================
+// DIFUSIÓN DE AVISOS & BANNERS GLOBALES
+// ==========================================
+
+function openModalCrearAviso() {
+  const modal = document.getElementById('modalCrearAviso');
+  if (modal) {
+    modal.style.display = 'flex';
+    const inp = document.getElementById('inputAvisoTitulo');
+    if (inp) { inp.value = ''; inp.focus(); }
+    const txt = document.getElementById('inputAvisoMensaje');
+    if (txt) txt.value = '';
+    const selTipo = document.getElementById('selectAvisoTipo');
+    if (selTipo) selTipo.value = 'info';
+    const selAud = document.getElementById('selectAvisoAudiencia');
+    if (selAud) selAud.value = 'todos';
+    const chkDesc = document.getElementById('chkAvisoDescartable');
+    if (chkDesc) chkDesc.checked = true;
+  }
+}
+window.openModalCrearAviso = openModalCrearAviso;
+
+function closeModalCrearAviso() {
+  const modal = document.getElementById('modalCrearAviso');
+  if (modal) modal.style.display = 'none';
+}
+window.closeModalCrearAviso = closeModalCrearAviso;
+
+async function guardarNuevoAviso() {
+  const inpTitulo = document.getElementById('inputAvisoTitulo');
+  const txtMensaje = document.getElementById('inputAvisoMensaje');
+  const selTipo = document.getElementById('selectAvisoTipo');
+  const selAudiencia = document.getElementById('selectAvisoAudiencia');
+  const chkDesc = document.getElementById('chkAvisoDescartable');
+  const btn = document.getElementById('btnGuardarAviso');
+
+  const titulo = inpTitulo ? inpTitulo.value.trim() : '';
+  const mensaje = txtMensaje ? txtMensaje.value.trim() : '';
+  const tipo = selTipo ? selTipo.value : 'info';
+  const audiencia = selAudiencia ? selAudiencia.value : 'todos';
+  const descartable = chkDesc ? chkDesc.checked : true;
+
+  if (!titulo) {
+    alert('Ingresa un título para el aviso.');
+    if (inpTitulo) inpTitulo.focus();
+    return;
+  }
+  if (!mensaje) {
+    alert('Ingresa el mensaje del aviso.');
+    if (txtMensaje) txtMensaje.focus();
+    return;
+  }
+
+  const escId = (currentUser && currentUser.escuela_id) || 1;
+  const creador = (currentUser && (currentUser.nombre_completo || currentUser.nombre || currentUser.usuario)) || 'Administrador';
+
+  if (btn) btn.disabled = true;
+
+  try {
+    const res = await fetch('/api/admin/avisos', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        titulo,
+        mensaje,
+        tipo,
+        audiencia,
+        escuela_id: escId,
+        descartable,
+        creado_por: creador
+      })
+    });
+    const data = await res.json();
+    if (!res.ok || !data.success) {
+      throw new Error(data.error || 'No se pudo publicar el aviso');
+    }
+
+    closeModalCrearAviso();
+    if (window.sounds) window.sounds.playCoin();
+    loadAdminAvisos();
+    cargarAvisosActivos();
+    if (typeof showToastNotification === 'function') {
+      showToastNotification('📢 Aviso publicado en tiempo real');
+    }
+  } catch (err) {
+    alert('Error al publicar aviso: ' + err.message);
+  } finally {
+    if (btn) btn.disabled = false;
+  }
+}
+window.guardarNuevoAviso = guardarNuevoAviso;
+
+async function loadAdminAvisos() {
+  const container = document.getElementById('adminAvisosTable');
+  const emptyMsg = document.getElementById('adminAvisosEmptyMsg');
+  if (!container) return;
+
+  try {
+    const escId = (currentUser && currentUser.escuela_id) || 1;
+    const res = await fetch(`/api/admin/avisos?escuela_id=${escId}`);
+    const data = await res.json();
+    const avisos = (data && data.avisos) || [];
+
+    if (avisos.length === 0) {
+      container.innerHTML = '';
+      if (emptyMsg) emptyMsg.style.display = 'block';
+      return;
+    }
+
+    if (emptyMsg) emptyMsg.style.display = 'none';
+
+    const badgesTipo = {
+      info: { label: 'ℹ️ Info', bg: '#e0f2fe', color: '#0369a1' },
+      promo: { label: '🎉 Promo', bg: '#f3e8ff', color: '#7e22ce' },
+      alerta: { label: '⚠️ Alerta', bg: '#fef3c7', color: '#b45309' },
+      urgente: { label: '🚨 Urgente', bg: '#fee2e2', color: '#b91c1c' }
+    };
+
+    const labelsAudiencia = {
+      todos: '👥 Todos',
+      padres: '👨‍👩‍👧 Padres',
+      estudiantes: '🎒 Estudiantes',
+      pos: '🖥️ POS'
+    };
+
+    container.innerHTML = avisos.map(a => {
+      const tb = badgesTipo[a.tipo] || badgesTipo.info;
+      const aud = labelsAudiencia[a.audiencia] || a.audiencia;
+      const isActivo = a.activo === 1 || a.activo === true;
+      const descText = (a.descartable === 1 || a.descartable === true) ? 'Descartable' : 'Permanente';
+
+      return `
+        <div style="background: var(--card-bg); border: 1.5px solid var(--border); border-radius: 12px; padding: 12px 14px; display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap;">
+          <div style="flex: 1; min-width: 200px;">
+            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px; flex-wrap: wrap;">
+              <span style="background: ${tb.bg}; color: ${tb.color}; font-size: 0.70rem; font-weight: 800; padding: 2px 7px; border-radius: 6px;">${tb.label}</span>
+              <span style="background: var(--bg-main); border: 1px solid var(--border); color: var(--text-muted); font-size: 0.68rem; font-weight: 700; padding: 2px 6px; border-radius: 6px;">${aud}</span>
+              <span style="font-size: 0.68rem; color: var(--text-muted);">${descText}</span>
+              <strong style="color: var(--text-main); font-size: 0.88rem;">${escapeHtml(a.titulo)}</strong>
+            </div>
+            <p style="margin: 0; font-size: 0.78rem; color: var(--text-muted); line-height: 1.35;">${escapeHtml(a.mensaje)}</p>
+          </div>
+          <div style="display: flex; align-items: center; gap: 10px;">
+            <button type="button" onclick="toggleAvisoEstado(${a.id}, ${!isActivo})" class="btn-saas" style="font-size: 0.74rem; font-weight: 800; padding: 5px 10px; border-radius: 8px; ${isActivo ? 'background: #dcfce7; color: #15803d; border: 1px solid #86efac;' : 'background: #fee2e2; color: #b91c1c; border: 1px solid #fca5a5;'}">
+              ${isActivo ? '● Activo' : '○ Pausado'}
+            </button>
+            <button type="button" onclick="eliminarAvisoAdmin(${a.id})" style="background: none; border: none; cursor: pointer; color: #94a3b8; padding: 4px; border-radius: 6px;" title="Eliminar aviso" onmouseover="this.style.color='#ef4444'" onmouseout="this.style.color='#94a3b8'">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+            </button>
+          </div>
+        </div>
+      `;
+    }).join('');
+  } catch (err) {
+    console.error('Error cargando avisos admin:', err);
+  }
+}
+window.loadAdminAvisos = loadAdminAvisos;
+
+async function toggleAvisoEstado(id, nuevoEstado) {
+  try {
+    const res = await fetch(`/api/admin/avisos/${id}/estado`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ activo: nuevoEstado })
+    });
+    if (res.ok) {
+      if (window.sounds) window.sounds.playTap();
+      loadAdminAvisos();
+      cargarAvisosActivos();
+    }
+  } catch (err) {
+    console.error('Error cambiando estado aviso:', err);
+  }
+}
+window.toggleAvisoEstado = toggleAvisoEstado;
+
+async function eliminarAvisoAdmin(id) {
+  if (!confirm('¿Seguro que deseas eliminar este aviso permanentemente?')) return;
+  try {
+    const res = await fetch(`/api/admin/avisos/${id}`, { method: 'DELETE' });
+    if (res.ok) {
+      if (window.sounds) window.sounds.playTap();
+      loadAdminAvisos();
+      cargarAvisosActivos();
+    }
+  } catch (err) {
+    console.error('Error eliminando aviso:', err);
+  }
+}
+window.eliminarAvisoAdmin = eliminarAvisoAdmin;
+
+let dismissedAvisosIds = [];
+try {
+  const stored = SafeStorage.getItem('sibopay_dismissed_avisos');
+  if (stored) dismissedAvisosIds = JSON.parse(stored);
+} catch (e) {
+  dismissedAvisosIds = [];
+}
+
+function descartarAviso(id) {
+  if (!dismissedAvisosIds.includes(id)) {
+    dismissedAvisosIds.push(id);
+    try {
+      SafeStorage.setItem('sibopay_dismissed_avisos', JSON.stringify(dismissedAvisosIds));
+    } catch (e) {}
+  }
+  const el = document.getElementById(`avisoBanner-${id}`);
+  if (el) {
+    el.style.transition = 'all 0.3s ease';
+    el.style.opacity = '0';
+    el.style.transform = 'translateY(-8px)';
+    setTimeout(() => { if (el) el.remove(); }, 300);
+  }
+}
+window.descartarAviso = descartarAviso;
+
+async function cargarAvisosActivos() {
+  try {
+    const escId = (currentUser && currentUser.escuela_id) || (currentStudent && currentStudent.escuela_id) || (currentParentChild && currentParentChild.escuela_id) || 1;
+    let rolAudiencia = 'todos';
+    if (currentUser) {
+      if (currentUser.rol === 'padre') rolAudiencia = 'padres';
+      else if (currentUser.rol === 'estudiante') rolAudiencia = 'estudiantes';
+      else if (currentUser.rol === 'cajero' || currentUser.rol === 'pos') rolAudiencia = 'pos';
+    }
+
+    const res = await fetch(`/api/avisos/activos?escuela_id=${escId}&audiencia=${rolAudiencia}`);
+    const data = await res.json();
+    const avisos = (data && data.avisos) || [];
+
+    // Filtrar descartados
+    const visibles = avisos.filter(a => {
+      const isDesc = a.descartable === 1 || a.descartable === true;
+      if (isDesc && dismissedAvisosIds.includes(a.id)) return false;
+      return true;
+    });
+
+    const estilosPorTipo = {
+      info: {
+        bg: '#eff6ff',
+        border: '#93c5fd',
+        titleColor: '#1e40af',
+        textColor: '#1e3a8a',
+        icon: 'ℹ️'
+      },
+      promo: {
+        bg: '#f5f3ff',
+        border: '#c4b5fd',
+        titleColor: '#6b21a8',
+        textColor: '#581c87',
+        icon: '🎉'
+      },
+      alerta: {
+        bg: '#fffbeb',
+        border: '#fde68a',
+        titleColor: '#92400e',
+        textColor: '#78350f',
+        icon: '⚠️'
+      },
+      urgente: {
+        bg: '#fff1f2',
+        border: '#fecdd3',
+        titleColor: '#9f1239',
+        textColor: '#881337',
+        icon: '🚨'
+      }
+    };
+
+    function renderBannerHtml(a) {
+      const st = estilosPorTipo[a.tipo] || estilosPorTipo.info;
+      const isDesc = a.descartable === 1 || a.descartable === true;
+      return `
+        <div id="avisoBanner-${a.id}" style="background: ${st.bg}; border: 1.5px solid ${st.border}; border-radius: 12px; padding: 10px 14px; display: flex; align-items: flex-start; gap: 10px; box-shadow: 0 2px 6px rgba(0,0,0,0.04); position: relative;">
+          <span style="font-size: 1.25rem; flex-shrink: 0; line-height: 1.2;">${st.icon}</span>
+          <div style="flex: 1; min-width: 0; padding-right: ${isDesc ? '22px' : '0'};">
+            <strong style="display: block; font-size: 0.86rem; color: ${st.titleColor}; line-height: 1.25; margin-bottom: 2px;">
+              ${escapeHtml(a.titulo)}
+            </strong>
+            <span style="font-size: 0.78rem; color: ${st.textColor}; line-height: 1.35; display: block;">
+              ${escapeHtml(a.mensaje)}
+            </span>
+          </div>
+          ${isDesc ? `
+            <button type="button" onclick="descartarAviso(${a.id})" style="position: absolute; top: 8px; right: 8px; background: none; border: none; font-size: 1.05rem; cursor: pointer; color: ${st.titleColor}; line-height: 1; padding: 2px 5px; opacity: 0.7;" title="Cerrar aviso" onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.7'">
+              ✕
+            </button>
+          ` : ''}
+        </div>
+      `;
+    }
+
+    // Renderizar en contenedor de Padres
+    const parentContainer = document.getElementById('parentGlobalBannerContainer');
+    if (parentContainer) {
+      const avisosPadres = visibles.filter(a => a.audiencia === 'todos' || a.audiencia === 'padres');
+      parentContainer.innerHTML = avisosPadres.map(renderBannerHtml).join('');
+    }
+
+    // Renderizar en contenedor de Estudiantes
+    const studentContainer = document.getElementById('studentGlobalBannerContainer');
+    if (studentContainer) {
+      const avisosEstudiantes = visibles.filter(a => a.audiencia === 'todos' || a.audiencia === 'estudiantes');
+      studentContainer.innerHTML = avisosEstudiantes.map(renderBannerHtml).join('');
+    }
+
+    // Renderizar en contenedor de POS (si existe)
+    const posContainer = document.getElementById('posGlobalBannerContainer');
+    if (posContainer) {
+      const avisosPos = visibles.filter(a => a.audiencia === 'todos' || a.audiencia === 'pos');
+      posContainer.innerHTML = avisosPos.map(renderBannerHtml).join('');
+    }
+  } catch (err) {
+    console.error('Error cargando avisos activos:', err);
+  }
+}
+window.cargarAvisosActivos = cargarAvisosActivos;
 
 async function guardarHorariosEscolares() {
   const inpR1 = document.getElementById('inputAdminHoraRecreo1');

@@ -127,6 +127,24 @@ function initDatabase() {
       try { db.exec("ALTER TABLE escuelas ADD COLUMN IF NOT EXISTS hora_recreo_1 VARCHAR(20) DEFAULT '09:30';"); } catch (_) {}
       try { db.exec("ALTER TABLE escuelas ADD COLUMN IF NOT EXISTS hora_almuerzo VARCHAR(20) DEFAULT '11:45';"); } catch (_) {}
       try { db.exec("ALTER TABLE escuelas ADD COLUMN IF NOT EXISTS hora_recreo_2 VARCHAR(20) DEFAULT '13:45';"); } catch (_) {}
+      try { db.exec("ALTER TABLE escuelas ADD COLUMN IF NOT EXISTS sinpe_activo BOOLEAN DEFAULT TRUE;"); } catch (_) {}
+      try { db.exec("ALTER TABLE escuelas ADD COLUMN IF NOT EXISTS sinpe_mensaje_suspension TEXT DEFAULT 'Las recargas por SINPE Móvil se encuentran temporalmente en pausa técnica. Se reanudarán a la brevedad.';"); } catch (_) {}
+      try {
+        db.exec(`
+          CREATE TABLE IF NOT EXISTS avisos_globales (
+            id SERIAL PRIMARY KEY,
+            titulo VARCHAR(150) NOT NULL,
+            mensaje TEXT NOT NULL,
+            tipo VARCHAR(30) DEFAULT 'info',
+            audiencia VARCHAR(30) DEFAULT 'todos',
+            escuela_id INTEGER,
+            descartable INTEGER DEFAULT 1,
+            activo INTEGER DEFAULT 1,
+            creado_por VARCHAR(100),
+            creado_en TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+          );
+        `);
+      } catch (_) {}
     } catch (e) {}
 
     try {
@@ -354,6 +372,24 @@ function initDatabase() {
   try { db.exec("ALTER TABLE escuelas ADD COLUMN hora_recreo_1 TEXT DEFAULT '09:30'"); } catch (e) {}
   try { db.exec("ALTER TABLE escuelas ADD COLUMN hora_almuerzo TEXT DEFAULT '11:45'"); } catch (e) {}
   try { db.exec("ALTER TABLE escuelas ADD COLUMN hora_recreo_2 TEXT DEFAULT '13:45'"); } catch (e) {}
+  try { db.exec("ALTER TABLE escuelas ADD COLUMN sinpe_activo INTEGER DEFAULT 1"); } catch (e) {}
+  try { db.exec("ALTER TABLE escuelas ADD COLUMN sinpe_mensaje_suspension TEXT DEFAULT 'Las recargas por SINPE Móvil se encuentran temporalmente en pausa técnica. Se reanudarán a la brevedad.'"); } catch (e) {}
+  try {
+    db.exec(`
+      CREATE TABLE IF NOT EXISTS avisos_globales (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        titulo TEXT NOT NULL,
+        mensaje TEXT NOT NULL,
+        tipo TEXT DEFAULT 'info',
+        audiencia TEXT DEFAULT 'todos',
+        escuela_id INTEGER,
+        descartable INTEGER DEFAULT 1,
+        activo INTEGER DEFAULT 1,
+        creado_por TEXT,
+        creado_en DATETIME DEFAULT CURRENT_TIMESTAMP
+      );
+    `);
+  } catch (e) {}
 
   // 8. Relación N:M Padres - Estudiantes
   try {
@@ -630,6 +666,8 @@ const DEFAULTS_CONFIG = [
   { clave: 'sinpe_monto_minimo', valor: '1000', categoria: 'finanzas', descripcion: 'Monto mínimo permitido para recargas por SINPE Móvil (CRC)' },
   { clave: 'sinpe_monto_maximo', valor: '50000', categoria: 'finanzas', descripcion: 'Monto máximo de seguridad por transacción SINPE Móvil (CRC)' },
   { clave: 'sinpe_montos_sugeridos', valor: '2000,3000,5000,10000', categoria: 'finanzas', descripcion: 'Botones de montos sugeridos para recarga rápida en la app' },
+  { clave: 'sinpe_habilitado_global', valor: '1', categoria: 'finanzas', descripcion: 'Interruptor maestro: Habilita o suspende recargas SINPE en todo el sistema (1=Habilitado, 0=Suspendido)' },
+  { clave: 'sinpe_mensaje_suspension_global', valor: 'Las recargas por SINPE Móvil se encuentran temporalmente en pausa técnica. Se reanudarán a la brevedad.', categoria: 'finanzas', descripcion: 'Mensaje desplegado cuando las recargas SINPE están suspendidas globalmente' },
   { clave: 'estudiante_limite_diario_default', valor: '3000', categoria: 'estudiantes', descripcion: 'Límite de gasto diario por defecto asignado a nuevos estudiantes (CRC)' },
   { clave: 'estudiante_permitir_transferencias_default', valor: '1', categoria: 'estudiantes', descripcion: 'Permitir transferencias P2P a nuevos estudiantes por defecto (1=Sí, 0=No)' },
   { clave: 'permitir_transferencias_p2p', valor: '1', categoria: 'estudiantes', descripcion: 'Interruptor maestro: Habilita o desactiva transferencias P2P en todo el sistema (1=Sí, 0=No)' },
@@ -988,7 +1026,7 @@ function obtenerHorariosEscuela(escuelaId = 1) {
 
 function obtenerDatosEscuela(escuelaId = 1) {
   try {
-    const row = db.prepare('SELECT id, codigo, nombre, telefono_sinpe, nombre_sinpe, concesionario, hora_recreo_1, hora_almuerzo, hora_recreo_2, activo FROM escuelas WHERE id = ?').get(escuelaId || 1);
+    const row = db.prepare('SELECT id, codigo, nombre, telefono_sinpe, nombre_sinpe, concesionario, hora_recreo_1, hora_almuerzo, hora_recreo_2, activo, sinpe_activo, sinpe_mensaje_suspension FROM escuelas WHERE id = ?').get(escuelaId || 1);
     if (row) {
       return {
         id: row.id,
@@ -1003,7 +1041,9 @@ function obtenerDatosEscuela(escuelaId = 1) {
         hora_recreo_1_fmt: formatTime12h(row.hora_recreo_1 || '09:30'),
         hora_almuerzo_fmt: formatTime12h(row.hora_almuerzo || '11:45'),
         hora_recreo_2_fmt: formatTime12h(row.hora_recreo_2 || '13:45'),
-        activo: row.activo
+        activo: row.activo,
+        sinpe_activo: row.sinpe_activo !== 0 && row.sinpe_activo !== false,
+        sinpe_mensaje_suspension: row.sinpe_mensaje_suspension || 'Las recargas por SINPE Móvil se encuentran temporalmente en pausa técnica. Se reanudarán a la brevedad.'
       };
     }
   } catch (e) {
@@ -1026,24 +1066,22 @@ function obtenerDatosEscuela(escuelaId = 1) {
   };
 }
 
-function actualizarSinpeEscuela(escuelaId = 1, { telefono_sinpe, nombre_sinpe, concesionario }) {
+function actualizarSinpeEscuela(escuelaId = 1, { telefono_sinpe, nombre_sinpe, concesionario, sinpe_activo, sinpe_mensaje_suspension }) {
   const tel = String(telefono_sinpe || '8888-8888').trim();
   const nom = String(nombre_sinpe || '').trim();
   const conce = concesionario !== undefined ? String(concesionario).trim() : null;
+  const activo = sinpe_activo !== undefined ? (sinpe_activo ? 1 : 0) : null;
+  const msgSuspension = sinpe_mensaje_suspension !== undefined ? String(sinpe_mensaje_suspension || '').trim() : null;
 
-  if (conce !== null) {
-    db.prepare(`
-      UPDATE escuelas
-      SET telefono_sinpe = ?, nombre_sinpe = ?, concesionario = ?
-      WHERE id = ?
-    `).run(tel, nom, conce, escuelaId || 1);
-  } else {
-    db.prepare(`
-      UPDATE escuelas
-      SET telefono_sinpe = ?, nombre_sinpe = ?
-      WHERE id = ?
-    `).run(tel, nom, escuelaId || 1);
-  }
+  let setSql = 'telefono_sinpe = ?, nombre_sinpe = ?';
+  const params = [tel, nom];
+
+  if (conce !== null) { setSql += ', concesionario = ?'; params.push(conce); }
+  if (activo !== null) { setSql += ', sinpe_activo = ?'; params.push(activo); }
+  if (msgSuspension !== null) { setSql += ', sinpe_mensaje_suspension = ?'; params.push(msgSuspension); }
+
+  params.push(escuelaId || 1);
+  db.prepare(`UPDATE escuelas SET ${setSql} WHERE id = ?`).run(...params);
 
   return obtenerDatosEscuela(escuelaId || 1);
 }
@@ -2691,6 +2729,79 @@ function enriquecerEstudianteFinanzas(est) {
   };
 }
 
+// ============================================================================
+// AVISOS GLOBALES / BANNERS DE DIFUSIÓN
+// ============================================================================
+
+function obtenerAvisosActivos(escuelaId = null, audiencia = null) {
+  try {
+    let q = 'SELECT * FROM avisos_globales WHERE activo = 1';
+    const params = [];
+    if (escuelaId) {
+      q += ' AND (escuela_id IS NULL OR escuela_id = ?)';
+      params.push(escuelaId);
+    }
+    if (audiencia && audiencia !== 'todos') {
+      q += ' AND (audiencia = ? OR audiencia = \'todos\')';
+      params.push(audiencia);
+    }
+    q += ' ORDER BY creado_en DESC';
+    return db.prepare(q).all(...params);
+  } catch (e) {
+    console.error('Error obtenerAvisosActivos:', e);
+    return [];
+  }
+}
+
+function obtenerTodosLosAvisos(escuelaId = null) {
+  try {
+    let q = 'SELECT * FROM avisos_globales WHERE 1=1';
+    const params = [];
+    if (escuelaId) {
+      q += ' AND (escuela_id IS NULL OR escuela_id = ?)';
+      params.push(escuelaId);
+    }
+    q += ' ORDER BY creado_en DESC LIMIT 100';
+    return db.prepare(q).all(...params);
+  } catch (e) {
+    console.error('Error obtenerTodosLosAvisos:', e);
+    return [];
+  }
+}
+
+function crearAviso({ titulo, mensaje, tipo = 'info', audiencia = 'todos', escuelaId = null, descartable = 1, creadoPor = null }) {
+  try {
+    const r = db.prepare(`
+      INSERT INTO avisos_globales (titulo, mensaje, tipo, audiencia, escuela_id, descartable, activo, creado_por)
+      VALUES (?, ?, ?, ?, ?, ?, 1, ?)
+    `).run(titulo, mensaje, tipo, audiencia, escuelaId, descartable ? 1 : 0, creadoPor);
+    const id = r.lastInsertRowid || r.id;
+    return db.prepare('SELECT * FROM avisos_globales WHERE id = ?').get(id);
+  } catch (e) {
+    console.error('Error crearAviso:', e);
+    throw e;
+  }
+}
+
+function actualizarEstadoAviso(avisoId, activo) {
+  try {
+    db.prepare('UPDATE avisos_globales SET activo = ? WHERE id = ?').run(activo ? 1 : 0, avisoId);
+    return db.prepare('SELECT * FROM avisos_globales WHERE id = ?').get(avisoId);
+  } catch (e) {
+    console.error('Error actualizarEstadoAviso:', e);
+    throw e;
+  }
+}
+
+function eliminarAviso(avisoId) {
+  try {
+    return db.prepare('DELETE FROM avisos_globales WHERE id = ?').run(avisoId);
+  } catch (e) {
+    console.error('Error eliminarAviso:', e);
+    throw e;
+  }
+}
+
 module.exports = {
   db,
   initDatabase,
@@ -2725,5 +2836,10 @@ module.exports = {
   vincularBancoAEstudianteDev,
   obtenerConfiguraciones,
   guardarConfiguracion,
-  guardarConfiguracionesMultiples
+  guardarConfiguracionesMultiples,
+  obtenerAvisosActivos,
+  obtenerTodosLosAvisos,
+  crearAviso,
+  actualizarEstadoAviso,
+  eliminarAviso
 };

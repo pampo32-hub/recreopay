@@ -12,7 +12,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="SiboPay">
   <link rel="preload" href="/css/styles.css?v=19.9" as="style">
-  <link rel="preload" href="/js/app.js?v=20.4" as="script">
+  <link rel="preload" href="/js/app.js?v=20.5" as="script">
   <link rel="stylesheet" href="/css/styles.css?v=19.9">
   <link rel="stylesheet" href="/css/desktop.css?v=2.2">
   <style>
@@ -1843,11 +1843,111 @@
           <span style="font-size: 0.72rem; color: var(--text-muted); font-weight: 600;">Se actualizará en tiempo real</span>
         </div>
 
+        <!-- Suspensión de SINPE -->
+        <div style="background: #fff7ed; border: 1.5px solid #fed7aa; border-radius: 12px; padding: 14px; margin-bottom: 16px;">
+          <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; flex-wrap: wrap; gap: 8px;">
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <span style="font-size: 1.2rem;">🔴</span>
+              <div>
+                <div style="font-size: 0.88rem; font-weight: 900; color: #9a3412;">Recepción de Recargas SINPE</div>
+                <div style="font-size: 0.72rem; color: #c2410c;">Desactiva para bloquear nuevos pagos temporalmente</div>
+              </div>
+            </div>
+            <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+              <span style="font-size: 0.78rem; font-weight: 700; color: var(--text-muted);" id="lblAdminSinpeActivoEstado">Habilitado</span>
+              <div style="position: relative; width: 44px; height: 24px;">
+                <input type="checkbox" id="chkAdminSinpeActivo" checked style="opacity: 0; width: 0; height: 0; position: absolute;" onchange="actualizarPreviewAdminSinpe()">
+                <span onclick="document.getElementById('chkAdminSinpeActivo').click()" style="position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background: #16a34a; border-radius: 24px; transition: .3s;" id="toggleTrackSinpe">
+                  <span id="toggleThumbSinpe" style="position: absolute; height: 18px; width: 18px; left: 3px; bottom: 3px; background: white; border-radius: 50%; transition: .3s; transform: translateX(0);"></span>
+                </span>
+              </div>
+            </label>
+          </div>
+          <div>
+            <label for="txtAdminSinpeMensajeSuspension" style="display: block; font-size: 0.78rem; font-weight: 800; color: #9a3412; margin-bottom: 4px;">Mensaje que verán los padres al intentar recargar:</label>
+            <textarea id="txtAdminSinpeMensajeSuspension" rows="2" placeholder="Ej: Recargas SINPE suspendidas por mantenimiento bancario. Se reanudarán el lunes." style="width: 100%; padding: 8px 12px; border-radius: 9px; border: 1.5px solid #fed7aa; font-size: 0.84rem; color: #9a3412; background: white; box-sizing: border-box; resize: vertical; font-family: inherit;">Las recargas por SINPE Móvil se encuentran temporalmente en pausa técnica. Se reanudarán a la brevedad.</textarea>
+          </div>
+        </div>
+
         <div style="display: flex; justify-content: flex-end; gap: 10px;">
           <button type="button" id="btnGuardarAdminSinpe" onclick="guardarAdminSinpeConfig()" class="btn-saas btn-saas-primary" style="padding: 10px 22px; font-size: 0.88rem; font-weight: 800; display: inline-flex; align-items: center; gap: 7px; box-shadow: 0 2px 8px rgba(2, 132, 199, 0.35);">
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
             <span id="lblBtnGuardarAdminSinpe">Guardar Datos SINPE Móvil</span>
           </button>
+        </div>
+      </div>
+
+      <!-- SECCIÓN 1b: DIFUSIÓN DE AVISOS & BANNERS GLOBALES -->
+      <div style="margin-bottom: 26px; background: var(--bg-main); border: 1.5px solid #c4b5fd; border-radius: 18px; padding: 20px 20px 24px 20px; box-shadow: 0 4px 18px rgba(139,92,246,0.06);">
+        <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 16px; flex-wrap: wrap; gap: 10px;">
+          <div>
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <span style="font-size: 1.35rem;">📢</span>
+              <h3 style="margin: 0; font-size: 1.18rem; font-weight: 900; color: var(--text-main);">Difusión de Avisos & Banners Globales</h3>
+            </div>
+            <p style="margin: 4px 0 0 0; font-size: 0.80rem; color: var(--text-muted); max-width: 650px;">
+              Publica avisos en tiempo real que aparecen como banners en las apps de estudiantes, padres y POS. Los avisos descartables desaparecen cuando el usuario los cierra.
+            </p>
+          </div>
+          <button type="button" onclick="openModalCrearAviso()" class="btn-saas btn-saas-primary" style="display: inline-flex; align-items: center; gap: 6px; padding: 8px 16px; font-size: 0.84rem; background: #7c3aed; box-shadow: 0 2px 8px rgba(124,58,237,0.3);">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14"/><path d="M5 12h14"/></svg>
+            + Crear Aviso
+          </button>
+        </div>
+
+        <!-- Tabla de avisos activos -->
+        <div id="adminAvisosTableContainer">
+          <div id="adminAvisosEmptyMsg" style="text-align: center; color: var(--text-muted); font-size: 0.82rem; padding: 20px 0; display: none;">
+            No hay avisos publicados aún. Crea uno para que aparezca en las apps.
+          </div>
+          <div id="adminAvisosTable" style="display: flex; flex-direction: column; gap: 8px;"></div>
+        </div>
+      </div>
+
+      <!-- MODAL CREAR AVISO -->
+      <div id="modalCrearAviso" style="display: none; position: fixed; inset: 0; z-index: 9000; align-items: center; justify-content: center; background: rgba(0,0,0,0.55); backdrop-filter: blur(4px);">
+        <div style="background: var(--bg-main); border-radius: 20px; padding: 24px; max-width: 480px; width: 92%; box-shadow: 0 24px 60px rgba(0,0,0,0.22); position: relative; max-height: 90vh; overflow-y: auto;">
+          <button onclick="closeModalCrearAviso()" style="position: absolute; top: 14px; right: 14px; background: none; border: none; font-size: 1.4rem; cursor: pointer; color: var(--text-muted); line-height: 1;">✕</button>
+          <h3 style="margin: 0 0 18px 0; font-size: 1.1rem; font-weight: 900; color: var(--text-main);">📢 Publicar Nuevo Aviso</h3>
+
+          <label style="display: block; font-size: 0.80rem; font-weight: 800; color: var(--text-main); margin-bottom: 4px;">Título del Aviso *</label>
+          <input type="text" id="inputAvisoTitulo" placeholder="Ej: Cierre temprano hoy" style="width: 100%; padding: 9px 12px; border-radius: 9px; border: 1.5px solid var(--border); font-size: 0.95rem; background: var(--bg-main); color: var(--text-main); outline: none; box-sizing: border-box; margin-bottom: 12px;">
+
+          <label style="display: block; font-size: 0.80rem; font-weight: 800; color: var(--text-main); margin-bottom: 4px;">Mensaje *</label>
+          <textarea id="inputAvisoMensaje" rows="3" placeholder="Ej: La soda cerrará a las 11:30 AM hoy por actividad escolar." style="width: 100%; padding: 9px 12px; border-radius: 9px; border: 1.5px solid var(--border); font-size: 0.90rem; background: var(--bg-main); color: var(--text-main); outline: none; box-sizing: border-box; resize: vertical; font-family: inherit; margin-bottom: 12px;"></textarea>
+
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 12px;">
+            <div>
+              <label style="display: block; font-size: 0.78rem; font-weight: 800; color: var(--text-main); margin-bottom: 4px;">Tipo</label>
+              <select id="selectAvisoTipo" style="width: 100%; padding: 8px 10px; border-radius: 8px; border: 1.5px solid var(--border); font-size: 0.88rem; background: var(--bg-main); color: var(--text-main); outline: none;">
+                <option value="info">ℹ️ Informativo</option>
+                <option value="promo">🎉 Promoción</option>
+                <option value="alerta">⚠️ Alerta</option>
+                <option value="urgente">🚨 Urgente</option>
+              </select>
+            </div>
+            <div>
+              <label style="display: block; font-size: 0.78rem; font-weight: 800; color: var(--text-main); margin-bottom: 4px;">Audiencia</label>
+              <select id="selectAvisoAudiencia" style="width: 100%; padding: 8px 10px; border-radius: 8px; border: 1.5px solid var(--border); font-size: 0.88rem; background: var(--bg-main); color: var(--text-main); outline: none;">
+                <option value="todos">👥 Todos</option>
+                <option value="padres">👨‍👩‍👧 Padres</option>
+                <option value="estudiantes">🎒 Estudiantes</option>
+                <option value="pos">🖥️ POS / Caja</option>
+              </select>
+            </div>
+          </div>
+
+          <label style="display: flex; align-items: center; gap: 8px; font-size: 0.84rem; font-weight: 700; color: var(--text-main); cursor: pointer; margin-bottom: 20px;">
+            <input type="checkbox" id="chkAvisoDescartable" checked style="width: 16px; height: 16px; accent-color: #7c3aed;">
+            Aviso descartable (el usuario puede cerrarlo)
+          </label>
+
+          <div style="display: flex; gap: 10px; justify-content: flex-end;">
+            <button type="button" onclick="closeModalCrearAviso()" class="btn-saas" style="background: var(--bg-main); border: 1.5px solid var(--border); color: var(--text-main); padding: 10px 18px; font-size: 0.85rem; font-weight: 700;">Cancelar</button>
+            <button type="button" id="btnGuardarAviso" onclick="guardarNuevoAviso()" class="btn-saas btn-saas-primary" style="background: #7c3aed; padding: 10px 22px; font-size: 0.85rem; font-weight: 800; box-shadow: 0 2px 8px rgba(124,58,237,0.3);">
+              📢 Publicar Aviso
+            </button>
+          </div>
         </div>
       </div>
 
@@ -1963,6 +2063,9 @@
         <span id="parentMaintenanceBannerText">Estamos realizando mejoras técnicas en el sistema. Los pedidos se reanudarán en breve.</span>
       </div>
     </div>
+
+    <!-- BANNER DE AVISOS GLOBALES EN PORTAL DE PADRES -->
+    <div id="parentGlobalBannerContainer" style="display: flex; flex-direction: column; gap: 8px; margin-bottom: 8px;"></div>
 
     <!-- BANNER SI NO HAY HIJOS VINCULADOS -->
     <div id="parentNoChildrenBanner" class="parent-card" style="display: none; text-align: center; border: 2px dashed #0284c7; background: #f0f9ff;">
@@ -2287,6 +2390,16 @@
         <div class="parent-sinpe-desktop-grid">
           <!-- Columna 1: Formulario de Recarga SINPE -->
           <div class="parent-card parent-sinpe-form-card" style="background: #f0fdf4; border: 1.5px solid #86efac; margin-bottom: 0;">
+            <!-- Banner de SINPE Suspendido -->
+            <div id="parentSinpeSuspendedBanner" style="display: none; background: #fff1f2; border: 1.5px solid #fecdd3; color: #9f1239; padding: 14px 16px; border-radius: 14px; margin-bottom: 14px; align-items: flex-start; gap: 10px; box-shadow: 0 4px 12px rgba(225,29,72,0.08);">
+              <span style="font-size: 1.5rem; flex-shrink: 0;">🔴</span>
+              <div style="flex: 1;">
+                <strong style="display: block; font-size: 0.90rem; color: #881337; margin-bottom: 3px;">Recargas SINPE Suspendidas Temporalmente</strong>
+                <span id="parentSinpeSuspendedMsg" style="font-size: 0.82rem;">Las recargas por SINPE Móvil se encuentran temporalmente en pausa técnica. Se reanudarán a la brevedad.</span>
+              </div>
+            </div>
+
+            <div id="parentSinpeFormFields">
             <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;">
               <div style="display: flex; align-items: center; gap: 10px;">
                 <div style="width: 36px; height: 36px; border-radius: 10px; background: #dcfce7; color: #166534; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
@@ -2373,6 +2486,7 @@
 
             <!-- Banner de estado dinámico -->
             <div id="parentSinpeStatusMsg" style="display: none; margin-top: 10px; padding: 10px 12px; border-radius: 10px; font-size: 0.80rem; line-height: 1.4;"></div>
+            </div><!-- /parentSinpeFormFields -->
 
             <!-- LISTA DE SOLICITUDES SINPE PENDIENTES DEL HIJO -->
             <div id="parentSinpePendingBox" style="margin-top: 14px; border-top: 1px dashed #86efac; padding-top: 10px; display: none;">
@@ -2646,8 +2760,10 @@
           </div>
         </div>
       </div>
+    </div>
 
-      <!-- 4. SUB-PANTALLA: HISTORIAL DE COMPRAS -->
+  <!-- 4. SUB-PANTALLA: HISTORIAL DE COMPRAS -->
+
       <div id="parentSubViewHistorial" class="parent-subview" style="display: none;">
         <div class="parent-subview-header">
           <button type="button" onclick="closeParentSubView()" class="parent-subview-back-btn">
@@ -2878,6 +2994,9 @@
         <span id="studentMaintenanceBannerText">Estamos realizando mejoras técnicas en el sistema. Los pedidos se reanudarán en breve.</span>
       </div>
     </div>
+
+    <!-- BANNER DE AVISOS GLOBALES EN APP ESTUDIANTE -->
+    <div id="studentGlobalBannerContainer" style="display: flex; flex-direction: column; gap: 8px; margin: 10px 16px 0 16px;"></div>
 
     <!-- BANNER DE ADVERTENCIA HTTPS PARA TELÉFONOS MÓVILES -->
     <div id="bannerHttpsWarning" style="display: none; background: linear-gradient(135deg, #f59e0b, #d97706); color: white; padding: 10px 14px; font-size: 0.78rem; font-weight: 700; text-align: center; border-radius: 12px; margin: 10px 16px 0 16px; box-shadow: 0 2px 8px rgba(245, 158, 11, 0.3);">
@@ -5237,6 +5356,6 @@
   <script src="/js/sounds.js?v=19.4"></script>
   <script src="/js/jsQR.js" defer></script>
   <script src="/js/food-icons.js?v=19.4" defer></script>
-  <script src="/js/app.js?v=20.4"></script>
+  <script src="/js/app.js?v=20.5"></script>
 </body>
 </html>

@@ -43,7 +43,12 @@ const {
   rechazarSolicitudDev,
   vincularBancoAEstudianteDev,
   obtenerConfiguraciones,
-  guardarConfiguracionesMultiples
+  guardarConfiguracionesMultiples,
+  obtenerAvisosActivos,
+  obtenerTodosLosAvisos,
+  crearAviso,
+  actualizarEstadoAviso,
+  eliminarAviso
 } = require('./db');
 const { checkSinpeEmailsOnce, simularSinpeEmail } = require('./sinpeImapService');
 const { normalizarCodigoDetalle, parseSinpeEmail } = require('./sinpeParser');
@@ -3571,31 +3576,37 @@ app.get('/api/admin/escuela/info', (req, res) => {
   }
 });
 
-// Modificar Teléfono y Titular de SINPE Móvil de la Escuela (Admin / Developer)
+// Modificar Teléfono, Titular y Estado de suspensión de SINPE Móvil (Admin / Developer)
 app.put('/api/admin/escuela/sinpe', (req, res) => {
   try {
-    const { escuela_id, telefono_sinpe, nombre_sinpe, concesionario } = req.body || {};
+    const { escuela_id, telefono_sinpe, nombre_sinpe, concesionario, sinpe_activo, sinpe_mensaje_suspension } = req.body || {};
     if (!telefono_sinpe || !String(telefono_sinpe).trim()) {
       return res.status(400).json({ error: 'El número de teléfono SINPE Móvil es obligatorio' });
     }
     const cleanTel = String(telefono_sinpe).trim();
     const cleanNom = String(nombre_sinpe || '').trim();
+    const cleanMsg = sinpe_mensaje_suspension !== undefined ? String(sinpe_mensaje_suspension || '').trim() : undefined;
 
     const escuelaId = escuela_id ? parseInt(escuela_id, 10) : 1;
     const actualizada = actualizarSinpeEscuela(escuelaId, {
       telefono_sinpe: cleanTel,
       nombre_sinpe: cleanNom,
-      concesionario
+      concesionario,
+      sinpe_activo: sinpe_activo !== undefined ? sinpe_activo : undefined,
+      sinpe_mensaje_suspension: cleanMsg
     });
 
     // Notificar en tiempo real por SSE para que cualquier pantalla activa actualice los datos en caliente
     broadcastEvent('escuela_sinpe_actualizado', {
       escuela_id: escuelaId,
       telefono_sinpe: cleanTel,
-      nombre_sinpe: cleanNom
+      nombre_sinpe: cleanNom,
+      sinpe_activo: actualizada.sinpe_activo,
+      sinpe_mensaje_suspension: actualizada.sinpe_mensaje_suspension
     });
 
-    console.log(`[SINPE] 📲 Datos de cobro SINPE Móvil actualizados para Escuela #${escuelaId}: Tel ${cleanTel} | Titular "${cleanNom}"`);
+    const estadoLog = actualizada.sinpe_activo ? 'HABILITADO' : 'SUSPENDIDO';
+    console.log(`[SINPE] 📲 SINPE actualizado para Escuela #${escuelaId}: Tel ${cleanTel} | Titular "${cleanNom}" | Estado: ${estadoLog}`);
 
     res.json({
       success: true,
@@ -3607,7 +3618,89 @@ app.put('/api/admin/escuela/sinpe', (req, res) => {
     res.status(500).json({ error: err.message });
   }
 });
-// 1. ESTUDIANTES Y QR
+
+// ==========================================
+// AVISOS GLOBALES / BROADCAST BANNERS
+// ==========================================
+
+// Avisos activos (público: estudiantes, padres, POS)
+app.get('/api/avisos/activos', (req, res) => {
+  try {
+    const escuelaId = req.query.escuela_id ? parseInt(req.query.escuela_id, 10) : null;
+    const audiencia = req.query.audiencia || null;
+    const avisos = obtenerAvisosActivos(escuelaId, audiencia);
+    res.json({ success: true, avisos });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Listar todos los avisos (admin/dev)
+app.get('/api/admin/avisos', (req, res) => {
+  try {
+    const escuelaId = req.query.escuela_id ? parseInt(req.query.escuela_id, 10) : null;
+    const avisos = obtenerTodosLosAvisos(escuelaId);
+    res.json({ success: true, avisos });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Crear un aviso (admin/dev)
+app.post('/api/admin/avisos', (req, res) => {
+  try {
+    const { titulo, mensaje, tipo, audiencia, escuela_id, descartable, creado_por } = req.body || {};
+    if (!titulo || !mensaje) {
+      return res.status(400).json({ error: 'El título y el mensaje del aviso son obligatorios' });
+    }
+    const nuevoAviso = crearAviso({
+      titulo: String(titulo).trim(),
+      mensaje: String(mensaje).trim(),
+      tipo: tipo || 'info',
+      audiencia: audiencia || 'todos',
+      escuelaId: escuela_id ? parseInt(escuela_id, 10) : null,
+      descartable: descartable !== false && descartable !== 0 ? 1 : 0,
+      creadoPor: creado_por || null
+    });
+
+    broadcastEvent('aviso_publicado', nuevoAviso);
+    console.log(`[AVISOS] 📢 Nuevo aviso publicado: "${titulo}" → audiencia: ${audiencia || 'todos'}`);
+
+    res.json({ success: true, aviso: nuevoAviso });
+  } catch (err) {
+    console.error('Error creando aviso:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Cambiar estado activo/inactivo de un aviso (admin/dev)
+app.put('/api/admin/avisos/:id/estado', (req, res) => {
+  try {
+    const avisoId = parseInt(req.params.id, 10);
+    const { activo } = req.body || {};
+    const avisoActualizado = actualizarEstadoAviso(avisoId, activo ? 1 : 0);
+    broadcastEvent('aviso_estado_cambiado', avisoActualizado);
+    res.json({ success: true, aviso: avisoActualizado });
+  } catch (err) {
+    console.error('Error actualizando estado de aviso:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Eliminar un aviso (admin/dev)
+app.delete('/api/admin/avisos/:id', (req, res) => {
+  try {
+    const avisoId = parseInt(req.params.id, 10);
+    eliminarAviso(avisoId);
+    broadcastEvent('aviso_eliminado', { id: avisoId });
+    res.json({ success: true, id: avisoId });
+  } catch (err) {
+    console.error('Error eliminando aviso:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+
 // ==========================================
 
 // Listar todos los estudiantes
@@ -3840,10 +3933,14 @@ app.post('/api/sinpe/generar-codigo', (req, res) => {
     let telefono_sinpe = '8888-8888';
     let titular_sinpe = 'Soda Escolar';
     let escuela_nombre = 'Soda Escolar';
+    let escuelaId = 1;
+    let escuelaSinpeActivo = true;
+    let escuelaMensajeSuspension = null;
 
     if (estudiante_id) {
       const est = db.prepare(`
-        SELECT e.id, esc.telefono_sinpe, esc.nombre_sinpe, esc.nombre as escuela_nombre
+        SELECT e.id, esc.id as esc_id, esc.telefono_sinpe, esc.nombre_sinpe, esc.nombre as escuela_nombre,
+               esc.sinpe_activo, esc.sinpe_mensaje_suspension
         FROM estudiantes e
         LEFT JOIN escuelas esc ON esc.id = e.escuela_id
         WHERE e.id = ?
@@ -3852,7 +3949,23 @@ app.post('/api/sinpe/generar-codigo', (req, res) => {
         if (est.telefono_sinpe) telefono_sinpe = est.telefono_sinpe;
         if (est.nombre_sinpe) titular_sinpe = est.nombre_sinpe;
         if (est.escuela_nombre) escuela_nombre = est.escuela_nombre;
+        if (est.esc_id) escuelaId = est.esc_id;
+        escuelaSinpeActivo = est.sinpe_activo !== 0 && est.sinpe_activo !== false;
+        escuelaMensajeSuspension = est.sinpe_mensaje_suspension || null;
       }
+    }
+
+    // Verificar interruptor maestro global
+    const sinpeGlobalHabilitado = String(getConfig('sinpe_habilitado_global', '1')) === '1';
+    if (!sinpeGlobalHabilitado) {
+      const msgGlobal = getConfig('sinpe_mensaje_suspension_global', 'Las recargas por SINPE Móvil se encuentran temporalmente en pausa técnica.');
+      return res.json({ success: false, suspended: true, mensaje_suspension: msgGlobal });
+    }
+
+    // Verificar interruptor de la escuela
+    if (!escuelaSinpeActivo) {
+      const msgEsc = escuelaMensajeSuspension || 'Las recargas por SINPE Móvil se encuentran temporalmente en pausa técnica. Se reanudarán a la brevedad.';
+      return res.json({ success: false, suspended: true, mensaje_suspension: msgEsc });
     }
 
     res.json({
@@ -3876,6 +3989,28 @@ app.post('/api/sinpe/solicitar', (req, res) => {
     if (isNaN(montoNum) || montoNum <= 0) {
       return res.status(400).json({ error: 'Ingresa un monto válido mayor a ₡0' });
     }
+
+    // Verificar interruptor maestro global
+    const sinpeGlobalHabilitado = String(getConfig('sinpe_habilitado_global', '1')) === '1';
+    if (!sinpeGlobalHabilitado) {
+      const msgGlobal = getConfig('sinpe_mensaje_suspension_global', 'Las recargas por SINPE Móvil se encuentran temporalmente en pausa técnica.');
+      return res.status(403).json({ error: msgGlobal, suspended: true, mensaje_suspension: msgGlobal });
+    }
+
+    // Verificar interruptor de la escuela del estudiante
+    const estRow = db.prepare(`
+      SELECT e.id, esc.sinpe_activo, esc.sinpe_mensaje_suspension
+      FROM estudiantes e LEFT JOIN escuelas esc ON esc.id = e.escuela_id
+      WHERE e.id = ?
+    `).get(parseInt(estudiante_id, 10));
+    if (estRow) {
+      const escuelaSinpeActivo = estRow.sinpe_activo !== 0 && estRow.sinpe_activo !== false;
+      if (!escuelaSinpeActivo) {
+        const msgEsc = estRow.sinpe_mensaje_suspension || 'Las recargas por SINPE Móvil se encuentran temporalmente en pausa técnica.';
+        return res.status(403).json({ error: msgEsc, suspended: true, mensaje_suspension: msgEsc });
+      }
+    }
+
     const minSinpe = parseInt(getConfig('sinpe_monto_minimo', 1000), 10);
     const maxSinpe = parseInt(getConfig('sinpe_monto_maximo', 50000), 10);
     if (montoNum < minSinpe) {
