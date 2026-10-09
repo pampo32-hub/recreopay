@@ -263,10 +263,16 @@
             <option value="estudiante">Estudiantes</option>
           </select>
         </div>
-        <button onclick="openModalDevUser()" class="dev-action-btn dev-action-btn-primary" style="padding: 10px 18px; font-size: 0.88rem; display: inline-flex; align-items: center; gap: 6px;">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" x2="19" y1="8" y2="14"/><line x1="22" x2="16" y1="11" y2="11"/></svg>
-          <span>Crear Nuevo Usuario / Admin</span>
-        </button>
+        <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+          <button type="button" onclick="openNewStudentModalFromDev()" class="dev-action-btn" style="padding: 10px 18px; font-size: 0.88rem; display: inline-flex; align-items: center; gap: 6px; background: linear-gradient(135deg, #0284c7, #0369a1); color: #ffffff; border: none; font-weight: 800; border-radius: 10px; box-shadow: 0 2px 6px rgba(2,132,199,0.3); cursor: pointer;">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/></svg>
+            <span>🎓 + Registrar Estudiante</span>
+          </button>
+          <button onclick="openModalDevUser()" class="dev-action-btn dev-action-btn-primary" style="padding: 10px 18px; font-size: 0.88rem; display: inline-flex; align-items: center; gap: 6px;">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" x2="19" y1="8" y2="14"/><line x1="22" x2="16" y1="11" y2="11"/></svg>
+            <span>Crear Usuario / Admin</span>
+          </button>
+        </div>
       </div>
 
       <!-- Resumen rápido de usuarios -->
@@ -2550,6 +2556,14 @@
       </div>
 
       <form id="formNewStudent" onsubmit="submitNewStudent(event)">
+        <!-- Selector de Escuela Destino (Visible en Modo Developer) -->
+        <div id="newEstEscuelaContainer" style="display: none; margin-bottom: 12px; background: #f0fdf4; border: 1.5px solid #86efac; border-radius: 10px; padding: 10px;">
+          <label style="display: block; font-size: 0.78rem; font-weight: 800; color: #166534; margin-bottom: 4px;">🏫 Escuela / Institución Destino *:</label>
+          <select id="newEstEscuelaSelect" style="width: 100%; padding: 8px 10px; border-radius: 8px; border: 1.5px solid #86efac; font-weight: 800; box-sizing: border-box; background: #ffffff; color: #0f172a;">
+            <!-- Opciones cargadas dinámicamente -->
+          </select>
+          <small style="display: block; font-size: 0.70rem; color: #15803d; margin-top: 3px;">El estudiante se registrará en esta sede y heredará su código institucional.</small>
+        </div>
         <div style="margin-bottom: 10px;">
           <label style="display: block; font-size: 0.78rem; font-weight: 800; color: var(--text-main); margin-bottom: 3px;">Tipo de Perfil / Negocio:</label>
           <select id="newEstTipo" style="width: 100%; padding: 8px 10px; border-radius: 8px; border: 1.5px solid var(--border); font-weight: 800; box-sizing: border-box; background: var(--card-bg); color: var(--text-main);">
@@ -3088,7 +3102,7 @@
           </div>
           <div>
             <label style="font-size: 0.8rem; font-weight: 800; color: var(--text-main); display: block; margin-bottom: 4px;">Rol en el Sistema:</label>
-            <select id="devInputRol" required style="width: 100%; padding: 9px 12px; border-radius: 10px; border: 1.5px solid var(--border); background: var(--bg-main); color: var(--text-main); font-weight: 700; box-sizing: border-box;">
+            <select id="devInputRol" required onchange="handleDevUserRoleChange()" style="width: 100%; padding: 9px 12px; border-radius: 10px; border: 1.5px solid var(--border); background: var(--bg-main); color: var(--text-main); font-weight: 700; box-sizing: border-box;">
               <option value="admin">Administrador (Soda/Escuela)</option>
               <option value="developer">Developer Master</option>
               <option value="cajero">Cajero POS</option>
@@ -3096,6 +3110,19 @@
               <option value="padre">Padre de Familia</option>
               <option value="estudiante">Estudiante</option>
             </select>
+          </div>
+        </div>
+
+        <!-- Banner de sugerencia si seleccionan Estudiante -->
+        <div id="devStudentRoleTip" style="display: none; background: #f0fdf4; border: 1.5px solid #86efac; border-radius: 10px; padding: 10px 14px; margin-bottom: 12px;">
+          <div style="display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap;">
+            <div style="font-size: 0.76rem; color: #166534; line-height: 1.35;">
+              🎓 <strong>¿Deseas generar carné oficial y código QR automático?</strong><br>
+              Este formulario solo crea credenciales de login. Para crear el estudiante completo con carné, QR y saldo:
+            </div>
+            <button type="button" onclick="closeModalDevUser(); openNewStudentModalFromDev();" class="dev-action-btn" style="padding: 6px 12px; font-size: 0.76rem; background: #0284c7; color: white; border: none; font-weight: 800; border-radius: 8px; cursor: pointer;">
+              Abrir Registro Oficial 🎓
+            </button>
           </div>
         </div>
 

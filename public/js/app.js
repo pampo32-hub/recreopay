@@ -5460,14 +5460,55 @@ async function toggleBlockCard(studentId, newBlocked) {
 }
 
 function openNewStudentModal() {
+  window.newStudentFromDev = false;
+  const escContainer = document.getElementById('newEstEscuelaContainer');
+  if (escContainer) escContainer.style.display = 'none';
+  const title = document.getElementById('modalNewStudentTitle');
+  if (title) title.textContent = 'Registrar Nuevo Alumno';
   const modal = document.getElementById('modalNewStudent');
   if (modal) modal.style.display = 'flex';
 }
+
+async function openNewStudentModalFromDev() {
+  window.newStudentFromDev = true;
+  const escContainer = document.getElementById('newEstEscuelaContainer');
+  if (escContainer) escContainer.style.display = 'block';
+  const title = document.getElementById('modalNewStudentTitle');
+  if (title) title.textContent = 'Registrar Nuevo Alumno (Developer)';
+
+  const escSelect = document.getElementById('newEstEscuelaSelect');
+  if (escSelect) {
+    escSelect.innerHTML = '<option value="">Cargando escuelas...</option>';
+    try {
+      const res = await fetch('/api/developer/escuelas');
+      if (res.ok) {
+        const escuelas = await res.json();
+        if (Array.isArray(escuelas) && escuelas.length > 0) {
+          escSelect.innerHTML = escuelas.map(e => `
+            <option value="${e.id}">${escapeHtml(e.nombre)} (${escapeHtml(e.codigo || 'Sede')})</option>
+          `).join('');
+        } else {
+          escSelect.innerHTML = '<option value="1">Soda Escolar Central (ESC01)</option>';
+        }
+      } else {
+        escSelect.innerHTML = '<option value="1">Soda Escolar Central (ESC01)</option>';
+      }
+    } catch (err) {
+      console.error('Error cargando escuelas en modal:', err);
+      escSelect.innerHTML = '<option value="1">Soda Escolar Central (ESC01)</option>';
+    }
+  }
+
+  const modal = document.getElementById('modalNewStudent');
+  if (modal) modal.style.display = 'flex';
+}
+window.openNewStudentModalFromDev = openNewStudentModalFromDev;
 
 function closeNewStudentModal(event) {
   if (event && event.target !== event.currentTarget) return;
   const modal = document.getElementById('modalNewStudent');
   if (modal) modal.style.display = 'none';
+  window.newStudentFromDev = false;
 }
 
 async function submitNewStudent(event) {
@@ -5491,7 +5532,15 @@ async function submitNewStudent(event) {
   btn.textContent = 'Creando usuario y carné...';
 
   try {
-    const escId = (currentUser && currentUser.escuela_id) || 1;
+    let escId = (currentUser && currentUser.escuela_id) || 1;
+    const escContainer = document.getElementById('newEstEscuelaContainer');
+    const escSelect = document.getElementById('newEstEscuelaSelect');
+    if (window.newStudentFromDev || (escContainer && escContainer.style.display !== 'none')) {
+      if (escSelect && escSelect.value) {
+        escId = parseInt(escSelect.value, 10);
+      }
+    }
+
     const res = await fetch('/api/admin/estudiantes', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -5514,11 +5563,18 @@ async function submitNewStudent(event) {
     if (!res.ok) throw new Error(data.error);
 
     if (window.sounds) window.sounds.playSuccess();
-    alert(`¡Estudiante Creado con Éxito!\nNombre: ${data.nombre_completo}\nCódigo: ${data.codigo_estudiante}\nQR Token: ${data.qr_token}`);
+    const credsMsg = data.username_creado ? `\n\nCredenciales de Acceso:\nUsuario: ${data.username_creado}\nPIN temporal: ${data.pin_creado || '1234'}` : '';
+    alert(`¡Estudiante Creado con Éxito!\n\nNombre: ${data.nombre_completo}\nCódigo Estudiante: ${data.codigo_estudiante}\nQR Token: ${data.qr_token}${credsMsg}`);
 
     closeNewStudentModal();
     document.getElementById('formNewStudent').reset();
-    await loadAdminData();
+
+    // Actualizar vistas correspondientes
+    if (window.newStudentFromDev || (currentUser && currentUser.rol === 'developer')) {
+      if (typeof loadDevUsuarios === 'function') await loadDevUsuarios();
+      if (typeof loadDeveloperDashboard === 'function') await loadDeveloperDashboard();
+    }
+    if (typeof loadAdminData === 'function') await loadAdminData();
   } catch (err) {
     if (window.sounds) window.sounds.playError();
     alert(`Error al crear estudiante: ${err.message}`);
@@ -7690,6 +7746,7 @@ function renderDevUsuarios(users) {
         <td style="padding: 10px 14px; font-weight: 800; color: var(--text-main);">
           ${escapeHtml(u.username)}
           ${extraInfo}
+          ${u.escuela_nombre ? `<div style="font-size: 0.68rem; color: #0284c7; background: #e0f2fe; border: 1px solid #bae6fd; display: inline-flex; align-items: center; gap: 3px; padding: 1px 6px; border-radius: 4px; margin-top: 3px; font-weight: 700;">🏫 ${escapeHtml(u.escuela_nombre)}</div>` : ''}
         </td>
         <td style="padding: 10px 14px; color: var(--text-main); font-weight: 600;">${escapeHtml(u.nombre || '-')}</td>
         <td style="padding: 10px 14px;">${roleBadge}</td>
@@ -7719,6 +7776,15 @@ function renderDevUsuarios(users) {
   }).join('');
 }
 
+function handleDevUserRoleChange() {
+  const rolInput = document.getElementById('devInputRol');
+  const tip = document.getElementById('devStudentRoleTip');
+  if (rolInput && tip) {
+    tip.style.display = (rolInput.value === 'estudiante') ? 'block' : 'none';
+  }
+}
+window.handleDevUserRoleChange = handleDevUserRoleChange;
+
 function openModalDevUser(userId = null) {
   const modal = document.getElementById('modalDevUser');
   const title = document.getElementById('modalDevUserTitle');
@@ -7730,6 +7796,7 @@ function openModalDevUser(userId = null) {
   const pwdHelp = document.getElementById('devPasswordHelp');
   const telInput = document.getElementById('devInputTelefono');
   const emailInput = document.getElementById('devInputEmail');
+  const tip = document.getElementById('devStudentRoleTip');
 
   if (userId) {
     const user = devAllUsers.find(u => u.id === userId);
@@ -7744,6 +7811,7 @@ function openModalDevUser(userId = null) {
     if (pwdHelp) pwdHelp.style.display = 'block';
     telInput.value = user.telefono || '';
     emailInput.value = user.email || '';
+    if (tip) tip.style.display = (user.rol === 'estudiante') ? 'block' : 'none';
   } else {
     title.textContent = 'Crear Nuevo Usuario / Admin';
     idInput.value = '';
@@ -7755,6 +7823,7 @@ function openModalDevUser(userId = null) {
     if (pwdHelp) pwdHelp.style.display = 'none';
     telInput.value = '';
     emailInput.value = '';
+    if (tip) tip.style.display = 'none';
   }
 
   modal.style.display = 'flex';
@@ -7764,6 +7833,8 @@ function closeModalDevUser(event) {
   if (event && event.target !== event.currentTarget) return;
   const modal = document.getElementById('modalDevUser');
   if (modal) modal.style.display = 'none';
+  const tip = document.getElementById('devStudentRoleTip');
+  if (tip) tip.style.display = 'none';
 }
 
 async function saveDevUser(e) {

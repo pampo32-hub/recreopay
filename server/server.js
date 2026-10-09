@@ -1522,6 +1522,8 @@ app.get('/api/developer/usuarios', (req, res) => {
       SELECT u.id, u.username, u.password_hash, u.rol, u.nombre, u.telefono, u.email, u.activo, u.creado_en, u.escuela_id,
         esc.nombre as escuela_nombre, esc.codigo as escuela_codigo,
         (SELECT COUNT(*) FROM estudiantes e WHERE e.usuario_id = u.id) as es_estudiante,
+        (SELECT e.codigo_estudiante FROM estudiantes e WHERE e.usuario_id = u.id LIMIT 1) as estudiante_codigo,
+        (SELECT e.grado FROM estudiantes e WHERE e.usuario_id = u.id LIMIT 1) as estudiante_grado,
         (SELECT COUNT(*) FROM padres_estudiantes pe WHERE pe.padre_usuario_id = u.id) as hijos_vinculados
       FROM usuarios u
       LEFT JOIN escuelas esc ON u.escuela_id = esc.id
@@ -2246,7 +2248,7 @@ app.post('/api/admin/estudiantes', (req, res) => {
 
     // Correlativo seguro basado en el último ID registrado (evita colisiones por borrado)
     const maxRow = db.prepare('SELECT COALESCE(MAX(id), 0) + 1 as nextId FROM estudiantes').get();
-    const nextSeq = maxRow ? maxRow.nextId : 1;
+    const nextSeq = maxRow ? (maxRow.nextId || maxRow.nextid || 1) : 1;
 
     // Resolver escuela y prefijo institucional
     let escuelaId = req.body.escuela_id ? parseInt(req.body.escuela_id, 10) : 1;
@@ -2256,8 +2258,14 @@ app.post('/api/admin/estudiantes', (req, res) => {
       if (escRow && escRow.codigo) schoolPrefix = escRow.codigo;
     } catch (e) {}
 
-    // Prefijo institucional configurable (ej: SJT, LCR, EST)
-    const cleanPrefix = (prefijo || tipo_entidad || schoolPrefix).toUpperCase().trim().replace(/[^A-Z0-9]/g, '').substring(0, 6) || 'EST';
+    // Prefijo institucional configurable (ej: SJT, ESC01, o prefijos de perfil EMP, EVT, SOC)
+    let finalPrefix = schoolPrefix;
+    if (prefijo && prefijo !== 'EST') {
+      finalPrefix = prefijo;
+    } else if (tipo_entidad && tipo_entidad !== 'EST') {
+      finalPrefix = tipo_entidad;
+    }
+    const cleanPrefix = (finalPrefix || schoolPrefix || 'EST').toUpperCase().trim().replace(/[^A-Z0-9]/g, '').substring(0, 6) || 'EST';
     const year = new Date().getFullYear();
     const codigoEstudiante = `${cleanPrefix}-${year}-${String(nextSeq).padStart(5, '0')}`;
     
@@ -2316,7 +2324,7 @@ app.post('/api/admin/estudiantes', (req, res) => {
     const creado = db.prepare('SELECT * FROM estudiantes WHERE id = ?').get(nuevoId);
     broadcastEvent('estudiante_creado', creado);
 
-    res.status(201).json(creado);
+    res.status(201).json({ ...creado, username_creado: usernameEst, pin_creado: pin });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
