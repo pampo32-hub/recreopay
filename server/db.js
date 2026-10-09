@@ -986,6 +986,68 @@ function obtenerHorariosEscuela(escuelaId = 1) {
   };
 }
 
+function obtenerDatosEscuela(escuelaId = 1) {
+  try {
+    const row = db.prepare('SELECT id, codigo, nombre, telefono_sinpe, nombre_sinpe, concesionario, hora_recreo_1, hora_almuerzo, hora_recreo_2, activo FROM escuelas WHERE id = ?').get(escuelaId || 1);
+    if (row) {
+      return {
+        id: row.id,
+        codigo: row.codigo,
+        nombre: row.nombre,
+        telefono_sinpe: row.telefono_sinpe || '8888-8888',
+        nombre_sinpe: row.nombre_sinpe || row.nombre || 'Soda Escolar',
+        concesionario: row.concesionario || '',
+        hora_recreo_1: row.hora_recreo_1 || '09:30',
+        hora_almuerzo: row.hora_almuerzo || '11:45',
+        hora_recreo_2: row.hora_recreo_2 || '13:45',
+        hora_recreo_1_fmt: formatTime12h(row.hora_recreo_1 || '09:30'),
+        hora_almuerzo_fmt: formatTime12h(row.hora_almuerzo || '11:45'),
+        hora_recreo_2_fmt: formatTime12h(row.hora_recreo_2 || '13:45'),
+        activo: row.activo
+      };
+    }
+  } catch (e) {
+    console.error('Error obteniendo datos escuela:', e);
+  }
+  return {
+    id: 1,
+    codigo: 'ESC01',
+    nombre: 'Soda Escolar Central',
+    telefono_sinpe: '8888-8888',
+    nombre_sinpe: 'Soda Escolar Central',
+    concesionario: 'Concesionario Soda Central',
+    hora_recreo_1: '09:30',
+    hora_almuerzo: '11:45',
+    hora_recreo_2: '13:45',
+    hora_recreo_1_fmt: '9:30 AM',
+    hora_almuerzo_fmt: '11:45 AM',
+    hora_recreo_2_fmt: '1:45 PM',
+    activo: 1
+  };
+}
+
+function actualizarSinpeEscuela(escuelaId = 1, { telefono_sinpe, nombre_sinpe, concesionario }) {
+  const tel = String(telefono_sinpe || '8888-8888').trim();
+  const nom = String(nombre_sinpe || '').trim();
+  const conce = concesionario !== undefined ? String(concesionario).trim() : null;
+
+  if (conce !== null) {
+    db.prepare(`
+      UPDATE escuelas
+      SET telefono_sinpe = ?, nombre_sinpe = ?, concesionario = ?
+      WHERE id = ?
+    `).run(tel, nom, conce, escuelaId || 1);
+  } else {
+    db.prepare(`
+      UPDATE escuelas
+      SET telefono_sinpe = ?, nombre_sinpe = ?
+      WHERE id = ?
+    `).run(tel, nom, escuelaId || 1);
+  }
+
+  return obtenerDatosEscuela(escuelaId || 1);
+}
+
 function actualizarHorariosEscuela(escuelaId = 1, { hora_recreo_1, hora_almuerzo, hora_recreo_2 }) {
   const r1 = hora_recreo_1 || '09:30';
   const alm = hora_almuerzo || '11:45';
@@ -2654,6 +2716,8 @@ module.exports = {
   enriquecerEstudianteFinanzas,
   obtenerHorariosEscuela,
   actualizarHorariosEscuela,
+  obtenerDatosEscuela,
+  actualizarSinpeEscuela,
   formatTime12h,
   buscarSinpeUniversalDev,
   forzarAprobarSolicitudDev,

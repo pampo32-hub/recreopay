@@ -143,7 +143,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   // Registrar Service Worker para PWA
   if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('/sw.js?v=20.3').then(reg => {
+    navigator.serviceWorker.register('/sw.js?v=20.4').then(reg => {
       reg.update().catch(() => {});
       if ('Notification' in window && Notification.permission === 'granted') {
         subscribeDeviceToWebPush().catch(() => {});
@@ -3379,6 +3379,32 @@ function initStudentSSE() {
     }
   });
 
+  // Configuración de datos de cobro SINPE de la escuela actualizada en caliente
+  sse.addEventListener('escuela_sinpe_actualizado', (e) => {
+    try {
+      const data = JSON.parse(e.data);
+      const myEscId = (currentUser && currentUser.escuela_id) || (currentStudent && currentStudent.escuela_id) || (currentParentChild && currentParentChild.escuela_id) || null;
+      if (data.escuela_id && myEscId && Number(data.escuela_id) !== Number(myEscId)) return;
+
+      // Actualizar en caliente la pantalla de recarga de los padres
+      const parentNum = document.getElementById('parentSinpeNumero');
+      if (parentNum && data.telefono_sinpe) parentNum.textContent = data.telefono_sinpe;
+      const parentTit = document.getElementById('parentSinpeTitular');
+      if (parentTit && data.nombre_sinpe) parentTit.textContent = data.nombre_sinpe;
+
+      // Actualizar campos del admin si está en su panel
+      if (currentUser && currentUser.rol === 'admin') {
+        const inpTel = document.getElementById('inputAdminTelefonoSinpe');
+        const inpTitular = document.getElementById('inputAdminTitularSinpe');
+        if (inpTel) inpTel.value = data.telefono_sinpe || '';
+        if (inpTitular) inpTitular.value = data.nombre_sinpe || '';
+        if (typeof actualizarPreviewAdminSinpe === 'function') actualizarPreviewAdminSinpe();
+      }
+    } catch (err) {
+      console.warn('Error en SSE escuela_sinpe_actualizado:', err);
+    }
+  });
+
   // Saldo actualizado (débito, recarga, ajuste de límite)
   sse.addEventListener('saldo_actualizado', (e) => {
     try {
@@ -6197,6 +6223,40 @@ function switchAdminTab(tabName) {
 async function cargarHorariosAdmin() {
   try {
     const escId = (currentUser && currentUser.escuela_id) || 1;
+    // 1. Cargar información completa de la escuela (Datos SINPE y Horarios)
+    const resInfo = await fetch(`/api/admin/escuela/info?escuela_id=${escId}`);
+    const dataInfo = await resInfo.json();
+    if (dataInfo && dataInfo.escuela) {
+      const esc = dataInfo.escuela;
+      const inpTel = document.getElementById('inputAdminTelefonoSinpe');
+      const inpTitular = document.getElementById('inputAdminTitularSinpe');
+      if (inpTel) inpTel.value = esc.telefono_sinpe || '8888-8888';
+      if (inpTitular) inpTitular.value = esc.nombre_sinpe || esc.nombre || 'Soda Escolar';
+      actualizarPreviewAdminSinpe();
+
+      currentSchoolHorarios = {
+        hora_recreo_1: esc.hora_recreo_1 || '09:30',
+        hora_almuerzo: esc.hora_almuerzo || '11:45',
+        hora_recreo_2: esc.hora_recreo_2 || '13:45',
+        hora_recreo_1_fmt: esc.hora_recreo_1_fmt || '9:30 AM',
+        hora_almuerzo_fmt: esc.hora_almuerzo_fmt || '11:45 AM',
+        hora_recreo_2_fmt: esc.hora_recreo_2_fmt || '1:45 PM'
+      };
+      window.schoolHorarios = currentSchoolHorarios;
+
+      const inpR1 = document.getElementById('inputAdminHoraRecreo1');
+      const inpAlm = document.getElementById('inputAdminHoraAlmuerzo');
+      const inpR2 = document.getElementById('inputAdminHoraRecreo2');
+
+      if (inpR1) inpR1.value = currentSchoolHorarios.hora_recreo_1;
+      if (inpAlm) inpAlm.value = currentSchoolHorarios.hora_almuerzo;
+      if (inpR2) inpR2.value = currentSchoolHorarios.hora_recreo_2;
+
+      actualizarTextosHorariosPreordenes();
+      return;
+    }
+
+    // Fallback a solo horarios si fuera necesario
     const res = await fetch(`/api/escuela/horarios?escuela_id=${escId}`);
     const data = await res.json();
     if (data && data.horarios) {
@@ -6214,9 +6274,89 @@ async function cargarHorariosAdmin() {
       actualizarTextosHorariosPreordenes();
     }
   } catch (err) {
-    console.error('Error cargando horarios admin:', err);
+    console.error('Error cargando configuración admin:', err);
   }
 }
+
+function actualizarPreviewAdminSinpe() {
+  const inpTel = document.getElementById('inputAdminTelefonoSinpe');
+  const inpTitular = document.getElementById('inputAdminTitularSinpe');
+  const prevTel = document.getElementById('previewAdminSinpeTel');
+  const prevTitular = document.getElementById('previewAdminSinpeTitular');
+
+  const telVal = inpTel ? (inpTel.value.trim() || '8888-8888') : '8888-8888';
+  const titularVal = inpTitular ? (inpTitular.value.trim() || 'Soda Escolar') : 'Soda Escolar';
+
+  if (prevTel) prevTel.textContent = telVal;
+  if (prevTitular) prevTitular.textContent = titularVal;
+}
+window.actualizarPreviewAdminSinpe = actualizarPreviewAdminSinpe;
+
+async function guardarAdminSinpeConfig() {
+  const inpTel = document.getElementById('inputAdminTelefonoSinpe');
+  const inpTitular = document.getElementById('inputAdminTitularSinpe');
+  const btn = document.getElementById('btnGuardarAdminSinpe');
+  const lblBtn = document.getElementById('lblBtnGuardarAdminSinpe');
+
+  let tel = inpTel ? inpTel.value.trim() : '';
+  const titular = inpTitular ? inpTitular.value.trim() : '';
+
+  if (!tel) {
+    alert('Por favor ingresa el número telefónico para SINPE Móvil.');
+    if (inpTel) inpTel.focus();
+    return;
+  }
+
+  const digits = tel.replace(/\D/g, '');
+  if (digits.length < 8) {
+    alert('El número de teléfono debe contener al menos 8 dígitos.');
+    if (inpTel) inpTel.focus();
+    return;
+  }
+
+  if (digits.length === 8 && !tel.includes('-')) {
+    tel = `${digits.slice(0, 4)}-${digits.slice(4)}`;
+    if (inpTel) inpTel.value = tel;
+    actualizarPreviewAdminSinpe();
+  }
+
+  const escId = (currentUser && currentUser.escuela_id) || 1;
+
+  if (btn) btn.disabled = true;
+  if (lblBtn) lblBtn.textContent = 'Guardando en caliente...';
+
+  try {
+    const res = await fetch('/api/admin/escuela/sinpe', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        escuela_id: escId,
+        telefono_sinpe: tel,
+        nombre_sinpe: titular
+      })
+    });
+
+    const data = await res.json();
+    if (!res.ok || !data.success) {
+      throw new Error(data.error || 'No se pudieron guardar los datos de SINPE');
+    }
+
+    if (window.sounds) window.sounds.playCoin();
+    await showAppAlert({
+      title: '¡Datos SINPE Actualizados!',
+      message: `El número de cobro SINPE Móvil de tu soda se actualizó exitosamente en caliente.\n\n• Teléfono: ${data.escuela.telefono_sinpe}\n• Titular: ${data.escuela.nombre_sinpe}\n\nA partir de este momento, todos los padres de familia verán estos nuevos datos de transferencia en su aplicación.`,
+      type: 'success',
+      confirmText: 'Entendido'
+    });
+  } catch (err) {
+    if (window.sounds) window.sounds.playError();
+    alert('Error al guardar datos SINPE: ' + err.message);
+  } finally {
+    if (btn) btn.disabled = false;
+    if (lblBtn) lblBtn.textContent = 'Guardar Datos SINPE Móvil';
+  }
+}
+window.guardarAdminSinpeConfig = guardarAdminSinpeConfig;
 
 async function guardarHorariosEscolares() {
   const inpR1 = document.getElementById('inputAdminHoraRecreo1');

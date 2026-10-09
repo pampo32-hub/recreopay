@@ -35,6 +35,8 @@ const {
   enriquecerEstudianteFinanzas,
   obtenerHorariosEscuela,
   actualizarHorariosEscuela,
+  obtenerDatosEscuela,
+  actualizarSinpeEscuela,
   formatTime12h,
   buscarSinpeUniversalDev,
   forzarAprobarSolicitudDev,
@@ -3558,7 +3560,53 @@ app.put('/api/admin/escuela/horarios', (req, res) => {
   }
 });
 
-// ==========================================
+// Obtener información y configuración completa de la escuela (Admin / Developer)
+app.get('/api/admin/escuela/info', (req, res) => {
+  try {
+    const escuelaId = req.query.escuela_id ? parseInt(req.query.escuela_id, 10) : 1;
+    const info = obtenerDatosEscuela(escuelaId);
+    res.json({ success: true, escuela: info });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Modificar Teléfono y Titular de SINPE Móvil de la Escuela (Admin / Developer)
+app.put('/api/admin/escuela/sinpe', (req, res) => {
+  try {
+    const { escuela_id, telefono_sinpe, nombre_sinpe, concesionario } = req.body;
+    if (!telefono_sinpe || !String(telefono_sinpe).trim()) {
+      return res.status(400).json({ error: 'El número de teléfono SINPE Móvil es obligatorio' });
+    }
+    const cleanTel = String(telefono_sinpe).trim();
+    const cleanNom = String(nombre_sinpe || '').trim();
+
+    const escuelaId = escuela_id ? parseInt(escuela_id, 10) : 1;
+    const actualizada = actualizarSinpeEscuela(escuelaId, {
+      telefono_sinpe: cleanTel,
+      nombre_sinpe: cleanNom,
+      concesionario
+    });
+
+    // Notificar en tiempo real por SSE para que cualquier pantalla activa actualice los datos en caliente
+    broadcastEvent('escuela_sinpe_actualizado', {
+      escuela_id: escuelaId,
+      telefono_sinpe: cleanTel,
+      nombre_sinpe: cleanNom
+    });
+
+    console.log(`[SINPE] 📲 Datos de cobro SINPE Móvil actualizados para Escuela #${escuelaId}: Tel ${cleanTel} | Titular "${cleanNom}"`);
+
+    res.json({
+      success: true,
+      message: 'Datos de cobro SINPE Móvil actualizados correctamente',
+      escuela: actualizada
+    });
+  } catch (err) {
+    console.error('Error actualizando SINPE de escuela:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
 // 1. ESTUDIANTES Y QR
 // ==========================================
 
