@@ -1,5 +1,5 @@
-// SiboPay PWA Service Worker v19.3 - Ultra Fast Startup & Stale-While-Revalidate
-const CACHE_NAME = 'sibopay-v19.3';
+// SiboPay PWA Service Worker v19.4 - Ultra Fast Startup & Stale-While-Revalidate
+const CACHE_NAME = 'sibopay-v19.4';
 const STATIC_ASSETS = [
   '/',
   '/index.html',
@@ -8,13 +8,13 @@ const STATIC_ASSETS = [
   '/pistola.html',
   '/carnet.html',
   '/manifest.json',
-  '/css/styles.css?v=19.3',
+  '/css/styles.css?v=19.4',
   '/css/desktop.css?v=2.2',
-  '/js/dialogs.js?v=19.3',
-  '/js/app.js?v=19.3',
+  '/js/dialogs.js?v=19.4',
+  '/js/app.js?v=19.4',
   '/js/pos.js',
-  '/js/sounds.js?v=19.3',
-  '/js/food-icons.js?v=19.3',
+  '/js/sounds.js?v=19.4',
+  '/js/food-icons.js?v=19.4',
   '/icons/icon-192.png',
   '/icons/icon-512.png',
   '/img/sibopay-emblem.png',

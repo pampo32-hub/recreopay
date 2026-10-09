@@ -11,9 +11,9 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="SiboPay">
-  <link rel="preload" href="/css/styles.css?v=18.1" as="style">
-  <link rel="preload" href="/js/app.js?v=18.1" as="script">
-  <link rel="stylesheet" href="/css/styles.css?v=18.1">
+  <link rel="preload" href="/css/styles.css?v=19.4" as="style">
+  <link rel="preload" href="/js/app.js?v=19.4" as="script">
+  <link rel="stylesheet" href="/css/styles.css?v=19.4">
   <link rel="stylesheet" href="/css/desktop.css?v=2.2">
   <style>
     /* Transiciones suaves */
@@ -2486,6 +2486,9 @@
         </button>
         <button id="btnThemeToggle" onclick="toggleTheme()" class="theme-toggle-btn" title="Alternar Modo Oscuro / Modo Claro" style="display: inline-flex; align-items: center; justify-content: center;">
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>
+        <button id="btnTopAjustes" onclick="abrirModalAjustesCuenta()" class="mode-btn" style="background: var(--bg-main); border: 1.5px solid var(--border); font-size: 0.8rem; font-weight: 800; border-radius: 10px; padding: 7px 11px; cursor: pointer; color: var(--text-main); display: inline-flex; align-items: center; gap: 6px;" title="Mi Cuenta, Ajustes y Privacidad">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+          <span>Ajustes</span>
         </button>
         <button id="btnModePadres" onclick="toggleParentPanel(true)" class="mode-btn" style="background: var(--bg-main); border: 1.5px solid var(--border); font-size: 0.8rem; font-weight: 800; border-radius: 10px; padding: 7px 11px; cursor: pointer; color: var(--text-main); display: inline-flex; align-items: center; gap: 6px;" title="Acceso al Portal de Padres">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
@@ -2640,18 +2643,6 @@
     <div class="products-grid" id="productsGrid">
       <!-- Se llena con productos de la soda -->
     </div>
-
-    <!-- BARRA FLOTANTE DE PRE-ORDEN / CARRITO -->
-    <div class="floating-cart-bar" id="floatingCart" style="display: none;" onclick="openCartModal()">
-      <div class="cart-summary">
-        <span class="cart-count-badge" id="cartCountBadge">0</span>
-        <div class="cart-total-text" id="cartTotalText">₡0</div>
-      </div>
-      <button class="cart-action-btn" style="display: flex; align-items: center; justify-content: center; gap: 6px;">
-        <span>Pedir para el Recreo</span> <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="21" r="1"/><circle cx="19" cy="21" r="1"/><path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12"/></svg>
-      </button>
-    </div>
-
 
   </div>
 
@@ -2817,11 +2808,29 @@
     </div>
   </div>
 
+  <!-- BARRA FLOTANTE GLOBAL DE PRE-ORDEN / CARRITO (ALUMNOS Y PORTAL PADRES) -->
+  <div class="floating-cart-bar" id="floatingCart" style="display: none;" onclick="openCartModal()" title="Ver y confirmar mi pre-orden">
+    <div class="cart-summary">
+      <span class="cart-count-badge" id="cartCountBadge">0 ítems</span>
+      <div class="cart-total-text" id="cartTotalText">₡0</div>
+    </div>
+    <button class="cart-action-btn" id="btnCartFloatingAction" type="button" style="display: flex; align-items: center; justify-content: center; gap: 8px;">
+      <span>Pedir para el Recreo</span>
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="8" cy="21" r="1"/><circle cx="19" cy="21" r="1"/>
+        <path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12"/>
+      </svg>
+    </button>
+  </div>
+
   <!-- MODAL: CARRITO Y PRE-ORDEN -->
   <div class="modal-qr-backdrop" id="modalCart" style="display: none;" onclick="closeCartModal(event)">
     <div class="modal-qr-card" onclick="event.stopPropagation()" style="max-width: 420px; text-align: left;">
       <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #e2e8f0; padding-bottom: 10px; margin-bottom: 12px;">
-        <h3 style="color: #0f172a; font-size: 1.15rem; font-weight: 800;">Mi Pre-Orden Escolar</h3>
+        <div>
+          <h3 style="color: #0f172a; font-size: 1.15rem; font-weight: 800; margin: 0;">Mi Pre-Orden Escolar</h3>
+          <span id="modalCartStudentName" style="display: none; font-size: 0.76rem; color: #0284c7; font-weight: 700; margin-top: 2px;"></span>
+        </div>
         <button onclick="closeCartModal()" style="background: none; border: none; font-size: 1.2rem; cursor: pointer; color: #64748b;">✕</button>
       </div>
 
@@ -4767,7 +4776,7 @@
       <span class="pwa-nav-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></span>
       <span class="pwa-nav-label">Padres</span>
     </button>
-    <button class="pwa-nav-item" id="pwaNavAjustes" onclick="abrirModalAjustesCuenta()" title="Mi Cuenta y Ajustes">
+    <button class="pwa-nav-item" id="pwaNavAjustes" onclick="pwaNavigateTo('ajustes')" title="Mi Cuenta y Ajustes">
       <span class="pwa-nav-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></span>
       <span class="pwa-nav-label">Ajustes</span>
     </button>
@@ -4777,10 +4786,10 @@
     </button>
   </nav>
 
-  <script src="/js/dialogs.js?v=19.3"></script>
-  <script src="/js/sounds.js?v=19.3"></script>
+  <script src="/js/dialogs.js?v=19.4"></script>
+  <script src="/js/sounds.js?v=19.4"></script>
   <script src="/js/jsQR.js" defer></script>
-  <script src="/js/food-icons.js?v=19.3" defer></script>
-  <script src="/js/app.js?v=19.3"></script>
+  <script src="/js/food-icons.js?v=19.4" defer></script>
+  <script src="/js/app.js?v=19.4"></script>
 </body>
 </html>

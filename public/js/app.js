@@ -215,6 +215,8 @@ function showLoginView() {
   closeCartModal();
   closeQrModal();
   closeTransferModal();
+  cart = [];
+  updateCartBar();
 }
 
 // ==========================================================================
@@ -713,6 +715,10 @@ function pwaNavigateTo(target) {
     closeQrModal();
     closeTransferModal();
     toggleParentPanel(true);
+  } else if (target === 'ajustes') {
+    const btn = document.getElementById('pwaNavAjustes');
+    if (btn) btn.classList.add('active');
+    abrirModalAjustesCuenta();
   }
 }
 
@@ -1307,16 +1313,34 @@ function addToCart(productId) {
 
 function updateCartBar() {
   const bar = document.getElementById('floatingCart');
+  if (!bar) return;
   const countBadge = document.getElementById('cartCountBadge');
   const totalText = document.getElementById('cartTotalText');
 
-  const totalCount = cart.reduce((sum, item) => sum + item.cantidad, 0);
-  const totalColones = cart.reduce((sum, item) => sum + (item.product.precio_colones * item.cantidad), 0);
+  const totalCount = (cart || []).reduce((sum, item) => sum + (item.cantidad || 1), 0);
+  const totalColones = (cart || []).reduce((sum, item) => sum + (item.product.precio_colones * (item.cantidad || 1)), 0);
 
-  if (totalCount > 0) {
+  // Sincronizar badge de la cabecera en el portal de padres si existe
+  const parentBadge = document.getElementById('parentCartBadgeCount');
+  if (parentBadge) {
+    parentBadge.textContent = totalCount;
+  }
+
+  // Verificar si estamos en vista de estudiante o de padres
+  const appContainer = document.getElementById('appContainer');
+  const viewPadres = document.getElementById('viewPadres');
+  const isStudentView = appContainer && appContainer.style.display !== 'none';
+  const isParentView = viewPadres && viewPadres.style.display !== 'none';
+
+  if (totalCount > 0 && (isStudentView || isParentView)) {
     bar.style.display = 'flex';
-    countBadge.textContent = `${totalCount} ${totalCount === 1 ? 'ítem' : 'ítems'}`;
-    totalText.textContent = `₡${totalColones.toLocaleString('es-CR')}`;
+    if (countBadge) countBadge.textContent = `${totalCount} ${totalCount === 1 ? 'ítem' : 'ítems'}`;
+    if (totalText) totalText.textContent = `₡${totalColones.toLocaleString('es-CR')}`;
+
+    // Efecto de pulso reactivo en el botón y barra flotante al agregar items
+    bar.classList.remove('cart-bump');
+    void bar.offsetWidth; // re-flow
+    bar.classList.add('cart-bump');
   } else {
     bar.style.display = 'none';
   }
@@ -1324,7 +1348,19 @@ function updateCartBar() {
 
 function openCartModal() {
   renderCartModalItems();
-  document.getElementById('modalCart').style.display = 'flex';
+
+  const studentNameEl = document.getElementById('modalCartStudentName');
+  if (studentNameEl) {
+    if (currentUser && currentUser.rol === 'padre' && currentParentChild) {
+      studentNameEl.textContent = `Pre-orden para: ${currentParentChild.nombre_completo}`;
+      studentNameEl.style.display = 'block';
+    } else {
+      studentNameEl.style.display = 'none';
+    }
+  }
+
+  const modal = document.getElementById('modalCart');
+  if (modal) modal.style.display = 'flex';
 }
 
 function closeCartModal(e) {
@@ -3880,7 +3916,7 @@ function renderParentCatalog(filterTerm = '') {
         <div style="display: flex; align-items: center; justify-content: space-between; margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--border);">
           <span style="font-size: 0.95rem; font-weight: 900; color: #0284c7;">₡${prod.precio_colones.toLocaleString('es-CR')}</span>
           ${isOutOfStock ? `<span style="font-size: 0.7rem; font-weight: 800; color: #ef4444;">Agotado</span>` : `
-            <button type="button" class="btn-saas btn-saas-primary" onclick="addParentProductToCart(${prod.id})" style="padding: 5px 10px; font-size: 0.78rem; border-radius: 8px;">+ Pre-ordenar</button>
+            <button type="button" class="btn-saas btn-saas-primary" onclick="addParentProductToCart(${prod.id}, event)" style="padding: 5px 12px; font-size: 0.78rem; font-weight: 800; border-radius: 8px; cursor: pointer; transition: all 0.2s ease;">+ Pre-ordenar</button>
           `}
         </div>
       </div>
@@ -3898,12 +3934,30 @@ function quickFilterParentCatalog(term) {
   renderParentCatalog(term);
 }
 
-function addParentProductToCart(productId) {
+function addParentProductToCart(productId, event) {
   addToCart(productId);
   const cartBadge = document.getElementById('parentCartBadgeCount');
   if (cartBadge) {
     const totalItems = (cart || []).reduce((acc, it) => acc + (it.cantidad || 1), 0);
     cartBadge.textContent = totalItems;
+  }
+
+  // Micro-interacción visual inmediata en el botón de la tarjeta seleccionada
+  if (event && event.currentTarget) {
+    const btn = event.currentTarget;
+    const origHtml = btn.innerHTML;
+    btn.style.background = '#10b981';
+    btn.style.borderColor = '#059669';
+    btn.style.color = '#ffffff';
+    btn.style.boxShadow = '0 0 12px rgba(16, 185, 129, 0.45)';
+    btn.innerHTML = '✓ ¡Agregado!';
+    setTimeout(() => {
+      btn.style.background = '';
+      btn.style.borderColor = '';
+      btn.style.color = '';
+      btn.style.boxShadow = '';
+      btn.innerHTML = origHtml;
+    }, 750);
   }
 }
 
@@ -9680,26 +9734,40 @@ function abrirModalAjustesCuenta() {
   const chkSound = document.getElementById('chkAjustesSound');
   const chkHaptic = document.getElementById('chkAjustesHaptic');
 
-  if (currentUser) {
-    if (lblNombre) lblNombre.textContent = currentUser.nombre || currentUser.username || 'Usuario';
+  let user = currentUser;
+  if (!user) {
+    try {
+      const raw = localStorage.getItem('sibopay_user') || localStorage.getItem('recreopay_user');
+      if (raw) user = JSON.parse(raw);
+    } catch (_) {}
+  }
+
+  if (user) {
+    if (lblNombre) lblNombre.textContent = user.nombre || user.username || (currentStudent && currentStudent.nombre_completo) || 'Usuario';
     if (lblRol) {
-      let r = currentUser.rol || 'Usuario';
+      let r = user.rol || 'Usuario';
       if (r === 'padre') r = 'Padre / Encargado';
       else if (r === 'estudiante') r = 'Estudiante / Alumno';
       else if (r === 'cajero') r = 'Cajero de Soda';
       else if (r === 'admin') r = 'Administrador de Soda';
       lblRol.textContent = r;
     }
+  } else if (currentStudent) {
+    if (lblNombre) lblNombre.textContent = currentStudent.nombre_completo || 'Estudiante';
+    if (lblRol) lblRol.textContent = 'Estudiante / Alumno';
   }
 
-  if (chkSound && window.sounds) {
-    chkSound.checked = window.sounds.isSoundEnabled();
-  }
-  if (chkHaptic && window.sounds) {
-    chkHaptic.checked = window.sounds.isHapticEnabled();
-  }
+  try {
+    if (chkSound && window.sounds && typeof window.sounds.isSoundEnabled === 'function') {
+      chkSound.checked = window.sounds.isSoundEnabled();
+    }
+    if (chkHaptic && window.sounds && typeof window.sounds.isHapticEnabled === 'function') {
+      chkHaptic.checked = window.sounds.isHapticEnabled();
+    }
+  } catch (_) {}
 
   modal.style.display = 'flex';
+  modal.style.zIndex = '10005';
 }
 window.abrirModalAjustesCuenta = abrirModalAjustesCuenta;
 
