@@ -3966,9 +3966,12 @@
         </div>
 
         <div style="margin-bottom: 16px;">
-          <label style="font-size: 0.82rem; font-weight: 800; color: var(--text-main); display: block; margin-bottom: 5px;">Buscar Estudiante Beneficiario: *</label>
-          <input type="text" id="devVincularEstudianteSearch" placeholder="Escribe el nombre del alumno o carné..." oninput="filtrarEstudiantesParaVincular()" style="width: 100%; padding: 10px 12px; border-radius: 10px; border: 1.5px solid var(--border); background: var(--bg-main); color: var(--text-main); font-size: 0.86rem; font-weight: 700; box-sizing: border-box; margin-bottom: 6px;">
-          <select id="devVincularEstudianteSelect" required size="5" style="width: 100%; padding: 6px; border-radius: 10px; border: 1.5px solid var(--border); background: var(--card-bg); color: var(--text-main); font-size: 0.82rem; font-weight: 600;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px;">
+            <label style="font-size: 0.82rem; font-weight: 800; color: var(--text-main); margin: 0;">Buscar Estudiante Beneficiario: *</label>
+            <span id="devVincularCountBadge" style="font-size: 0.74rem; color: #0284c7; font-weight: 800;"></span>
+          </div>
+          <input type="text" id="devVincularEstudianteSearch" placeholder="Escribe el nombre del alumno, grado o carné (ej: Sofía, Mateo)..." oninput="filtrarEstudiantesParaVincular()" style="width: 100%; padding: 10px 12px; border-radius: 10px; border: 1.5px solid var(--border); background: var(--bg-main); color: var(--text-main); font-size: 0.86rem; font-weight: 700; box-sizing: border-box; margin-bottom: 6px;">
+          <select id="devVincularEstudianteSelect" required size="6" style="width: 100%; min-height: 150px; padding: 6px; border-radius: 10px; border: 1.5px solid var(--border); background: var(--card-bg); color: var(--text-main); font-size: 0.82rem; font-weight: 600;">
             <!-- Opciones inyectadas -->
           </select>
         </div>
@@ -4537,10 +4540,10 @@
     </button>
   </nav>
 
-  <script src="/js/dialogs.js?v=19.0"></script>
-  <script src="/js/sounds.js?v=19.0"></script>
+  <script src="/js/dialogs.js?v=19.1"></script>
+  <script src="/js/sounds.js?v=19.1"></script>
   <script src="/js/jsQR.js" defer></script>
-  <script src="/js/food-icons.js?v=19.0" defer></script>
-  <script src="/js/app.js?v=19.0"></script>
+  <script src="/js/food-icons.js?v=19.1" defer></script>
+  <script src="/js/app.js?v=19.1"></script>
 </body>
 </html>

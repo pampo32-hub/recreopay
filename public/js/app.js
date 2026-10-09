@@ -10440,9 +10440,17 @@ async function abrirModalVincularBancoDev(bancoTxId) {
     `;
   }
 
+  // Limpiar campos de búsqueda previa
+  const searchInput = document.getElementById('devVincularEstudianteSearch');
+  if (searchInput) searchInput.value = '';
+  const inputNotas = document.getElementById('devVincularNotas');
+  if (inputNotas) inputNotas.value = '';
+
+  modal.style.display = 'flex';
+
   // Cargar estudiantes para selector
   await cargarEstudiantesParaVinculacion();
-  modal.style.display = 'flex';
+  if (searchInput) searchInput.focus();
 }
 window.abrirModalVincularBancoDev = abrirModalVincularBancoDev;
 
@@ -10456,14 +10464,19 @@ async function cargarEstudiantesParaVinculacion() {
   const select = document.getElementById('devVincularEstudianteSelect');
   if (!select) return;
 
-  if (devCachedEstudiantesList.length === 0) {
-    try {
-      const res = await fetch('/api/admin/estudiantes');
-      const data = await res.json();
-      if (res.ok && Array.isArray(data)) {
-        devCachedEstudiantesList = data;
-      }
-    } catch (e) {}
+  select.innerHTML = '<option disabled>Cargando lista de estudiantes del sistema...</option>';
+
+  try {
+    let res = await fetch('/api/developer/estudiantes/buscar');
+    if (!res.ok) {
+      res = await fetch('/api/estudiantes');
+    }
+    const data = await res.json();
+    if (Array.isArray(data)) {
+      devCachedEstudiantesList = data;
+    }
+  } catch (e) {
+    console.error('Error cargando estudiantes para vinculación:', e);
   }
 
   filtrarEstudiantesParaVincular();
@@ -10472,21 +10485,48 @@ async function cargarEstudiantesParaVinculacion() {
 function filtrarEstudiantesParaVincular() {
   const searchInput = document.getElementById('devVincularEstudianteSearch');
   const select = document.getElementById('devVincularEstudianteSelect');
+  const countBadge = document.getElementById('devVincularCountBadge');
   if (!select) return;
 
-  const query = (searchInput?.value || '').toLowerCase().trim();
+  const normalizeStr = str => (str || '')
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .trim();
+
+  const rawQuery = (searchInput?.value || '').trim();
+  const query = normalizeStr(rawQuery);
+
   const filtered = devCachedEstudiantesList.filter(e => {
     if (!query) return true;
-    return (e.nombre_completo || '').toLowerCase().includes(query) ||
-           (e.codigo_estudiante || '').toLowerCase().includes(query) ||
-           (e.padre_nombre || '').toLowerCase().includes(query);
+    return normalizeStr(e.nombre_completo).includes(query) ||
+           normalizeStr(e.codigo_estudiante).includes(query) ||
+           normalizeStr(e.padre_nombre).includes(query) ||
+           normalizeStr(e.padre_telefono).includes(query) ||
+           normalizeStr(e.grado).includes(query) ||
+           normalizeStr(e.seccion).includes(query) ||
+           normalizeStr(e.escuela_nombre).includes(query);
   });
 
-  select.innerHTML = filtered.map(e => `
-    <option value="${e.id}">
-      ${e.nombre_completo} · ${e.grado || ''} ${e.seccion || ''} (${e.codigo_estudiante || 'ID ' + e.id}) - Saldo actual: ₡${(e.saldo_colones || 0).toLocaleString('es-CR')}
-    </option>
-  `).join('');
+  if (countBadge) {
+    countBadge.textContent = `${filtered.length} estudiante(s)`;
+  }
+
+  if (filtered.length === 0) {
+    select.innerHTML = `<option disabled value="" style="padding: 10px; color: #ef4444; font-weight: 700;">⚠️ No se encontró ningún estudiante con "${rawQuery}"</option>`;
+    return;
+  }
+
+  select.innerHTML = filtered.map(e => {
+    const escBadge = e.escuela_nombre ? ` [${e.escuela_nombre}]` : '';
+    const carnet = e.codigo_estudiante ? ` · ${e.codigo_estudiante}` : '';
+    const saldo = Number(e.saldo_colones || 0).toLocaleString('es-CR');
+    return `
+      <option value="${e.id}" style="padding: 8px 10px; font-weight: 700; border-bottom: 1px solid var(--border);">
+        ${e.nombre_completo}${carnet} (${e.grado || ''} ${e.seccion || ''})${escBadge} - Saldo: ₡${saldo}
+      </option>
+    `;
+  }).join('');
 
   if (filtered.length > 0) {
     select.selectedIndex = 0;

@@ -2421,6 +2421,36 @@ app.post('/api/developer/estudiantes/importar-masivo', (req, res) => {
 // BUSCADOR UNIVERSAL Y AUDITORÍA SINPE (DEVELOPER)
 // ==========================================
 
+// 0. Listar / Buscar estudiantes para developer y admin
+app.get(['/api/admin/estudiantes', '/api/developer/estudiantes/buscar'], (req, res) => {
+  try {
+    const q = (req.query.q || '').trim();
+    const escuelaId = req.query.escuela_id ? parseInt(req.query.escuela_id, 10) : null;
+    let sql = `
+      SELECT e.id, e.nombre_completo, e.codigo_estudiante, e.grado, e.seccion,
+             e.saldo_colones, e.escuela_id, e.padre_nombre, e.padre_telefono,
+             esc.nombre as escuela_nombre, esc.codigo as escuela_codigo
+      FROM estudiantes e
+      LEFT JOIN escuelas esc ON esc.id = e.escuela_id
+      WHERE e.activo = 1
+    `;
+    const params = [];
+    if (escuelaId) {
+      sql += ' AND e.escuela_id = ?';
+      params.push(escuelaId);
+    }
+    if (q) {
+      sql += ' AND (e.nombre_completo LIKE ? OR e.codigo_estudiante LIKE ? OR e.padre_nombre LIKE ? OR e.padre_telefono LIKE ?)';
+      params.push(`%${q}%`, `%${q}%`, `%${q}%`, `%${q}%`);
+    }
+    sql += ' ORDER BY e.nombre_completo ASC LIMIT 200';
+    const list = db.prepare(sql).all(...params);
+    res.json(list);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // 1. Buscador universal multicriterio
 app.get('/api/developer/sinpe/buscar', (req, res) => {
   try {
