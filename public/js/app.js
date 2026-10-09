@@ -68,7 +68,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   // Registrar Service Worker para PWA
   if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('/sw.js?v=17.0').then(reg => {
+    navigator.serviceWorker.register('/sw.js?v=18.0').then(reg => {
       reg.update().catch(() => {});
       if ('Notification' in window && Notification.permission === 'granted') {
         subscribeDeviceToWebPush().catch(() => {});
@@ -3767,7 +3767,7 @@ function descargarEstadoCuentaPadresExcel() {
   descargarArchivoDirecto(url, `estado_cuenta_familiar_${dateTag}.xlsx`);
 }
 
-function closeParentSubView(shouldScroll = true) {
+function closeParentSubView(shouldScroll = false) {
   const isDesktop = window.innerWidth >= 860;
   if (isDesktop) {
     openParentSubView('resumen', false);
@@ -3800,10 +3800,8 @@ function closeParentSubView(shouldScroll = true) {
     box.classList.remove('active');
   });
 
-  if (!isDesktop && sidebar && shouldScroll) {
-    setTimeout(() => {
-      smoothScrollToElement(sidebar, 65);
-    }, 60);
+  if (!isDesktop) {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
   if (window.sounds) window.sounds.playTap();
@@ -5011,8 +5009,12 @@ function returnToParentDashboard() {
   if (viewPadres) viewPadres.style.display = 'block';
   if (appContainer) appContainer.style.display = 'none';
   if (bottomNav) bottomNav.style.display = 'none';
-  closeParentSubView();
+  closeParentSubView(false);
   loadParentDashboard();
+  window.scrollTo({ top: 0, behavior: 'instant' });
+  setTimeout(() => {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }, 40);
 }
 
 // ==========================================
@@ -9794,10 +9796,20 @@ window.confirmarEliminarCuentaDefinitiva = confirmarEliminarCuentaDefinitiva;
 // ========================================================
 // RETROALIMENTACIÓN HÁPTICA GLOBAL EN DISPOSITIVOS MÓVILES
 // ========================================================
-document.addEventListener('pointerdown', (e) => {
-  const btn = e.target.closest('button, .btn-saas, .mode-btn, .login-submit-btn, .pwa-nav-item, .limit-preset-pill, .quick-amount-pill, .theme-toggle-btn');
-  if (btn && !btn.disabled && window.haptics) {
-    window.haptics.tap();
+let lastGlobalHapticTapTime = 0;
+function triggerGlobalHapticFeedback(e) {
+  const now = Date.now();
+  if (now - lastGlobalHapticTapTime < 80) return;
+  const btn = e.target.closest('button, .btn-saas, .mode-btn, .login-submit-btn, .pwa-nav-item, .limit-preset-pill, .quick-amount-pill, .theme-toggle-btn, .card-design-toggle-btn, .qr-toggle-btn, .parent-nav-box, .parent-child-card');
+  if (btn && !btn.disabled) {
+    lastGlobalHapticTapTime = now;
+    if (window.haptics && typeof window.haptics.tap === 'function') {
+      window.haptics.tap();
+    } else if (typeof navigator !== 'undefined' && typeof navigator.vibrate === 'function') {
+      try { navigator.vibrate(28); } catch (err) {}
+    }
   }
-}, { passive: true });
+}
+document.addEventListener('touchstart', triggerGlobalHapticFeedback, { passive: true });
+document.addEventListener('pointerdown', triggerGlobalHapticFeedback, { passive: true });
 

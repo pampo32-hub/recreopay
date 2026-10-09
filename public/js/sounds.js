@@ -53,19 +53,19 @@ class SensorySystem {
   }
 
   hapticTap() {
-    this.vibrate(10); // Micro-vibración sutil de 10ms
+    this.vibrate([28]); // 28ms pulso perceptible para motores hápticos móviles
   }
 
   hapticSuccess() {
-    this.vibrate([30, 40, 45]); // Doble pulso de confirmación
+    this.vibrate([35, 45, 55]); // Doble pulso nítido de confirmación
   }
 
   hapticScan() {
-    this.vibrate(22); // Pulso nítido de detección
+    this.vibrate([35]); // Pulso nítido de detección
   }
 
   hapticWarning() {
-    this.vibrate([40, 50, 40]);
+    this.vibrate([45, 50, 45]);
   }
 
   hapticError() {

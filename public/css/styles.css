@@ -195,23 +195,61 @@ body.dark-mode .logout-btn {
   transform: scale(1.02);
 }
 
-/* Tarjeta de Saldo y Carné Digital */
+/* Tarjeta de Saldo y Carné Digital (Proporción exacta de tarjeta de crédito 1.586) */
 .wallet-card {
-  margin: 16px;
+  margin: 14px auto;
+  max-width: 440px;
+  width: calc(100% - 24px);
+  aspect-ratio: 1.586;
   background: linear-gradient(135deg, #0284c7, #0369a1);
   color: white;
-  border-radius: var(--radius);
-  padding: 20px;
+  border-radius: 18px;
+  padding: 16px 18px;
   box-shadow: 0 12px 25px -4px rgba(2, 132, 199, 0.35);
   position: relative;
   overflow: hidden;
   border: 1px solid rgba(255, 255, 255, 0.2);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  box-sizing: border-box;
 }
 
 @media (max-width: 480px) {
   .wallet-card {
-    margin: 12px 10px;
-    padding: 16px 14px;
+    margin: 10px auto;
+    width: calc(100% - 20px);
+    aspect-ratio: 1.586;
+    padding: 12px 14px;
+    border-radius: 16px;
+  }
+  .wallet-card .card-chip-container {
+    min-height: 14px;
+    margin-bottom: 2px;
+  }
+  .wallet-card .student-info {
+    gap: 10px;
+    margin-bottom: 4px;
+  }
+  .wallet-card .student-avatar {
+    width: 40px;
+    height: 40px;
+    font-size: 1rem;
+    border-width: 2px;
+  }
+  .wallet-card .student-meta h2 {
+    font-size: 1.02rem;
+  }
+  .wallet-card .balance-row {
+    padding-top: 6px;
+    gap: 6px;
+  }
+  .wallet-card .balance-col .amount {
+    font-size: 1.4rem;
+  }
+  .wallet-card .qr-toggle-btn {
+    padding: 5px 9px;
+    font-size: 0.72rem;
   }
 }
 
@@ -230,6 +268,7 @@ body.dark-mode .wallet-card:not([class*="theme-"]) {
   height: 140px;
   background: radial-gradient(circle, rgba(255,255,255,0.2) 0%, rgba(255,255,255,0) 70%);
   border-radius: 50%;
+  pointer-events: none;
 }
 
 .student-info {
@@ -3109,7 +3148,7 @@ body.dark-mode .pwa-bottom-nav {
   border: none;
   outline: none;
   cursor: pointer;
-  padding: 6px 0;
+  padding: 4px 1px;
   color: var(--text-muted, #64748b);
   transition: all 0.15s ease;
   min-width: 0;
@@ -3122,15 +3161,20 @@ body.dark-mode .pwa-bottom-nav {
 }
 
 .pwa-nav-icon {
-  font-size: 1.35rem;
+  font-size: 1.25rem;
   line-height: 1;
   display: flex;
   align-items: center;
   justify-content: center;
 }
 
+.pwa-nav-icon svg {
+  width: 20px;
+  height: 20px;
+}
+
 .pwa-nav-label {
-  font-size: 0.68rem;
+  font-size: 0.65rem;
   font-weight: 700;
   margin-top: 3px;
   line-height: 1;
