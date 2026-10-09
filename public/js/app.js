@@ -717,6 +717,13 @@ function pwaNavigateTo(target) {
     toggleParentPanel(false);
     openQrModal();
   } else if (target === 'transfer') {
+    const globalTransf = window.appConfig && (window.appConfig.permitir_transferencias_p2p !== undefined 
+      ? Number(window.appConfig.permitir_transferencias_p2p) 
+      : (window.appConfig.estudiante_permitir_transferencias_default !== undefined ? Number(window.appConfig.estudiante_permitir_transferencias_default) : 1));
+    if (globalTransf === 0) {
+      if (window.sounds) window.sounds.playError();
+      return alert('Las transferencias de saldo entre estudiantes han sido deshabilitadas temporalmente por la administración.');
+    }
     const btn = document.getElementById('pwaNavTransfer');
     if (btn) btn.classList.add('active');
     closeQrModal();
@@ -918,23 +925,36 @@ function updateStudentUI() {
     }
   }
 
-  // Gray-out del botón Transferir cuando los padres lo desactivan
+  // Visibilidad y Gray-out del botón Transferir según regla global del sistema y permisos parentales
   const btnCardTransfer = document.getElementById('btnCardTransfer');
   const pwaNavTransfer = document.getElementById('pwaNavTransfer');
-  const transferenciasHabilitadas = currentStudent.permitir_transferencias !== 0;
+  const globalTransf = window.appConfig && (window.appConfig.permitir_transferencias_p2p !== undefined 
+    ? Number(window.appConfig.permitir_transferencias_p2p) 
+    : (window.appConfig.estudiante_permitir_transferencias_default !== undefined ? Number(window.appConfig.estudiante_permitir_transferencias_default) : 1));
+  const transferenciasHabilitadas = globalTransf !== 0 && currentStudent.permitir_transferencias !== 0;
 
   if (btnCardTransfer) {
-    if (!transferenciasHabilitadas) {
-      btnCardTransfer.classList.add('transfer-btn-disabled');
+    if (globalTransf === 0) {
+      btnCardTransfer.style.display = 'none';
     } else {
-      btnCardTransfer.classList.remove('transfer-btn-disabled');
+      btnCardTransfer.style.display = 'flex';
+      if (!transferenciasHabilitadas) {
+        btnCardTransfer.classList.add('transfer-btn-disabled');
+      } else {
+        btnCardTransfer.classList.remove('transfer-btn-disabled');
+      }
     }
   }
   if (pwaNavTransfer) {
-    if (!transferenciasHabilitadas) {
-      pwaNavTransfer.classList.add('transfer-nav-disabled');
+    if (globalTransf === 0) {
+      pwaNavTransfer.style.display = 'none';
     } else {
-      pwaNavTransfer.classList.remove('transfer-nav-disabled');
+      pwaNavTransfer.style.display = 'flex';
+      if (!transferenciasHabilitadas) {
+        pwaNavTransfer.classList.add('transfer-nav-disabled');
+      } else {
+        pwaNavTransfer.classList.remove('transfer-nav-disabled');
+      }
     }
   }
 
@@ -1048,7 +1068,7 @@ async function loadStudentActiveOrders() {
             <span style="font-size: 0.82rem; font-weight: 800; color: #0284c7;">
               Total: ₡${(o.total_colones || 0).toLocaleString('es-CR')} <small style="font-size: 0.68rem; color: var(--text-muted); font-weight: 600;">(Retenido)</small>
             </span>
-            <button type="button" class="btn-cancel-order-action" onclick="cancelarOrdenEstudiante(${o.id}, '${codigo}', ${o.total_colones || 0})">
+            <button type="button" class="btn-cancel-order-action btn-cancel-order-student" style="${(window.appConfig && window.appConfig.preordenes_cancelacion_estudiantes !== undefined && Number(window.appConfig.preordenes_cancelacion_estudiantes) === 0) ? 'display: none;' : ''}" onclick="cancelarOrdenEstudiante(${o.id}, '${codigo}', ${o.total_colones || 0})">
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
               <span>Cancelar Pedido</span>
             </button>
@@ -1066,6 +1086,14 @@ async function loadStudentActiveOrders() {
  * Permite al estudiante cancelar su pedido activo y liberar saldo de inmediato
  */
 async function cancelarOrdenEstudiante(ordenId, codigoOrden, monto) {
+  const canCancel = window.appConfig && window.appConfig.preordenes_cancelacion_estudiantes !== undefined 
+    ? Number(window.appConfig.preordenes_cancelacion_estudiantes) !== 0 
+    : true;
+  if (!canCancel) {
+    if (window.sounds) window.sounds.playError();
+    return alert('La cancelación de pedidos por estudiantes ha sido desactivada temporalmente por la administración.');
+  }
+
   const montoFmt = `₡${(monto || 0).toLocaleString('es-CR')}`;
   const ok = await appConfirmPrompt(
     '¿Cancelar Pedido?',
@@ -2506,6 +2534,16 @@ let isTransferScanning = false;
 function openTransferModal() {
   if (!currentStudent) return;
 
+  // 1. Verificación de regla global del sistema en caliente
+  const globalTransf = window.appConfig && (window.appConfig.permitir_transferencias_p2p !== undefined 
+    ? Number(window.appConfig.permitir_transferencias_p2p) 
+    : (window.appConfig.estudiante_permitir_transferencias_default !== undefined ? Number(window.appConfig.estudiante_permitir_transferencias_default) : 1));
+  if (globalTransf === 0) {
+    if (window.sounds) window.sounds.playError();
+    return alert('Las transferencias de saldo entre estudiantes han sido deshabilitadas temporalmente por la administración.');
+  }
+
+  // 2. Verificación parental del estudiante
   if (currentStudent.permitir_transferencias === 0) {
     if (window.sounds) window.sounds.playError();
     return alert('Tus padres tienen desactivadas las transferencias entre compañeros en tu perfil.');
@@ -2909,6 +2947,15 @@ async function fetchStudentByScannedQr(rawValue) {
 
 async function executeP2PTransfer() {
   if (!currentStudent || !selectedTransferTarget) return;
+
+  const globalTransf = window.appConfig && (window.appConfig.permitir_transferencias_p2p !== undefined 
+    ? Number(window.appConfig.permitir_transferencias_p2p) 
+    : (window.appConfig.estudiante_permitir_transferencias_default !== undefined ? Number(window.appConfig.estudiante_permitir_transferencias_default) : 1));
+  if (globalTransf === 0) {
+    if (window.sounds) window.sounds.playError();
+    closeTransferModal(true);
+    return alert('Las transferencias de saldo entre estudiantes han sido deshabilitadas temporalmente por la administración.');
+  }
 
   let monto = currentTransferAmount;
   const custom = parseInt(document.getElementById('inputTransferCustomAmount').value, 10);
@@ -12076,7 +12123,7 @@ async function cargarConfiguracionesPublicas() {
 function aplicarConfiguracionPublica(cfg) {
   if (!cfg) return;
 
-  // 1. Modo Mantenimiento
+  // 1. Modo Mantenimiento en caliente
   const enMantenimiento = Number(cfg.modo_mantenimiento) === 1;
   const msgMantenimiento = cfg.modo_mantenimiento_mensaje || 'Estamos realizando mejoras técnicas en el sistema. Los pedidos se reanudarán en breve.';
   
@@ -12094,7 +12141,76 @@ function aplicarConfiguracionPublica(cfg) {
     if (studentText) studentText.textContent = msgMantenimiento;
   }
 
-  // 2. Presets de SINPE sugeridos para el padre
+  // 2. Transferencias P2P Globales en caliente (Kill-Switch Maestro)
+  const globalTransf = cfg.permitir_transferencias_p2p !== undefined 
+    ? Number(cfg.permitir_transferencias_p2p) 
+    : (cfg.estudiante_permitir_transferencias_default !== undefined ? Number(cfg.estudiante_permitir_transferencias_default) : 1);
+
+  const pwaNavTransfer = document.getElementById('pwaNavTransfer');
+  const btnCardTransfer = document.getElementById('btnCardTransfer');
+  const modalTransfer = document.getElementById('modalTransfer');
+
+  if (globalTransf === 0) {
+    // Si el modal de transferencias está abierto en pantalla, cerrarlo de inmediato
+    if (modalTransfer && (modalTransfer.style.display === 'flex' || modalTransfer.style.display === 'block')) {
+      closeTransferModal(true);
+      if (typeof showAlertModal === 'function') {
+        showAlertModal('Transferencias Pausadas', 'Las transferencias de saldo entre estudiantes han sido desactivadas temporalmente por la administración del centro educativo.', 'warning');
+      } else {
+        alert('Las transferencias de saldo entre estudiantes han sido desactivadas temporalmente por la administración.');
+      }
+    }
+
+    // Ocultar botones de transferencia en el carné y barra inferior del alumno
+    if (pwaNavTransfer) pwaNavTransfer.style.display = 'none';
+    if (btnCardTransfer) btnCardTransfer.style.display = 'none';
+
+    // Deshabilitar switches en portal de padres y marcar advertencia
+    const chkParentTransfer = document.getElementById('chkParentAllowTransfer');
+    const chkParentDirect = document.getElementById('chkParentAllowTransferDirect');
+    if (chkParentTransfer) {
+      chkParentTransfer.disabled = true;
+      chkParentTransfer.title = 'Deshabilitado globalmente por la administración';
+    }
+    if (chkParentDirect) {
+      chkParentDirect.disabled = true;
+      chkParentDirect.title = 'Deshabilitado globalmente por la administración';
+    }
+  } else {
+    // Restaurar botones según permiso individual del estudiante
+    const userPermiso = currentStudent ? (currentStudent.permitir_transferencias !== 0) : true;
+    if (pwaNavTransfer) {
+      pwaNavTransfer.style.display = 'flex';
+      if (!userPermiso) pwaNavTransfer.classList.add('transfer-nav-disabled');
+      else pwaNavTransfer.classList.remove('transfer-nav-disabled');
+    }
+    if (btnCardTransfer) {
+      btnCardTransfer.style.display = 'flex';
+      if (!userPermiso) btnCardTransfer.classList.add('transfer-btn-disabled');
+      else btnCardTransfer.classList.remove('transfer-btn-disabled');
+    }
+
+    const chkParentTransfer = document.getElementById('chkParentAllowTransfer');
+    const chkParentDirect = document.getElementById('chkParentAllowTransferDirect');
+    if (chkParentTransfer) {
+      chkParentTransfer.disabled = false;
+      chkParentTransfer.title = '';
+    }
+    if (chkParentDirect) {
+      chkParentDirect.disabled = false;
+      chkParentDirect.title = '';
+    }
+  }
+
+  // 3. Cancelación de órdenes por alumnos en caliente
+  const permitirCancelAlumnos = cfg.preordenes_cancelacion_estudiantes !== undefined 
+    ? Number(cfg.preordenes_cancelacion_estudiantes) !== 0 
+    : true;
+  document.querySelectorAll('.btn-cancel-order-student').forEach(b => {
+    b.style.display = permitirCancelAlumnos ? 'inline-flex' : 'none';
+  });
+
+  // 4. Presets de SINPE sugeridos para el padre
   const presetsContainer = document.getElementById('parentSinpePresetsContainer');
   if (presetsContainer && cfg.sinpe_montos_sugeridos) {
     const montos = String(cfg.sinpe_montos_sugeridos)
@@ -12109,13 +12225,13 @@ function aplicarConfiguracionPublica(cfg) {
     }
   }
 
-  // 3. Monto placeholder y min en SINPE del padre
+  // 5. Monto placeholder y min en SINPE del padre
   const inputSinpe = document.getElementById('inputParentSinpeMonto');
   if (inputSinpe && cfg.sinpe_monto_minimo) {
     inputSinpe.min = cfg.sinpe_monto_minimo;
   }
 
-  // 4. Enlaces dinámicos de WhatsApp
+  // 6. Enlaces dinámicos de WhatsApp
   if (cfg.soporte_whatsapp) {
     const cleanTel = String(cfg.soporte_whatsapp).replace(/[^0-9]/g, '');
     const waUrl = `https://wa.me/${cleanTel}`;
@@ -12227,6 +12343,7 @@ async function guardarReglasNegocioDev() {
       sinpe_montos_sugeridos: sugeridos,
       estudiante_limite_diario_default: String(limiteEst),
       estudiante_permitir_transferencias_default: transfEst,
+      permitir_transferencias_p2p: transfEst,
       preordenes_hora_corte: horaCorte,
       preordenes_anticipacion_minutos: String(anticipacion),
       preordenes_cancelacion_estudiantes: cancelEst,

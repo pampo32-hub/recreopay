@@ -1130,10 +1130,13 @@
           <div style="padding: 12px 14px; background: var(--bg-main); border: 1.5px solid var(--border); border-radius: 12px;">
             <div style="display: flex; justify-content: space-between; align-items: center;">
               <div>
-                <span style="font-size: 0.85rem; font-weight: 800; color: var(--text-main); display: block;">Transferencias P2P entre alumnos</span>
-                <span style="font-size: 0.73rem; color: var(--text-muted);">Habilitar opción por defecto para nuevas cuentas</span>
+                <div style="display: flex; align-items: center; gap: 8px;">
+                  <span style="font-size: 0.85rem; font-weight: 800; color: var(--text-main); display: block;">Transferencias P2P entre alumnos</span>
+                  <span style="background: #e0f2fe; color: #0284c7; font-size: 0.68rem; padding: 1px 7px; border-radius: 999px; font-weight: 800;">Kill-Switch Global</span>
+                </div>
+                <span style="font-size: 0.73rem; color: var(--text-muted);">Interruptor maestro: Si se apaga, se deshabilitan y ocultan de inmediato en todo el sistema</span>
               </div>
-              <label class="switch-saas">
+              <label class="switch-saas" title="Habilitar o apagar transferencias P2P en todo el sistema">
                 <input type="checkbox" id="cfg_estudiante_permitir_transferencias_default">
                 <span class="switch-saas-slider round"></span>
               </label>
@@ -5169,6 +5172,6 @@
   <script src="/js/sounds.js?v=19.4"></script>
   <script src="/js/jsQR.js" defer></script>
   <script src="/js/food-icons.js?v=19.4" defer></script>
-  <script src="/js/app.js?v=20.0"></script>
+  <script src="/js/app.js?v=20.1"></script>
 </body>
 </html>

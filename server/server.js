@@ -2527,6 +2527,7 @@ app.post('/api/developer/logs/clear', (req, res) => {
 
 // Endpoint público para que la app conozca las directrices del negocio
 app.get('/api/configuraciones', (req, res) => {
+  const transfP2P = parseInt(getConfig('permitir_transferencias_p2p', getConfig('estudiante_permitir_transferencias_default', 1)), 10);
   res.json({
     success: true,
     configuraciones: {
@@ -2535,6 +2536,7 @@ app.get('/api/configuraciones', (req, res) => {
       sinpe_montos_sugeridos: getConfig('sinpe_montos_sugeridos', '2000,3000,5000,10000'),
       estudiante_limite_diario_default: parseInt(getConfig('estudiante_limite_diario_default', 3000), 10),
       estudiante_permitir_transferencias_default: parseInt(getConfig('estudiante_permitir_transferencias_default', 1), 10),
+      permitir_transferencias_p2p: transfP2P,
       preordenes_hora_corte: getConfig('preordenes_hora_corte', '17:00'),
       preordenes_anticipacion_minutos: parseInt(getConfig('preordenes_anticipacion_minutos', 30), 10),
       preordenes_cancelacion_estudiantes: parseInt(getConfig('preordenes_cancelacion_estudiantes', 1), 10),
@@ -2567,11 +2569,30 @@ app.post('/api/developer/configuraciones', (req, res) => {
       return res.status(400).json({ error: 'Configuraciones inválidas' });
     }
 
+    if (updates.estudiante_permitir_transferencias_default !== undefined) {
+      updates.permitir_transferencias_p2p = updates.estudiante_permitir_transferencias_default;
+    } else if (updates.permitir_transferencias_p2p !== undefined) {
+      updates.estudiante_permitir_transferencias_default = updates.permitir_transferencias_p2p;
+    }
+
     const resultado = guardarConfiguracionesMultiples(updates);
     globalConfig = resultado.configs;
 
+    const payloadBroadcast = {
+      ...globalConfig,
+      permitir_transferencias_p2p: parseInt(getConfig('permitir_transferencias_p2p', getConfig('estudiante_permitir_transferencias_default', 1)), 10),
+      estudiante_permitir_transferencias_default: parseInt(getConfig('estudiante_permitir_transferencias_default', 1), 10),
+      modo_mantenimiento: parseInt(getConfig('modo_mantenimiento', 0), 10),
+      modo_mantenimiento_mensaje: getConfig('modo_mantenimiento_mensaje', 'Estamos realizando mejoras técnicas en el sistema. Los pedidos y recargas se reanudarán en breve.'),
+      preordenes_cancelacion_estudiantes: parseInt(getConfig('preordenes_cancelacion_estudiantes', 1), 10),
+      sinpe_montos_sugeridos: getConfig('sinpe_montos_sugeridos', '2000,3000,5000,10000'),
+      sinpe_monto_minimo: parseInt(getConfig('sinpe_monto_minimo', 1000), 10),
+      sinpe_monto_maximo: parseInt(getConfig('sinpe_monto_maximo', 50000), 10),
+      soporte_whatsapp: getConfig('soporte_whatsapp', '50688888888')
+    };
+
     broadcastEvent('configuracion_actualizada', {
-      configuraciones: globalConfig,
+      configuraciones: payloadBroadcast,
       actualizado_en: new Date().toISOString()
     });
 
@@ -2597,6 +2618,7 @@ app.post('/api/developer/configuraciones/reset', (req, res) => {
       sinpe_montos_sugeridos: '2000,3000,5000,10000',
       estudiante_limite_diario_default: '3000',
       estudiante_permitir_transferencias_default: '1',
+      permitir_transferencias_p2p: '1',
       preordenes_hora_corte: '17:00',
       preordenes_anticipacion_minutos: '30',
       preordenes_cancelacion_estudiantes: '1',
@@ -2608,8 +2630,21 @@ app.post('/api/developer/configuraciones/reset', (req, res) => {
     const resultado = guardarConfiguracionesMultiples(defaultsObj);
     globalConfig = resultado.configs;
 
+    const payloadBroadcast = {
+      ...globalConfig,
+      permitir_transferencias_p2p: 1,
+      estudiante_permitir_transferencias_default: 1,
+      modo_mantenimiento: 0,
+      modo_mantenimiento_mensaje: defaultsObj.modo_mantenimiento_mensaje,
+      preordenes_cancelacion_estudiantes: 1,
+      sinpe_montos_sugeridos: defaultsObj.sinpe_montos_sugeridos,
+      sinpe_monto_minimo: 1000,
+      sinpe_monto_maximo: 50000,
+      soporte_whatsapp: defaultsObj.soporte_whatsapp
+    };
+
     broadcastEvent('configuracion_actualizada', {
-      configuraciones: globalConfig,
+      configuraciones: payloadBroadcast,
       actualizado_en: new Date().toISOString()
     });
 
@@ -4271,6 +4306,14 @@ app.post('/api/transferencias', (req, res) => {
     const { emisor_id, qr_receptor, receptor_id, monto, pin, motivo } = req.body;
     if (!emisor_id) return res.status(400).json({ error: 'Emisor no especificado' });
 
+    // 0. Interruptor Maestro Global en caliente
+    const globalTransf = parseInt(getConfig('permitir_transferencias_p2p', getConfig('estudiante_permitir_transferencias_default', 1)), 10);
+    if (globalTransf === 0) {
+      return res.status(403).json({
+        error: 'Las transferencias de saldo entre estudiantes han sido deshabilitadas globalmente por la administración.'
+      });
+    }
+
     const resultado = transferenciaP2PTransaction({
       emisorId: parseInt(emisor_id, 10),
       qrReceptor: qr_receptor,
@@ -4615,6 +4658,14 @@ app.post('/api/ordenes/:id/cancelar', (req, res) => {
 
     if (ord.estado === 'cancelado' || ord.estado === 'expirado') {
       return res.status(400).json({ error: `Esta orden ya se encuentra ${ord.estado}.` });
+    }
+
+    // Si la cancelación es solicitada por un estudiante, verificar la regla de negocio
+    if (usuario_rol === 'estudiante') {
+      const cancelEstHabilitada = parseInt(getConfig('preordenes_cancelacion_estudiantes', 1), 10);
+      if (cancelEstHabilitada === 0) {
+        return res.status(403).json({ error: 'La cancelación de pedidos por estudiantes ha sido desactivada en el sistema. Solo tus padres o la soda pueden cancelar.' });
+      }
     }
 
     // Si viene estudiante_id (portal de alumno), verificar pertenencia y permisos

@@ -632,6 +632,7 @@ const DEFAULTS_CONFIG = [
   { clave: 'sinpe_montos_sugeridos', valor: '2000,3000,5000,10000', categoria: 'finanzas', descripcion: 'Botones de montos sugeridos para recarga rápida en la app' },
   { clave: 'estudiante_limite_diario_default', valor: '3000', categoria: 'estudiantes', descripcion: 'Límite de gasto diario por defecto asignado a nuevos estudiantes (CRC)' },
   { clave: 'estudiante_permitir_transferencias_default', valor: '1', categoria: 'estudiantes', descripcion: 'Permitir transferencias P2P a nuevos estudiantes por defecto (1=Sí, 0=No)' },
+  { clave: 'permitir_transferencias_p2p', valor: '1', categoria: 'estudiantes', descripcion: 'Interruptor maestro: Habilita o desactiva transferencias P2P en todo el sistema (1=Sí, 0=No)' },
   { clave: 'preordenes_hora_corte', valor: '17:00', categoria: 'preordenes', descripcion: 'Hora de corte general sugerida para emisión de pre-órdenes (HH:mm)' },
   { clave: 'preordenes_anticipacion_minutos', valor: '30', categoria: 'preordenes', descripcion: 'Anticipación mínima en minutos antes del recreo/almuerzo para pre-órdenes' },
   { clave: 'preordenes_cancelacion_estudiantes', valor: '1', categoria: 'preordenes', descripcion: 'Permitir que los estudiantes cancelen sus propias pre-órdenes (1=Sí, 0=Solo Padres)' },
@@ -1226,6 +1227,16 @@ function crearOrdenCompleta({ estudianteId, tipoOrden, momentoEntrega, notas, it
  */
 function transferenciaP2PTransaction({ emisorId, qrReceptor, receptorId, monto, pin, motivo }) {
   const transaction = db.transaction(() => {
+    // 0. Interruptor Maestro Global en caliente
+    try {
+      const cfgRow = db.prepare("SELECT valor FROM configuracion_sistema WHERE clave = 'permitir_transferencias_p2p' OR clave = 'estudiante_permitir_transferencias_default' ORDER BY clave ASC").get();
+      if (cfgRow && String(cfgRow.valor) === '0') {
+        throw new Error('Las transferencias de saldo entre estudiantes han sido deshabilitadas temporalmente por la administración.');
+      }
+    } catch (e) {
+      if (e.message.includes('deshabilitadas')) throw e;
+    }
+
     // 1. Obtener emisor
     const emisor = db.prepare('SELECT * FROM estudiantes WHERE id = ?').get(emisorId);
     if (!emisor) throw new Error('Estudiante emisor no encontrado');
