@@ -2527,7 +2527,9 @@ app.post('/api/developer/logs/clear', (req, res) => {
 
 // Endpoint público para que la app conozca las directrices del negocio
 app.get('/api/configuraciones', (req, res) => {
-  const transfP2P = parseInt(getConfig('permitir_transferencias_p2p', getConfig('estudiante_permitir_transferencias_default', 1)), 10);
+  const p1 = parseInt(getConfig('permitir_transferencias_p2p', 1), 10);
+  const p2 = parseInt(getConfig('estudiante_permitir_transferencias_default', 1), 10);
+  const transfP2P = (p1 === 0 || p2 === 0) ? 0 : 1;
   res.json({
     success: true,
     configuraciones: {
@@ -2535,7 +2537,7 @@ app.get('/api/configuraciones', (req, res) => {
       sinpe_monto_maximo: parseInt(getConfig('sinpe_monto_maximo', 50000), 10),
       sinpe_montos_sugeridos: getConfig('sinpe_montos_sugeridos', '2000,3000,5000,10000'),
       estudiante_limite_diario_default: parseInt(getConfig('estudiante_limite_diario_default', 3000), 10),
-      estudiante_permitir_transferencias_default: parseInt(getConfig('estudiante_permitir_transferencias_default', 1), 10),
+      estudiante_permitir_transferencias_default: transfP2P,
       permitir_transferencias_p2p: transfP2P,
       preordenes_hora_corte: getConfig('preordenes_hora_corte', '17:00'),
       preordenes_anticipacion_minutos: parseInt(getConfig('preordenes_anticipacion_minutos', 30), 10),
@@ -4307,8 +4309,9 @@ app.post('/api/transferencias', (req, res) => {
     if (!emisor_id) return res.status(400).json({ error: 'Emisor no especificado' });
 
     // 0. Interruptor Maestro Global en caliente
-    const globalTransf = parseInt(getConfig('permitir_transferencias_p2p', getConfig('estudiante_permitir_transferencias_default', 1)), 10);
-    if (globalTransf === 0) {
+    const p1 = parseInt(getConfig('permitir_transferencias_p2p', 1), 10);
+    const p2 = parseInt(getConfig('estudiante_permitir_transferencias_default', 1), 10);
+    if (p1 === 0 || p2 === 0) {
       return res.status(403).json({
         error: 'Las transferencias de saldo entre estudiantes han sido deshabilitadas globalmente por la administración.'
       });

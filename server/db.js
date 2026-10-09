@@ -1229,8 +1229,8 @@ function transferenciaP2PTransaction({ emisorId, qrReceptor, receptorId, monto, 
   const transaction = db.transaction(() => {
     // 0. Interruptor Maestro Global en caliente
     try {
-      const cfgRow = db.prepare("SELECT valor FROM configuracion_sistema WHERE clave = 'permitir_transferencias_p2p' OR clave = 'estudiante_permitir_transferencias_default' ORDER BY clave ASC").get();
-      if (cfgRow && String(cfgRow.valor) === '0') {
+      const cfgRow = db.prepare("SELECT valor FROM configuracion_sistema WHERE (clave = 'permitir_transferencias_p2p' OR clave = 'estudiante_permitir_transferencias_default') AND valor = '0'").get();
+      if (cfgRow) {
         throw new Error('Las transferencias de saldo entre estudiantes han sido deshabilitadas temporalmente por la administración.');
       }
     } catch (e) {

@@ -12265,7 +12265,8 @@ async function cargarReglasNegocioDev() {
     if (elLimiteEst) elLimiteEst.value = cfg.estudiante_limite_diario_default || 3000;
 
     const elTransfEst = document.getElementById('cfg_estudiante_permitir_transferencias_default');
-    if (elTransfEst) elTransfEst.checked = String(cfg.estudiante_permitir_transferencias_default) === '1';
+    const isTransfEnabled = (cfg.permitir_transferencias_p2p !== undefined ? String(cfg.permitir_transferencias_p2p) !== '0' : true) && (cfg.estudiante_permitir_transferencias_default !== undefined ? String(cfg.estudiante_permitir_transferencias_default) !== '0' : true);
+    if (elTransfEst) elTransfEst.checked = isTransfEnabled;
 
     const elCorte = document.getElementById('cfg_preordenes_hora_corte');
     if (elCorte) elCorte.value = cfg.preordenes_hora_corte || '17:00';
