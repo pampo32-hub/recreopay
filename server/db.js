@@ -2401,7 +2401,32 @@ function cancelarPreorden(ordenId, motivo = 'Cancelada') {
       db.prepare('UPDATE productos SET stock = stock + ?, disponible = 1 WHERE id = ? AND control_stock = 1').run(det.cantidad, det.producto_id);
     }
 
-    return ord;
+    // Verificar si existió algún débito formal previo registrado en transacciones_saldo
+    const txDebito = db.prepare('SELECT * FROM transacciones_saldo WHERE orden_id = ? AND monto_colones < 0 AND (revertida = 0 OR revertida IS NULL)').get(ordenId);
+    if (txDebito) {
+      const est = db.prepare('SELECT * FROM estudiantes WHERE id = ?').get(ord.estudiante_id);
+      if (est) {
+        const montoReembolso = Math.abs(txDebito.monto_colones);
+        const nuevoSaldo = est.saldo_colones + montoReembolso;
+        db.prepare('UPDATE estudiantes SET saldo_colones = ? WHERE id = ?').run(nuevoSaldo, est.id);
+        db.prepare('UPDATE transacciones_saldo SET revertida = 1, revertido_en = CURRENT_TIMESTAMP WHERE id = ?').run(txDebito.id);
+        db.prepare(`
+          INSERT INTO transacciones_saldo 
+          (estudiante_id, tipo, monto_colones, saldo_previo, saldo_posterior, orden_id, descripcion, escuela_id)
+          VALUES (?, 'reembolso', ?, ?, ?, ?, ?, ?)
+        `).run(
+          est.id,
+          montoReembolso,
+          est.saldo_colones,
+          nuevoSaldo,
+          ordenId,
+          `Reembolso por cancelación de orden #${ord.codigo_orden || ordenId} (${motivo})`,
+          est.escuela_id || 1
+        );
+      }
+    }
+
+    return db.prepare('SELECT * FROM ordenes WHERE id = ?').get(ordenId);
   });
 
   return tx();

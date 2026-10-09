@@ -6973,4 +6973,97 @@ body.dark-mode .danger-zone-box {
   }
 }
 
+/* ============================================================
+   TARJETAS Y BOTONES DE CANCELACIÓN DE ÓRDENES (PADRES Y ALUMNOS)
+   ============================================================ */
+.active-order-card {
+  background: var(--card-bg, #ffffff);
+  border: 1px solid var(--border, #e2e8f0);
+  border-radius: 14px;
+  padding: 12px 14px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04);
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+body.dark-mode .active-order-card {
+  background: #1e293b;
+  border-color: #334155;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+}
+
+.active-order-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+
+.active-order-items {
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: var(--text-main, #0f172a);
+  margin-bottom: 8px;
+  line-height: 1.35;
+  word-break: break-word;
+}
+
+.active-order-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding-top: 8px;
+  border-top: 1px dashed var(--border, #e2e8f0);
+}
+
+body.dark-mode .active-order-footer {
+  border-top-color: #334155;
+}
+
+.btn-cancel-order-action {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 8px;
+  font-size: 0.76rem;
+  font-weight: 800;
+  cursor: pointer;
+  border: 1.5px solid #fecaca;
+  background: #fef2f2;
+  color: #b91c1c;
+  transition: all 0.15s ease;
+}
+
+.btn-cancel-order-action:hover:not(:disabled) {
+  background: #fee2e2;
+  border-color: #f87171;
+  color: #991b1b;
+  transform: translateY(-1px);
+}
+
+.btn-cancel-order-action:active:not(:disabled) {
+  transform: scale(0.98);
+}
+
+.btn-cancel-order-action:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+body.dark-mode .btn-cancel-order-action {
+  background: rgba(239, 68, 68, 0.12);
+  border-color: rgba(239, 68, 68, 0.35);
+  color: #fca5a5;
+}
+
+body.dark-mode .btn-cancel-order-action:hover:not(:disabled) {
+  background: rgba(239, 68, 68, 0.24);
+  border-color: rgba(239, 68, 68, 0.6);
+  color: #fecaca;
+}
+
 

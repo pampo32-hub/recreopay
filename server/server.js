@@ -4374,7 +4374,9 @@ app.get('/api/ordenes', (req, res) => {
       query += ' AND o.estudiante_id = ?';
       params.push(estudiante_id);
     }
-    if (estado) {
+    if (estado === 'activos' || estado === 'activas') {
+      query += " AND o.estado IN ('pendiente', 'en_preparacion', 'listo')";
+    } else if (estado) {
       query += ' AND o.estado = ?';
       params.push(estado);
     }
@@ -4397,6 +4399,70 @@ app.get('/api/ordenes', (req, res) => {
     res.json(resultado);
   } catch (error) {
     res.status(500).json({ error: error.message });
+  }
+});
+
+// Cancelar una orden (Pre-orden o Mostrador) por parte de Padres, Alumnos, Soda o Admin
+app.post('/api/ordenes/:id/cancelar', (req, res) => {
+  try {
+    const ordenId = parseInt(req.params.id, 10);
+    if (!ordenId || isNaN(ordenId)) {
+      return res.status(400).json({ error: 'ID de orden inválido' });
+    }
+
+    const { motivo, usuario_rol, estudiante_id } = req.body || {};
+
+    const ord = db.prepare('SELECT * FROM ordenes WHERE id = ?').get(ordenId);
+    if (!ord) return res.status(404).json({ error: 'Orden no encontrada' });
+
+    if (ord.estado === 'entregado') {
+      return res.status(400).json({ error: 'No es posible cancelar una orden que ya fue entregada.' });
+    }
+
+    if (ord.estado === 'cancelado' || ord.estado === 'expirado') {
+      return res.status(400).json({ error: `Esta orden ya se encuentra ${ord.estado}.` });
+    }
+
+    // Si viene estudiante_id (portal de alumno), verificar pertenencia
+    if (estudiante_id && parseInt(estudiante_id, 10) !== ord.estudiante_id) {
+      return res.status(403).json({ error: 'No tienes permisos para cancelar una orden de otro estudiante.' });
+    }
+
+    let rolMotivo = 'Cancelada por el usuario';
+    if (usuario_rol === 'estudiante') rolMotivo = 'Cancelada por el alumno';
+    else if (usuario_rol === 'padre') rolMotivo = 'Cancelada por el padre de familia';
+    else if (usuario_rol === 'admin' || usuario_rol === 'cajero') rolMotivo = 'Cancelada por administración';
+
+    const motivoFinal = motivo ? `${rolMotivo}: ${motivo}` : rolMotivo;
+
+    const ordenActualizada = cancelarPreorden(ordenId, motivoFinal);
+
+    // Obtener datos frescos del estudiante y su balance liberado
+    const est = db.prepare('SELECT * FROM estudiantes WHERE id = ?').get(ord.estudiante_id);
+    let finEst = null;
+    if (est) {
+      finEst = enriquecerEstudianteFinanzas(est);
+      broadcastEvent('estudiante_actualizado', finEst);
+      broadcastEvent('saldo_actualizado', finEst);
+    }
+
+    // Notificar en tiempo real por SSE (POS / Cocina / Padres / Alumnos)
+    broadcastEvent('orden_cancelada', { id: ordenId, codigo_orden: ord.codigo_orden, orden: ordenActualizada });
+    broadcastEvent('orden_actualizada', ordenActualizada);
+    broadcastEvent('preordenes_actualizadas', { id: ordenId });
+    broadcastEvent('recargar_catalogo', {});
+
+    console.log(`[ORDEN] 🚫 Orden #${ordenId} (${ord.codigo_orden || 'Sin código'}) cancelada (${motivoFinal}). Monto liberado: ₡${(ord.total_colones || 0).toLocaleString('es-CR')}`);
+
+    res.json({
+      success: true,
+      mensaje: `Orden ${ord.codigo_orden || '#' + ordenId} cancelada exitosamente.`,
+      orden: ordenActualizada,
+      estudiante: finEst
+    });
+  } catch (error) {
+    console.error('Error cancelando orden:', error);
+    res.status(400).json({ error: error.message });
   }
 });
 
@@ -4436,6 +4502,8 @@ app.put('/api/ordenes/:id/estado', (req, res) => {
         broadcastEvent('estudiante_actualizado', finEst);
         broadcastEvent('saldo_actualizado', finEst);
       }
+      broadcastEvent('orden_cancelada', { id: ordenId, codigo_orden: ord.codigo_orden, orden: actualizada });
+      broadcastEvent('preordenes_actualizadas', { id: ordenId });
       broadcastEvent('recargar_catalogo', {});
     } else {
       db.prepare(`

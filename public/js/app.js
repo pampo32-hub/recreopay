@@ -959,6 +959,151 @@ function updateStudentUI() {
   }
 
   renderParentHistory();
+  loadStudentActiveOrders();
+}
+
+// Modal de confirmación defensivo con soporte para showAppConfirm
+async function appConfirmPrompt(title, message, confirmText = 'Sí, Cancelar') {
+  if (typeof window.showAppConfirm === 'function') {
+    return await window.showAppConfirm({
+      title,
+      message,
+      confirmText,
+      cancelText: 'Volver',
+      danger: true
+    });
+  }
+  return window.confirm(`${title}\n\n${message}`);
+}
+
+/**
+ * Carga y renderiza los pedidos activos del estudiante actual
+ */
+async function loadStudentActiveOrders() {
+  const container = document.getElementById('studentActiveOrdersSection');
+  const list = document.getElementById('studentActiveOrdersList');
+  const countBadge = document.getElementById('studentActiveOrdersCountBadge');
+  if (!container || !list) return;
+
+  if (!currentStudent || !currentStudent.id) {
+    container.style.display = 'none';
+    return;
+  }
+
+  try {
+    const res = await fetch(`/api/ordenes?estudiante_id=${currentStudent.id}&estado=activos`);
+    if (!res.ok) throw new Error('Error al consultar pedidos activos');
+    const ordenes = await res.json();
+
+    if (!Array.isArray(ordenes) || ordenes.length === 0) {
+      container.style.display = 'none';
+      list.innerHTML = '';
+      return;
+    }
+
+    container.style.display = 'block';
+    if (countBadge) {
+      countBadge.textContent = `${ordenes.length} activo${ordenes.length === 1 ? '' : 's'}`;
+    }
+
+    list.innerHTML = ordenes.map(o => {
+      const itemsStr = (o.items && o.items.length > 0)
+        ? o.items.map(it => `${it.cantidad}x ${it.nombre}`).join(', ')
+        : 'Pre-orden escolar';
+      const badge = getMomentoBadge(o.momento_entrega);
+      const codigo = o.codigo_orden || `ORD-${o.id}`;
+
+      let estadoLabel = '⏳ Pendiente en cocina';
+      let estadoColor = '#f59e0b';
+      if (o.estado === 'en_preparacion') {
+        estadoLabel = '👨‍🍳 En preparación';
+        estadoColor = '#0284c7';
+      } else if (o.estado === 'listo') {
+        estadoLabel = '✅ Listo para retirar';
+        estadoColor = '#10b981';
+      }
+
+      return `
+        <div class="active-order-card">
+          <div class="active-order-header">
+            <div style="display: flex; align-items: center; gap: 6px; flex-wrap: wrap;">
+              <strong style="font-size: 0.85rem; color: var(--text-main);">${codigo}</strong>
+              <span style="background: ${badge.badgeBg}; color: ${badge.badgeColor}; border: 1px solid ${badge.badgeBorder}; padding: 1px 7px; border-radius: 6px; font-weight: 800; font-size: 0.7rem;">
+                ${badge.icon} ${badge.title}
+              </span>
+              <span style="font-size: 0.72rem; color: ${estadoColor}; font-weight: 800;">
+                ${estadoLabel}
+              </span>
+            </div>
+          </div>
+          <div class="active-order-items">${itemsStr}</div>
+          <div class="active-order-footer">
+            <span style="font-size: 0.82rem; font-weight: 800; color: #0284c7;">
+              Total: ₡${(o.total_colones || 0).toLocaleString('es-CR')} <small style="font-size: 0.68rem; color: var(--text-muted); font-weight: 600;">(Retenido)</small>
+            </span>
+            <button type="button" class="btn-cancel-order-action" onclick="cancelarOrdenEstudiante(${o.id}, '${codigo}', ${o.total_colones || 0})">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
+              <span>Cancelar Pedido</span>
+            </button>
+          </div>
+        </div>
+      `;
+    }).join('');
+  } catch (err) {
+    console.warn('Error en loadStudentActiveOrders:', err);
+    container.style.display = 'none';
+  }
+}
+
+/**
+ * Permite al estudiante cancelar su pedido activo y liberar saldo de inmediato
+ */
+async function cancelarOrdenEstudiante(ordenId, codigoOrden, monto) {
+  const montoFmt = `₡${(monto || 0).toLocaleString('es-CR')}`;
+  const ok = await appConfirmPrompt(
+    '¿Cancelar Pedido?',
+    `¿Deseas cancelar tu pedido ${codigoOrden} de ${montoFmt}? Tu dinero retenido volverá a estar disponible de inmediato para realizar otra compra.`,
+    'Sí, Cancelar Pedido'
+  );
+  if (!ok) return;
+
+  try {
+    const res = await fetch(`/api/ordenes/${ordenId}/cancelar`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        usuario_rol: 'estudiante',
+        estudiante_id: currentStudent ? currentStudent.id : undefined,
+        motivo: 'Cancelada por el estudiante desde la app'
+      })
+    });
+
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Error al cancelar el pedido');
+
+    if (window.sounds) window.sounds.playCoin();
+    await showAppAlert({
+      title: '¡Pedido Cancelado!',
+      message: `Tu pedido ${codigoOrden} fue cancelado exitosamente. Tus ${montoFmt} ya están disponibles en tu saldo.`,
+      type: 'success'
+    });
+
+    if (currentStudent && currentStudent.id) {
+      const freshRes = await fetch(`/api/estudiantes/${currentStudent.id}`);
+      if (freshRes.ok) {
+        currentStudent = await freshRes.json();
+        updateStudentUI();
+        triggerBalancePulse();
+      }
+      await loadStudentActiveOrders();
+    }
+  } catch (err) {
+    await showAppAlert({
+      title: 'Error',
+      message: `No se pudo cancelar el pedido: ${err.message}`,
+      type: 'error'
+    });
+  }
 }
 
 function setAppMode(mode, playSound = false) {
@@ -1598,9 +1743,11 @@ async function submitPreOrder() {
       await loadParentDashboard();
       if (currentParentChild) {
         await loadActiveChildHistory(currentParentChild.id);
+        await loadParentActiveOrders(currentParentChild.id);
       }
     } else if (currentStudent) {
       await selectStudent(currentStudent.id);
+      await loadStudentActiveOrders();
     }
   } catch (err) {
     alert(`No se pudo procesar: ${err.message}`);
@@ -3023,11 +3170,16 @@ function initStudentSSE() {
           triggerBalancePulse();
         }
         fetch(`/api/estudiantes/${estId}`).then(r => r.json()).then(s => { if (s && currentStudent && currentStudent.id === s.id) { currentStudent = s; updateStudentUI(); } }).catch(()=>{});
+        loadStudentActiveOrders();
       }
 
       // Si es padre de este estudiante
       if (currentUser && currentUser.rol === 'padre') {
         loadParentDashboard();
+        if (currentParentChild) {
+          loadParentActiveOrders(currentParentChild.id);
+          loadActiveChildHistory(currentParentChild.id);
+        }
       }
 
       // Si es admin
@@ -3037,6 +3189,46 @@ function initStudentSSE() {
     } catch (err) {
       console.warn('Error en SSE nueva_orden:', err);
     }
+  });
+
+  // Orden cancelada (desde app de estudiante, portal de padres o mostrador)
+  sse.addEventListener('orden_cancelada', (e) => {
+    try {
+      if (currentStudent) {
+        loadStudentActiveOrders();
+        fetch(`/api/estudiantes/${currentStudent.id}`)
+          .then(r => r.json())
+          .then(s => { if (s && currentStudent && currentStudent.id === s.id) { currentStudent = s; updateStudentUI(); } })
+          .catch(()=>{});
+      }
+      if (currentUser && currentUser.rol === 'padre') {
+        loadParentDashboard();
+        if (currentParentChild) {
+          loadParentActiveOrders(currentParentChild.id);
+          loadActiveChildHistory(currentParentChild.id);
+        }
+      }
+      if (currentUser && ['admin', 'cajero', 'personal', 'dev', 'soda'].includes(currentUser.rol)) {
+        loadAdminData();
+      }
+    } catch (err) {
+      console.warn('Error en SSE orden_cancelada:', err);
+    }
+  });
+
+  // Orden actualizada (cambio de estado en cocina o mostrador)
+  sse.addEventListener('orden_actualizada', (e) => {
+    try {
+      if (currentStudent) {
+        loadStudentActiveOrders();
+      }
+      if (currentUser && currentUser.rol === 'padre') {
+        if (currentParentChild) {
+          loadParentActiveOrders(currentParentChild.id);
+          loadActiveChildHistory(currentParentChild.id);
+        }
+      }
+    } catch (err) {}
   });
 
   // Saldo actualizado (débito, recarga, ajuste de límite)
@@ -3628,6 +3820,8 @@ function openParentSubView(viewKey, shouldScroll = true) {
     loadParentSinpeRequests(currentParentChild.id);
   } else if (viewKey === 'historial' && currentParentChild) {
     loadActiveChildHistory(currentParentChild.id);
+  } else if (viewKey === 'resumen' && currentParentChild) {
+    loadParentActiveOrders(currentParentChild.id);
   } else if (viewKey === 'credenciales') {
     updateParentQrSecurityCardUI();
   }
@@ -4074,6 +4268,7 @@ function renderActiveChildDetails(child) {
 
   loadActiveChildHistory(child.id);
   loadParentSinpeRequests(child.id);
+  loadParentActiveOrders(child.id);
 }
 
 async function loadActiveChildHistory(studentId) {
@@ -4101,6 +4296,7 @@ async function loadActiveChildHistory(studentId) {
 
       const isCanceled = o.estado === 'cancelado' || o.estado === 'expirado';
       const isDelivered = o.estado === 'entregado';
+      const isActive = !isCanceled && !isDelivered;
 
       return `
         <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px dashed var(--border);">
@@ -4110,12 +4306,17 @@ async function loadActiveChildHistory(studentId) {
               <span>${fecha}</span>
               <span>•</span>
               <span style="color: ${isDelivered ? '#10b981' : (isCanceled ? '#ef4444' : '#f59e0b')}; font-weight: 700;">
-                ${isDelivered ? 'Entregado' : (isCanceled ? '🚫 Cancelado (No retirado • Saldo liberado)' : 'Pendiente de retiro')}
+                ${isDelivered ? 'Entregado' : (isCanceled ? '🚫 Cancelado (Saldo liberado)' : 'Pendiente de retiro')}
               </span>
               ${isPreorden ? `
                 <span style="background: ${badge.badgeBg}; color: ${badge.badgeColor}; border: 1px solid ${badge.badgeBorder}; padding: 1px 7px; border-radius: 6px; font-weight: 800; font-size: 0.7rem;">
                   ${badge.icon} ${badge.title}
                 </span>
+              ` : ''}
+              ${isActive ? `
+                <button type="button" class="btn-cancel-order-action" onclick="cancelarOrdenPadre(${o.id}, '${o.codigo_orden || 'ORD-' + o.id}', ${o.total_colones || 0})" style="padding: 2px 8px; font-size: 0.68rem; margin-left: 4px;" title="Cancelar pedido y liberar saldo">
+                  🚫 Cancelar Orden
+                </button>
               ` : ''}
             </div>
           </div>
@@ -4132,6 +4333,134 @@ async function loadActiveChildHistory(studentId) {
     }).join('');
   } catch (err) {
     container.innerHTML = '<span style="color: #ef4444; font-size: 0.78rem;">No se pudo cargar el historial.</span>';
+  }
+}
+
+/**
+ * Carga y renderiza las órdenes activas del hijo en el Resumen Principal de Padres
+ */
+async function loadParentActiveOrders(studentId) {
+  const container = document.getElementById('parentSummaryActiveOrdersSection');
+  const list = document.getElementById('parentSummaryActiveOrdersList');
+  const countBadge = document.getElementById('parentSummaryActiveCountBadge');
+  if (!container || !list) return;
+
+  if (!studentId) {
+    container.style.display = 'none';
+    return;
+  }
+
+  try {
+    const res = await fetch(`/api/ordenes?estudiante_id=${studentId}&estado=activos`);
+    if (!res.ok) throw new Error('Error al cargar órdenes activas');
+    const ordenes = await res.json();
+
+    if (!Array.isArray(ordenes) || ordenes.length === 0) {
+      container.style.display = 'none';
+      list.innerHTML = '';
+      return;
+    }
+
+    container.style.display = 'block';
+    if (countBadge) {
+      countBadge.textContent = `${ordenes.length} activo${ordenes.length === 1 ? '' : 's'}`;
+    }
+
+    list.innerHTML = ordenes.map(o => {
+      const itemsStr = (o.items && o.items.length > 0)
+        ? o.items.map(it => `${it.cantidad}x ${it.nombre}`).join(', ')
+        : 'Pedido escolar';
+      const badge = getMomentoBadge(o.momento_entrega);
+      const fecha = o.creado_en ? new Date(o.creado_en).toLocaleDateString('es-CR', { hour: '2-digit', minute: '2-digit' }) : '';
+      const codigo = o.codigo_orden || `ORD-${o.id}`;
+
+      let estadoLabel = '⏳ Pendiente en cocina';
+      let estadoColor = '#f59e0b';
+      if (o.estado === 'en_preparacion') {
+        estadoLabel = '👨‍🍳 En preparación';
+        estadoColor = '#0284c7';
+      } else if (o.estado === 'listo') {
+        estadoLabel = '✅ Listo para retirar';
+        estadoColor = '#10b981';
+      }
+
+      return `
+        <div class="active-order-card">
+          <div class="active-order-header">
+            <div style="display: flex; align-items: center; gap: 6px; flex-wrap: wrap;">
+              <strong style="font-size: 0.85rem; color: var(--text-main);">${codigo}</strong>
+              <span style="background: ${badge.badgeBg}; color: ${badge.badgeColor}; border: 1px solid ${badge.badgeBorder}; padding: 1px 7px; border-radius: 6px; font-weight: 800; font-size: 0.7rem;">
+                ${badge.icon} ${badge.title}
+              </span>
+              <span style="font-size: 0.72rem; color: ${estadoColor}; font-weight: 800;">
+                ${estadoLabel}
+              </span>
+            </div>
+            <span style="font-size: 0.72rem; color: var(--text-muted);">${fecha}</span>
+          </div>
+          <div class="active-order-items">${itemsStr}</div>
+          <div class="active-order-footer">
+            <span style="font-size: 0.82rem; font-weight: 800; color: #0284c7;">
+              Total: ₡${(o.total_colones || 0).toLocaleString('es-CR')} <small style="font-size: 0.68rem; color: var(--text-muted); font-weight: 600;">(Retenido)</small>
+            </span>
+            <button type="button" class="btn-cancel-order-action" onclick="cancelarOrdenPadre(${o.id}, '${codigo}', ${o.total_colones || 0})">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
+              <span>Cancelar Orden</span>
+            </button>
+          </div>
+        </div>
+      `;
+    }).join('');
+  } catch (err) {
+    console.warn('Error en loadParentActiveOrders:', err);
+    container.style.display = 'none';
+  }
+}
+
+/**
+ * Permite al padre de familia cancelar una orden de su hijo y liberar saldo
+ */
+async function cancelarOrdenPadre(ordenId, codigoOrden, monto) {
+  const montoFmt = `₡${(monto || 0).toLocaleString('es-CR')}`;
+  const ok = await appConfirmPrompt(
+    '¿Cancelar Orden?',
+    `¿Deseas cancelar el pedido ${codigoOrden} de ${montoFmt}? El monto retenido se liberará de inmediato al saldo disponible de tu hijo.`,
+    'Sí, Cancelar Orden'
+  );
+  if (!ok) return;
+
+  try {
+    const res = await fetch(`/api/ordenes/${ordenId}/cancelar`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        usuario_rol: 'padre',
+        estudiante_id: currentParentChild ? currentParentChild.id : undefined,
+        motivo: 'Cancelada por el padre desde el portal familiar'
+      })
+    });
+
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Error al cancelar la orden');
+
+    if (window.sounds) window.sounds.playCoin();
+    await showAppAlert({
+      title: '¡Orden Cancelada!',
+      message: `El pedido ${codigoOrden} fue cancelado exitosamente. Se liberaron ${montoFmt} al saldo disponible de tu hijo.`,
+      type: 'success'
+    });
+
+    if (currentParentChild) {
+      await loadParentDashboard();
+      await loadActiveChildHistory(currentParentChild.id);
+      await loadParentActiveOrders(currentParentChild.id);
+    }
+  } catch (err) {
+    await showAppAlert({
+      title: 'Error',
+      message: `No se pudo cancelar la orden: ${err.message}`,
+      type: 'error'
+    });
   }
 }
 

@@ -11,9 +11,9 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="SiboPay">
-  <link rel="preload" href="/css/styles.css?v=19.6" as="style">
-  <link rel="preload" href="/js/app.js?v=19.6" as="script">
-  <link rel="stylesheet" href="/css/styles.css?v=19.6">
+  <link rel="preload" href="/css/styles.css?v=19.7" as="style">
+  <link rel="preload" href="/js/app.js?v=19.7" as="script">
+  <link rel="stylesheet" href="/css/styles.css?v=19.7">
   <link rel="stylesheet" href="/css/desktop.css?v=2.2">
   <style>
     /* Transiciones suaves */
@@ -1879,6 +1879,23 @@
                 </div>
               </div>
 
+              <!-- WIDGET DE ÓRDENES ACTIVAS DEL HIJO -->
+              <div id="parentSummaryActiveOrdersSection" style="display: none; background: #f0f9ff; border: 1.5px solid #bae6fd; border-radius: 16px; padding: 16px; margin-bottom: 18px; box-shadow: 0 2px 8px rgba(2, 132, 199, 0.06);">
+                <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; border-bottom: 1px dashed #bae6fd; padding-bottom: 8px;">
+                  <div style="display: flex; align-items: center; gap: 8px;">
+                    <span style="font-size: 1.2rem;">🥪</span>
+                    <div>
+                      <strong style="font-size: 0.88rem; color: #0369a1; display: block; font-weight: 800;">Pedidos Activos de tu Hijo</strong>
+                      <span style="font-size: 0.7rem; color: #0284c7;">Pre-órdenes en curso en la soda</span>
+                    </div>
+                  </div>
+                  <span id="parentSummaryActiveCountBadge" style="background: #0284c7; color: white; border-radius: 20px; padding: 2px 9px; font-size: 0.72rem; font-weight: 800;">0 activos</span>
+                </div>
+                <div id="parentSummaryActiveOrdersList" style="display: flex; flex-direction: column; gap: 10px;">
+                  <!-- Inyectado dinámicamente -->
+                </div>
+              </div>
+
               <!-- Atajos Rápidos -->
               <h4 style="font-size: 0.85rem; font-weight: 900; color: var(--text-main); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 10px;">Acciones Rápidas</h4>
               <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px;">
@@ -2685,6 +2702,27 @@
       <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#b45309" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" x2="12" y1="9" y2="13"/><line x1="12" x2="12.01" y1="17" y2="17"/></svg>
       <strong>Atención médica:</strong> <span id="allergyText"></span>
     </div>
+
+    <!-- ÓRDENES ACTIVAS Y PRE-ÓRDENES PENDIENTES DEL ESTUDIANTE -->
+    <section id="studentActiveOrdersSection" class="student-active-orders-section" style="display: none; margin: 0 16px 14px 16px;">
+      <div style="background: var(--card-bg, #ffffff); border: 1.5px solid #bae6fd; border-radius: 16px; padding: 14px 16px; box-shadow: 0 3px 12px rgba(2, 132, 199, 0.08);">
+        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; border-bottom: 1px dashed var(--border, #e2e8f0); padding-bottom: 8px;">
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <div style="width: 32px; height: 32px; border-radius: 10px; background: rgba(2, 132, 199, 0.12); display: flex; align-items: center; justify-content: center; font-size: 1.1rem;">
+              🥪
+            </div>
+            <div>
+              <strong style="font-size: 0.88rem; color: #0284c7; display: block; font-weight: 800;">Tus Pedidos Activos</strong>
+              <span style="font-size: 0.7rem; color: var(--text-muted);">Pendientes de retirar en la soda</span>
+            </div>
+          </div>
+          <span id="studentActiveOrdersCountBadge" style="background: #0284c7; color: white; border-radius: 20px; padding: 2px 9px; font-size: 0.72rem; font-weight: 800;">0 activos</span>
+        </div>
+        <div id="studentActiveOrdersList" style="display: flex; flex-direction: column; gap: 10px;">
+          <!-- Inyectado dinámicamente -->
+        </div>
+      </div>
+    </section>
 
     <!-- BUSCADOR INTELIGENTE DEL MENÚ PARA ESTUDIANTES Y PADRES -->
     <div class="menu-smart-search-section" id="menuSmartSearchSection">
@@ -4905,6 +4943,6 @@
   <script src="/js/sounds.js?v=19.4"></script>
   <script src="/js/jsQR.js" defer></script>
   <script src="/js/food-icons.js?v=19.4" defer></script>
-  <script src="/js/app.js?v=19.4"></script>
+  <script src="/js/app.js?v=19.7"></script>
 </body>
 </html>
