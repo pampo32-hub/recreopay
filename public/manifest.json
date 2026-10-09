@@ -3,22 +3,55 @@
   "short_name": "SiboPay",
   "start_url": "/index.html",
   "scope": "/",
-  "id": "sibopay-pwa",
+  "id": "https://sibopay.com/",
   "display": "standalone",
   "orientation": "portrait",
   "background_color": "#052036",
   "theme_color": "#0284c7",
+  "lang": "es-CR",
+  "categories": ["finance", "education", "shopping"],
   "description": "Plataforma Digital de Pagos Rápidos, Transferencias y Monedero Escolar en Costa Rica",
   "icons": [
     {
       "src": "/icons/icon-192.png",
       "sizes": "192x192",
-      "type": "image/png"
+      "type": "image/png",
+      "purpose": "any"
     },
     {
       "src": "/icons/icon-512.png",
       "sizes": "512x512",
-      "type": "image/png"
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "/screenshots/screen1.png",
+      "sizes": "1080x2400",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "Acceso Seguro a SiboPay"
+    },
+    {
+      "src": "/screenshots/screen2.png",
+      "sizes": "1080x2400",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "Carné Digital y Monedero Escolar"
+    },
+    {
+      "src": "/screenshots/screen3.png",
+      "sizes": "1080x2400",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "Menú y Pedidos en Soda"
     }
   ]
 }
