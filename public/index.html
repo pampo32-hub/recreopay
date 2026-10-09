@@ -11,9 +11,9 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="SiboPay">
-  <link rel="preload" href="/css/styles.css?v=14.0" as="style">
-  <link rel="preload" href="/js/app.js?v=14.0" as="script">
-  <link rel="stylesheet" href="/css/styles.css?v=14.0">
+  <link rel="preload" href="/css/styles.css?v=17.0" as="style">
+  <link rel="preload" href="/js/app.js?v=17.0" as="script">
+  <link rel="stylesheet" href="/css/styles.css?v=17.0">
   <link rel="stylesheet" href="/css/desktop.css?v=2.2">
   <style>
     /* Transiciones suaves */
@@ -3318,15 +3318,20 @@
         <p style="font-size: 0.72rem; line-height: 1.35; margin: 0 0 10px 0;">
           Puedes dar de baja tu cuenta y borrar tus datos personales de SiboPay. Esta acción es definitiva e irreversible.
         </p>
-        <button type="button" onclick="abrirModalConfirmarEliminarCuenta()" class="btn-saas" style="width: 100%; height: 36px; background: #dc2626; color: white; border: 1px solid #b91c1c; font-weight: 800; font-size: 0.82rem; border-radius: 9px; display: inline-flex; align-items: center; justify-content: center; gap: 6px;">
+        <button type="button" onclick="abrirModalConfirmarEliminarCuenta()" class="btn-saas" style="width: 100%; height: 36px; background: #dc2626; color: white; border: 1px solid #b91c1c; font-weight: 800; font-size: 0.82rem; border-radius: 9px; display: inline-flex; align-items: center; justify-content: center; gap: 6px; cursor: pointer;">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
           <span>Eliminar mi Cuenta y Datos</span>
         </button>
+        <div style="text-align: center; margin-top: 10px;">
+          <a href="/eliminar-cuenta" target="_blank" style="font-size: 0.72rem; color: #dc2626; text-decoration: underline; font-weight: 700;">
+            O abre el formulario web oficial: sibopay.com/eliminar-cuenta
+          </a>
+        </div>
       </div>
 
       <!-- Botón de Cerrar Modal -->
       <div style="display: flex; justify-content: flex-end;">
-        <button type="button" onclick="cerrarModalAjustesCuenta()" class="btn-saas btn-saas-outline" style="height: 36px; padding: 0 18px; font-weight: 700;">
+        <button type="button" onclick="cerrarModalAjustesCuenta()" class="btn-saas btn-saas-outline" style="height: 36px; padding: 0 18px; font-weight: 700; cursor: pointer;">
           Cerrar
         </button>
       </div>
@@ -3358,15 +3363,162 @@
       </div>
 
       <div style="display: flex; gap: 8px; justify-content: flex-end;">
-        <button type="button" onclick="cerrarModalConfirmarEliminarCuenta()" class="btn-saas btn-saas-outline" style="height: 38px; padding: 0 16px; font-weight: 700;">
+        <button type="button" onclick="cerrarModalConfirmarEliminarCuenta()" class="btn-saas btn-saas-outline" style="height: 38px; padding: 0 16px; font-weight: 700; cursor: pointer;">
           Cancelar
         </button>
-        <button type="button" id="btnEjecutarEliminacionDefinitiva" onclick="confirmarEliminarCuentaDefinitiva()" class="btn-saas" style="height: 38px; padding: 0 18px; background: #dc2626; color: white; border: 1px solid #b91c1c; font-weight: 800;">
+        <button type="button" id="btnEjecutarEliminacionDefinitiva" onclick="confirmarEliminarCuentaDefinitiva()" class="btn-saas" style="height: 38px; padding: 0 18px; background: #dc2626; color: white; border: 1px solid #b91c1c; font-weight: 800; cursor: pointer;">
           Sí, Borrar Mi Cuenta
         </button>
       </div>
     </div>
   </div>
+
+  <script>
+    // CONTROLADOR DE ACCESO DIRECTO: AJUSTES, PRIVACIDAD Y ELIMINACIÓN DE CUENTA
+    window.abrirModalAjustesCuenta = function() {
+      const modal = document.getElementById('modalAjustesCuenta');
+      if (!modal) return;
+
+      const lblNombre = document.getElementById('ajustesCuentaNombre');
+      const lblRol = document.getElementById('ajustesCuentaRol');
+      const chkSound = document.getElementById('chkAjustesSound');
+      const chkHaptic = document.getElementById('chkAjustesHaptic');
+
+      let user = (typeof currentUser !== 'undefined' && currentUser) ? currentUser : null;
+      if (!user) {
+        try {
+          const raw = localStorage.getItem('sibopay_user') || localStorage.getItem('recreopay_user');
+          if (raw) user = JSON.parse(raw);
+        } catch (e) {}
+      }
+
+      if (user) {
+        if (lblNombre) lblNombre.textContent = user.nombre || user.username || 'Usuario';
+        if (lblRol) {
+          let r = user.rol || 'Usuario';
+          if (r === 'padre') r = 'Padre / Encargado';
+          else if (r === 'estudiante') r = 'Estudiante / Alumno';
+          else if (r === 'cajero') r = 'Cajero de Soda';
+          else if (r === 'admin') r = 'Administrador de Soda';
+          lblRol.textContent = r;
+        }
+      }
+
+      try {
+        if (chkSound && window.sounds && typeof window.sounds.isSoundEnabled === 'function') {
+          chkSound.checked = window.sounds.isSoundEnabled();
+        }
+        if (chkHaptic && window.sounds && typeof window.sounds.isHapticEnabled === 'function') {
+          chkHaptic.checked = window.sounds.isHapticEnabled();
+        }
+      } catch (e) {}
+
+      modal.style.display = 'flex';
+    };
+
+    window.cerrarModalAjustesCuenta = function(e) {
+      if (e && e.target !== e.currentTarget && e.currentTarget !== document) return;
+      const modal = document.getElementById('modalAjustesCuenta');
+      if (modal) modal.style.display = 'none';
+    };
+
+    window.toggleSensorySoundUI = function(checked) {
+      if (window.sounds && typeof window.sounds.toggleSound === 'function') {
+        window.sounds.toggleSound(checked);
+      }
+    };
+
+    window.toggleSensoryHapticUI = function(checked) {
+      if (window.sounds && typeof window.sounds.toggleHaptics === 'function') {
+        window.sounds.toggleHaptics(checked);
+      }
+    };
+
+    window.abrirModalConfirmarEliminarCuenta = function() {
+      window.cerrarModalAjustesCuenta();
+      const modal = document.getElementById('modalConfirmarEliminarCuenta');
+      const input = document.getElementById('inputConfirmarPassEliminar');
+      if (input) input.value = '';
+      if (modal) modal.style.display = 'flex';
+    };
+
+    window.cerrarModalConfirmarEliminarCuenta = function(e) {
+      if (e && e.target !== e.currentTarget && e.currentTarget !== document) return;
+      const modal = document.getElementById('modalConfirmarEliminarCuenta');
+      if (modal) modal.style.display = 'none';
+    };
+
+    window.confirmarEliminarCuentaDefinitiva = async function() {
+      let user = (typeof currentUser !== 'undefined' && currentUser) ? currentUser : null;
+      if (!user) {
+        try {
+          const raw = localStorage.getItem('sibopay_user') || localStorage.getItem('recreopay_user');
+          if (raw) user = JSON.parse(raw);
+        } catch (e) {}
+      }
+
+      if (!user || !user.id) {
+        alert('Sesión no detectada. Te redirigiremos al formulario público de eliminación de datos.');
+        window.location.href = '/eliminar-cuenta';
+        return;
+      }
+
+      const input = document.getElementById('inputConfirmarPassEliminar');
+      const val = input ? input.value.trim() : '';
+
+      if (!val) {
+        alert('Por favor ingresa tu contraseña o escribe la palabra ELIMINAR para verificar tu identidad.');
+        return;
+      }
+
+      const btn = document.getElementById('btnEjecutarEliminacionDefinitiva');
+      if (btn) {
+        btn.disabled = true;
+        btn.textContent = 'Eliminando cuenta...';
+      }
+
+      try {
+        const res = await fetch('/api/auth/eliminar-cuenta', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            usuario_id: user.id,
+            password_confirmacion: val,
+            motivo: 'Eliminación voluntaria solicitada por el usuario desde la app'
+          })
+        });
+
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'No se pudo eliminar la cuenta');
+
+        if (window.sounds && typeof window.sounds.playSuccess === 'function') {
+          window.sounds.playSuccess();
+        }
+
+        alert('Tu cuenta y datos personales han sido eliminados permanentemente de SiboPay.');
+
+        try {
+          localStorage.clear();
+          sessionStorage.clear();
+          if ('caches' in window) {
+            const keys = await caches.keys();
+            for (const k of keys) await caches.delete(k);
+          }
+        } catch (e) {}
+
+        window.location.href = '/index.html';
+      } catch (err) {
+        if (window.sounds && typeof window.sounds.playError === 'function') {
+          window.sounds.playError();
+        }
+        alert('Error: ' + err.message);
+        if (btn) {
+          btn.disabled = false;
+          btn.textContent = 'Sí, Borrar Mi Cuenta';
+        }
+      }
+    };
+  </script>
 
   <!-- MODAL: CREAR / EDITAR USUARIO (DEVELOPER) -->
   <div class="modal-qr-backdrop" id="modalDevUser" style="display: none;">
@@ -4023,16 +4175,20 @@
       <span class="pwa-nav-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></span>
       <span class="pwa-nav-label">Padres</span>
     </button>
+    <button class="pwa-nav-item" id="pwaNavAjustes" onclick="abrirModalAjustesCuenta()" title="Mi Cuenta y Ajustes">
+      <span class="pwa-nav-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></span>
+      <span class="pwa-nav-label">Ajustes</span>
+    </button>
     <button class="pwa-nav-item pwa-nav-logout" onclick="logout(true)" title="Cerrar sesión y cambiar de cuenta">
       <span class="pwa-nav-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" x2="9" y1="12" y2="12"/></svg></span>
       <span class="pwa-nav-label">Salir</span>
     </button>
   </nav>
 
-  <script src="/js/dialogs.js?v=13.8"></script>
-  <script src="/js/sounds.js?v=13.8" defer></script>
+  <script src="/js/dialogs.js?v=17.0"></script>
+  <script src="/js/sounds.js?v=17.0" defer></script>
   <script src="/js/jsQR.js" defer></script>
-  <script src="/js/food-icons.js?v=1.1" defer></script>
-  <script src="/js/app.js?v=15.0"></script>
+  <script src="/js/food-icons.js?v=17.0" defer></script>
+  <script src="/js/app.js?v=17.0"></script>
 </body>
 </html>
