@@ -1701,31 +1701,60 @@ function expirarPreordenesVencidas({ motivo = 'tiempo_limite', escuelaId = null 
   `;
   const params = [];
 
+  // Cálculo seguro de fecha y hora local de Costa Rica (UTC-6)
+  const now = new Date();
+  const utcMs = now.getTime() + (now.getTimezoneOffset() * 60000);
+  const crDate = new Date(utcMs - (6 * 3600000));
+  const hora = crDate.getHours();
+
+  let cutoffDate;
+  if (hora >= 17) {
+    // Si ya pasaron las 5:00 PM de hoy (ej: 5:01 PM, 6:00 PM, 10:30 PM):
+    // El corte de fin de jornada escolar es HOY a las 17:00:00.
+    // Solo expiran pre-órdenes creadas ANTES de hoy a las 17:00:00 (las de la jornada que ya terminó).
+    // Las pre-órdenes creadas a partir de las 17:00:00 son para la jornada de MAÑANA y NO expiran.
+    cutoffDate = new Date(crDate.getFullYear(), crDate.getMonth(), crDate.getDate(), 17, 0, 0);
+  } else {
+    // Si aún no son las 5:00 PM de hoy (ej: 8:00 AM, 12:00 MD, 4:00 PM):
+    // La jornada escolar de hoy está en curso.
+    // El último corte fue AYER a las 17:00:00.
+    // Solo expiran pre-órdenes creadas ANTES de ayer a las 17:00:00.
+    // Cualquier pre-orden creada anoche (después de las 17:00 de ayer) o creada hoy es para HOY y NO expira.
+    const ayer = new Date(crDate.getTime() - 24 * 3600000);
+    cutoffDate = new Date(ayer.getFullYear(), ayer.getMonth(), ayer.getDate(), 17, 0, 0);
+  }
+
+  const yyyy = cutoffDate.getFullYear();
+  const mm = String(cutoffDate.getMonth() + 1).padStart(2, '0');
+  const dd = String(cutoffDate.getDate()).padStart(2, '0');
+  const cutoffStr = `${yyyy}-${mm}-${dd} 17:00:00`;
+
   if (motivo === 'cierre_caja') {
+    // Si la soda cierra caja antes de las 17:00, cancela las de hoy hasta la hora de cierre
+    // Si cierra caja después de las 17:00, solo cancela lo creado antes de las 17:00 (protege pedidos de mañana)
+    let fechaCorteCaja = crDate;
+    if (hora >= 17) {
+      fechaCorteCaja = cutoffDate;
+    }
+    const yyyyC = fechaCorteCaja.getFullYear();
+    const mmC = String(fechaCorteCaja.getMonth() + 1).padStart(2, '0');
+    const ddC = String(fechaCorteCaja.getDate()).padStart(2, '0');
+    const hhC = String(fechaCorteCaja.getHours()).padStart(2, '0');
+    const miC = String(fechaCorteCaja.getMinutes()).padStart(2, '0');
+    const ssC = String(fechaCorteCaja.getSeconds()).padStart(2, '0');
+    const cutoffCaja = `${yyyyC}-${mmC}-${ddC} ${hhC}:${miC}:${ssC}`;
+
+    condition += " AND creado_en <= ?";
+    params.push(cutoffCaja);
+
     if (escuelaId) {
       condition += ' AND escuela_id = ?';
       params.push(escuelaId);
     }
   } else {
-    // Cálculo seguro de fecha y hora local de Costa Rica (UTC-6) en JavaScript
-    const now = new Date();
-    const utcMs = now.getTime() + (now.getTimezoneOffset() * 60000);
-    const crDate = new Date(utcMs - (6 * 3600000));
-    const hora = crDate.getHours();
-    const yyyy = crDate.getFullYear();
-    const mm = String(crDate.getMonth() + 1).padStart(2, '0');
-    const dd = String(crDate.getDate()).padStart(2, '0');
-    const hoyStr = `${yyyy}-${mm}-${dd}`;
-
-    if (hora >= 17) {
-      // Pasadas las 5:00 PM: expiran todas las pre-órdenes de hoy o anteriores no retiradas
-      condition += " AND date(creado_en, 'localtime') <= ?";
-      params.push(hoyStr);
-    } else {
-      // Antes de las 5:00 PM: solo expiran pre-órdenes de días anteriores no retiradas
-      condition += " AND date(creado_en, 'localtime') < ?";
-      params.push(hoyStr);
-    }
+    // Expiración automática periódica por fin de jornada (5:00 PM)
+    condition += " AND creado_en < ?";
+    params.push(cutoffStr);
 
     if (escuelaId) {
       condition += ' AND escuela_id = ?';
