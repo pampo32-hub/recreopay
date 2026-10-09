@@ -2186,10 +2186,14 @@
           </div>
         </div>
 
-        <div style="display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end;">
+        <div style="display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end; align-items: center;">
           <button class="qr-toggle-btn" onclick="openQrModal()">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="3" rx="2"/><path d="M7 7h.01"/><path d="M17 7h.01"/><path d="M7 17h.01"/><path d="M17 17h.01"/></svg>
             <span id="qrBtnText">Mi QR</span>
+          </button>
+          <button id="btnQrSecurityLock" class="qr-toggle-btn" style="background: rgba(255, 255, 255, 0.15); border-color: rgba(255, 255, 255, 0.3); padding: 7px 9px;" onclick="openQrSecuritySettings()" title="Seguridad y bloqueo biométrico de mi carné QR">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+            <span id="lblQrSecurityBadge" style="font-size: 0.68rem; font-weight: 800;">Seguridad</span>
           </button>
           <button id="btnCardTransfer" class="qr-toggle-btn" style="background: rgba(16, 185, 129, 0.25); border-color: rgba(52, 211, 153, 0.4);" onclick="openTransferModal()">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg>
@@ -2365,6 +2369,117 @@
     </div>
   </div>
 
+  <!-- MODAL DE SEGURIDAD / DESBLOQUEO DE CARNÉ QR (BIOMETRÍA / PIN) -->
+  <div class="modal-qr-backdrop" id="modalQrPinPrompt" style="display: none; z-index: 10001;" onclick="cancelQrSecurityPrompt(event)">
+    <div class="modal-qr-card" onclick="event.stopPropagation()" style="max-width: 360px; text-align: center; border-radius: 24px; padding: 26px 20px;">
+      <div style="width: 60px; height: 60px; border-radius: 20px; background: #e0f2fe; color: #0284c7; display: flex; align-items: center; justify-content: center; margin: 0 auto 16px; box-shadow: 0 4px 14px rgba(2, 132, 199, 0.2);">
+        <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <rect width="18" height="11" x="3" y="11" rx="2" ry="2"/>
+          <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+        </svg>
+      </div>
+
+      <h3 style="font-size: 1.15rem; font-weight: 900; color: var(--text-main, #0f172a); margin: 0 0 6px 0;">Carné QR Protegido</h3>
+      <p style="font-size: 0.8rem; color: var(--text-muted, #64748b); margin: 0 0 18px 0; line-height: 1.4;">
+        Verifica tu identidad para mostrar tu código de pago en la soda.
+      </p>
+
+      <!-- Botón para reintentar biometría (Face ID / Huella) si el dispositivo la soporta -->
+      <div id="qrBioRetryContainer" style="display: none; margin-bottom: 16px;">
+        <button type="button" onclick="retryQrBiometrics()" style="width: 100%; height: 46px; border-radius: 12px; background: #f0f9ff; border: 1.5px solid #0284c7; color: #0284c7; font-weight: 800; font-size: 0.92rem; display: flex; align-items: center; justify-content: center; gap: 8px; cursor: pointer; box-shadow: 0 2px 6px rgba(2, 132, 199, 0.15);">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 2a10 10 0 0 0-10 10c0 3.2 1.5 6 3.8 7.8"/>
+            <path d="M12 6a6 6 0 0 0-6 6c0 1.9.9 3.6 2.3 4.7"/>
+            <path d="M12 10a2 2 0 0 0-2 2c0 .6.3 1.2.8 1.6"/>
+            <path d="M12 22a10 10 0 0 0 10-10c0-3.2-1.5-6-3.8-7.8"/>
+          </svg>
+          <span>Usar Huella o Face ID</span>
+        </button>
+        <div style="font-size: 0.72rem; color: #94a3b8; margin-top: 8px;">— o ingresa tu PIN de 4 dígitos —</div>
+      </div>
+
+      <!-- Inputs de PIN (4 dígitos) -->
+      <div style="margin-bottom: 18px;">
+        <label for="inputQrPin" style="display: block; font-size: 0.78rem; font-weight: 800; color: var(--text-main, #334155); margin-bottom: 8px;">
+          PIN de Seguridad:
+        </label>
+        <input type="password" inputmode="numeric" maxlength="4" id="inputQrPin" placeholder="••••" autocomplete="off" onkeyup="handleQrPinInput(event)" style="width: 150px; height: 50px; text-align: center; font-size: 1.8rem; font-weight: 900; letter-spacing: 12px; border-radius: 12px; border: 2px solid #cbd5e1; outline: none; margin: 0 auto; display: block; box-sizing: border-box; color: #0f172a; background: white;">
+        <div id="msgQrPinError" style="display: none; color: #dc2626; font-size: 0.78rem; font-weight: 800; margin-top: 8px;">
+          PIN incorrecto. Intenta de nuevo.
+        </div>
+      </div>
+
+      <!-- Botones de Acción -->
+      <div style="display: flex; gap: 8px;">
+        <button type="button" onclick="cancelQrSecurityPrompt()" style="flex: 1; height: 44px; border-radius: 12px; background: #f1f5f9; border: none; color: #475569; font-weight: 800; font-size: 0.9rem; cursor: pointer;">
+          Cancelar
+        </button>
+        <button type="button" onclick="submitQrSecurityPin()" style="flex: 1; height: 44px; border-radius: 12px; background: linear-gradient(135deg, #0284c7, #0369a1); border: none; color: white; font-weight: 800; font-size: 0.9rem; cursor: pointer; box-shadow: 0 4px 12px rgba(2, 132, 199, 0.35);">
+          Desbloquear
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL DE AJUSTES DE SEGURIDAD BIOMÉTRICA DEL CARNÉ QR -->
+  <div class="modal-qr-backdrop" id="modalQrSecuritySettings" style="display: none; z-index: 10000;" onclick="closeQrSecuritySettings(event)">
+    <div class="modal-qr-card" onclick="event.stopPropagation()" style="max-width: 420px; text-align: left; border-radius: 22px; padding: 22px;">
+      <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1.5px solid var(--border, #e2e8f0); padding-bottom: 12px; margin-bottom: 16px;">
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <div style="width: 38px; height: 38px; border-radius: 10px; background: #e0f2fe; color: #0284c7; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+            </svg>
+          </div>
+          <div>
+            <h3 style="margin: 0; font-size: 1.05rem; font-weight: 800; color: var(--text-main, #0f172a);">Seguridad del Carné QR</h3>
+            <span style="font-size: 0.72rem; color: var(--text-muted, #64748b);">Protege tu código de pago en este teléfono</span>
+          </div>
+        </div>
+        <button type="button" onclick="closeQrSecuritySettings()" style="background: none; border: none; font-size: 1.2rem; cursor: pointer; color: #64748b;">✕</button>
+      </div>
+
+      <!-- Switch de Activación -->
+      <div style="background: #f8fafc; border: 1.5px solid #e2e8f0; border-radius: 14px; padding: 14px; margin-bottom: 14px; display: flex; justify-content: space-between; align-items: center;">
+        <div>
+          <strong style="font-size: 0.88rem; color: #0f172a; display: block;">Bloqueo con Huella / Face ID</strong>
+          <span style="font-size: 0.73rem; color: #64748b; line-height: 1.35; display: block; margin-top: 2px;">
+            Pide autenticación biométrica cada vez que quieras abrir el código QR de pago.
+          </span>
+        </div>
+        <label class="switch-toggle" style="position: relative; display: inline-block; width: 48px; height: 26px; flex-shrink: 0; margin-left: 10px;">
+          <input type="checkbox" id="chkQrBiometricsEnabled" onchange="toggleQrBiometricSetting(this.checked)" style="opacity: 0; width: 0; height: 0;">
+          <span class="switch-slider" style="position: absolute; cursor: pointer; inset: 0; background-color: #cbd5e1; border-radius: 34px; transition: .3s;"></span>
+        </label>
+      </div>
+
+      <!-- Estado de compatibilidad del dispositivo -->
+      <div id="qrBioDeviceStatus" style="font-size: 0.76rem; padding: 8px 12px; border-radius: 10px; margin-bottom: 14px; display: flex; align-items: center; gap: 8px; font-weight: 700;">
+      </div>
+
+      <!-- PIN de Respaldo -->
+      <div style="background: #ffffff; border: 1.5px solid #cbd5e1; border-radius: 14px; padding: 14px; margin-bottom: 16px;">
+        <strong style="font-size: 0.84rem; color: #1e293b; display: block; margin-bottom: 4px;">PIN de Respaldo (4 dígitos)</strong>
+        <span style="font-size: 0.72rem; color: #64748b; display: block; margin-bottom: 10px;">
+          Se utilizará si el sensor biométrico no te reconoce o si el dispositivo no tiene lector.
+        </span>
+        <div style="display: flex; gap: 8px;">
+          <input type="password" inputmode="numeric" maxlength="4" id="inputSettingsPinBackup" placeholder="1234" style="flex: 1; padding: 8px 12px; border-radius: 8px; border: 1.5px solid #94a3b8; font-size: 1.1rem; font-weight: 900; letter-spacing: 4px; text-align: center; box-sizing: border-box;">
+          <button type="button" onclick="saveSettingsPinBackup()" style="padding: 8px 16px; border-radius: 8px; background: #0284c7; color: white; border: none; font-weight: 800; font-size: 0.85rem; cursor: pointer; white-space: nowrap;">
+            Guardar PIN
+          </button>
+        </div>
+        <div id="msgSettingsPinSaved" style="display: none; color: #16a34a; font-size: 0.74rem; font-weight: 800; margin-top: 6px;">
+          ✅ PIN guardado con éxito
+        </div>
+      </div>
+
+      <button type="button" onclick="closeQrSecuritySettings()" style="width: 100%; height: 44px; border-radius: 12px; background: #f1f5f9; border: none; font-weight: 800; font-size: 0.9rem; color: #475569; cursor: pointer;">
+        Listo
+      </button>
+    </div>
+  </div>
+
   <!-- MODAL: CARRITO Y PRE-ORDEN -->
   <div class="modal-qr-backdrop" id="modalCart" style="display: none;" onclick="closeCartModal(event)">
     <div class="modal-qr-card" onclick="event.stopPropagation()" style="max-width: 420px; text-align: left;">
@@ -2511,6 +2626,22 @@
           <span style="font-size: 0.72rem; color: #64748b;">Permitir transferir saldo a compañeros de clase</span>
         </div>
         <input type="checkbox" id="chkParentAllowTransfer" onchange="onToggleAllowTransfer(this.checked)" style="width: 22px; height: 22px; cursor: pointer; accent-color: #0284c7;" checked>
+      </div>
+
+      <!-- CONTROL PARENTAL: BLOQUEO BIOMÉTRICO / PIN DEL CARNÉ QR -->
+      <div style="background: #f0fdf4; border: 1.5px solid #86efac; border-radius: 12px; padding: 12px 14px; margin-bottom: 16px; display: flex; justify-content: space-between; align-items: center;">
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <div style="width: 32px; height: 32px; border-radius: 8px; background: #dcfce7; color: #16a34a; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+          </div>
+          <div>
+            <strong style="font-size: 0.85rem; color: #166534; display: block;">Bloqueo Huella / Face ID / PIN</strong>
+            <span style="font-size: 0.72rem; color: #475569;">Exigir autenticación antes de mostrar el carné QR</span>
+          </div>
+        </div>
+        <button type="button" onclick="openQrSecuritySettings()" style="background: #16a34a; color: white; border: none; padding: 7px 14px; border-radius: 8px; font-weight: 800; font-size: 0.78rem; cursor: pointer; white-space: nowrap; box-shadow: 0 2px 6px rgba(22, 163, 74, 0.25);">
+          Configurar
+        </button>
       </div>
 
       <!-- RESTABLECER PIN Y CONTRASEÑA ESCOLAR DEL ALUMNO -->

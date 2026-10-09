@@ -888,6 +888,7 @@ function updateStudentUI() {
   // QR Modal info
   document.getElementById('qrDisplayImg').src = `/api/qr-image/${encodeURIComponent(currentStudent.qr_token)}`;
   document.getElementById('qrTokenDisplay').textContent = currentStudent.qr_token;
+  updateQrSecurityBadgeUI();
 
   // Panel de Padres sliders y valores
   document.getElementById('lblParentDailyLimit').textContent = `₡${currentStudent.limite_diario_colones.toLocaleString('es-CR')}`;
@@ -1525,7 +1526,7 @@ async function submitPreOrder() {
 }
 
 // ==========================================
-// MODAL QR ESCOLAR
+// MODAL QR ESCOLAR Y SEGURIDAD BIOMÉTRICA / PIN
 // ==========================================
 
 function openQrModal() {
@@ -1554,8 +1555,340 @@ function openQrModal() {
     }
   }
 
+  // Si la protección biométrica o PIN está activa, autenticar primero
+  if (isQrSecurityActiveForCurrentStudent()) {
+    triggerQrSecurityUnlock(() => {
+      showQrModalActual();
+    });
+    return;
+  }
+
+  showQrModalActual();
+}
+
+function showQrModalActual() {
   if (window.sounds) window.sounds.playScanChirp();
   document.getElementById('modalQr').style.display = 'flex';
+}
+
+// --------------------------------------------------------------------------
+// MÓDULO DE AUTENTICACIÓN BIOMÉTRICA (FACE ID / HUELLA / PIN)
+// --------------------------------------------------------------------------
+let pendingQrUnlockSuccessCallback = null;
+
+function getQrSecurityKey() {
+  const estId = currentStudent ? (currentStudent.id || currentStudent.codigo_estudiante || 'default') : 'default';
+  return 'sibopay_qr_security_' + estId;
+}
+
+function isQrSecurityActiveForCurrentStudent() {
+  const key = getQrSecurityKey();
+  return localStorage.getItem(key) === 'true';
+}
+
+function getQrSecurityPin() {
+  const estId = currentStudent ? (currentStudent.id || currentStudent.codigo_estudiante || 'default') : 'default';
+  const customPin = localStorage.getItem('sibopay_qr_pin_' + estId);
+  if (customPin) return customPin;
+  if (currentStudent && currentStudent.pin_seguridad) return String(currentStudent.pin_seguridad);
+  return '1234';
+}
+
+async function checkDeviceBiometricsSupport() {
+  if (window.PublicKeyCredential && typeof PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable === 'function') {
+    try {
+      const isAvailable = await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable();
+      return Boolean(isAvailable);
+    } catch (e) {
+      return false;
+    }
+  }
+  return false;
+}
+
+async function registerPlatformBiometrics(userIdent) {
+  if (!window.PublicKeyCredential) {
+    throw new Error('Biometría no soportada en este entorno');
+  }
+  const challenge = new Uint8Array(32);
+  window.crypto.getRandomValues(challenge);
+  const userId = new Uint8Array(16);
+  window.crypto.getRandomValues(userId);
+
+  const createOptions = {
+    publicKey: {
+      challenge,
+      rp: {
+        name: 'SiboPay Carné Digital',
+        id: window.location.hostname
+      },
+      user: {
+        id: userId,
+        name: userIdent || 'estudiante',
+        displayName: userIdent || 'Estudiante SiboPay'
+      },
+      pubKeyCredParams: [
+        { alg: -7, type: 'public-key' },
+        { alg: -257, type: 'public-key' }
+      ],
+      authenticatorSelection: {
+        authenticatorAttachment: 'platform',
+        userVerification: 'required'
+      },
+      timeout: 60000
+    }
+  };
+
+  const cred = await navigator.credentials.create(createOptions);
+  if (!cred) throw new Error('No se generó credencial biométrica');
+  
+  const rawId = Array.from(new Uint8Array(cred.rawId)).map(b => String.fromCharCode(b)).join('');
+  return btoa(rawId);
+}
+
+async function verifyPlatformBiometrics(credIdBase64) {
+  if (!window.PublicKeyCredential) {
+    throw new Error('Biometría no disponible');
+  }
+  const challenge = new Uint8Array(32);
+  window.crypto.getRandomValues(challenge);
+
+  const getOptions = {
+    publicKey: {
+      challenge,
+      timeout: 60000,
+      userVerification: 'required',
+      rpId: window.location.hostname
+    }
+  };
+
+  if (credIdBase64) {
+    try {
+      const rawIdStr = atob(credIdBase64);
+      const rawIdArr = new Uint8Array(rawIdStr.length);
+      for (let i = 0; i < rawIdStr.length; i++) {
+        rawIdArr[i] = rawIdStr.charCodeAt(i);
+      }
+      getOptions.publicKey.allowCredentials = [{
+        type: 'public-key',
+        id: rawIdArr
+      }];
+    } catch (err) {
+      console.warn('Error parseando credencial biométrica previa:', err);
+    }
+  }
+
+  const assertion = await navigator.credentials.get(getOptions);
+  return Boolean(assertion);
+}
+
+async function triggerQrSecurityUnlock(onSuccess) {
+  pendingQrUnlockSuccessCallback = onSuccess;
+  const estId = currentStudent ? (currentStudent.id || currentStudent.codigo_estudiante || 'default') : 'default';
+  const credId = localStorage.getItem('sibopay_bio_cred_' + estId);
+
+  const bioAvailable = await checkDeviceBiometricsSupport();
+  const retryContainer = document.getElementById('qrBioRetryContainer');
+  if (retryContainer) {
+    retryContainer.style.display = bioAvailable ? 'block' : 'none';
+  }
+
+  // Intentar inmediatamente autenticación biométrica nativa si está disponible
+  if (bioAvailable && credId) {
+    try {
+      const verified = await verifyPlatformBiometrics(credId);
+      if (verified) {
+        if (window.sounds) window.sounds.playSuccess();
+        if (typeof pendingQrUnlockSuccessCallback === 'function') {
+          pendingQrUnlockSuccessCallback();
+          pendingQrUnlockSuccessCallback = null;
+        }
+        return;
+      }
+    } catch (bioErr) {
+      console.warn('Autenticación biométrica no completada o cancelada, solicitando PIN:', bioErr);
+    }
+  }
+
+  // Si no hay biometría o falló/canceló, abrir modal de PIN
+  showQrPinPromptModal();
+}
+
+function showQrPinPromptModal() {
+  const modal = document.getElementById('modalQrPinPrompt');
+  if (!modal) return;
+  const pinInput = document.getElementById('inputQrPin');
+  if (pinInput) pinInput.value = '';
+  const err = document.getElementById('msgQrPinError');
+  if (err) err.style.display = 'none';
+
+  modal.style.display = 'flex';
+  setTimeout(() => {
+    if (pinInput) pinInput.focus();
+  }, 150);
+}
+
+function cancelQrSecurityPrompt(e) {
+  if (e && e.target !== e.currentTarget && e.currentTarget.id === 'modalQrPinPrompt') return;
+  const modal = document.getElementById('modalQrPinPrompt');
+  if (modal) modal.style.display = 'none';
+  pendingQrUnlockSuccessCallback = null;
+  resetPwaNavActive();
+}
+
+function handleQrPinInput(e) {
+  const input = document.getElementById('inputQrPin');
+  if (!input) return;
+  const pin = input.value.trim();
+  if (pin.length === 4) {
+    submitQrSecurityPin();
+  }
+}
+
+function submitQrSecurityPin() {
+  const input = document.getElementById('inputQrPin');
+  const enteredPin = input ? input.value.trim() : '';
+  const validPin = getQrSecurityPin();
+
+  if (enteredPin === validPin) {
+    const modal = document.getElementById('modalQrPinPrompt');
+    if (modal) modal.style.display = 'none';
+    if (window.sounds) window.sounds.playSuccess();
+    if (typeof pendingQrUnlockSuccessCallback === 'function') {
+      pendingQrUnlockSuccessCallback();
+      pendingQrUnlockSuccessCallback = null;
+    }
+  } else {
+    if (window.sounds) window.sounds.playError();
+    const err = document.getElementById('msgQrPinError');
+    if (err) {
+      err.style.display = 'block';
+      err.textContent = '❌ PIN incorrecto. Intenta de nuevo.';
+    }
+    if (input) {
+      input.value = '';
+      input.focus();
+      input.style.borderColor = '#ef4444';
+      setTimeout(() => { input.style.borderColor = '#cbd5e1'; }, 1000);
+    }
+  }
+}
+
+async function retryQrBiometrics() {
+  const estId = currentStudent ? (currentStudent.id || currentStudent.codigo_estudiante || 'default') : 'default';
+  const credId = localStorage.getItem('sibopay_bio_cred_' + estId);
+  try {
+    const verified = await verifyPlatformBiometrics(credId);
+    if (verified) {
+      const modal = document.getElementById('modalQrPinPrompt');
+      if (modal) modal.style.display = 'none';
+      if (window.sounds) window.sounds.playSuccess();
+      if (typeof pendingQrUnlockSuccessCallback === 'function') {
+        pendingQrUnlockSuccessCallback();
+        pendingQrUnlockSuccessCallback = null;
+      }
+    }
+  } catch (err) {
+    console.warn('Reintento biométrico cancelado:', err);
+  }
+}
+
+async function openQrSecuritySettings() {
+  const modal = document.getElementById('modalQrSecuritySettings');
+  if (!modal) return;
+  const isEnabled = isQrSecurityActiveForCurrentStudent();
+  const chk = document.getElementById('chkQrBiometricsEnabled');
+  if (chk) chk.checked = isEnabled;
+
+  const pinBackupInput = document.getElementById('inputSettingsPinBackup');
+  if (pinBackupInput) pinBackupInput.value = getQrSecurityPin();
+
+  const statusBox = document.getElementById('qrBioDeviceStatus');
+  if (statusBox) {
+    const bioAvailable = await checkDeviceBiometricsSupport();
+    if (bioAvailable) {
+      statusBox.style.background = '#ecfdf5';
+      statusBox.style.color = '#065f46';
+      statusBox.style.border = '1px solid #a7f3d0';
+      statusBox.innerHTML = '✨ <strong>Sensor biométrico detectado:</strong> Compatible con Face ID, Huella dactilar o Windows Hello.';
+    } else {
+      statusBox.style.background = '#fffbeb';
+      statusBox.style.color = '#92400e';
+      statusBox.style.border = '1px solid #fde68a';
+      statusBox.innerHTML = '🔒 <strong>Modo PIN Seguro:</strong> Tu carné estará protegido por tu PIN de 4 dígitos (sin sensor biométrico en este navegador).';
+    }
+  }
+
+  modal.style.display = 'flex';
+}
+
+function closeQrSecuritySettings(e) {
+  if (e && e.target !== e.currentTarget && e.currentTarget.id === 'modalQrSecuritySettings') return;
+  const modal = document.getElementById('modalQrSecuritySettings');
+  if (modal) modal.style.display = 'none';
+  updateQrSecurityBadgeUI();
+}
+
+async function toggleQrBiometricSetting(enabled) {
+  const estId = currentStudent ? (currentStudent.id || currentStudent.codigo_estudiante || 'default') : 'default';
+  const key = getQrSecurityKey();
+
+  if (enabled) {
+    const bioAvailable = await checkDeviceBiometricsSupport();
+    if (bioAvailable) {
+      try {
+        const studentIdent = currentStudent ? (currentStudent.codigo_estudiante || currentStudent.nombre_completo) : 'estudiante';
+        const credId = await registerPlatformBiometrics(studentIdent);
+        localStorage.setItem('sibopay_bio_cred_' + estId, credId);
+      } catch (regErr) {
+        console.warn('Registro biométrico omitido o cancelado por el usuario:', regErr);
+      }
+    }
+    localStorage.setItem(key, 'true');
+  } else {
+    localStorage.setItem(key, 'false');
+  }
+  updateQrSecurityBadgeUI();
+}
+
+function saveSettingsPinBackup() {
+  const input = document.getElementById('inputSettingsPinBackup');
+  const pin = input ? input.value.trim() : '';
+  if (!pin || pin.length < 4) {
+    alert('El PIN debe tener 4 dígitos numéricos.');
+    return;
+  }
+  const estId = currentStudent ? (currentStudent.id || currentStudent.codigo_estudiante || 'default') : 'default';
+  localStorage.setItem('sibopay_qr_pin_' + estId, pin);
+
+  const msg = document.getElementById('msgSettingsPinSaved');
+  if (msg) {
+    msg.style.display = 'block';
+    setTimeout(() => { msg.style.display = 'none'; }, 2500);
+  }
+}
+
+function updateQrSecurityBadgeUI() {
+  const isEnabled = isQrSecurityActiveForCurrentStudent();
+  const btn = document.getElementById('btnQrSecurityLock');
+  const badge = document.getElementById('lblQrSecurityBadge');
+  const qrBtnText = document.getElementById('qrBtnText');
+
+  if (badge) {
+    badge.textContent = isEnabled ? 'Protegido' : 'Seguridad';
+  }
+  if (btn) {
+    if (isEnabled) {
+      btn.style.background = 'rgba(16, 185, 129, 0.3)';
+      btn.style.borderColor = 'rgba(52, 211, 153, 0.6)';
+    } else {
+      btn.style.background = 'rgba(255, 255, 255, 0.15)';
+      btn.style.borderColor = 'rgba(255, 255, 255, 0.3)';
+    }
+  }
+  if (qrBtnText) {
+    qrBtnText.textContent = isEnabled ? '🔒 Mi QR' : 'Mi QR';
+  }
 }
 
 function resetPwaNavActive() {
