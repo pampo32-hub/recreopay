@@ -622,6 +622,12 @@ function switchDevTab(tab) {
     if (btn) btn.classList.add('active');
     if (content) content.style.display = 'block';
     loadDevSinpeUniversal();
+  } else if (tab === 'kardex') {
+    const btn = document.getElementById('btnDevTabKardex');
+    const content = document.getElementById('devTabContentKardex');
+    if (btn) btn.classList.add('active');
+    if (content) content.style.display = 'block';
+    inicializarDevKardex();
   }
 }
 
@@ -10830,5 +10836,492 @@ function copiarAlPortapapelesTexto(texto, btnEl) {
   }
 }
 window.copiarAlPortapapelesTexto = copiarAlPortapapelesTexto;
+
+// ========================================================
+// KARDEX & AUDITORÍA 360° DE ESTUDIANTES (DEVELOPER MASTER)
+// ========================================================
+
+let currentKardexEstudianteId = null;
+let currentKardexData = null;
+let currentKardexSubTab = 'compras';
+let devKardexEstudiantesList = [];
+
+/**
+ * Inicializar la pestaña de Kardex en el Panel Developer
+ */
+async function inicializarDevKardex() {
+  await poblarEscuelasKardexDev();
+  await recargarListaKardexDev();
+}
+window.inicializarDevKardex = inicializarDevKardex;
+
+async function poblarEscuelasKardexDev() {
+  const select = document.getElementById('devKardexEscuelaFilter');
+  if (!select) return;
+
+  const currentVal = select.value;
+  select.innerHTML = '<option value="todas">🏫 Todas las Sedes</option>';
+
+  try {
+    const res = await fetch('/api/developer/escuelas');
+    if (res.ok) {
+      const escuelas = await res.json();
+      if (Array.isArray(escuelas)) {
+        escuelas.forEach(esc => {
+          const opt = document.createElement('option');
+          opt.value = esc.id;
+          opt.textContent = `${esc.nombre} (${esc.codigo || 'SEDE'})`;
+          select.appendChild(opt);
+        });
+      }
+    }
+  } catch (e) {
+    console.warn('No se pudieron cargar escuelas para filtro de kardex:', e);
+  }
+
+  if (currentVal) select.value = currentVal;
+}
+
+async function recargarListaKardexDev() {
+  const studentListEl = document.getElementById('devKardexStudentList');
+  if (studentListEl) {
+    studentListEl.innerHTML = '<div style="padding: 20px; text-align: center; color: var(--text-muted); font-size: 0.85rem;">⏳ Cargando alumnos...</div>';
+  }
+
+  try {
+    const res = await fetch('/api/developer/estudiantes/buscar');
+    if (res.ok) {
+      const data = await res.json();
+      if (Array.isArray(data)) {
+        devKardexEstudiantesList = data;
+      }
+    }
+  } catch (err) {
+    console.error('Error cargando estudiantes para kardex dev:', err);
+  }
+
+  buscarEstudiantesKardexDev();
+}
+window.recargarListaKardexDev = recargarListaKardexDev;
+
+/**
+ * Filtrar estudiantes por texto y escuela en tiempo real
+ */
+function buscarEstudiantesKardexDev() {
+  const searchInput = document.getElementById('devKardexSearchInput');
+  const escuelaSelect = document.getElementById('devKardexEscuelaFilter');
+  const studentListEl = document.getElementById('devKardexStudentList');
+  const countBadge = document.getElementById('devKardexResultCountBadge');
+
+  if (!studentListEl) return;
+
+  const normalizeStr = str => (str || '')
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .trim();
+
+  const query = normalizeStr(searchInput?.value || '');
+  const escuelaId = escuelaSelect?.value || 'todas';
+
+  const filtered = devKardexEstudiantesList.filter(e => {
+    // Filtro por escuela
+    if (escuelaId !== 'todas' && String(e.escuela_id) !== String(escuelaId)) {
+      return false;
+    }
+    if (!query) return true;
+    return normalizeStr(e.nombre_completo).includes(query) ||
+           normalizeStr(e.codigo_estudiante).includes(query) ||
+           normalizeStr(e.padre_nombre).includes(query) ||
+           normalizeStr(e.padre_telefono).includes(query) ||
+           normalizeStr(e.grado).includes(query) ||
+           normalizeStr(e.seccion).includes(query) ||
+           normalizeStr(e.escuela_nombre).includes(query);
+  });
+
+  if (countBadge) {
+    countBadge.textContent = `${filtered.length} estudiante(s)`;
+  }
+
+  if (filtered.length === 0) {
+    studentListEl.innerHTML = `
+      <div style="padding: 30px 15px; text-align: center; color: var(--text-muted); font-size: 0.84rem;">
+        🔍 No se encontraron alumnos con los criterios seleccionados.
+      </div>
+    `;
+    return;
+  }
+
+  studentListEl.innerHTML = filtered.map(e => {
+    const isSelected = String(e.id) === String(currentKardexEstudianteId);
+    const parts = (e.nombre_completo || 'ES').trim().split(/\s+/);
+    const initials = parts.length >= 2 ? (parts[0][0] + parts[1][0]).toUpperCase() : parts[0].substring(0, 2).toUpperCase();
+    const saldo = Number(e.saldo_colones || 0).toLocaleString('es-CR');
+    const escBadge = e.escuela_nombre ? `<span style="font-size: 0.68rem; color: #64748b; background: var(--border); padding: 1px 6px; border-radius: 4px; max-width: 120px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${escapeHtml(e.escuela_nombre)}</span>` : '';
+
+    return `
+      <div onclick="seleccionarEstudianteKardexDev(${e.id})" style="display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 10px 12px; border-radius: 12px; border: 1.5px solid ${isSelected ? '#0284c7' : 'var(--border)'}; background: ${isSelected ? 'rgba(2, 132, 199, 0.08)' : 'var(--bg-main)'}; cursor: pointer; transition: all 0.15s ease;">
+        <div style="display: flex; align-items: center; gap: 10px; min-width: 0; flex: 1;">
+          <div style="width: 36px; height: 36px; border-radius: 10px; background: ${isSelected ? 'linear-gradient(135deg, #0284c7, #3b82f6)' : 'linear-gradient(135deg, #64748b, #475569)'}; color: white; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 0.85rem; flex-shrink: 0;">
+            ${initials}
+          </div>
+          <div style="min-width: 0; flex: 1;">
+            <div style="font-weight: 800; font-size: 0.84rem; color: var(--text-main); word-break: break-word; line-height: 1.2;">
+              ${escapeHtml(e.nombre_completo)}
+            </div>
+            <div style="font-size: 0.72rem; color: var(--text-muted); margin-top: 2px; display: flex; align-items: center; gap: 6px; flex-wrap: wrap;">
+              <span style="font-weight: 700; color: #0284c7;">${e.codigo_estudiante || ''}</span>
+              <span>${e.grado || ''} ${e.seccion ? '· ' + e.seccion : ''}</span>
+              ${escBadge}
+            </div>
+          </div>
+        </div>
+        <div style="text-align: right; flex-shrink: 0;">
+          <div style="font-size: 0.88rem; font-weight: 900; color: #10b981;">₡${saldo}</div>
+          <span style="font-size: 0.65rem; color: #64748b;">Saldo</span>
+        </div>
+      </div>
+    `;
+  }).join('');
+
+  // Si no hay estudiante seleccionado o el seleccionado ya no está en la lista filtrada, seleccionar el primero
+  const isSelectedInList = filtered.some(e => String(e.id) === String(currentKardexEstudianteId));
+  if (!isSelectedInList && filtered.length > 0) {
+    seleccionarEstudianteKardexDev(filtered[0].id);
+  }
+}
+window.buscarEstudiantesKardexDev = buscarEstudiantesKardexDev;
+
+/**
+ * Seleccionar un estudiante y cargar su Kardex 360°
+ */
+async function seleccionarEstudianteKardexDev(studentId) {
+  currentKardexEstudianteId = studentId;
+  await cargarKardexEstudianteDev(studentId);
+  buscarEstudiantesKardexDev();
+}
+window.seleccionarEstudianteKardexDev = seleccionarEstudianteKardexDev;
+
+/**
+ * Consultar datos del endpoint y poblar la vista
+ */
+async function cargarKardexEstudianteDev(studentId) {
+  const placeholder = document.getElementById('devKardexPlaceholder');
+  const studentView = document.getElementById('devKardexStudentView');
+
+  if (placeholder) placeholder.style.display = 'none';
+  if (studentView) studentView.style.display = 'block';
+
+  try {
+    const res = await fetch(`/api/developer/estudiantes/${studentId}/kardex`);
+    if (!res.ok) throw new Error('No se pudo obtener el kardex del estudiante');
+    const data = await res.json();
+    currentKardexData = data;
+
+    const est = data.estudiante || {};
+    const totales = data.totales || {};
+
+    // 1. Cabecera Ficha Técnica
+    const avatar = document.getElementById('devKardexAvatar');
+    const carnet = document.getElementById('devKardexBadgeCarnet');
+    const escuela = document.getElementById('devKardexBadgeEscuela');
+    const nombre = document.getElementById('devKardexNombre');
+    const gradoSeccion = document.getElementById('devKardexGradoSeccion');
+    const padreInfo = document.getElementById('devKardexPadreInfo');
+
+    const parts = (est.nombre_completo || 'ES').trim().split(/\s+/);
+    const initials = parts.length >= 2 ? (parts[0][0] + parts[1][0]).toUpperCase() : parts[0].substring(0, 2).toUpperCase();
+    if (avatar) avatar.textContent = initials;
+
+    if (carnet) carnet.textContent = est.codigo_estudiante || `ID #${est.id}`;
+    if (escuela) escuela.textContent = est.escuela_nombre || 'Sede';
+    if (nombre) nombre.textContent = est.nombre_completo;
+    if (gradoSeccion) gradoSeccion.textContent = `${est.grado || 'Estudiante'} ${est.seccion ? '· Sección ' + est.seccion : ''}`;
+    
+    if (padreInfo) {
+      const tel = est.padre_telefono ? ` · Tel: ${est.padre_telefono}` : '';
+      padreInfo.textContent = `Encargado: ${est.padre_nombre || 'N/A'}${tel}`;
+    }
+
+    // 2. KPIs
+    const kpiSaldo = document.getElementById('devKardexKpiSaldoActual');
+    const kpiRecargas = document.getElementById('devKardexKpiTotalRecargas');
+    const kpiCantRecargas = document.getElementById('devKardexKpiCantRecargas');
+    const kpiCompras = document.getElementById('devKardexKpiTotalCompras');
+    const kpiCantCompras = document.getElementById('devKardexKpiCantCompras');
+    const kpiLimite = document.getElementById('devKardexKpiLimiteDiario');
+
+    if (kpiSaldo) kpiSaldo.textContent = `₡${Number(totales.saldo_actual || 0).toLocaleString('es-CR')}`;
+    if (kpiRecargas) kpiRecargas.textContent = `₡${Number(totales.total_recargas || 0).toLocaleString('es-CR')}`;
+    if (kpiCantRecargas) kpiCantRecargas.textContent = `${totales.cant_recargas || 0} recargas`;
+    if (kpiCompras) kpiCompras.textContent = `₡${Number(totales.total_compras || 0).toLocaleString('es-CR')}`;
+    if (kpiCantCompras) kpiCantCompras.textContent = `${totales.cant_compras || 0} compras`;
+    if (kpiLimite) kpiLimite.textContent = `₡${Number(est.limite_diario_colones || 0).toLocaleString('es-CR')}`;
+
+    // 3. Contadores en pestañas
+    const badgeCompras = document.getElementById('devKardexBadgeTabComprasCount');
+    const badgeRecargas = document.getElementById('devKardexBadgeTabRecargasCount');
+    const badgeMov = document.getElementById('devKardexBadgeTabMovimientosCount');
+
+    if (badgeCompras) badgeCompras.textContent = data.compras ? data.compras.length : 0;
+    if (badgeRecargas) badgeRecargas.textContent = data.recargas ? data.recargas.length : 0;
+    if (badgeMov) badgeMov.textContent = data.movimientos ? data.movimientos.length : 0;
+
+    // 4. Renderizar la subvista activa
+    renderizarSubVistaKardexDev(currentKardexSubTab);
+  } catch (err) {
+    console.error('Error cargando kardex del estudiante:', err);
+    if (studentView) {
+      studentView.innerHTML = `
+        <div style="background: #fef2f2; border: 1.5px solid #f87171; border-radius: 14px; padding: 20px; color: #b91c1c; text-align: center;">
+          ⚠️ Error al consultar el Kardex del estudiante: ${err.message}
+        </div>
+      `;
+    }
+  }
+}
+window.cargarKardexEstudianteDev = cargarKardexEstudianteDev;
+
+/**
+ * Cambiar entre sub-pestañas: 'compras', 'recargas', 'movimientos'
+ */
+function cambiarSubTabKardexDev(subTab) {
+  currentKardexSubTab = subTab;
+
+  const btnCompras = document.getElementById('btnDevKardexTabCompras');
+  const btnRecargas = document.getElementById('btnDevKardexTabRecargas');
+  const btnMov = document.getElementById('btnDevKardexTabMovimientos');
+
+  const viewCompras = document.getElementById('devKardexSubViewCompras');
+  const viewRecargas = document.getElementById('devKardexSubViewRecargas');
+  const viewMov = document.getElementById('devKardexSubViewMovimientos');
+
+  // Clases botones
+  if (btnCompras) {
+    btnCompras.className = `dev-action-btn ${subTab === 'compras' ? 'dev-action-btn-primary' : 'dev-action-btn-outline'}`;
+  }
+  if (btnRecargas) {
+    btnRecargas.className = `dev-action-btn ${subTab === 'recargas' ? 'dev-action-btn-primary' : 'dev-action-btn-outline'}`;
+  }
+  if (btnMov) {
+    btnMov.className = `dev-action-btn ${subTab === 'movimientos' ? 'dev-action-btn-primary' : 'dev-action-btn-outline'}`;
+  }
+
+  // Visibilidad vistas
+  if (viewCompras) viewCompras.style.display = subTab === 'compras' ? 'block' : 'none';
+  if (viewRecargas) viewRecargas.style.display = subTab === 'recargas' ? 'block' : 'none';
+  if (viewMov) viewMov.style.display = subTab === 'movimientos' ? 'block' : 'none';
+
+  renderizarSubVistaKardexDev(subTab);
+}
+window.cambiarSubTabKardexDev = cambiarSubTabKardexDev;
+
+/**
+ * Renderizar la sub-vista seleccionada con datos
+ */
+function renderizarSubVistaKardexDev(subTab) {
+  if (!currentKardexData) return;
+
+  if (subTab === 'compras') {
+    const container = document.getElementById('devKardexSubViewCompras');
+    if (!container) return;
+
+    const compras = currentKardexData.compras || [];
+    if (compras.length === 0) {
+      container.innerHTML = `
+        <div style="padding: 40px 20px; text-align: center; color: var(--text-muted); font-size: 0.88rem;">
+          🛒 Este estudiante aún no registra compras de soda ni meriendas.
+        </div>
+      `;
+      return;
+    }
+
+    container.innerHTML = `
+      <div style="display: flex; flex-direction: column; gap: 12px;">
+        ${compras.map(o => {
+          const fecha = o.creado_en ? new Date(o.creado_en).toLocaleString('es-CR', { month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : 'Fecha N/A';
+          const items = Array.isArray(o.items) ? o.items : [];
+          const isCancelado = o.estado === 'cancelado';
+          const total = Number(o.total_colones || 0).toLocaleString('es-CR');
+
+          let estadoBadge = `<span style="background: #ecfdf5; color: #059669; border: 1px solid #a7f3d0; padding: 2px 8px; border-radius: 6px; font-weight: 800; font-size: 0.72rem;">✓ ${o.estado || 'Entregado'}</span>`;
+          if (isCancelado) {
+            estadoBadge = `<span style="background: #fef2f2; color: #ef4444; border: 1px solid #fecaca; padding: 2px 8px; border-radius: 6px; font-weight: 800; font-size: 0.72rem;">✕ Cancelado</span>`;
+          } else if (o.estado === 'pendiente' || o.estado === 'en_preparacion') {
+            estadoBadge = `<span style="background: #fffbeb; color: #d97706; border: 1px solid #fde68a; padding: 2px 8px; border-radius: 6px; font-weight: 800; font-size: 0.72rem;">⏳ ${o.estado}</span>`;
+          }
+
+          return `
+            <div style="background: var(--bg-main); border: 1px solid var(--border); border-radius: 14px; padding: 14px;">
+              <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px; flex-wrap: wrap; gap: 8px;">
+                <div>
+                  <div style="display: flex; align-items: center; gap: 8px;">
+                    <strong style="color: var(--text-main); font-size: 0.92rem;">#${o.codigo_orden || 'ORD-' + o.id}</strong>
+                    ${estadoBadge}
+                    <span style="font-size: 0.72rem; color: #0284c7; font-weight: 700; background: rgba(2,132,199,0.08); padding: 2px 6px; border-radius: 4px;">${o.tipo_orden === 'preorden' ? 'Preorden Recreo' : 'Caja Mostrador'}</span>
+                  </div>
+                  <div style="font-size: 0.74rem; color: var(--text-muted); margin-top: 3px;">
+                    📅 ${fecha} ${o.momento_entrega_label ? `· ⏰ ${o.momento_entrega_label}` : ''}
+                  </div>
+                </div>
+                <div style="text-align: right;">
+                  <div style="font-size: 1.15rem; font-weight: 950; color: ${isCancelado ? 'var(--text-muted)' : '#d97706'}; ${isCancelado ? 'text-decoration: line-through;' : ''}">
+                    ₡${total}
+                  </div>
+                  <span style="font-size: 0.68rem; color: #64748b; font-weight: 700;">Total de la compra</span>
+                </div>
+              </div>
+
+              <!-- DESGLOSE DE PRODUCTOS -->
+              <div style="background: var(--card-bg); border: 1px dashed var(--border); border-radius: 10px; padding: 10px 12px; margin-top: 8px;">
+                <div style="font-size: 0.72rem; font-weight: 800; color: var(--text-muted); text-transform: uppercase; margin-bottom: 6px;">
+                  Productos Adquiridos:
+                </div>
+                <div style="display: flex; flex-direction: column; gap: 4px;">
+                  ${items.map(it => `
+                    <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.82rem;">
+                      <div>
+                        <span style="margin-right: 4px;">${it.icono || '🥪'}</span>
+                        <strong style="color: var(--text-main);">${it.cantidad}x ${escapeHtml(it.nombre || 'Producto')}</strong>
+                      </div>
+                      <span style="color: #64748b; font-weight: 700;">
+                        ₡${Number(it.precio_unitario || 0).toLocaleString('es-CR')} c/u = <strong style="color: var(--text-main);">₡${Number(it.subtotal || 0).toLocaleString('es-CR')}</strong>
+                      </span>
+                    </div>
+                  `).join('')}
+                </div>
+              </div>
+            </div>
+          `;
+        }).join('')}
+      </div>
+    `;
+  } else if (subTab === 'recargas') {
+    const container = document.getElementById('devKardexSubViewRecargas');
+    if (!container) return;
+
+    const recargas = currentKardexData.recargas || [];
+    if (recargas.length === 0) {
+      container.innerHTML = `
+        <div style="padding: 40px 20px; text-align: center; color: var(--text-muted); font-size: 0.88rem;">
+          ⚡ Este estudiante aún no registra recargas de saldo.
+        </div>
+      `;
+      return;
+    }
+
+    container.innerHTML = `
+      <div style="display: flex; flex-direction: column; gap: 12px;">
+        ${recargas.map(r => {
+          const fecha = r.fecha ? new Date(r.fecha).toLocaleString('es-CR', { month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : 'Fecha N/A';
+          const isSinpe = r.tipo === 'recarga_sinpe';
+          const monto = Number(r.monto_colones || 0).toLocaleString('es-CR');
+          const saldoPrev = Number(r.saldo_previo || 0).toLocaleString('es-CR');
+          const saldoPost = Number(r.saldo_posterior || 0).toLocaleString('es-CR');
+
+          return `
+            <div style="background: var(--bg-main); border: 1.5px solid rgba(16, 185, 129, 0.25); border-radius: 14px; padding: 14px; box-shadow: 0 2px 8px rgba(16, 185, 129, 0.04);">
+              <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 8px;">
+                <div>
+                  <div style="display: flex; align-items: center; gap: 8px;">
+                    <span style="background: ${isSinpe ? '#e0f2fe' : '#ecfdf5'}; color: ${isSinpe ? '#0369a1' : '#059669'}; border: 1px solid ${isSinpe ? '#bae6fd' : '#a7f3d0'}; padding: 3px 8px; border-radius: 6px; font-weight: 800; font-size: 0.74rem;">
+                      ${isSinpe ? '📲 Recarga SINPE Móvil' : '💵 Recarga en Caja'}
+                    </span>
+                    ${r.comprobante_sinpe ? `<code style="font-size: 0.74rem; background: var(--card-bg); padding: 2px 6px; border-radius: 4px; border: 1px solid var(--border);">Ref #${r.comprobante_sinpe}</code>` : ''}
+                  </div>
+                  <div style="font-size: 0.76rem; color: var(--text-muted); margin-top: 4px;">
+                    📅 ${fecha}
+                  </div>
+                  <div style="font-size: 0.8rem; color: var(--text-main); font-weight: 600; margin-top: 4px;">
+                    ${escapeHtml(r.descripcion || 'Recarga de monedero')}
+                  </div>
+                </div>
+                <div style="text-align: right;">
+                  <div style="font-size: 1.25rem; font-weight: 950; color: #10b981;">
+                    +₡${monto}
+                  </div>
+                  <span style="font-size: 0.68rem; color: #64748b; font-weight: 700;">Acreditado a cuenta</span>
+                </div>
+              </div>
+
+              <!-- TRAZABILIDAD DE SALDOS -->
+              <div style="display: flex; justify-content: space-between; align-items: center; background: var(--card-bg); border-radius: 8px; padding: 6px 12px; margin-top: 10px; font-size: 0.75rem; border: 1px solid var(--border);">
+                <span style="color: var(--text-muted);">Saldo antes: <strong>₡${saldoPrev}</strong></span>
+                <span style="color: #0284c7; font-weight: 800;">➔</span>
+                <span style="color: #065f46; font-weight: 800;">Saldo resultante: <strong style="color: #10b981;">₡${saldoPost}</strong></span>
+              </div>
+            </div>
+          `;
+        }).join('')}
+      </div>
+    `;
+  } else if (subTab === 'movimientos') {
+    const container = document.getElementById('devKardexSubViewMovimientos');
+    if (!container) return;
+
+    const movimientos = currentKardexData.movimientos || [];
+    if (movimientos.length === 0) {
+      container.innerHTML = `
+        <div style="padding: 40px 20px; text-align: center; color: var(--text-muted); font-size: 0.88rem;">
+          📊 Este estudiante aún no registra movimientos en el sistema.
+        </div>
+      `;
+      return;
+    }
+
+    container.innerHTML = `
+      <div style="overflow-x: auto;">
+        <table style="width: 100%; border-collapse: collapse; font-size: 0.82rem; text-align: left;">
+          <thead>
+            <tr style="border-bottom: 1.5px solid var(--border); color: var(--text-muted); font-size: 0.72rem; text-transform: uppercase;">
+              <th style="padding: 10px 8px;">Fecha / Hora</th>
+              <th style="padding: 10px 8px;">Tipo</th>
+              <th style="padding: 10px 8px;">Descripción & Referencia</th>
+              <th style="padding: 10px 8px; text-align: right;">Saldo Previo</th>
+              <th style="padding: 10px 8px; text-align: right;">Movimiento</th>
+              <th style="padding: 10px 8px; text-align: right;">Saldo Posterior</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${movimientos.map(m => {
+              const fecha = m.fecha ? new Date(m.fecha).toLocaleString('es-CR', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : '';
+              const esIngreso = Number(m.monto_colones) > 0;
+              const montoSigno = esIngreso ? `+₡${Number(m.monto_colones).toLocaleString('es-CR')}` : `-₡${Math.abs(Number(m.monto_colones)).toLocaleString('es-CR')}`;
+              const montoColor = esIngreso ? '#10b981' : '#ef4444';
+
+              return `
+                <tr style="border-bottom: 1px solid var(--border);">
+                  <td style="padding: 10px 8px; white-space: nowrap; color: var(--text-muted);">${fecha}</td>
+                  <td style="padding: 10px 8px;">
+                    <span style="font-size: 0.72rem; font-weight: 800; padding: 2px 6px; border-radius: 4px; background: ${esIngreso ? '#ecfdf5' : '#fef2f2'}; color: ${esIngreso ? '#059669' : '#dc2626'};">
+                      ${m.tipo}
+                    </span>
+                  </td>
+                  <td style="padding: 10px 8px; color: var(--text-main);">
+                    <div>${escapeHtml(m.descripcion || '')}</div>
+                    ${m.comprobante_sinpe ? `<code style="font-size: 0.7rem; color: #0284c7;">Ref #${m.comprobante_sinpe}</code>` : ''}
+                    ${m.codigo_orden ? `<code style="font-size: 0.7rem; color: #d97706;">#${m.codigo_orden}</code>` : ''}
+                  </td>
+                  <td style="padding: 10px 8px; text-align: right; color: #64748b;">₡${Number(m.saldo_previo || 0).toLocaleString('es-CR')}</td>
+                  <td style="padding: 10px 8px; text-align: right; font-weight: 900; color: ${montoColor};">${montoSigno}</td>
+                  <td style="padding: 10px 8px; text-align: right; font-weight: 800; color: var(--text-main);">₡${Number(m.saldo_posterior || 0).toLocaleString('es-CR')}</td>
+                </tr>
+              `;
+            }).join('')}
+          </tbody>
+        </table>
+      </div>
+    `;
+  }
+}
+
+function abrirCarnetEstudianteDesdeDev() {
+  if (currentKardexData && currentKardexData.estudiante && currentKardexData.estudiante.codigo_estudiante) {
+    window.open(`/carnet.html?carnet=${encodeURIComponent(currentKardexData.estudiante.codigo_estudiante)}`, '_blank');
+  } else {
+    alert('No hay código de carné disponible para este estudiante.');
+  }
+}
+window.abrirCarnetEstudianteDesdeDev = abrirCarnetEstudianteDesdeDev;
 
 

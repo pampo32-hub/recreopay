@@ -252,6 +252,10 @@
         <span>🔍 Buscador SINPE Móvil</span>
         <span id="devSinpePendingBadge" style="display: none; background: #ef4444; color: #ffffff; font-size: 0.68rem; font-weight: 900; padding: 2px 7px; border-radius: 999px; line-height: 1;">0</span>
       </button>
+      <button class="dev-tab-btn" id="btnDevTabKardex" onclick="switchDevTab('kardex')" style="display: inline-flex; align-items: center; gap: 8px;">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1-2.5-2.5Z"/><path d="M6 6h10"/><path d="M6 10h10"/><path d="M6 14h6"/></svg>
+        <span>🎓 Kardex & Alumnos 360°</span>
+      </button>
     </nav>
 
     <!-- 1. PESTAÑA: USUARIOS Y ADMINISTRADORES -->
@@ -760,6 +764,151 @@
               </tr>
             </tbody>
           </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- 7. PESTAÑA: KARDEX & AUDITORÍA 360° DE ESTUDIANTES -->
+    <div id="devTabContentKardex" class="dev-tab-content" style="display: none;">
+      <!-- ENCABEZADO Y CONTROLES DE BÚSQUEDA -->
+      <div style="background: var(--card-bg); border: 1.5px solid var(--border); border-radius: 18px; padding: 20px; margin-bottom: 20px; box-shadow: 0 4px 16px rgba(0,0,0,0.04);">
+        <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 16px; flex-wrap: wrap; gap: 12px;">
+          <div>
+            <h3 style="font-size: 1.25rem; font-weight: 900; margin: 0; color: var(--text-main); display: flex; align-items: center; gap: 8px;">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#0284c7" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1-2.5-2.5Z"/><path d="M6 6h10"/><path d="M6 10h10"/><path d="M6 14h6"/></svg>
+              <span>Auditoría & Kardex 360° de Estudiantes</span>
+            </h3>
+            <p style="font-size: 0.84rem; color: var(--text-muted); margin: 4px 0 0;">
+              Consulta en tiempo real el saldo actual, compras en soda con desglose de productos y recargas bancarias de cualquier alumno del sistema.
+            </p>
+          </div>
+          <span id="devKardexResultCountBadge" style="font-size: 0.8rem; font-weight: 800; background: #e0f2fe; color: #0369a1; padding: 4px 12px; border-radius: 20px;">
+            0 estudiantes
+          </span>
+        </div>
+
+        <!-- FILTROS -->
+        <div style="display: flex; gap: 10px; flex-wrap: wrap; align-items: center;">
+          <div style="flex: 2; min-width: 260px;">
+            <input type="text" id="devKardexSearchInput" placeholder="Buscar por nombre, carné, escuela o teléfono del padre (ej: Sofía, Mateo, EST-002)..." oninput="buscarEstudiantesKardexDev()" style="width: 100%; padding: 11px 14px; border-radius: 12px; border: 1.5px solid var(--border); background: var(--bg-main); color: var(--text-main); font-size: 0.88rem; font-weight: 700; box-sizing: border-box;">
+          </div>
+          <div style="flex: 1; min-width: 180px;">
+            <select id="devKardexEscuelaFilter" onchange="buscarEstudiantesKardexDev()" style="width: 100%; padding: 11px 12px; border-radius: 12px; border: 1.5px solid var(--border); background: var(--bg-main); color: var(--text-main); font-size: 0.86rem; font-weight: 700; box-sizing: border-box;">
+              <option value="todas">🏫 Todas las Sedes</option>
+            </select>
+          </div>
+          <button type="button" onclick="recargarListaKardexDev()" class="dev-action-btn dev-action-btn-outline" style="height: 42px; padding: 0 16px; font-weight: 800;" title="Refrescar lista de estudiantes">
+            🔄 Actualizar
+          </button>
+        </div>
+      </div>
+
+      <!-- ESTRUCTURA PRINCIPAL: SELECTOR RÁPIDO DE ALUMNOS + FICHA TÉCNICA 360° -->
+      <div style="display: grid; grid-template-columns: minmax(280px, 340px) 1fr; gap: 20px; align-items: start;" id="devKardexMainGrid">
+        
+        <!-- COLUMNA IZQUIERDA: LISTADO DE ALUMNOS COINCIDENTES -->
+        <div style="background: var(--card-bg); border: 1.5px solid var(--border); border-radius: 18px; padding: 16px; box-shadow: 0 4px 16px rgba(0,0,0,0.03);">
+          <div style="font-size: 0.76rem; font-weight: 800; color: var(--text-muted); text-transform: uppercase; margin-bottom: 10px; letter-spacing: 0.5px;">
+            Selecciona un Estudiante:
+          </div>
+          <div id="devKardexStudentList" style="max-height: 650px; overflow-y: auto; display: flex; flex-direction: column; gap: 8px;">
+            <!-- Inyectado por JS -->
+          </div>
+        </div>
+
+        <!-- COLUMNA DERECHA: FICHA TÉCNICA & KARDEX DETALLADO -->
+        <div id="devKardexDetailContainer" style="display: flex; flex-direction: column; gap: 18px;">
+          <!-- Mensaje inicial antes de seleccionar -->
+          <div id="devKardexPlaceholder" style="background: var(--card-bg); border: 1.5px dashed var(--border); border-radius: 18px; padding: 60px 20px; text-align: center; color: var(--text-muted);">
+            <div style="font-size: 2.5rem; margin-bottom: 10px;">🎓</div>
+            <h4 style="font-size: 1.1rem; font-weight: 800; margin: 0 0 6px 0; color: var(--text-main);">Auditoría Individual de Estudiante</h4>
+            <p style="font-size: 0.85rem; margin: 0; max-width: 380px; margin: 0 auto;">Selecciona a un alumno de la lista o escribe en el buscador para ver su saldo actual, compras detalladas y recargas bancarias.</p>
+          </div>
+
+          <!-- FICHA TÉCNICA Y AUDITORÍA 360° (SE ACTIVA AL SELECCIONAR) -->
+          <div id="devKardexStudentView" style="display: none;">
+            <!-- TARJETA CABECERA DEL ESTUDIANTE -->
+            <div style="background: linear-gradient(135deg, rgba(2, 132, 199, 0.05), rgba(99, 102, 241, 0.05)); border: 2px solid #0284c7; border-radius: 18px; padding: 20px; margin-bottom: 16px; box-shadow: 0 4px 16px rgba(2, 132, 199, 0.08);">
+              <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 14px; margin-bottom: 18px;">
+                <div style="display: flex; align-items: center; gap: 14px;">
+                  <div id="devKardexAvatar" style="width: 52px; height: 52px; border-radius: 14px; background: linear-gradient(135deg, #0284c7, #3b82f6); color: white; display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 1.3rem; box-shadow: 0 4px 12px rgba(2, 132, 199, 0.3); flex-shrink: 0;">
+                    ES
+                  </div>
+                  <div>
+                    <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+                      <span id="devKardexBadgeCarnet" style="font-size: 0.74rem; font-weight: 800; background: #e0f2fe; color: #0369a1; padding: 2px 8px; border-radius: 6px;">EST-001</span>
+                      <span id="devKardexBadgeEscuela" style="font-size: 0.74rem; font-weight: 700; color: #64748b; background: var(--bg-main); padding: 2px 8px; border-radius: 6px;">Escuela</span>
+                    </div>
+                    <h3 id="devKardexNombre" style="margin: 3px 0 2px 0; font-size: 1.25rem; font-weight: 900; color: var(--text-main);">Nombre Alumno</h3>
+                    <div style="font-size: 0.8rem; color: #0284c7; font-weight: 700;">
+                      <span id="devKardexGradoSeccion">Grado · Sección</span> · <span id="devKardexPadreInfo" style="color: var(--text-muted);">Encargado</span>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- ACCIONES RÁPIDAS DE ESTUDIANTE -->
+                <div style="display: flex; gap: 8px; align-items: center;">
+                  <button type="button" id="devKardexBtnVerCarnet" onclick="abrirCarnetEstudianteDesdeDev()" class="dev-action-btn dev-action-btn-outline" style="font-size: 0.8rem; padding: 6px 12px; font-weight: 800;" title="Ver carné digital">
+                    🪪 Ver Carné QR
+                  </button>
+                </div>
+              </div>
+
+              <!-- CUADRÍCULA DE KPIS FINANCIEROS (4 MÉTRICAS CLAVE) -->
+              <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px;">
+                <div style="background: var(--card-bg); border: 1.5px solid #10b981; border-radius: 12px; padding: 12px; text-align: center;">
+                  <div style="font-size: 0.68rem; font-weight: 800; color: #059669; text-transform: uppercase;">Saldo Actual</div>
+                  <div id="devKardexKpiSaldoActual" style="font-size: 1.35rem; font-weight: 950; color: #10b981; margin: 3px 0 1px 0;">₡0</div>
+                  <span style="font-size: 0.68rem; color: #64748b; font-weight: 700;">Disponible en tarjeta</span>
+                </div>
+                <div style="background: var(--card-bg); border: 1px solid var(--border); border-radius: 12px; padding: 12px; text-align: center;">
+                  <div style="font-size: 0.68rem; font-weight: 800; color: #0284c7; text-transform: uppercase;">Total Recargado</div>
+                  <div id="devKardexKpiTotalRecargas" style="font-size: 1.25rem; font-weight: 900; color: #0284c7; margin: 3px 0 1px 0;">₡0</div>
+                  <span id="devKardexKpiCantRecargas" style="font-size: 0.68rem; color: #64748b; font-weight: 700;">0 recargas</span>
+                </div>
+                <div style="background: var(--card-bg); border: 1px solid var(--border); border-radius: 12px; padding: 12px; text-align: center;">
+                  <div style="font-size: 0.68rem; font-weight: 800; color: #f59e0b; text-transform: uppercase;">Total Consumido</div>
+                  <div id="devKardexKpiTotalCompras" style="font-size: 1.25rem; font-weight: 900; color: #d97706; margin: 3px 0 1px 0;">₡0</div>
+                  <span id="devKardexKpiCantCompras" style="font-size: 0.68rem; color: #64748b; font-weight: 700;">0 compras</span>
+                </div>
+                <div style="background: var(--card-bg); border: 1px solid var(--border); border-radius: 12px; padding: 12px; text-align: center;">
+                  <div style="font-size: 0.68rem; font-weight: 800; color: #64748b; text-transform: uppercase;">Límite Diario</div>
+                  <div id="devKardexKpiLimiteDiario" style="font-size: 1.25rem; font-weight: 900; color: var(--text-main); margin: 3px 0 1px 0;">₡0</div>
+                  <span style="font-size: 0.68rem; color: #64748b; font-weight: 700;">Máx por día</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- SUB-PESTAÑAS DE AUDITORÍA: COMPRAS, RECARGAS, KARDEX -->
+            <div style="background: var(--card-bg); border: 1.5px solid var(--border); border-radius: 18px; padding: 16px; box-shadow: 0 4px 16px rgba(0,0,0,0.03);">
+              <div style="display: flex; gap: 8px; border-bottom: 1.5px solid var(--border); padding-bottom: 12px; margin-bottom: 16px; flex-wrap: wrap;">
+                <button type="button" id="btnDevKardexTabCompras" onclick="cambiarSubTabKardexDev('compras')" class="dev-action-btn dev-action-btn-primary" style="font-size: 0.85rem; font-weight: 800; display: inline-flex; align-items: center; gap: 6px;">
+                  🛒 Compras en Soda (<span id="devKardexBadgeTabComprasCount">0</span>)
+                </button>
+                <button type="button" id="btnDevKardexTabRecargas" onclick="cambiarSubTabKardexDev('recargas')" class="dev-action-btn dev-action-btn-outline" style="font-size: 0.85rem; font-weight: 800; display: inline-flex; align-items: center; gap: 6px;">
+                  ⚡ Recargas de Saldo (<span id="devKardexBadgeTabRecargasCount">0</span>)
+                </button>
+                <button type="button" id="btnDevKardexTabMovimientos" onclick="cambiarSubTabKardexDev('movimientos')" class="dev-action-btn dev-action-btn-outline" style="font-size: 0.85rem; font-weight: 800; display: inline-flex; align-items: center; gap: 6px;">
+                  📊 Kardex Contable Integral (<span id="devKardexBadgeTabMovimientosCount">0</span>)
+                </button>
+              </div>
+
+              <!-- CONTENIDO DE SUB-PESTAÑA 1: COMPRAS -->
+              <div id="devKardexSubViewCompras">
+                <!-- Inyectado por JS -->
+              </div>
+
+              <!-- CONTENIDO DE SUB-PESTAÑA 2: RECARGAS -->
+              <div id="devKardexSubViewRecargas" style="display: none;">
+                <!-- Inyectado por JS -->
+              </div>
+
+              <!-- CONTENIDO DE SUB-PESTAÑA 3: KARDEX COMPLETO -->
+              <div id="devKardexSubViewMovimientos" style="display: none;">
+                <!-- Inyectado por JS -->
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -4628,10 +4777,10 @@
     </button>
   </nav>
 
-  <script src="/js/dialogs.js?v=19.2"></script>
-  <script src="/js/sounds.js?v=19.2"></script>
+  <script src="/js/dialogs.js?v=19.3"></script>
+  <script src="/js/sounds.js?v=19.3"></script>
   <script src="/js/jsQR.js" defer></script>
-  <script src="/js/food-icons.js?v=19.2" defer></script>
-  <script src="/js/app.js?v=19.2"></script>
+  <script src="/js/food-icons.js?v=19.3" defer></script>
+  <script src="/js/app.js?v=19.3"></script>
 </body>
 </html>

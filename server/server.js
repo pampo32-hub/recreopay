@@ -2457,6 +2457,83 @@ app.get(['/api/admin/estudiantes', '/api/developer/estudiantes/buscar'], (req, r
   }
 });
 
+// 0.1 Kardex 360° Integral de Estudiante (Developer)
+app.get('/api/developer/estudiantes/:id/kardex', (req, res) => {
+  try {
+    const estId = parseInt(req.params.id, 10);
+    const est = db.prepare(`
+      SELECT e.*, esc.nombre as escuela_nombre, esc.codigo as escuela_codigo
+      FROM estudiantes e
+      LEFT JOIN escuelas esc ON esc.id = e.escuela_id
+      WHERE e.id = ?
+    `).get(estId);
+
+    if (!est) return res.status(404).json({ error: 'Estudiante no encontrado' });
+
+    // 1. Movimientos contables (Kardex completo de transacciones_saldo)
+    const movimientos = db.prepare(`
+      SELECT ts.*, o.codigo_orden
+      FROM transacciones_saldo ts
+      LEFT JOIN ordenes o ON ts.orden_id = o.id
+      WHERE ts.estudiante_id = ?
+      ORDER BY ts.fecha DESC, ts.id DESC
+      LIMIT 200
+    `).all(estId);
+
+    // 2. Compras en soda (con desglose de productos)
+    const ordenesRaw = db.prepare(`
+      SELECT o.*,
+        (SELECT json_group_array(json_object('producto_id', d.producto_id, 'nombre', COALESCE(d.nombre_producto, p.nombre), 'icono', COALESCE(p.icono, '🥪'), 'cantidad', d.cantidad, 'precio_unitario', d.precio_unitario, 'subtotal', d.subtotal))
+         FROM orden_detalles d LEFT JOIN productos p ON d.producto_id = p.id WHERE d.orden_id = o.id) as items_json
+      FROM ordenes o
+      WHERE o.estudiante_id = ?
+      ORDER BY o.creado_en DESC, o.id DESC
+      LIMIT 100
+    `).all(estId);
+
+    const compras = ordenesRaw.map(o => ({
+      ...o,
+      momento_entrega_label: formatMomentoLabel(o.momento_entrega, o.escuela_id || est.escuela_id || 1),
+      items: Array.isArray(o.items_json)
+        ? o.items_json
+        : (typeof o.items_json === 'string' ? JSON.parse(o.items_json || '[]') : [])
+    }));
+
+    // 3. Recargas específicas
+    const recargas = movimientos.filter(m => m.tipo && (m.tipo.startsWith('recarga') || m.tipo === 'recarga_sinpe' || m.tipo === 'recarga_manual'));
+
+    // 4. Totales / KPIs históricos
+    const totalRecargasRow = db.prepare(`
+      SELECT COALESCE(SUM(monto_colones), 0) as total, COUNT(*) as cant
+      FROM transacciones_saldo
+      WHERE estudiante_id = ? AND tipo IN ('recarga_sinpe', 'recarga_manual') AND monto_colones > 0 AND (revertida IS NULL OR revertida = 0)
+    `).get(estId) || { total: 0, cant: 0 };
+
+    const totalComprasRow = db.prepare(`
+      SELECT COALESCE(SUM(ABS(monto_colones)), 0) as total, COUNT(*) as cant
+      FROM transacciones_saldo
+      WHERE estudiante_id = ? AND monto_colones < 0 AND (revertida IS NULL OR revertida = 0)
+    `).get(estId) || { total: 0, cant: 0 };
+
+    res.json({
+      estudiante: est,
+      totales: {
+        saldo_actual: est.saldo_colones || 0,
+        total_recargas: Number(totalRecargasRow.total || 0),
+        cant_recargas: Number(totalRecargasRow.cant || 0),
+        total_compras: Number(totalComprasRow.total || 0),
+        cant_compras: Number(totalComprasRow.cant || 0)
+      },
+      compras,
+      recargas,
+      movimientos
+    });
+  } catch (error) {
+    console.error('Error en /api/developer/estudiantes/:id/kardex:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // 1. Buscador universal multicriterio
 app.get('/api/developer/sinpe/buscar', (req, res) => {
   try {

@@ -6481,3 +6481,11 @@ body.dark-mode .danger-zone-box {
   color: #fda4af;
 }
 
+/* Kardex Developer Responsive */
+@media (max-width: 860px) {
+  #devKardexMainGrid {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+
