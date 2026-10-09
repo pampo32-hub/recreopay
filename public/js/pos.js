@@ -2690,8 +2690,23 @@ async function cacheOfflineStudents() {
     if (!res.ok) return;
     const list = await res.json();
     if (Array.isArray(list) && list.length > 0) {
-      localStorage.setItem('sibo_pos_offline_students', JSON.stringify(list));
-      console.log(`[Modo Offline] ${list.length} estudiantes respaldados en memoria local para ventas sin conexión.`);
+      // Optimización ligera: solo los campos estrictamente necesarios para cobro offline
+      const lightweight = list.map(s => ({
+        id: s.id,
+        codigo_estudiante: s.codigo_estudiante || '',
+        nombre_completo: s.nombre_completo || '',
+        qr_token: s.qr_token || '',
+        saldo_colones: Number(s.saldo_colones) || 0,
+        disponible_hoy: Number(s.disponible_hoy !== undefined ? s.disponible_hoy : s.saldo_colones) || 0,
+        pin_seguridad: s.pin_seguridad || '',
+        activo: s.activo !== false
+      }));
+      try {
+        localStorage.setItem('sibo_pos_offline_students', JSON.stringify(lightweight));
+        console.log(`[Modo Offline] ${lightweight.length} estudiantes optimizados respaldados en memoria local para ventas sin conexión.`);
+      } catch (quotaErr) {
+        console.warn('[Modo Offline] Espacio de almacenamiento local insuficiente para estudiantes:', quotaErr.message);
+      }
     }
   } catch (e) {
     console.warn('[Modo Offline] No se pudieron sincronizar estudiantes para cache offline:', e.message);

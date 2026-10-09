@@ -1,5 +1,79 @@
 // RECREOPAY - LÓGICA DE CLIENTE PWA (AUTENTICACIÓN, ADMIN, ESTUDIANTES Y PADRES)
 
+// ============================================================================
+// ALMACENAMIENTO SEGURO RESILIENTE (SAFE STORAGE CONTRA QUOTA EXCEEDED)
+// ============================================================================
+window._inMemoryStorage = window._inMemoryStorage || {};
+
+function checkAndCleanStorageQuota() {
+  try {
+    const testKey = '__storage_test__';
+    const testPayload = 'X'.repeat(32768); // Probar ~32KB de margen disponible
+    localStorage.setItem(testKey, testPayload);
+    localStorage.removeItem(testKey);
+  } catch (e) {
+    console.warn('[SafeStorage] Cuota de almacenamiento excedida o margen crítico. Purgando datos offline no críticos...');
+    try {
+      localStorage.removeItem('sibo_pos_offline_students');
+      localStorage.removeItem('sibo_pos_offline_catalog');
+      localStorage.removeItem('sibo_pos_offline_queue');
+      localStorage.removeItem('recreopay_active_parent_subview');
+      localStorage.removeItem('recreopay_sinpe_session');
+      localStorage.removeItem('recreopay_user');
+    } catch (_) {}
+  }
+}
+checkAndCleanStorageQuota();
+
+function safeSetItem(key, value) {
+  try {
+    localStorage.setItem(key, value);
+    return true;
+  } catch (err) {
+    console.warn(`[SafeStorage] localStorage falló al guardar "${key}" (${err.name}: ${err.message}). Ejecutando purga de emergencia...`);
+    try {
+      localStorage.removeItem('sibo_pos_offline_students');
+      localStorage.removeItem('sibo_pos_offline_catalog');
+      localStorage.removeItem('sibo_pos_offline_queue');
+      localStorage.removeItem('recreopay_active_parent_subview');
+      localStorage.removeItem('recreopay_sinpe_session');
+      localStorage.removeItem('recreopay_user');
+      localStorage.setItem(key, value);
+      return true;
+    } catch (err2) {
+      console.warn(`[SafeStorage] localStorage inaccesible para "${key}". Usando sessionStorage / memoria.`);
+      try {
+        sessionStorage.setItem(key, value);
+        return true;
+      } catch (_) {
+        window._inMemoryStorage[key] = value;
+        return false;
+      }
+    }
+  }
+}
+
+function safeGetItem(key) {
+  try {
+    const val = localStorage.getItem(key);
+    if (val !== null) return val;
+  } catch (_) {}
+  try {
+    const val = sessionStorage.getItem(key);
+    if (val !== null) return val;
+  } catch (_) {}
+  if (window._inMemoryStorage && window._inMemoryStorage[key] !== undefined) {
+    return window._inMemoryStorage[key];
+  }
+  return null;
+}
+
+function safeRemoveItem(key) {
+  try { localStorage.removeItem(key); } catch (_) {}
+  try { sessionStorage.removeItem(key); } catch (_) {}
+  if (window._inMemoryStorage) delete window._inMemoryStorage[key];
+}
+
 let currentUser = null;
 let currentStudent = null;
 let students = [];
@@ -69,7 +143,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   // Registrar Service Worker para PWA
   if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('/sw.js?v=19.9').then(reg => {
+    navigator.serviceWorker.register('/sw.js?v=20.3').then(reg => {
       reg.update().catch(() => {});
       if ('Notification' in window && Notification.permission === 'granted') {
         subscribeDeviceToWebPush().catch(() => {});
@@ -80,11 +154,11 @@ document.addEventListener('DOMContentLoaded', async () => {
   // Verificar si se solicitó cerrar sesión
   const urlParams = new URLSearchParams(window.location.search);
   if (urlParams.get('logout') === 'true') {
-    localStorage.removeItem('sibopay_token');
-    localStorage.removeItem('sibopay_user');
-    localStorage.removeItem('recreopay_token');
-    localStorage.removeItem('recreopay_user');
-    sessionStorage.clear();
+    safeRemoveItem('sibopay_token');
+    safeRemoveItem('sibopay_user');
+    safeRemoveItem('recreopay_token');
+    safeRemoveItem('recreopay_user');
+    try { sessionStorage.clear(); } catch (_) {}
     // Limpiar ?logout=true de la URL para que no persista en el navegador y no vuelva a cerrar sesión en F5
     try {
       if (window.history && window.history.replaceState) {
@@ -94,7 +168,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
 
   // Verificar si hay sesión activa guardada
-  const storedUser = localStorage.getItem('sibopay_user') || localStorage.getItem('recreopay_user');
+  const storedUser = safeGetItem('sibopay_user') || safeGetItem('recreopay_user');
   if (storedUser) {
     try {
       currentUser = JSON.parse(storedUser);
@@ -351,8 +425,10 @@ async function handleRegisterPadreSubmit(event) {
       ...data.user,
       hijos: []
     };
-    localStorage.setItem('sibopay_user', JSON.stringify(currentUser));
-    localStorage.setItem('recreopay_user', JSON.stringify(currentUser));
+    try {
+      safeSetItem('sibopay_user', JSON.stringify(currentUser));
+      safeSetItem('recreopay_user', JSON.stringify(currentUser));
+    } catch (_) {}
 
     if (window.sounds) window.sounds.playSuccess();
     await showAppAlert({
@@ -426,8 +502,12 @@ async function handleLoginSubmit(event) {
       estudiante: data.estudiante,
       hijos: data.hijos || []
     };
-    localStorage.setItem('sibopay_user', JSON.stringify(currentUser));
-    localStorage.setItem('recreopay_user', JSON.stringify(currentUser));
+    try {
+      safeSetItem('sibopay_user', JSON.stringify(currentUser));
+      safeSetItem('recreopay_user', JSON.stringify(currentUser));
+    } catch (storageErr) {
+      console.warn('[Login] Advertencia no crítica al persistir sesión en storage:', storageErr);
+    }
 
     // Limpiar preventivamente cualquier parámetro residual de logout en la URL
     try {
@@ -523,7 +603,7 @@ async function applyUserRoleSession() {
 
     // Si el padre tenía una sub-pantalla abierta (ej: recarga SINPE al ir al banco y volver), restaurarla exactamente
     try {
-      const activeSubView = localStorage.getItem('recreopay_active_parent_subview');
+      const activeSubView = safeGetItem('recreopay_active_parent_subview');
       if (activeSubView === 'sinpe') {
         const activeSession = typeof getSavedSinpeSession === 'function' ? getSavedSinpeSession() : null;
         if (activeSession && activeSession.studentId) {
@@ -569,7 +649,8 @@ async function applyUserRoleSession() {
               currentStudent = freshStudent;
               currentUser.estudiante = freshStudent;
               try {
-                localStorage.setItem('sibopay_user', JSON.stringify(currentUser));
+                safeSetItem('sibopay_user', JSON.stringify(currentUser));
+                safeSetItem('recreopay_user', JSON.stringify(currentUser));
               } catch (_) {}
               updateStudentUI();
             }
@@ -680,9 +761,9 @@ function switchAdminToDev() {
 
 function logout(skipConfirm = false) {
   if (skipConfirm || confirm('¿Deseas cerrar sesión para seleccionar otra cuenta?')) {
-    localStorage.removeItem('sibopay_user');
-    localStorage.removeItem('recreopay_user');
-    localStorage.removeItem('recreopay_active_parent_subview');
+    safeRemoveItem('sibopay_user');
+    safeRemoveItem('recreopay_user');
+    safeRemoveItem('recreopay_active_parent_subview');
     if (typeof clearSinpeSession === 'function') clearSinpeSession();
     currentUser = null;
     currentStudent = null;
@@ -3079,7 +3160,7 @@ async function subscribeDeviceToWebPush() {
     let user = currentUser;
     if (!user) {
       try {
-        const stored = localStorage.getItem('recreopay_user');
+        const stored = safeGetItem('sibopay_user') || safeGetItem('recreopay_user');
         if (stored) user = JSON.parse(stored);
       } catch (e) {}
     }
@@ -3695,7 +3776,10 @@ async function loadParentDashboard() {
     const data = await res.json();
     if (res.ok && data.hijos) {
       currentUser.hijos = data.hijos;
-      localStorage.setItem('recreopay_user', JSON.stringify(currentUser));
+      try {
+        safeSetItem('recreopay_user', JSON.stringify(currentUser));
+        safeSetItem('sibopay_user', JSON.stringify(currentUser));
+      } catch (_) {}
     }
   } catch (err) {
     console.warn('Error al cargar hijos del padre:', err);
@@ -3783,7 +3867,7 @@ function renderParentDashboardView() {
   renderActiveChildDetails(currentParentChild);
 
   const isDesktop = window.innerWidth >= 860;
-  let activeView = localStorage.getItem('recreopay_active_parent_subview');
+  let activeView = safeGetItem('recreopay_active_parent_subview');
   if (isDesktop && !activeView) {
     activeView = 'resumen';
   }
@@ -3808,7 +3892,7 @@ function selectParentChild(childId) {
 
 function openParentSubView(viewKey, shouldScroll = true) {
   try {
-    localStorage.setItem('recreopay_active_parent_subview', viewKey);
+    safeSetItem('recreopay_active_parent_subview', viewKey);
   } catch (e) {}
 
   const isDesktop = window.innerWidth >= 860;
@@ -4090,7 +4174,7 @@ function closeParentSubView(shouldScroll = false) {
   }
 
   try {
-    localStorage.removeItem('recreopay_active_parent_subview');
+    safeRemoveItem('recreopay_active_parent_subview');
   } catch (e) {}
 
   const sidebar = document.getElementById('parentSidebarBoxes');
@@ -4541,13 +4625,13 @@ const SINPE_SESSION_TTL_MS = 60 * 60 * 1000; // 60 minutos de vigencia
 
 function getSavedSinpeSession(studentId = null) {
   try {
-    const raw = localStorage.getItem(SINPE_SESSION_KEY);
+    const raw = safeGetItem(SINPE_SESSION_KEY);
     if (!raw) return null;
     const session = JSON.parse(raw);
     if (!session || !session.codigo) return null;
     if (studentId && session.studentId !== studentId) return null;
     if (Date.now() - (session.timestamp || 0) > SINPE_SESSION_TTL_MS) {
-      localStorage.removeItem(SINPE_SESSION_KEY);
+      safeRemoveItem(SINPE_SESSION_KEY);
       return null;
     }
     return session;
@@ -4564,13 +4648,13 @@ function saveSinpeSession(data) {
       ...data,
       timestamp: existing.timestamp || Date.now()
     };
-    localStorage.setItem(SINPE_SESSION_KEY, JSON.stringify(updated));
+    safeSetItem(SINPE_SESSION_KEY, JSON.stringify(updated));
   } catch (e) {}
 }
 
 function clearSinpeSession() {
   try {
-    localStorage.removeItem(SINPE_SESSION_KEY);
+    safeRemoveItem(SINPE_SESSION_KEY);
   } catch (e) {}
 }
 
@@ -5837,7 +5921,10 @@ async function confirmLinkValidatedChild() {
     if (!res.ok) throw new Error(data.error);
 
     currentUser.hijos = data.hijos;
-    localStorage.setItem('recreopay_user', JSON.stringify(currentUser));
+    try {
+      safeSetItem('recreopay_user', JSON.stringify(currentUser));
+      safeSetItem('sibopay_user', JSON.stringify(currentUser));
+    } catch (_) {}
     currentParentChild = data.estudiante;
 
     closeScanChildQrModal();
@@ -10433,7 +10520,7 @@ function abrirModalAjustesCuenta() {
   let user = currentUser;
   if (!user) {
     try {
-      const raw = localStorage.getItem('sibopay_user') || localStorage.getItem('recreopay_user');
+      const raw = safeGetItem('sibopay_user') || safeGetItem('recreopay_user');
       if (raw) user = JSON.parse(raw);
     } catch (_) {}
   }
@@ -10546,10 +10633,10 @@ async function confirmarEliminarCuentaDefinitiva() {
 
     // Limpieza total de almacenamiento local y caches
     try {
-      localStorage.removeItem('sibopay_token');
-      localStorage.removeItem('sibopay_user');
-      localStorage.removeItem('recreopay_token');
-      localStorage.removeItem('recreopay_user');
+      safeRemoveItem('sibopay_token');
+      safeRemoveItem('sibopay_user');
+      safeRemoveItem('recreopay_token');
+      safeRemoveItem('recreopay_user');
       sessionStorage.clear();
       if ('caches' in window) {
         const keys = await caches.keys();
