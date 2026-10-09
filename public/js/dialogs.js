@@ -168,7 +168,6 @@
       modal.className = 'modal-qr-backdrop';
       modal.id = 'modalRechazarSinpe';
       modal.style.cssText = 'display: none; z-index: 99999;';
-      modal.setAttribute('onclick', 'cerrarModalRechazoSinpe(event)');
       modal.innerHTML = `
         <div class="modal-qr-card" onclick="event.stopPropagation()" style="max-width: 440px; text-align: left; padding: 22px; border-radius: 18px;">
           <!-- Encabezado -->
@@ -295,9 +294,17 @@
     modal.style.display = 'flex';
   };
 
-  window.cerrarModalRechazoSinpe = function(event) {
-    if (event && event.target && event.target !== document.getElementById('modalRechazarSinpe')) {
-      return;
+  window.cerrarModalRechazoSinpe = function(force = false) {
+    if (force && force.target && force.target.classList && force.target.classList.contains('modal-qr-backdrop')) {
+      return; // Ignorar clic/arrastre sobre el fondo
+    }
+    const note = document.getElementById('sinpeRejectNotaAdmin');
+    const customTxt = document.getElementById('sinpeRejectMotivoCustom');
+    const isDirty = (note && note.value.trim().length > 0) || (customTxt && customTxt.value.trim().length > 0);
+    if (force !== true && isDirty) {
+      if (!confirm('¿Deseas cancelar el rechazo de la recarga? Se perderá la nota escrita.')) {
+        return;
+      }
     }
     const modal = document.getElementById('modalRechazarSinpe');
     if (modal) modal.style.display = 'none';

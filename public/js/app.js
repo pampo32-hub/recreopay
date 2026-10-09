@@ -1806,8 +1806,17 @@ function openTransferModal() {
   renderQuickTransferFriends();
 }
 
-function closeTransferModal(e) {
-  if (e && e.target !== e.currentTarget) return;
+function closeTransferModal(force = false) {
+  if (force && force.target && force.target.classList && force.target.classList.contains('modal-qr-backdrop')) {
+    return; // Ignorar clics y arrastres sobre el fondo oscuro
+  }
+  const stepConfirm = document.getElementById('transferStepConfirm');
+  const isConfirming = stepConfirm && stepConfirm.style.display !== 'none';
+  if (force !== true && isConfirming) {
+    if (!confirm('¿Deseas cancelar la transferencia en curso?')) {
+      return;
+    }
+  }
   stopTransferCamera();
   const modal = document.getElementById('modalTransfer');
   if (modal) modal.style.display = 'none';
@@ -5459,6 +5468,74 @@ async function toggleBlockCard(studentId, newBlocked) {
   }
 }
 
+// ==========================================
+// GESTOR DE MODALES Y FORMULARIOS PERSISTENTES
+// ==========================================
+function snapshotFormInitialValues(formEl) {
+  if (!formEl) return;
+  const elements = formEl.querySelectorAll('input:not([type="hidden"]):not([type="submit"]):not([type="button"]), textarea, select');
+  elements.forEach(el => {
+    if (el.type === 'checkbox' || el.type === 'radio') {
+      el.dataset.initialChecked = el.checked ? 'true' : 'false';
+    } else {
+      el.dataset.initialVal = el.value || '';
+    }
+  });
+}
+window.snapshotFormInitialValues = snapshotFormInitialValues;
+
+function isFormDirty(formEl) {
+  if (!formEl) return false;
+  const elements = formEl.querySelectorAll('input:not([type="hidden"]):not([type="submit"]):not([type="button"]), textarea, select');
+  for (const el of elements) {
+    if (el.type === 'checkbox' || el.type === 'radio') {
+      const init = el.dataset.initialChecked === 'true';
+      if (el.checked !== init) return true;
+    } else {
+      const initVal = el.dataset.initialVal !== undefined ? el.dataset.initialVal : '';
+      const currVal = el.value || '';
+      if (currVal.trim() !== initVal.trim() && currVal.trim().length > 0) {
+        return true;
+      }
+    }
+  }
+  return false;
+}
+window.isFormDirty = isFormDirty;
+
+// Manejador inteligente de la tecla ESC para modales de escritura / formularios
+window.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') {
+    const activeFormModals = [
+      { id: 'modalDevUser', close: () => closeModalDevUser(true), formId: 'formDevUser' },
+      { id: 'modalNewStudent', close: () => closeNewStudentModal(true), formId: 'formNewStudent' },
+      { id: 'modalAdminProduct', close: () => closeAdminProductModal(true), formId: 'formAdminProduct' },
+      { id: 'modalAdminStaff', close: () => closeAdminStaffModal(true), formId: 'formAdminStaff' },
+      { id: 'modalDevPassword', close: () => closeModalDevPassword(true), formId: 'formDevPassword' },
+      { id: 'modalDevEscuela', close: () => closeModalDevEscuela(true), formId: 'formDevEscuela' },
+      { id: 'modalTransfer', close: () => closeTransferModal(true), formId: null },
+      { id: 'modalRechazarSinpe', close: () => (typeof window.cerrarModalRechazoSinpe === 'function' ? window.cerrarModalRechazoSinpe(true) : null), formId: null }
+    ];
+
+    for (const m of activeFormModals) {
+      const modalEl = document.getElementById(m.id);
+      if (modalEl && modalEl.style.display !== 'none' && getComputedStyle(modalEl).display !== 'none') {
+        const formEl = m.formId ? document.getElementById(m.formId) : null;
+        if (formEl && isFormDirty(formEl)) {
+          // Bloquear Escape si el usuario ya escribió datos para evitar pérdidas accidentales
+          e.preventDefault();
+          e.stopPropagation();
+          return;
+        }
+        // Si el formulario está vacío o sin cambios, cerrar con Escape
+        e.preventDefault();
+        if (typeof m.close === 'function') m.close();
+        return;
+      }
+    }
+  }
+});
+
 function openNewStudentModal() {
   window.newStudentFromDev = false;
   const escContainer = document.getElementById('newEstEscuelaContainer');
@@ -5467,6 +5544,8 @@ function openNewStudentModal() {
   if (title) title.textContent = 'Registrar Nuevo Alumno';
   const modal = document.getElementById('modalNewStudent');
   if (modal) modal.style.display = 'flex';
+  const form = document.getElementById('formNewStudent');
+  if (form) snapshotFormInitialValues(form);
 }
 
 async function openNewStudentModalFromDev() {
@@ -5501,14 +5580,25 @@ async function openNewStudentModalFromDev() {
 
   const modal = document.getElementById('modalNewStudent');
   if (modal) modal.style.display = 'flex';
+  const form = document.getElementById('formNewStudent');
+  if (form) snapshotFormInitialValues(form);
 }
 window.openNewStudentModalFromDev = openNewStudentModalFromDev;
 
-function closeNewStudentModal(event) {
-  if (event && event.target !== event.currentTarget) return;
+function closeNewStudentModal(force = false) {
+  if (force && force.target && force.target.classList && force.target.classList.contains('modal-qr-backdrop')) {
+    return; // Ignorar clics y arrastres sobre el fondo oscuro
+  }
+  const form = document.getElementById('formNewStudent');
+  if (force !== true && isFormDirty(form)) {
+    if (!confirm('¿Deseas salir? Hay datos del estudiante sin guardar.')) {
+      return;
+    }
+  }
   const modal = document.getElementById('modalNewStudent');
   if (modal) modal.style.display = 'none';
   window.newStudentFromDev = false;
+  if (form) form.reset();
 }
 
 async function submitNewStudent(event) {
@@ -5566,7 +5656,7 @@ async function submitNewStudent(event) {
     const credsMsg = data.username_creado ? `\n\nCredenciales de Acceso:\nUsuario: ${data.username_creado}\nPIN temporal: ${data.pin_creado || '1234'}` : '';
     alert(`¡Estudiante Creado con Éxito!\n\nNombre: ${data.nombre_completo}\nCódigo Estudiante: ${data.codigo_estudiante}\nQR Token: ${data.qr_token}${credsMsg}`);
 
-    closeNewStudentModal();
+    closeNewStudentModal(true);
     document.getElementById('formNewStudent').reset();
 
     // Actualizar vistas correspondientes
@@ -6879,6 +6969,8 @@ function openCreateProductModal() {
 
   populateCategorySelect();
   modal.style.display = 'flex';
+  const form = document.getElementById('formAdminProduct');
+  if (form) snapshotFormInitialValues(form);
   if (window.sounds) window.sounds.playTap();
 }
 
@@ -6917,13 +7009,24 @@ function openEditProductModal(prodId) {
 
   populateCategorySelect(prod.categoria_id);
   modal.style.display = 'flex';
+  const form = document.getElementById('formAdminProduct');
+  if (form) snapshotFormInitialValues(form);
   if (window.sounds) window.sounds.playTap();
 }
 
-function closeAdminProductModal(event) {
-  if (event && event.target !== event.currentTarget) return;
+function closeAdminProductModal(force = false) {
+  if (force && force.target && force.target.classList && force.target.classList.contains('modal-qr-backdrop')) {
+    return; // Ignorar clics y arrastres sobre el fondo oscuro
+  }
+  const form = document.getElementById('formAdminProduct');
+  if (force !== true && isFormDirty(form)) {
+    if (!confirm('¿Deseas descartar los cambios? Hay datos del producto sin guardar.')) {
+      return;
+    }
+  }
   const modal = document.getElementById('modalAdminProduct');
   if (modal) modal.style.display = 'none';
+  if (form) form.reset();
 }
 
 async function submitAdminProduct(e) {
@@ -6970,7 +7073,7 @@ async function submitAdminProduct(e) {
     if (!res.ok) throw new Error(data.error || 'Error al guardar producto');
 
     if (window.sounds) window.sounds.playSuccess();
-    closeAdminProductModal();
+    closeAdminProductModal(true);
     await loadAdminData();
 
     if (typeof loadInitialData === 'function') {
@@ -7000,7 +7103,7 @@ async function handleDeleteProduct() {
     if (!res.ok) throw new Error(data.error || 'Error al eliminar producto');
 
     if (window.sounds) window.sounds.playSuccess();
-    closeAdminProductModal();
+    closeAdminProductModal(true);
     await loadAdminData();
     if (typeof loadInitialData === 'function') {
       loadInitialData();
@@ -7166,6 +7269,8 @@ function openCreateStaffModal() {
   if (btnSubmit) btnSubmit.innerHTML = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg> <span>Guardar Empleado</span>';
 
   modal.style.display = 'flex';
+  const form = document.getElementById('formAdminStaff');
+  if (form) snapshotFormInitialValues(form);
   if (window.sounds) window.sounds.playTap();
 }
 
@@ -7206,13 +7311,24 @@ function openEditStaffModal(staffId) {
   if (btnSubmit) btnSubmit.innerHTML = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg> <span>Actualizar Datos</span>';
 
   modal.style.display = 'flex';
+  const form = document.getElementById('formAdminStaff');
+  if (form) snapshotFormInitialValues(form);
   if (window.sounds) window.sounds.playTap();
 }
 
-function closeAdminStaffModal(event) {
-  if (event && event.target !== event.currentTarget) return;
+function closeAdminStaffModal(force = false) {
+  if (force && force.target && force.target.classList && force.target.classList.contains('modal-qr-backdrop')) {
+    return; // Ignorar clics y arrastres sobre el fondo oscuro
+  }
+  const form = document.getElementById('formAdminStaff');
+  if (force !== true && isFormDirty(form)) {
+    if (!confirm('¿Deseas descartar los cambios? Hay datos del empleado sin guardar.')) {
+      return;
+    }
+  }
   const modal = document.getElementById('modalAdminStaff');
   if (modal) modal.style.display = 'none';
+  if (form) form.reset();
 }
 
 async function submitAdminStaff(e) {
@@ -7265,7 +7381,7 @@ async function submitAdminStaff(e) {
     if (!res.ok) throw new Error(data.error || 'Error al procesar empleado');
 
     if (window.sounds) window.sounds.playSuccess();
-    closeAdminStaffModal();
+    closeAdminStaffModal(true);
     await loadAdminStaff();
     alert(isEdit ? 'Datos de empleado actualizados correctamente.' : 'Empleado creado exitosamente con credenciales de acceso.');
   } catch (err) {
@@ -7827,14 +7943,25 @@ function openModalDevUser(userId = null) {
   }
 
   modal.style.display = 'flex';
+  const form = document.getElementById('formDevUser');
+  if (form) snapshotFormInitialValues(form);
 }
 
-function closeModalDevUser(event) {
-  if (event && event.target !== event.currentTarget) return;
+function closeModalDevUser(force = false) {
+  if (force && force.target && force.target.classList && force.target.classList.contains('modal-qr-backdrop')) {
+    return; // Ignorar clics y arrastres sobre el fondo oscuro
+  }
+  const form = document.getElementById('formDevUser');
+  if (force !== true && isFormDirty(form)) {
+    if (!confirm('¿Deseas descartar los cambios? Hay información sin guardar en el formulario de usuario.')) {
+      return;
+    }
+  }
   const modal = document.getElementById('modalDevUser');
   if (modal) modal.style.display = 'none';
   const tip = document.getElementById('devStudentRoleTip');
   if (tip) tip.style.display = 'none';
+  if (form) form.reset();
 }
 
 async function saveDevUser(e) {
@@ -7873,7 +8000,7 @@ async function saveDevUser(e) {
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || 'Error al guardar usuario');
 
-    closeModalDevUser();
+    closeModalDevUser(true);
     await loadDevUsuarios();
     if (window.sounds) window.sounds.playSuccess();
     alert(userId ? 'Usuario actualizado con éxito' : 'Usuario creado con éxito');
@@ -7894,12 +8021,23 @@ function openModalDevPassword(userId, username) {
   targetLabel.textContent = `Usuario: ${username}`;
   pwdInput.value = '';
   modal.style.display = 'flex';
+  const form = document.getElementById('formDevPassword');
+  if (form) snapshotFormInitialValues(form);
 }
 
-function closeModalDevPassword(event) {
-  if (event && event.target !== event.currentTarget) return;
+function closeModalDevPassword(force = false) {
+  if (force && force.target && force.target.classList && force.target.classList.contains('modal-qr-backdrop')) {
+    return; // Ignorar clics y arrastres sobre el fondo oscuro
+  }
+  const form = document.getElementById('formDevPassword');
+  if (force !== true && isFormDirty(form)) {
+    if (!confirm('¿Deseas cancelar el cambio de contraseña?')) {
+      return;
+    }
+  }
   const modal = document.getElementById('modalDevPassword');
   if (modal) modal.style.display = 'none';
+  if (form) form.reset();
 }
 
 async function saveDevPassword(e) {
@@ -7922,7 +8060,7 @@ async function saveDevPassword(e) {
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || 'Error al cambiar contraseña');
 
-    closeModalDevPassword();
+    closeModalDevPassword(true);
     if (window.sounds) window.sounds.playSuccess();
     alert('Contraseña actualizada correctamente');
   } catch (err) {
@@ -8416,13 +8554,23 @@ function openModalDevEscuela() {
   if (form) form.reset();
   const modal = document.getElementById('modalDevEscuela');
   if (modal) modal.style.display = 'flex';
+  if (form) snapshotFormInitialValues(form);
   setTimeout(() => document.getElementById('devEscuelaCodigo')?.focus(), 50);
 }
 
-function closeModalDevEscuela(e) {
-  if (e && e.target !== e.currentTarget && !e.target.classList.contains('modal-qr-backdrop')) return;
+function closeModalDevEscuela(force = false) {
+  if (force && force.target && force.target.classList && force.target.classList.contains('modal-qr-backdrop')) {
+    return; // Ignorar clics y arrastres sobre el fondo oscuro
+  }
+  const form = document.getElementById('formDevEscuela');
+  if (force !== true && isFormDirty(form)) {
+    if (!confirm('¿Deseas salir? Hay datos de la nueva escuela sin guardar.')) {
+      return;
+    }
+  }
   const modal = document.getElementById('modalDevEscuela');
   if (modal) modal.style.display = 'none';
+  if (form) form.reset();
 }
 
 function verCredencialesEscuela(codigo, nombre) {
@@ -8464,7 +8612,7 @@ async function guardarDevEscuela(e) {
 
     if (window.sounds) window.sounds.playCoin();
 
-    closeModalDevEscuela();
+    closeModalDevEscuela(true);
     alert(`¡Éxito al dar de alta la escuela!\n\n` +
           `Sede: ${data.nombre} (${data.codigo})\n\n` +
           `Se creó el catálogo de productos y las siguientes cuentas operativas:\n` +
