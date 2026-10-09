@@ -103,17 +103,20 @@ const PORT = process.env.PORT || 3030;
 // CONFIGURACIÓN GLOBAL EN MEMORIA ("EN CALIENTE")
 // ==========================================
 let globalConfig = {};
-try {
-  const cfgData = obtenerConfiguraciones();
-  globalConfig = cfgData.configs || {};
-} catch (e) {
-  console.warn('Error precargando configuraciones en memoria:', e.message);
-}
 
 function getConfig(key, defaultValue) {
   if (globalConfig && globalConfig[key] !== undefined && globalConfig[key] !== null) {
     return globalConfig[key];
   }
+  try {
+    const cfgData = obtenerConfiguraciones();
+    if (cfgData && cfgData.configs) {
+      globalConfig = cfgData.configs;
+      if (globalConfig[key] !== undefined && globalConfig[key] !== null) {
+        return globalConfig[key];
+      }
+    }
+  } catch (e) {}
   return defaultValue;
 }
 
@@ -261,6 +264,14 @@ app.use((req, res, next) => {
 
 // Initialize DB schema & seed data
 initDatabase();
+
+// Precargar configuración global en memoria tras inicialización de base de datos
+try {
+  const cfgData = obtenerConfiguraciones();
+  globalConfig = cfgData.configs || {};
+} catch (e) {
+  console.warn('Error precargando configuraciones en memoria:', e.message);
+}
 
 app.use(cors());
 app.use(express.json({ limit: '25mb' }));
