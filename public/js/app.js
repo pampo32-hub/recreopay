@@ -74,6 +74,13 @@ function safeRemoveItem(key) {
   if (window._inMemoryStorage) delete window._inMemoryStorage[key];
 }
 
+const SafeStorage = {
+  getItem: safeGetItem,
+  setItem: safeSetItem,
+  removeItem: safeRemoveItem
+};
+window.SafeStorage = SafeStorage;
+
 let currentUser = null;
 let currentStudent = null;
 let students = [];
@@ -884,6 +891,7 @@ async function selectStudent(studentId) {
     currentStudent = await res.json();
     currentAppMode = 'teens';
     updateStudentUI();
+    cargarAvisosActivos();
   } catch (e) {
     console.error('Error seleccionando estudiante:', e);
   }
@@ -6321,7 +6329,7 @@ async function cargarHorariosAdmin() {
 
       if (inpTel) inpTel.value = esc.telefono_sinpe || '8888-8888';
       if (inpTitular) inpTitular.value = esc.nombre_sinpe || esc.nombre || 'Soda Escolar';
-      if (chkActivo) chkActivo.checked = esc.sinpe_activo !== false;
+      if (chkActivo) chkActivo.checked = !(esc.sinpe_activo === false || esc.sinpe_activo === 0 || esc.sinpe_activo === 'false' || esc.sinpe_activo === 'f');
       if (txtMsg && esc.sinpe_mensaje_suspension) txtMsg.value = esc.sinpe_mensaje_suspension;
       actualizarPreviewAdminSinpe();
       loadAdminAvisos();
@@ -6377,8 +6385,6 @@ function actualizarPreviewAdminSinpe() {
   const prevTitular = document.getElementById('previewAdminSinpeTitular');
   const chkActivo = document.getElementById('chkAdminSinpeActivo');
   const lblEstado = document.getElementById('lblAdminSinpeActivoEstado');
-  const toggleTrack = document.getElementById('toggleTrackSinpe');
-  const toggleThumb = document.getElementById('toggleThumbSinpe');
 
   const telVal = inpTel ? (inpTel.value.trim() || '8888-8888') : '8888-8888';
   const titularVal = inpTitular ? (inpTitular.value.trim() || 'Soda Escolar') : 'Soda Escolar';
@@ -6389,11 +6395,7 @@ function actualizarPreviewAdminSinpe() {
   const isActivo = chkActivo ? chkActivo.checked : true;
   if (lblEstado) {
     lblEstado.textContent = isActivo ? 'Habilitado' : 'Suspendido';
-    lblEstado.style.color = isActivo ? '#16a34a' : '#ef4444';
-  }
-  if (toggleTrack && toggleThumb) {
-    toggleTrack.style.background = isActivo ? '#16a34a' : '#ef4444';
-    toggleThumb.style.transform = isActivo ? 'translateX(20px)' : 'translateX(0px)';
+    lblEstado.style.color = isActivo ? '#16a34a' : '#dc2626';
   }
 }
 window.actualizarPreviewAdminSinpe = actualizarPreviewAdminSinpe;
@@ -6665,7 +6667,7 @@ window.eliminarAvisoAdmin = eliminarAvisoAdmin;
 
 let dismissedAvisosIds = [];
 try {
-  const stored = SafeStorage.getItem('sibopay_dismissed_avisos');
+  const stored = safeGetItem('sibopay_dismissed_avisos');
   if (stored) dismissedAvisosIds = JSON.parse(stored);
 } catch (e) {
   dismissedAvisosIds = [];
@@ -6675,7 +6677,7 @@ function descartarAviso(id) {
   if (!dismissedAvisosIds.includes(id)) {
     dismissedAvisosIds.push(id);
     try {
-      SafeStorage.setItem('sibopay_dismissed_avisos', JSON.stringify(dismissedAvisosIds));
+      safeSetItem('sibopay_dismissed_avisos', JSON.stringify(dismissedAvisosIds));
     } catch (e) {}
   }
   const el = document.getElementById(`avisoBanner-${id}`);
@@ -6692,10 +6694,12 @@ async function cargarAvisosActivos() {
   try {
     const escId = (currentUser && currentUser.escuela_id) || (currentStudent && currentStudent.escuela_id) || (currentParentChild && currentParentChild.escuela_id) || 1;
     let rolAudiencia = 'todos';
-    if (currentUser) {
-      if (currentUser.rol === 'padre') rolAudiencia = 'padres';
-      else if (currentUser.rol === 'estudiante') rolAudiencia = 'estudiantes';
-      else if (currentUser.rol === 'cajero' || currentUser.rol === 'pos') rolAudiencia = 'pos';
+    if (currentUser && currentUser.rol === 'padre') {
+      rolAudiencia = 'padres';
+    } else if ((currentUser && currentUser.rol === 'estudiante') || currentStudent) {
+      rolAudiencia = 'estudiantes';
+    } else if (currentUser && (currentUser.rol === 'cajero' || currentUser.rol === 'pos')) {
+      rolAudiencia = 'pos';
     }
 
     const res = await fetch(`/api/avisos/activos?escuela_id=${escId}&audiencia=${rolAudiencia}`);
@@ -6761,6 +6765,12 @@ async function cargarAvisosActivos() {
           ` : ''}
         </div>
       `;
+    }
+
+    // Renderizar en contenedor de Admin (si existe)
+    const adminContainer = document.getElementById('adminGlobalBannerContainer');
+    if (adminContainer) {
+      adminContainer.innerHTML = visibles.map(renderBannerHtml).join('');
     }
 
     // Renderizar en contenedor de Padres

@@ -1289,6 +1289,9 @@
       </div>
     </header>
 
+    <!-- BANNER DE AVISOS GLOBALES EN PANEL ADMIN -->
+    <div id="adminGlobalBannerContainer" style="display: flex; flex-direction: column; gap: 8px; margin-top: 14px; margin-bottom: 4px;"></div>
+
     <!-- MÉTRICAS DE HOY -->
     <div class="admin-stats-grid">
       <div class="admin-stat-card">
@@ -1853,15 +1856,13 @@
                 <div style="font-size: 0.72rem; color: #c2410c;">Desactiva para bloquear nuevos pagos temporalmente</div>
               </div>
             </div>
-            <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
-              <span style="font-size: 0.78rem; font-weight: 700; color: var(--text-muted);" id="lblAdminSinpeActivoEstado">Habilitado</span>
-              <div style="position: relative; width: 44px; height: 24px;">
-                <input type="checkbox" id="chkAdminSinpeActivo" checked style="opacity: 0; width: 0; height: 0; position: absolute;" onchange="actualizarPreviewAdminSinpe()">
-                <span onclick="document.getElementById('chkAdminSinpeActivo').click()" style="position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background: #16a34a; border-radius: 24px; transition: .3s;" id="toggleTrackSinpe">
-                  <span id="toggleThumbSinpe" style="position: absolute; height: 18px; width: 18px; left: 3px; bottom: 3px; background: white; border-radius: 50%; transition: .3s; transform: translateX(0);"></span>
-                </span>
-              </div>
-            </label>
+            <div style="display: flex; align-items: center; gap: 10px;">
+              <span style="font-size: 0.82rem; font-weight: 800; color: #16a34a;" id="lblAdminSinpeActivoEstado">Habilitado</span>
+              <label class="switch-saas" title="Habilitar o suspender recepción de SINPE">
+                <input type="checkbox" id="chkAdminSinpeActivo" checked onchange="actualizarPreviewAdminSinpe()">
+                <span class="switch-saas-slider"></span>
+              </label>
+            </div>
           </div>
           <div>
             <label for="txtAdminSinpeMensajeSuspension" style="display: block; font-size: 0.78rem; font-weight: 800; color: #9a3412; margin-bottom: 4px;">Mensaje que verán los padres al intentar recargar:</label>
@@ -2995,9 +2996,6 @@
       </div>
     </div>
 
-    <!-- BANNER DE AVISOS GLOBALES EN APP ESTUDIANTE -->
-    <div id="studentGlobalBannerContainer" style="display: flex; flex-direction: column; gap: 8px; margin: 10px 16px 0 16px;"></div>
-
     <!-- BANNER DE ADVERTENCIA HTTPS PARA TELÉFONOS MÓVILES -->
     <div id="bannerHttpsWarning" style="display: none; background: linear-gradient(135deg, #f59e0b, #d97706); color: white; padding: 10px 14px; font-size: 0.78rem; font-weight: 700; text-align: center; border-radius: 12px; margin: 10px 16px 0 16px; box-shadow: 0 2px 8px rgba(245, 158, 11, 0.3);">
       <span style="display: inline-flex; align-items: center; gap: 6px;">
@@ -3045,6 +3043,9 @@
         </button>
       </div>
     </header>
+
+    <!-- BANNER DE AVISOS GLOBALES EN APP ESTUDIANTE -->
+    <div id="studentGlobalBannerContainer" style="display: flex; flex-direction: column; gap: 8px; margin: 12px 16px 4px 16px;"></div>
 
     <!-- SELECTOR OCULTO PARA COMPATIBILIDAD JS -->
     <select id="studentSelector" onchange="onStudentChange(this.value)" style="display: none;"></select>

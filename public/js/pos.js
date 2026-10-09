@@ -2113,7 +2113,7 @@ function initSSE() {
 // ==========================================
 let dismissedAvisosPos = [];
 try {
-  const stored = SafeStorage.getItem('sibopay_dismissed_avisos_pos');
+  const stored = localStorage.getItem('sibopay_dismissed_avisos_pos');
   if (stored) dismissedAvisosPos = JSON.parse(stored);
 } catch (e) {
   dismissedAvisosPos = [];
@@ -2123,7 +2123,7 @@ function descartarAvisoPos(id) {
   if (!dismissedAvisosPos.includes(id)) {
     dismissedAvisosPos.push(id);
     try {
-      SafeStorage.setItem('sibopay_dismissed_avisos_pos', JSON.stringify(dismissedAvisosPos));
+      localStorage.setItem('sibopay_dismissed_avisos_pos', JSON.stringify(dismissedAvisosPos));
     } catch (e) {}
   }
   const el = document.getElementById(`posAvisoBanner-${id}`);
