@@ -11,9 +11,9 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="SiboPay">
-  <link rel="preload" href="/css/styles.css?v=19.5" as="style">
-  <link rel="preload" href="/js/app.js?v=19.5" as="script">
-  <link rel="stylesheet" href="/css/styles.css?v=19.5">
+  <link rel="preload" href="/css/styles.css?v=19.6" as="style">
+  <link rel="preload" href="/js/app.js?v=19.6" as="script">
+  <link rel="stylesheet" href="/css/styles.css?v=19.6">
   <link rel="stylesheet" href="/css/desktop.css?v=2.2">
   <style>
     /* Transiciones suaves */
@@ -263,6 +263,10 @@
               <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1-2.5-2.5Z"/><path d="M6 6h10"/><path d="M6 10h10"/><path d="M6 14h6"/></svg>
               <span>Kardex & Alumnos 360°</span>
             </button>
+            <button class="dev-tab-btn" id="btnDevTabLogs" onclick="switchDevTab('logs')">
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/></svg>
+              <span>Terminal & Logs en Vivo</span>
+            </button>
           </nav>
         </div>
       </aside>
@@ -473,10 +477,16 @@
               <span style="font-size: 0.76rem; color: var(--text-muted);">Respaldos automáticos diarios y descargas manuales</span>
             </div>
           </div>
-          <button type="button" onclick="ejecutarBackupManualDev()" id="btnDevCrearBackup" class="dev-action-btn dev-action-btn-primary" style="padding: 9px 18px; font-size: 0.84rem; display: inline-flex; align-items: center; gap: 6px;">
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-            <span>Crear Respaldo Ahora</span>
-          </button>
+          <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+            <button type="button" onclick="switchDevTab('logs')" class="dev-action-btn" style="padding: 9px 16px; font-size: 0.84rem; display: inline-flex; align-items: center; gap: 6px; border-color: #38bdf8; color: #0284c7;" title="Abrir terminal interactiva en vivo">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/></svg>
+              <span>Ver Terminal Web ↗</span>
+            </button>
+            <button type="button" onclick="ejecutarBackupManualDev()" id="btnDevCrearBackup" class="dev-action-btn dev-action-btn-primary" style="padding: 9px 18px; font-size: 0.84rem; display: inline-flex; align-items: center; gap: 6px;">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+              <span>Crear Respaldo Ahora</span>
+            </button>
+          </div>
         </div>
 
         <div id="devBackupsStatusMsg" style="display: none; padding: 10px 14px; border-radius: 10px; margin-bottom: 14px; font-size: 0.82rem; font-weight: 700;"></div>
@@ -920,6 +930,97 @@
                 <!-- Inyectado por JS -->
               </div>
             </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 8. PESTAÑA: VISOR DE LOGS DEL SERVIDOR Y TERMINAL WEB EN VIVO -->
+    <div id="devTabContentLogs" class="dev-tab-content" style="display: none;">
+      <!-- ENCABEZADO Y TELEMETRÍA SUPERIOR -->
+      <div style="background: var(--card-bg); border: 1.5px solid var(--border); border-radius: 18px; padding: 20px; margin-bottom: 20px; box-shadow: 0 4px 16px rgba(0,0,0,0.04); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 14px;">
+        <div style="display: flex; align-items: center; gap: 14px;">
+          <div style="width: 46px; height: 46px; border-radius: 12px; background: #0f172a; color: #38bdf8; display: flex; align-items: center; justify-content: center; font-size: 1.35rem; border: 1.5px solid #334155; flex-shrink: 0;">
+            💻
+          </div>
+          <div>
+            <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+              <h3 style="margin: 0; font-size: 1.22rem; font-weight: 900; color: var(--text-main);">Terminal Web & Logs en Vivo</h3>
+              <span class="dev-terminal-badge-live" id="devTermStatusBadge"><span class="pulse-dot"></span> EN VIVO</span>
+            </div>
+            <p style="font-size: 0.82rem; color: var(--text-muted); margin: 3px 0 0;">Monitoreo en tiempo real de peticiones HTTP, eventos SINPE Móvil, errores y procesos en el servidor.</p>
+          </div>
+        </div>
+
+        <div style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center;">
+          <button type="button" class="dev-action-btn" onclick="toggleDevLogsPause()" id="btnDevLogsPause" title="Pausar o reanudar el flujo en vivo">
+            <span id="devLogsPauseIcon">⏸</span> <span id="devLogsPauseText">Pausar Flujo</span>
+          </button>
+          <button type="button" class="dev-action-btn" onclick="clearDevTerminalScreen()" title="Limpiar la pantalla de la terminal">
+            <span>🧹</span> <span>Limpiar Pantalla</span>
+          </button>
+          <button type="button" class="dev-action-btn" onclick="descargarDevLogs()" title="Descargar registro de logs a un archivo">
+            <span>📥</span> <span>Descargar .log</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- VENTANA PRINCIPAL DE LA TERMINAL WEB -->
+      <div class="dev-terminal-wrapper">
+        <!-- HEADER DE LA TERMINAL -->
+        <div class="dev-terminal-header">
+          <div class="dev-terminal-dots">
+            <div class="dev-terminal-dot dot-red" title="Cerrar"></div>
+            <div class="dev-terminal-dot dot-yellow" title="Minimizar"></div>
+            <div class="dev-terminal-dot dot-green" title="Maximizar"></div>
+          </div>
+          <div class="dev-terminal-title">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/></svg>
+            <span>bash ~ sibopay-server (PM2 #4) [tail -f]</span>
+          </div>
+          <div style="display: flex; align-items: center; gap: 12px; font-size: 0.74rem; color: #94a3b8; font-family: ui-monospace, monospace;">
+            <span>Líneas: <strong id="devTermLineCount" style="color: #38bdf8;">0</strong></span>
+            <span style="color: #475569;">|</span>
+            <span id="devTermUptimeLabel">Uptime: --</span>
+          </div>
+        </div>
+
+        <!-- BARRA DE FILTROS Y BÚSQUEDA -->
+        <div class="dev-terminal-toolbar">
+          <div class="dev-terminal-filters">
+            <button type="button" class="dev-terminal-filter-btn active" data-filter="all" onclick="setDevLogsFilter('all', this)">Todos</button>
+            <button type="button" class="dev-terminal-filter-btn" data-filter="http" onclick="setDevLogsFilter('http', this)">⚡ HTTP</button>
+            <button type="button" class="dev-terminal-filter-btn" data-filter="sinpe" onclick="setDevLogsFilter('sinpe', this)">🏦 SINPE</button>
+            <button type="button" class="dev-terminal-filter-btn" data-filter="warn" onclick="setDevLogsFilter('warn', this)">⚠️ Avisos</button>
+            <button type="button" class="dev-terminal-filter-btn" data-filter="error" onclick="setDevLogsFilter('error', this)">❌ Errores</button>
+            <button type="button" class="dev-terminal-filter-btn" data-filter="sistema" onclick="setDevLogsFilter('sistema', this)">⚙️ Sistema</button>
+          </div>
+
+          <div class="dev-terminal-actions">
+            <input type="text" id="devTermSearchInput" class="dev-terminal-search-input" placeholder="🔍 Filtrar logs (grep)..." oninput="applyDevLogsSearch()">
+            <label style="display: inline-flex; align-items: center; gap: 6px; font-size: 0.74rem; color: #94a3b8; cursor: pointer; user-select: none;">
+              <input type="checkbox" id="devTermAutoScrollCheck" checked style="accent-color: #0284c7;"> Auto-scroll
+            </label>
+          </div>
+        </div>
+
+        <!-- PANTALLA DE CONSOLA / LOGS -->
+        <div id="devTerminalScreen" class="dev-terminal-screen">
+          <div style="color: #64748b; font-style: italic; padding: 12px 6px;">Conectando con el stream del servidor...</div>
+        </div>
+
+        <!-- FOOTER DE ESTADO DE LA TERMINAL -->
+        <div class="dev-terminal-footer">
+          <div class="dev-terminal-prompt">
+            <span>sibopay@server:~$</span>
+            <span class="terminal-blink">_</span>
+          </div>
+          <div class="dev-terminal-telemetry" id="devTermTelemetry">
+            <span>Memoria: <strong id="devTermMemMb" style="color: #f1f5f9;">--</strong></span>
+            <span>·</span>
+            <span>Node: <strong id="devTermNodeVer" style="color: #f1f5f9;">--</strong></span>
+            <span>·</span>
+            <span style="color: #10b981;">● Stream Activo</span>
           </div>
         </div>
       </div>

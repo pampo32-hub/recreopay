@@ -630,6 +630,12 @@ function switchDevTab(tab) {
     if (btn) btn.classList.add('active');
     if (content) content.style.display = 'block';
     inicializarDevKardex();
+  } else if (tab === 'logs') {
+    const btn = document.getElementById('btnDevTabLogs');
+    const content = document.getElementById('devTabContentLogs');
+    if (btn) btn.classList.add('active');
+    if (content) content.style.display = 'block';
+    initDevLogsTerminal();
   }
 }
 
@@ -9391,6 +9397,287 @@ function descargarBackupDev(filename) {
 window.descargarBackupDev = descargarBackupDev;
 window.cargarBackupsDev = cargarBackupsDev;
 window.ejecutarBackupManualDev = ejecutarBackupManualDev;
+
+// ==========================================
+// VISOR DE LOGS DEL SERVIDOR Y TERMINAL WEB EN VIVO (DEVELOPER)
+// ==========================================
+let devLogsEventSource = null;
+let devLogsList = [];
+let devLogsFilter = 'all';
+let devLogsSearchQuery = '';
+let devLogsPaused = false;
+
+async function initDevLogsTerminal() {
+  const screen = document.getElementById('devTerminalScreen');
+  if (!screen) return;
+
+  // Cargar datos iniciales
+  try {
+    const res = await fetch('/api/developer/logs?limit=300');
+    if (!res.ok) throw new Error('Error al consultar logs');
+    const data = await res.json();
+    
+    devLogsList = data.logs || [];
+    actualizarTelemetriaTerminal(data);
+    renderizarDevLogsPantalla();
+  } catch (err) {
+    if (screen) {
+      screen.innerHTML = `<div style="color: #f87171; padding: 10px;">❌ Error al conectar con el servicio de logs: ${escapeHtml(err.message)}</div>`;
+    }
+  }
+
+  // Conectar SSE en vivo si no está abierto
+  conectarStreamLogsEnVivo();
+}
+
+function conectarStreamLogsEnVivo() {
+  if (devLogsEventSource && devLogsEventSource.readyState !== EventSource.CLOSED) {
+    return;
+  }
+
+  try {
+    devLogsEventSource = new EventSource('/api/developer/logs/stream');
+
+    devLogsEventSource.addEventListener('server_log', (e) => {
+      if (devLogsPaused) return;
+      try {
+        const logEntry = JSON.parse(e.data);
+        devLogsList.push(logEntry);
+        if (devLogsList.length > 800) devLogsList.shift();
+
+        if (logCumpleFiltros(logEntry)) {
+          appendLogLineToScreen(logEntry);
+        }
+        actualizarContadorLineas();
+      } catch (err) {
+        console.error('Error parseando server_log:', err);
+      }
+    });
+
+    devLogsEventSource.addEventListener('handshake', () => {
+      actualizarEstadoBadgeTerminal(true);
+    });
+
+    devLogsEventSource.onerror = () => {
+      actualizarEstadoBadgeTerminal(false);
+    };
+
+    devLogsEventSource.onopen = () => {
+      actualizarEstadoBadgeTerminal(true);
+    };
+  } catch (err) {
+    console.error('Error iniciando SSE de logs:', err);
+  }
+}
+
+function logCumpleFiltros(log) {
+  if (devLogsFilter !== 'all') {
+    const filter = devLogsFilter.toLowerCase();
+    const levelMatch = (log.level || '').toLowerCase() === filter;
+    const tagMatch = (log.tag || '').toLowerCase() === filter;
+    if (!levelMatch && !tagMatch) return false;
+  }
+  if (devLogsSearchQuery) {
+    const q = devLogsSearchQuery.toLowerCase();
+    const msgMatch = (log.message || '').toLowerCase().includes(q);
+    const tagMatch = (log.tag || '').toLowerCase().includes(q);
+    if (!msgMatch && !tagMatch) return false;
+  }
+  return true;
+}
+
+function renderizarDevLogsPantalla() {
+  const screen = document.getElementById('devTerminalScreen');
+  if (!screen) return;
+
+  const filtrados = devLogsList.filter(logCumpleFiltros);
+  if (filtrados.length === 0) {
+    screen.innerHTML = `<div style="color: #64748b; font-style: italic; padding: 12px 6px;">No hay eventos registrados que coincidan con los filtros actuales.</div>`;
+    actualizarContadorLineas(0);
+    return;
+  }
+
+  screen.innerHTML = filtrados.map(crearHtmlLineaLog).join('');
+  actualizarContadorLineas(filtrados.length);
+
+  const autoScrollCheck = document.getElementById('devTermAutoScrollCheck');
+  if (autoScrollCheck && autoScrollCheck.checked) {
+    screen.scrollTop = screen.scrollHeight;
+  }
+}
+
+function appendLogLineToScreen(log) {
+  const screen = document.getElementById('devTerminalScreen');
+  if (!screen) return;
+
+  const temp = document.createElement('div');
+  temp.innerHTML = crearHtmlLineaLog(log);
+  const row = temp.firstElementChild;
+  if (row) {
+    screen.appendChild(row);
+  }
+
+  const autoScrollCheck = document.getElementById('devTermAutoScrollCheck');
+  if (autoScrollCheck && autoScrollCheck.checked) {
+    screen.scrollTop = screen.scrollHeight;
+  }
+}
+
+function crearHtmlLineaLog(log) {
+  const tagClass = getTagCssClass(log.tag, log.level);
+  const levelRowClass = log.level === 'error' ? 'log-level-error' : (log.level === 'warn' ? 'log-level-warn' : '');
+  
+  let msgFormatted = escapeHtml(log.message || '');
+  msgFormatted = msgFormatted
+    .replace(/\b(GET)\b/g, '<span style="color: #38bdf8; font-weight: 800;">GET</span>')
+    .replace(/\b(POST)\b/g, '<span style="color: #34d399; font-weight: 800;">POST</span>')
+    .replace(/\b(PUT)\b/g, '<span style="color: #c084fc; font-weight: 800;">PUT</span>')
+    .replace(/\b(DELETE)\b/g, '<span style="color: #f87171; font-weight: 800;">DELETE</span>')
+    .replace(/\b(200|201)\b/g, '<span style="color: #4ade80; font-weight: 700;">$1</span>')
+    .replace(/\b(400|401|403|404)\b/g, '<span style="color: #fbbf24; font-weight: 700;">$1</span>')
+    .replace(/\b(500|502|503)\b/g, '<span style="color: #ef4444; font-weight: 800;">$1</span>');
+
+  return `
+    <div class="dev-log-line ${levelRowClass}">
+      <span class="dev-log-time">[${escapeHtml(log.timestamp || '')}]</span>
+      <span class="dev-log-tag ${tagClass}">${escapeHtml(log.tag || 'APP')}</span>
+      <span class="dev-log-msg">${msgFormatted}</span>
+    </div>
+  `;
+}
+
+function getTagCssClass(tag, level) {
+  const t = (tag || '').toLowerCase();
+  const lvl = (level || '').toLowerCase();
+  if (lvl === 'error' || t === 'error') return 'tag-error';
+  if (lvl === 'warn' || t === 'warn') return 'tag-warn';
+  if (t === 'http') return 'tag-http';
+  if (t === 'sinpe') return 'tag-sinpe';
+  if (t === 'auth') return 'tag-auth';
+  if (t === 'orden') return 'tag-orden';
+  if (t === 'sistema' || t === 'pm2' || t === 'cron') return 'tag-sistema';
+  return 'tag-app';
+}
+
+function setDevLogsFilter(filter, btn) {
+  devLogsFilter = filter;
+  document.querySelectorAll('.dev-terminal-filter-btn').forEach(b => b.classList.remove('active'));
+  if (btn) btn.classList.add('active');
+  renderizarDevLogsPantalla();
+}
+
+function applyDevLogsSearch() {
+  const input = document.getElementById('devTermSearchInput');
+  devLogsSearchQuery = input ? input.value : '';
+  renderizarDevLogsPantalla();
+}
+
+function toggleDevLogsPause() {
+  devLogsPaused = !devLogsPaused;
+  const icon = document.getElementById('devLogsPauseIcon');
+  const text = document.getElementById('devLogsPauseText');
+  const badge = document.getElementById('devTermStatusBadge');
+
+  if (devLogsPaused) {
+    if (icon) icon.textContent = '▶';
+    if (text) text.textContent = 'Reanudar Flujo';
+    if (badge) {
+      badge.className = 'dev-terminal-badge-live paused';
+      badge.innerHTML = '<span class="pulse-dot"></span> PAUSADO';
+    }
+  } else {
+    if (icon) icon.textContent = '⏸';
+    if (text) text.textContent = 'Pausar Flujo';
+    if (badge) {
+      badge.className = 'dev-terminal-badge-live';
+      badge.innerHTML = '<span class="pulse-dot"></span> EN VIVO';
+    }
+    initDevLogsTerminal();
+  }
+}
+
+async function clearDevTerminalScreen() {
+  devLogsList = [];
+  const screen = document.getElementById('devTerminalScreen');
+  if (screen) {
+    screen.innerHTML = '<div style="color: #64748b; font-style: italic; padding: 12px 6px;">Pantalla de terminal limpiada. Esperando nuevos eventos...</div>';
+  }
+  actualizarContadorLineas(0);
+  try {
+    await fetch('/api/developer/logs/clear', { method: 'POST' });
+  } catch (e) {}
+}
+
+function descargarDevLogs() {
+  if (devLogsList.length === 0) {
+    if (typeof showToast === 'function') {
+      showToast('No hay registros en la terminal para descargar.', 'warning');
+    } else {
+      alert('No hay registros en la terminal para descargar.');
+    }
+    return;
+  }
+
+  const lineas = devLogsList.map(l => `[${l.timestamp}] [${l.tag}] ${l.message}`);
+  const contenido = lineas.join('\n');
+  const blob = new Blob([contenido], { type: 'text/plain;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  const now = new Date();
+  const fechaStr = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}_${String(now.getHours()).padStart(2,'0')}-${String(now.getMinutes()).padStart(2,'0')}`;
+  a.href = url;
+  a.download = `sibopay-server-logs-${fechaStr}.log`;
+  document.body.appendChild(a);
+  a.click();
+  setTimeout(() => {
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }, 200);
+}
+
+function actualizarTelemetriaTerminal(data) {
+  const uptimeLbl = document.getElementById('devTermUptimeLabel');
+  const memLbl = document.getElementById('devTermMemMb');
+  const nodeLbl = document.getElementById('devTermNodeVer');
+
+  if (data && data.uptimeSeconds !== undefined && uptimeLbl) {
+    const d = Math.floor(data.uptimeSeconds / 86400);
+    const h = Math.floor((data.uptimeSeconds % 86400) / 3600);
+    const m = Math.floor((data.uptimeSeconds % 3600) / 60);
+    const s = data.uptimeSeconds % 60;
+    uptimeLbl.textContent = `Uptime: ${d > 0 ? d + 'd ' : ''}${h}h ${m}m ${s}s`;
+  }
+  if (data && data.memoryMb && memLbl) memLbl.textContent = `${data.memoryMb} MB`;
+  if (data && data.nodeVersion && nodeLbl) nodeLbl.textContent = data.nodeVersion;
+}
+
+function actualizarContadorLineas(num) {
+  const lbl = document.getElementById('devTermLineCount');
+  if (lbl) {
+    lbl.textContent = String(num !== undefined ? num : devLogsList.length);
+  }
+}
+
+function actualizarEstadoBadgeTerminal(conectado) {
+  const badge = document.getElementById('devTermStatusBadge');
+  if (!badge) return;
+  if (devLogsPaused) return;
+
+  if (conectado) {
+    badge.className = 'dev-terminal-badge-live';
+    badge.innerHTML = '<span class="pulse-dot"></span> EN VIVO';
+  } else {
+    badge.className = 'dev-terminal-badge-live paused';
+    badge.innerHTML = '<span class="pulse-dot"></span> RECONECTANDO...';
+  }
+}
+
+window.initDevLogsTerminal = initDevLogsTerminal;
+window.setDevLogsFilter = setDevLogsFilter;
+window.applyDevLogsSearch = applyDevLogsSearch;
+window.toggleDevLogsPause = toggleDevLogsPause;
+window.clearDevTerminalScreen = clearDevTerminalScreen;
+window.descargarDevLogs = descargarDevLogs;
 
 // ==========================================
 // DESCARGA DIRECTA DE ARCHIVOS (ANTI POPUP-BLOCKER)

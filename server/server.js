@@ -97,8 +97,134 @@ const compression = require('compression');
 const app = express();
 const PORT = process.env.PORT || 3030;
 
+// ==========================================
+// MÓDULO: TERMINAL WEB Y LOGS EN VIVO (DEVELOPER)
+// ==========================================
+const MAX_SERVER_LOGS = 600;
+const serverLogsBuffer = [];
+const devLogClients = new Set();
+let logSequenceId = 1;
+
+function pushServerLog(level, tag, rawMessage, details = null) {
+  const now = new Date();
+  const pad = (n) => String(n).padStart(2, '0');
+  const padMs = (n) => String(n).padStart(3, '0');
+  const timeStr = `${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}.${padMs(now.getMilliseconds())}`;
+  
+  const msgStr = typeof rawMessage === 'string' ? rawMessage : JSON.stringify(rawMessage);
+  
+  const logEntry = {
+    id: logSequenceId++,
+    timestamp: timeStr,
+    isoTime: now.toISOString(),
+    level: level || 'info', // 'info' | 'warn' | 'error' | 'http' | 'sinpe'
+    tag: tag || 'APP',
+    message: msgStr.trim(),
+    details: details ? String(details) : null
+  };
+
+  serverLogsBuffer.push(logEntry);
+  if (serverLogsBuffer.length > MAX_SERVER_LOGS) {
+    serverLogsBuffer.shift();
+  }
+
+  if (devLogClients.size > 0) {
+    const sseMsg = `event: server_log\ndata: ${JSON.stringify(logEntry)}\n\n`;
+    for (const client of devLogClients) {
+      try {
+        client.write(sseMsg);
+        if (typeof client.flush === 'function') client.flush();
+      } catch (e) {
+        devLogClients.delete(client);
+      }
+    }
+  }
+}
+
+// Interceptores de consola seguros (sin recursión)
+const origConsoleLog = console.log;
+const origConsoleWarn = console.warn;
+const origConsoleError = console.error;
+
+console.log = function(...args) {
+  origConsoleLog.apply(console, args);
+  try {
+    const text = args.map(a => (typeof a === 'object' ? JSON.stringify(a) : String(a))).join(' ');
+    let tag = 'APP';
+    let level = 'info';
+    if (text.includes('[SINPE')) { tag = 'SINPE'; }
+    else if (text.includes('[WebPush')) { tag = 'WEBPUSH'; }
+    else if (text.includes('[PISTOLA')) { tag = 'PISTOLA'; }
+    else if (text.includes('[Seguridad')) { tag = 'AUTH'; }
+    else if (text.includes('[AUTO-EXPIRACION')) { tag = 'CRON'; }
+    pushServerLog(level, tag, text);
+  } catch (e) {}
+};
+
+console.warn = function(...args) {
+  origConsoleWarn.apply(console, args);
+  try {
+    const text = args.map(a => (typeof a === 'object' ? JSON.stringify(a) : String(a))).join(' ');
+    pushServerLog('warn', 'WARN', text);
+  } catch (e) {}
+};
+
+console.error = function(...args) {
+  origConsoleError.apply(console, args);
+  try {
+    const text = args.map(a => (typeof a === 'object' ? (a && a.stack ? a.stack : JSON.stringify(a)) : String(a))).join(' ');
+    pushServerLog('error', 'ERROR', text);
+  } catch (e) {}
+};
+
+// Cargar historial previo de PM2 si existe en el servidor
+try {
+  const pm2LogPath = '/root/.pm2/logs/recreopay-out.log';
+  if (fs.existsSync(pm2LogPath)) {
+    const rawContent = fs.readFileSync(pm2LogPath, 'utf8');
+    const recentLines = rawContent.split('\n').filter(Boolean).slice(-40);
+    for (const line of recentLines) {
+      let tag = 'PM2';
+      if (line.includes('[SINPE')) tag = 'SINPE';
+      pushServerLog('info', tag, line);
+    }
+  }
+} catch (e) {}
+
+pushServerLog('info', 'SISTEMA', `Terminal Web inicializada (Node ${process.version}, PID ${process.pid})`);
+
 // Compresión Gzip de alto rendimiento para HTML, JS, CSS y JSON
 app.use(compression());
+
+// Middleware de trazabilidad de peticiones HTTP en tiempo real para la terminal
+app.use((req, res, next) => {
+  const p = req.path || '';
+  if (p === '/api/events' || p === '/api/developer/logs/stream' || p.startsWith('/css/') || p.startsWith('/js/') || p.startsWith('/img/') || p.endsWith('.png') || p.endsWith('.ico') || p.endsWith('.json')) {
+    return next();
+  }
+  
+  if (p.startsWith('/api/')) {
+    const start = Date.now();
+    const method = req.method;
+    
+    res.on('finish', () => {
+      const duration = Date.now() - start;
+      const status = res.statusCode;
+      let level = 'http';
+      let tag = 'HTTP';
+      if (status >= 500) { level = 'error'; }
+      else if (status >= 400) { level = 'warn'; }
+      
+      if (p.includes('/sinpe/')) { tag = 'SINPE'; }
+      else if (p.includes('/ordenes') || p.includes('/pos')) { tag = 'ORDEN'; }
+      else if (p.includes('/login') || p.includes('/auth')) { tag = 'AUTH'; }
+      else if (p.includes('/developer/')) { tag = 'DEV'; }
+      
+      pushServerLog(level, tag, `${method} ${p} -> ${status} (${duration}ms)`);
+    });
+  }
+  next();
+});
 
 // Initialize DB schema & seed data
 initDatabase();
@@ -2274,6 +2400,70 @@ app.get('/api/developer/backups/descargar/:filename', (req, res) => {
     res.download(targetPath, safeFilename);
   } catch (err) {
     res.status(500).send(err.message);
+  }
+});
+
+// ==========================================
+// ENDPOINTS TERMINAL WEB Y LOGS EN VIVO (DEVELOPER)
+// ==========================================
+app.get('/api/developer/logs', (req, res) => {
+  try {
+    const limit = Math.min(parseInt(req.query.limit || '300', 10), MAX_SERVER_LOGS);
+    const filterLevel = req.query.level;
+    const filterQuery = (req.query.q || '').toLowerCase().trim();
+    let result = serverLogsBuffer;
+    
+    if (filterLevel && filterLevel !== 'all') {
+      result = result.filter(l => l.level === filterLevel || l.tag.toLowerCase() === filterLevel.toLowerCase());
+    }
+    if (filterQuery) {
+      result = result.filter(l => l.message.toLowerCase().includes(filterQuery) || l.tag.toLowerCase().includes(filterQuery));
+    }
+    
+    const mem = process.memoryUsage();
+    res.json({
+      logs: result.slice(-limit),
+      totalCount: serverLogsBuffer.length,
+      uptimeSeconds: Math.floor(process.uptime()),
+      memoryMb: (mem.rss / (1024 * 1024)).toFixed(1),
+      heapMb: (mem.heapUsed / (1024 * 1024)).toFixed(1),
+      nodeVersion: process.version,
+      pid: process.pid,
+      activeStreamClients: devLogClients.size
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.get('/api/developer/logs/stream', (req, res) => {
+  res.setHeader('Content-Type', 'text/event-stream; charset=utf-8');
+  res.setHeader('Cache-Control', 'no-cache, no-transform');
+  res.setHeader('Connection', 'keep-alive');
+  res.setHeader('X-Accel-Buffering', 'no');
+  res.flushHeaders();
+
+  devLogClients.add(res);
+
+  res.write(`event: handshake\ndata: ${JSON.stringify({ 
+    message: 'Terminal conectada en vivo al servidor', 
+    timestamp: new Date().toISOString(),
+    pid: process.pid,
+    nodeVersion: process.version
+  })}\n\n`);
+
+  req.on('close', () => {
+    devLogClients.delete(res);
+  });
+});
+
+app.post('/api/developer/logs/clear', (req, res) => {
+  try {
+    serverLogsBuffer.length = 0;
+    pushServerLog('info', 'TERMINAL', 'Buffer de logs reiniciado manualmente por el desarrollador.');
+    res.json({ success: true, message: 'Terminal de logs limpiada' });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
   }
 });
 
