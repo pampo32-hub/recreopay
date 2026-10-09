@@ -1588,11 +1588,46 @@ function getQrSecurityKey() {
 
 function isQrSecurityActiveForCurrentStudent() {
   const active = getActiveStudentForQrSecurity();
-  if (active && (active.bloqueo_qr_biometrico === 1 || active.bloqueo_qr_biometrico === '1' || active.bloqueo_qr_biometrico === true)) {
-    return true;
+  if (active && active.bloqueo_qr_biometrico !== undefined && active.bloqueo_qr_biometrico !== null) {
+    const isAct = (Number(active.bloqueo_qr_biometrico) === 1 || active.bloqueo_qr_biometrico === true || active.bloqueo_qr_biometrico === '1');
+    const key = getQrSecurityKey();
+    localStorage.setItem(key, isAct ? 'true' : 'false');
+    return isAct;
   }
   const key = getQrSecurityKey();
   return localStorage.getItem(key) === 'true';
+}
+
+function applyRealtimeQrSecurity(estId, isBlocked) {
+  const isEnabled = Number(isBlocked) === 1 || isBlocked === true || isBlocked === '1';
+  const key = 'sibopay_qr_security_' + estId;
+  localStorage.setItem(key, isEnabled ? 'true' : 'false');
+
+  if (currentStudent && Number(currentStudent.id) === Number(estId)) {
+    currentStudent.bloqueo_qr_biometrico = isEnabled ? 1 : 0;
+    updateQrSecurityBadgeUI();
+  }
+
+  if (currentParentChild && Number(currentParentChild.id) === Number(estId)) {
+    currentParentChild.bloqueo_qr_biometrico = isEnabled ? 1 : 0;
+    updateParentQrSecurityCardUI();
+  }
+
+  if (currentUser && currentUser.estudiante && Number(currentUser.estudiante.id) === Number(estId)) {
+    currentUser.estudiante.bloqueo_qr_biometrico = isEnabled ? 1 : 0;
+  }
+
+  // Si el modal de PIN estaba abierto en el estudiante y se desactiva en tiempo real, cerrarlo
+  if (!isEnabled) {
+    const pinModal = document.getElementById('modalQrPinPrompt');
+    if (pinModal && pinModal.style.display !== 'none') {
+      pinModal.style.display = 'none';
+      if (typeof pendingQrUnlockSuccessCallback === 'function') {
+        pendingQrUnlockSuccessCallback();
+        pendingQrUnlockSuccessCallback = null;
+      }
+    }
+  }
 }
 
 function getQrSecurityPin() {
@@ -1878,6 +1913,7 @@ async function toggleQrBiometricSetting(enabled) {
   const chk = document.getElementById('chkQrBiometricsEnabled');
 
   const applyToggle = async (val) => {
+    applyRealtimeQrSecurity(estId, val ? 1 : 0);
     if (val) {
       const bioAvailable = await checkDeviceBiometricsSupport();
       if (bioAvailable) {
@@ -1889,11 +1925,6 @@ async function toggleQrBiometricSetting(enabled) {
           console.warn('Registro biométrico omitido o cancelado por el usuario:', regErr);
         }
       }
-      localStorage.setItem(key, 'true');
-      if (active) active.bloqueo_qr_biometrico = 1;
-    } else {
-      localStorage.setItem(key, 'false');
-      if (active) active.bloqueo_qr_biometrico = 0;
     }
     if (chk) chk.checked = val;
     updateQrSecurityBadgeUI();
@@ -1902,11 +1933,15 @@ async function toggleQrBiometricSetting(enabled) {
     // Sincronizar en el backend si tenemos el ID del estudiante
     if (active && active.id) {
       try {
-        await fetch(`/api/estudiantes/${active.id}/limite`, {
+        const res = await fetch(`/api/estudiantes/${active.id}/limite`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ bloqueo_qr_biometrico: val ? 1 : 0 })
         });
+        if (!res.ok) {
+          const errData = await res.json().catch(() => ({}));
+          console.error('Error del servidor al guardar bloqueo_qr_biometrico:', errData);
+        }
       } catch (e) {
         console.warn('Error sincronizando bloqueo_qr_biometrico con el servidor:', e);
       }
@@ -3111,10 +3146,25 @@ function initStudentSSE() {
     } catch (err) {}
   });
 
+  sse.addEventListener('seguridad_qr_actualizada', (e) => {
+    try {
+      const data = JSON.parse(e.data);
+      const estId = Number(data.id || data.estudiante_id);
+      if (estId && data.bloqueo_qr_biometrico !== undefined) {
+        applyRealtimeQrSecurity(estId, data.bloqueo_qr_biometrico);
+      }
+    } catch (err) {
+      console.warn('Error en SSE seguridad_qr_actualizada:', err);
+    }
+  });
+
   sse.addEventListener('estudiante_actualizado', (e) => {
     try {
       const data = JSON.parse(e.data);
       const estId = Number(data.id || data.estudiante_id);
+      if (estId && data.bloqueo_qr_biometrico !== undefined) {
+        applyRealtimeQrSecurity(estId, data.bloqueo_qr_biometrico);
+      }
       const myId = currentStudent ? Number(currentStudent.id) : (currentUser && currentUser.estudiante ? Number(currentUser.estudiante.id) : null);
       if (myId && myId === estId) {
         if (currentStudent) {
@@ -3130,7 +3180,15 @@ function initStudentSSE() {
         }
         updateStudentUI();
         triggerBalancePulse();
-        fetch(`/api/estudiantes/${estId}`).then(r => r.json()).then(s => { if (s && currentStudent && currentStudent.id === s.id) { currentStudent = s; updateStudentUI(); } }).catch(()=>{});
+        fetch(`/api/estudiantes/${estId}`).then(r => r.json()).then(s => { 
+          if (s && currentStudent && currentStudent.id === s.id) { 
+            currentStudent = s; 
+            if (s.bloqueo_qr_biometrico !== undefined) {
+              applyRealtimeQrSecurity(s.id, s.bloqueo_qr_biometrico);
+            }
+            updateStudentUI(); 
+          } 
+        }).catch(()=>{});
       }
       if (currentUser && currentUser.rol === 'padre') {
         loadParentDashboard();

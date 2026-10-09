@@ -3512,6 +3512,10 @@ app.put('/api/estudiantes/:id/limite', (req, res) => {
     const { limite_diario_colones, alergias, bloquear_chucherias, permitir_transferencias, bloqueo_qr_biometrico } = req.body;
     const estId = req.params.id;
 
+    const bioVal = bloqueo_qr_biometrico !== undefined
+      ? (Number(bloqueo_qr_biometrico) === 1 || bloqueo_qr_biometrico === true || bloqueo_qr_biometrico === '1' ? 1 : 0)
+      : null;
+
     db.prepare(`
       UPDATE estudiantes 
       SET limite_diario_colones = COALESCE(?, limite_diario_colones),
@@ -3520,7 +3524,7 @@ app.put('/api/estudiantes/:id/limite', (req, res) => {
           permitir_transferencias = COALESCE(?, permitir_transferencias),
           bloqueo_qr_biometrico = COALESCE(?, bloqueo_qr_biometrico)
       WHERE id = ?
-    `).run(limite_diario_colones, alergias, bloquear_chucherias, permitir_transferencias, bloqueo_qr_biometrico, estId);
+    `).run(limite_diario_colones, alergias, bloquear_chucherias, permitir_transferencias, bioVal, estId);
 
     const actualizado = db.prepare('SELECT * FROM estudiantes WHERE id = ?').get(estId);
     if (actualizado) {
@@ -3532,6 +3536,11 @@ app.put('/api/estudiantes/:id/limite', (req, res) => {
       actualizado.gastado_hoy = gastoHoy;
       actualizado.disponible_hoy = Math.max(0, (actualizado.limite_diario_colones || 0) - gastoHoy);
       broadcastEvent('estudiante_actualizado', actualizado);
+      broadcastEvent('seguridad_qr_actualizada', {
+        id: estId,
+        estudiante_id: estId,
+        bloqueo_qr_biometrico: actualizado.bloqueo_qr_biometrico
+      });
     }
     res.json(actualizado);
   } catch (error) {

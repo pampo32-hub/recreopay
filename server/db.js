@@ -199,6 +199,8 @@ function initDatabase() {
       db.exec('ALTER TABLE transacciones_saldo ADD COLUMN IF NOT EXISTS escuela_id INTEGER DEFAULT 1 REFERENCES escuelas(id);');
       db.exec('ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS escuela_id INTEGER DEFAULT 1 REFERENCES escuelas(id);');
       db.exec('ALTER TABLE estudiantes ADD COLUMN IF NOT EXISTS escuela_id INTEGER DEFAULT 1 REFERENCES escuelas(id);');
+      db.exec('ALTER TABLE estudiantes ADD COLUMN IF NOT EXISTS card_theme VARCHAR(50);');
+      db.exec('ALTER TABLE estudiantes ADD COLUMN IF NOT EXISTS bloqueo_qr_biometrico INTEGER DEFAULT 0;');
       db.exec('ALTER TABLE productos ADD COLUMN IF NOT EXISTS escuela_id INTEGER DEFAULT 1 REFERENCES escuelas(id);');
       db.exec('ALTER TABLE ordenes ADD COLUMN IF NOT EXISTS escuela_id INTEGER DEFAULT 1 REFERENCES escuelas(id);');
       db.exec('ALTER TABLE solicitudes_recarga_sinpe ADD COLUMN IF NOT EXISTS escuela_id INTEGER DEFAULT 1 REFERENCES escuelas(id);');
