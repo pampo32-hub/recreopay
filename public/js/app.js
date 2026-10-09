@@ -749,7 +749,13 @@ function updateStudentUI() {
     }
   }
   document.getElementById('walletName').textContent = currentStudent.nombre_completo;
-  document.getElementById('walletGrade').textContent = `${currentStudent.grado} • Sección ${currentStudent.seccion} • Cód: ${currentStudent.codigo_estudiante}`;
+  document.getElementById('walletGrade').textContent = `${currentStudent.grado} • Sección ${currentStudent.seccion}`;
+  const codeEl = document.getElementById('walletStudentCode');
+  if (codeEl) {
+    codeEl.textContent = `Cód: ${currentStudent.codigo_estudiante || ''}`;
+  } else {
+    document.getElementById('walletGrade').textContent = `${currentStudent.grado} • Sección ${currentStudent.seccion} • Cód: ${currentStudent.codigo_estudiante}`;
+  }
   
   // Aplicar tema personalizado de tarjeta
   if (typeof applyCardTheme === 'function' && typeof getSavedCardTheme === 'function') {
@@ -7591,7 +7597,8 @@ function renderCardDesignsCarousel() {
   const currentTheme = getSavedCardTheme();
   const avatarUrl = (currentStudent && currentStudent.foto_url) ? currentStudent.foto_url : 'https://api.dicebear.com/7.x/bottts/svg?seed=est';
   const studentName = (currentStudent && currentStudent.nombre_completo) ? currentStudent.nombre_completo : 'Mateo Alvarado Castro';
-  const studentGrade = (currentStudent && currentStudent.grado) ? `${currentStudent.grado} • Sección ${currentStudent.seccion || 'A'} • Cód: ${currentStudent.codigo_estudiante || 'EST-001'}` : '2° Grado • Sección 2-A • Cód: EST-2026-001';
+  const studentGradeOnly = (currentStudent && currentStudent.grado) ? `${currentStudent.grado} • Sección ${currentStudent.seccion || 'A'}` : '2° Grado • Sección 2-A';
+  const studentCodeOnly = (currentStudent && currentStudent.codigo_estudiante) ? currentStudent.codigo_estudiante : 'EST-2026-001';
   const studentBalance = (currentStudent && currentStudent.saldo_colones !== undefined) ? currentStudent.saldo_colones.toLocaleString('es-CR') : '5.300';
 
   container.innerHTML = themes.map((t, idx) => {
@@ -7610,14 +7617,17 @@ function renderCardDesignsCarousel() {
             <div class="student-avatar">${getStudentInitials(studentName)}</div>
             <div class="student-meta" style="flex: 1; min-width: 0;">
               <h2 style="margin: 0; font-size: 1.05rem; font-weight: 800; word-break: break-word;">${studentName}</h2>
-              <span class="student-grade" style="font-size: 0.72rem;">${studentGrade}</span>
+              <div style="display: flex; align-items: center; gap: 6px; flex-wrap: wrap; margin-top: 3px;">
+                <span class="student-grade" style="font-size: 0.72rem;">${studentGradeOnly}</span>
+                <span class="card-glass-badge">Cód: ${studentCodeOnly}</span>
+              </div>
             </div>
           </div>
           <div class="balance-row">
             <div class="balance-col">
-              <div class="label" style="font-size: 0.68rem; font-weight: 800;">SALDO DISPONIBLE</div>
+              <div class="label" style="font-size: 0.68rem; font-weight: 800; margin-bottom: 3px;">SALDO DISPONIBLE</div>
               <div class="amount">
-                <span style="font-size: 1.35rem; font-weight: 900;">₡${studentBalance}</span>
+                <span class="card-balance-glass" style="font-size: 1.25rem; font-weight: 900;">₡${studentBalance}</span>
               </div>
             </div>
             <div style="display: flex; gap: 4px; align-items: center;">
@@ -8156,13 +8166,13 @@ function updateDevCardLivePreview() {
   if (textStyle === 'light') {
     if (cardName) { cardName.style.color = '#0f172a'; cardName.style.textShadow = '0 1px 2px rgba(255,255,255,0.9)'; }
     if (cardGrade) { cardGrade.style.color = '#334155'; cardGrade.style.textShadow = 'none'; }
-    if (cardBalVal) { cardBalVal.style.color = '#047857'; cardBalVal.style.textShadow = '0 1px 2px rgba(255,255,255,0.8)'; }
+    if (cardBalVal) { cardBalVal.style.color = '#ffffff'; cardBalVal.style.textShadow = '0 1px 3px rgba(0,0,0,0.8)'; }
     if (cardBalLbl) { cardBalLbl.style.color = '#334155'; }
     if (cardBrand) { cardBrand.style.color = '#0f172a'; cardBrand.style.textShadow = '0 1px 2px rgba(255,255,255,0.8)'; }
   } else {
     if (cardName) { cardName.style.color = '#ffffff'; cardName.style.textShadow = '0 2px 8px rgba(0,0,0,0.9)'; }
     if (cardGrade) { cardGrade.style.color = '#cbd5e1'; cardGrade.style.textShadow = '0 2px 6px rgba(0,0,0,0.9)'; }
-    if (cardBalVal) { cardBalVal.style.color = '#4ade80'; cardBalVal.style.textShadow = '0 2px 10px rgba(0,0,0,0.95)'; }
+    if (cardBalVal) { cardBalVal.style.color = '#ffffff'; cardBalVal.style.textShadow = '0 1px 3px rgba(0,0,0,0.8)'; }
     if (cardBalLbl) { cardBalLbl.style.color = '#cbd5e1'; }
     if (cardBrand) { cardBrand.style.color = '#ffffff'; cardBrand.style.textShadow = '0 2px 8px rgba(0,0,0,0.8)'; }
   }

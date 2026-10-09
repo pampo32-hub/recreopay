@@ -4397,13 +4397,53 @@ body.dark-mode .carousel-nav-btn {
   font-weight: 700 !important;
 }
 
+/* ==========================================================================
+   CÁPSULAS TRANSLÚCIDAS GLASSMORPHISM EN TARJETA VIRTUAL (SALDO Y CÓDIGO)
+   ========================================================================== */
+.card-balance-glass,
+.wallet-card .amount span#walletBalance,
+.wallet-card #walletBalance {
+  display: inline-flex !important;
+  align-items: center !important;
+  background: rgba(0, 0, 0, 0.52) !important;
+  backdrop-filter: blur(8px) !important;
+  -webkit-backdrop-filter: blur(8px) !important;
+  border: 1px solid rgba(255, 255, 255, 0.28) !important;
+  color: #ffffff !important;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.8) !important;
+  border-radius: 12px !important;
+  padding: 4px 14px !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.28) !important;
+  font-weight: 900 !important;
+  letter-spacing: -0.5px !important;
+}
+
+.card-glass-badge,
+#devLiveCardCode,
+#walletStudentCode {
+  display: inline-flex !important;
+  align-items: center !important;
+  background: rgba(0, 0, 0, 0.52) !important;
+  backdrop-filter: blur(8px) !important;
+  -webkit-backdrop-filter: blur(8px) !important;
+  border: 1px solid rgba(255, 255, 255, 0.25) !important;
+  color: #ffffff !important;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.8) !important;
+  font-size: 0.74rem !important;
+  font-weight: 800 !important;
+  padding: 2.5px 9px !important;
+  border-radius: 8px !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.22) !important;
+  letter-spacing: 0.4px !important;
+}
+
 .wallet-card.card-text-light-bg .amount span,
 .wallet-card.card-style-light .amount span,
 .wallet-card.card-text-light-bg #walletBalance,
 .wallet-card.card-style-light #walletBalance {
-  color: #047857 !important;
+  color: #ffffff !important;
   font-weight: 900 !important;
-  text-shadow: 0 1px 2px rgba(255, 255, 255, 0.8) !important;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.8) !important;
 }
 
 .wallet-card.card-text-light-bg .qr-toggle-btn,
@@ -4439,8 +4479,8 @@ body.dark-mode .carousel-nav-btn {
 .wallet-card.card-style-dark .amount span,
 .wallet-card.card-text-dark-bg #walletBalance,
 .wallet-card.card-style-dark #walletBalance {
-  color: #4ade80 !important;
-  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.95) !important;
+  color: #ffffff !important;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.8) !important;
 }
 
 .wallet-card.card-text-dark-bg .qr-toggle-btn,
