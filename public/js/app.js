@@ -1682,10 +1682,20 @@ async function verifyPlatformBiometrics(credIdBase64) {
   return Boolean(assertion);
 }
 
-async function triggerQrSecurityUnlock(onSuccess) {
+async function triggerQrSecurityUnlock(onSuccess, promptTitle, promptDesc) {
   pendingQrUnlockSuccessCallback = onSuccess;
   const estId = currentStudent ? (currentStudent.id || currentStudent.codigo_estudiante || 'default') : 'default';
   const credId = localStorage.getItem('sibopay_bio_cred_' + estId);
+
+  // Textos dinámicos en el modal de verificación
+  const titleEl = document.getElementById('lblQrPinPromptTitle');
+  const descEl = document.getElementById('lblQrPinPromptDesc');
+  if (titleEl) {
+    titleEl.textContent = promptTitle || 'Carné QR Protegido';
+  }
+  if (descEl) {
+    descEl.textContent = promptDesc || 'Verifica tu identidad para mostrar tu código de pago en la soda.';
+  }
 
   const bioAvailable = await checkDeviceBiometricsSupport();
   const retryContainer = document.getElementById('qrBioRetryContainer');
@@ -1794,6 +1804,18 @@ async function retryQrBiometrics() {
 }
 
 async function openQrSecuritySettings() {
+  // Si la seguridad YA está activa, exigir autenticación con Face ID o PIN para entrar
+  if (isQrSecurityActiveForCurrentStudent()) {
+    triggerQrSecurityUnlock(() => {
+      showQrSecuritySettingsModalActual();
+    }, 'Administración de Seguridad', 'Verifica tu identidad con Face ID, Huella o PIN para acceder a los ajustes de seguridad.');
+    return;
+  }
+
+  showQrSecuritySettingsModalActual();
+}
+
+async function showQrSecuritySettingsModalActual() {
   const modal = document.getElementById('modalQrSecuritySettings');
   if (!modal) return;
   const isEnabled = isQrSecurityActiveForCurrentStudent();
@@ -1832,6 +1854,7 @@ function closeQrSecuritySettings(e) {
 async function toggleQrBiometricSetting(enabled) {
   const estId = currentStudent ? (currentStudent.id || currentStudent.codigo_estudiante || 'default') : 'default';
   const key = getQrSecurityKey();
+  const chk = document.getElementById('chkQrBiometricsEnabled');
 
   if (enabled) {
     const bioAvailable = await checkDeviceBiometricsSupport();
@@ -1845,10 +1868,20 @@ async function toggleQrBiometricSetting(enabled) {
       }
     }
     localStorage.setItem(key, 'true');
+    updateQrSecurityBadgeUI();
   } else {
-    localStorage.setItem(key, 'false');
+    // Si intenta desactivar, exigir autenticación obligatoria
+    triggerQrSecurityUnlock(() => {
+      localStorage.setItem(key, 'false');
+      if (chk) chk.checked = false;
+      updateQrSecurityBadgeUI();
+      if (window.sounds) window.sounds.playSuccess();
+      alert('La protección biométrica ha sido desactivada.');
+    }, 'Desactivar Seguridad', 'Verifica tu identidad para confirmar la desactivación de la seguridad.');
+    
+    // Mantener el switch en ON mientras se confirma
+    if (chk) chk.checked = true;
   }
-  updateQrSecurityBadgeUI();
 }
 
 function saveSettingsPinBackup() {
@@ -1870,22 +1903,8 @@ function saveSettingsPinBackup() {
 
 function updateQrSecurityBadgeUI() {
   const isEnabled = isQrSecurityActiveForCurrentStudent();
-  const btn = document.getElementById('btnQrSecurityLock');
-  const badge = document.getElementById('lblQrSecurityBadge');
   const qrBtnText = document.getElementById('qrBtnText');
 
-  if (badge) {
-    badge.textContent = isEnabled ? 'Protegido' : 'Seguridad';
-  }
-  if (btn) {
-    if (isEnabled) {
-      btn.style.background = 'rgba(16, 185, 129, 0.3)';
-      btn.style.borderColor = 'rgba(52, 211, 153, 0.6)';
-    } else {
-      btn.style.background = 'rgba(255, 255, 255, 0.15)';
-      btn.style.borderColor = 'rgba(255, 255, 255, 0.3)';
-    }
-  }
   if (qrBtnText) {
     qrBtnText.textContent = isEnabled ? '🔒 Mi QR' : 'Mi QR';
   }
