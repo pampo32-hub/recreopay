@@ -9653,3 +9653,151 @@ window.closeLoginSheet = closeLoginSheet;
 window.switchSheetView = switchSheetView;
 window.openTerminosModal = openTerminosModal;
 window.closeTerminosModal = closeTerminosModal;
+
+// ========================================================
+// AJUSTES DE CUENTA, PRIVACIDAD Y EXPERIENCIA SENSORIAL HÁPTICA
+// ========================================================
+function abrirModalAjustesCuenta() {
+  const modal = document.getElementById('modalAjustesCuenta');
+  if (!modal) return;
+
+  const lblNombre = document.getElementById('ajustesCuentaNombre');
+  const lblRol = document.getElementById('ajustesCuentaRol');
+  const chkSound = document.getElementById('chkAjustesSound');
+  const chkHaptic = document.getElementById('chkAjustesHaptic');
+
+  if (currentUser) {
+    if (lblNombre) lblNombre.textContent = currentUser.nombre || currentUser.username || 'Usuario';
+    if (lblRol) {
+      let r = currentUser.rol || 'Usuario';
+      if (r === 'padre') r = 'Padre / Encargado';
+      else if (r === 'estudiante') r = 'Estudiante / Alumno';
+      else if (r === 'cajero') r = 'Cajero de Soda';
+      else if (r === 'admin') r = 'Administrador de Soda';
+      lblRol.textContent = r;
+    }
+  }
+
+  if (chkSound && window.sounds) {
+    chkSound.checked = window.sounds.isSoundEnabled();
+  }
+  if (chkHaptic && window.sounds) {
+    chkHaptic.checked = window.sounds.isHapticEnabled();
+  }
+
+  modal.style.display = 'flex';
+}
+window.abrirModalAjustesCuenta = abrirModalAjustesCuenta;
+
+function cerrarModalAjustesCuenta(e) {
+  if (e && e.target !== e.currentTarget && e.currentTarget !== document) return;
+  const modal = document.getElementById('modalAjustesCuenta');
+  if (modal) modal.style.display = 'none';
+}
+window.cerrarModalAjustesCuenta = cerrarModalAjustesCuenta;
+
+function toggleSensorySoundUI(checked) {
+  if (window.sounds) {
+    window.sounds.toggleSound(checked);
+  }
+}
+window.toggleSensorySoundUI = toggleSensorySoundUI;
+
+function toggleSensoryHapticUI(checked) {
+  if (window.sounds) {
+    window.sounds.toggleHaptics(checked);
+  }
+}
+window.toggleSensoryHapticUI = toggleSensoryHapticUI;
+
+function abrirModalConfirmarEliminarCuenta() {
+  cerrarModalAjustesCuenta();
+  const modal = document.getElementById('modalConfirmarEliminarCuenta');
+  const input = document.getElementById('inputConfirmarPassEliminar');
+  if (input) input.value = '';
+  if (modal) modal.style.display = 'flex';
+}
+window.abrirModalConfirmarEliminarCuenta = abrirModalConfirmarEliminarCuenta;
+
+function cerrarModalConfirmarEliminarCuenta(e) {
+  if (e && e.target !== e.currentTarget && e.currentTarget !== document) return;
+  const modal = document.getElementById('modalConfirmarEliminarCuenta');
+  if (modal) modal.style.display = 'none';
+}
+window.cerrarModalConfirmarEliminarCuenta = cerrarModalConfirmarEliminarCuenta;
+
+async function confirmarEliminarCuentaDefinitiva() {
+  if (!currentUser || !currentUser.id) {
+    alert('No hay una sesión activa para eliminar.');
+    return;
+  }
+
+  const input = document.getElementById('inputConfirmarPassEliminar');
+  const val = input ? input.value.trim() : '';
+
+  if (!val) {
+    alert('Por favor ingresa tu contraseña o la palabra ELIMINAR para verificar tu identidad.');
+    return;
+  }
+
+  const btn = document.getElementById('btnEjecutarEliminacionDefinitiva');
+  if (btn) {
+    btn.disabled = true;
+    btn.textContent = 'Eliminando cuenta...';
+  }
+
+  try {
+    const res = await fetch('/api/auth/eliminar-cuenta', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        usuario_id: currentUser.id,
+        password_confirmacion: val,
+        motivo: 'Eliminación voluntaria solicitada por el usuario desde la app'
+      })
+    });
+
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'No se pudo eliminar la cuenta');
+
+    if (window.sounds) {
+      window.sounds.playSuccess();
+    }
+
+    alert('Tu cuenta y datos personales han sido eliminados permanentemente de SiboPay.');
+
+    // Limpieza total de almacenamiento local y caches
+    try {
+      localStorage.removeItem('sibopay_token');
+      localStorage.removeItem('sibopay_user');
+      localStorage.removeItem('recreopay_token');
+      localStorage.removeItem('recreopay_user');
+      sessionStorage.clear();
+      if ('caches' in window) {
+        const keys = await caches.keys();
+        for (const k of keys) await caches.delete(k);
+      }
+    } catch (e) {}
+
+    window.location.href = '/index.html';
+  } catch (err) {
+    if (window.sounds) window.sounds.playError();
+    alert('Error al eliminar cuenta: ' + err.message);
+    if (btn) {
+      btn.disabled = false;
+      btn.textContent = 'Sí, Borrar Mi Cuenta';
+    }
+  }
+}
+window.confirmarEliminarCuentaDefinitiva = confirmarEliminarCuentaDefinitiva;
+
+// ========================================================
+// RETROALIMENTACIÓN HÁPTICA GLOBAL EN DISPOSITIVOS MÓVILES
+// ========================================================
+document.addEventListener('pointerdown', (e) => {
+  const btn = e.target.closest('button, .btn-saas, .mode-btn, .login-submit-btn, .pwa-nav-item, .limit-preset-pill, .quick-amount-pill, .theme-toggle-btn');
+  if (btn && !btn.disabled && window.haptics) {
+    window.haptics.tap();
+  }
+}, { passive: true });
+

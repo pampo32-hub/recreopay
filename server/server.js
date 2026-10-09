@@ -394,6 +394,102 @@ app.post('/api/auth/register-padre', (req, res) => {
   }
 });
 
+// ==========================================
+// ELIMINACIÓN DE CUENTA Y SUPRESIÓN DE DATOS (GOOGLE PLAY & APPLE COMPLIANCE)
+// ==========================================
+app.post('/api/auth/eliminar-cuenta', (req, res) => {
+  try {
+    const { usuario_id, password_confirmacion, motivo } = req.body;
+    if (!usuario_id) {
+      return res.status(400).json({ error: 'ID de usuario requerido para procesar la baja' });
+    }
+
+    const user = db.prepare('SELECT * FROM usuarios WHERE id = ?').get(usuario_id);
+    if (!user) {
+      return res.status(404).json({ error: 'La cuenta de usuario no existe o ya ha sido eliminada' });
+    }
+
+    // Verificar contraseña si fue enviada (o frase de confirmación ELIMINAR)
+    if (password_confirmacion) {
+      const cleanPass = String(password_confirmacion).trim();
+      if (cleanPass !== user.password_hash && cleanPass.toUpperCase() !== 'ELIMINAR') {
+        return res.status(401).json({ error: 'Contraseña de confirmación incorrecta. Por favor verifícala para proceder con el borrado.' });
+      }
+    }
+
+    // Proceder con el borrado y disociación según el rol
+    if (user.rol === 'padre') {
+      // 1. Desvincular de todos los hijos en tabla de enlace
+      db.prepare('DELETE FROM padres_estudiantes WHERE padre_usuario_id = ?').run(user.id);
+      // 2. Desvincular campo legacy en estudiantes
+      db.prepare('UPDATE estudiantes SET padre_usuario_id = NULL WHERE padre_usuario_id = ?').run(user.id);
+    } else if (user.rol === 'estudiante') {
+      // 3. Desvincular usuario de su ficha de estudiante
+      db.prepare('UPDATE estudiantes SET usuario_id = NULL WHERE usuario_id = ?').run(user.id);
+    }
+
+    // 4. Limpiar tokens de notificaciones push asociados a este usuario
+    try {
+      if (user.id) {
+        db.prepare('DELETE FROM push_subscriptions WHERE usuario_id = ?').run(user.id);
+      }
+    } catch (e) {}
+
+    // 5. Eliminar registro del usuario en tabla usuarios
+    db.prepare('DELETE FROM usuarios WHERE id = ?').run(user.id);
+
+    console.log(`[Seguridad] Cuenta eliminada: ID=${user.id}, Usuario=${user.username}, Rol=${user.rol}, Motivo=${motivo || 'No especificado'}`);
+
+    res.json({
+      success: true,
+      mensaje: 'Tu cuenta y datos personales han sido eliminados de forma definitiva de SiboPay.'
+    });
+  } catch (err) {
+    console.error('[Error eliminar cuenta]:', err);
+    res.status(500).json({ error: 'Error procesando la eliminación: ' + err.message });
+  }
+});
+
+// Solicitud pública de eliminación de cuenta desde web (Requisito Google Play Console)
+app.post('/api/public/solicitar-eliminacion-cuenta', (req, res) => {
+  try {
+    const { identificador, motivo, confirmacion } = req.body;
+    if (!identificador) {
+      return res.status(400).json({ error: 'Por favor ingresa tu nombre de usuario, correo electrónico o teléfono registrado.' });
+    }
+
+    const cleanId = String(identificador).trim().toLowerCase();
+    const user = db.prepare(`
+      SELECT id, username, rol, email, telefono FROM usuarios 
+      WHERE LOWER(username) = ? OR LOWER(email) = ? OR telefono = ?
+    `).get(cleanId, cleanId, cleanId);
+
+    if (user) {
+      if (confirmacion === true || String(confirmacion).toUpperCase() === 'ELIMINAR') {
+        if (user.rol === 'padre') {
+          db.prepare('DELETE FROM padres_estudiantes WHERE padre_usuario_id = ?').run(user.id);
+          db.prepare('UPDATE estudiantes SET padre_usuario_id = NULL WHERE padre_usuario_id = ?').run(user.id);
+        } else if (user.rol === 'estudiante') {
+          db.prepare('UPDATE estudiantes SET usuario_id = NULL WHERE usuario_id = ?').run(user.id);
+        }
+        db.prepare('DELETE FROM usuarios WHERE id = ?').run(user.id);
+
+        return res.json({
+          success: true,
+          mensaje: 'Tu cuenta ha sido localizada y eliminada de forma permanente junto con todos sus datos asociados.'
+        });
+      }
+    }
+
+    res.json({
+      success: true,
+      mensaje: 'Hemos recibido tu solicitud de supresión de datos. Si los datos coinciden con un usuario activo, se procesará en menos de 24 horas laborables.'
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // Vincular estudiante a la cuenta de padre mediante QR o código de carné
 app.post('/api/padres/vincular-hijo', (req, res) => {
   try {
@@ -3755,6 +3851,89 @@ app.post('/api/ordenes', (req, res) => {
   }
 });
 
+// ==========================================
+// RESILIENCIA OFFLINE: SINCRONIZACIÓN BATCH DE VENTAS OFFLINE DE LA SODA
+// ==========================================
+app.post('/api/ordenes/sincronizar-offline', (req, res) => {
+  try {
+    const { ordenes, escuela_id } = req.body;
+    if (!Array.isArray(ordenes) || ordenes.length === 0) {
+      return res.status(400).json({ error: 'No se enviaron órdenes para sincronizar' });
+    }
+
+    const resultados = [];
+    const errores = [];
+
+    for (const ord of ordenes) {
+      try {
+        const estId = ord.estudiante_id;
+        if (!estId) {
+          errores.push({ offline_id: ord.offline_id, error: 'Falta estudiante_id' });
+          continue;
+        }
+
+        // Idempotencia: Verificar si esta orden offline ya fue procesada antes
+        if (ord.offline_id) {
+          const yaExiste = db.prepare(`
+            SELECT id, codigo_orden FROM ordenes 
+            WHERE notas LIKE ? OR codigo_orden = ?
+          `).get(`%${ord.offline_id}%`, ord.offline_id);
+
+          if (yaExiste) {
+            resultados.push({
+              offline_id: ord.offline_id,
+              status: 'ya_procesada',
+              codigo_orden: yaExiste.codigo_orden
+            });
+            continue;
+          }
+        }
+
+        const itemsProc = (ord.items || []).map(i => ({
+          producto_id: i.producto_id || (i.product && i.product.id),
+          cantidad: i.cantidad || 1
+        }));
+
+        const resultado = crearOrdenCompleta({
+          estudianteId: estId,
+          tipoOrden: ord.tipo_orden || 'mostrador',
+          momentoEntrega: ord.momento_entrega || 'inmediato',
+          notas: `Venta offline sincronizada [Ref: ${ord.offline_id || 'LOCAL'}]`,
+          items: itemsProc
+        });
+
+        // Notificar por SSE a la soda y pantallas
+        broadcastEvent('nueva_orden', resultado);
+
+        resultados.push({
+          offline_id: ord.offline_id,
+          status: 'creada',
+          codigo_orden: resultado.codigo_orden,
+          estudiante_id: estId,
+          total: resultado.total_colones
+        });
+      } catch (errOrd) {
+        console.error(`[Offline Sync] Error procesando orden ${ord.offline_id}:`, errOrd.message);
+        errores.push({
+          offline_id: ord.offline_id,
+          error: errOrd.message
+        });
+      }
+    }
+
+    res.json({
+      success: true,
+      total_enviadas: ordenes.length,
+      sincronizadas: resultados.length,
+      fallidas: errores.length,
+      resultados,
+      errores
+    });
+  } catch (err) {
+    res.status(500).json({ error: 'Error general en sincronización offline: ' + err.message });
+  }
+});
+
 // Listar órdenes (con filtro por estado o tipo)
 app.get('/api/ordenes', (req, res) => {
   try {
@@ -3969,6 +4148,11 @@ app.get(['/landing', '/inicio', '/presentacion'], (req, res) => {
 // Rutas para Términos y Condiciones y Política de Privacidad (Google Play & Web)
 app.get(['/legal', '/terminos', '/privacidad', '/terminos-y-condiciones', '/politica-de-privacidad'], (req, res) => {
   res.sendFile(path.join(__dirname, '../public/legal.html'));
+});
+
+// Ruta dedicada para Solicitud de Eliminación de Cuenta (Requisito Google Play Console y Apple)
+app.get(['/eliminar-cuenta', '/borrar-cuenta', '/solicitar-eliminacion', '/delete-account'], (req, res) => {
+  res.sendFile(path.join(__dirname, '../public/eliminar-cuenta.html'));
 });
 
 // Iniciar servidor

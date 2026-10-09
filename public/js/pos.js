@@ -149,9 +149,26 @@ document.addEventListener('DOMContentLoaded', async () => {
       localStorage.setItem('sibopay_pos_autoprint', chkAutoPrint.checked ? '1' : '0');
     });
   }
+
+  // Inicializar Resiliencia Offline de la Soda
+  updateNetworkStatusUI();
+  cacheOfflineStudents();
+
+  window.addEventListener('online', () => {
+    updateNetworkStatusUI();
+    const q = getOfflineQueue();
+    if (q.length > 0) {
+      sincronizarVentasOfflineManual();
+    }
+    cacheOfflineStudents();
+  });
+
+  window.addEventListener('offline', () => {
+    updateNetworkStatusUI();
+  });
 });
 
-// Cargar catálogo de productos
+// Cargar catálogo de productos con respaldo offline
 async function loadCatalog() {
   try {
     const url = `/api/productos?escuela_id=${getPosEscuelaId()}`;
@@ -160,10 +177,26 @@ async function loadCatalog() {
     posCategories = data.categorias;
     posProducts = data.productos;
 
+    // Respaldar catálogo localmente para modo offline
+    try {
+      localStorage.setItem('sibo_pos_offline_catalog', JSON.stringify(data));
+    } catch (e) {}
+
     renderPosCategories();
     renderPosProducts(null);
   } catch (err) {
-    console.error('Error cargando catálogo:', err);
+    console.warn('[Modo Offline] No se pudo conectar al servidor, cargando catálogo desde memoria local:', err.message);
+    try {
+      const cached = localStorage.getItem('sibo_pos_offline_catalog');
+      if (cached) {
+        const data = JSON.parse(cached);
+        posCategories = data.categorias || [];
+        posProducts = data.productos || [];
+        renderPosCategories();
+        renderPosProducts(null);
+        console.log('[Modo Offline] Catálogo cargado exitosamente desde memoria offline.');
+      }
+    } catch (e) {}
   }
 }
 
@@ -837,9 +870,16 @@ async function onQrCodeDetected(token) {
 
   if (posModalMode === 'identificar' || posCart.length === 0) {
     try {
-      const res = await fetch(`/api/estudiantes/qr/${encodeURIComponent(token)}?escuela_id=${getPosEscuelaId()}`);
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error);
+      let data = null;
+      try {
+        const res = await fetch(`/api/estudiantes/qr/${encodeURIComponent(token)}?escuela_id=${getPosEscuelaId()}`);
+        data = await res.json();
+        if (!res.ok) throw new Error(data.error);
+      } catch (fetchErr) {
+        data = buscarEstudianteOffline(token);
+        if (!data) throw new Error(fetchErr.message || 'Carné escolar no encontrado');
+        console.log('[Modo Offline] Estudiante identificado desde memoria offline:', data.nombre_completo);
+      }
 
       scannedStudent = data;
       renderScannedStudent();
@@ -1136,9 +1176,16 @@ async function handlePistolBarcodeScan(rawToken) {
   // Si no hay productos en el carrito, identificar al alumno para mostrador
   if (posCart.length === 0) {
     try {
-      const res = await fetch(`/api/estudiantes/qr/${encodeURIComponent(token)}?escuela_id=${getPosEscuelaId()}`);
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error);
+      let data = null;
+      try {
+        const res = await fetch(`/api/estudiantes/qr/${encodeURIComponent(token)}?escuela_id=${getPosEscuelaId()}`);
+        data = await res.json();
+        if (!res.ok) throw new Error(data.error);
+      } catch (fetchErr) {
+        data = buscarEstudianteOffline(token);
+        if (!data) throw new Error(fetchErr.message || 'Carné escolar no encontrado');
+        console.log('[Modo Offline] Estudiante identificado:', data.nombre_completo);
+      }
 
       scannedStudent = data;
       renderScannedStudent();
@@ -1165,10 +1212,17 @@ async function handlePistolBarcodeScan(rawToken) {
   document.getElementById('pistolaProcessingName').textContent = 'Identificando estudiante y validando monedero...';
 
   try {
-    // 1. Buscar estudiante por token o código
-    const resEst = await fetch(`/api/estudiantes/qr/${encodeURIComponent(token)}?escuela_id=${getPosEscuelaId()}`);
-    const student = await resEst.json();
-    if (!resEst.ok) throw new Error(student.error || 'Carné escolar no encontrado');
+    // 1. Buscar estudiante por token o código (con fallback offline)
+    let student = null;
+    try {
+      const resEst = await fetch(`/api/estudiantes/qr/${encodeURIComponent(token)}?escuela_id=${getPosEscuelaId()}`);
+      student = await resEst.json();
+      if (!resEst.ok) throw new Error(student.error || 'Carné escolar no encontrado');
+    } catch (fetchErr) {
+      student = buscarEstudianteOffline(token);
+      if (!student) throw new Error(fetchErr.message || 'Carné escolar no encontrado en el sistema ni en memoria offline');
+      console.log('[Modo Offline] Estudiante cargado para cobro desde memoria local:', student.nombre_completo);
+    }
 
     document.getElementById('pistolaProcessingName').textContent = `Verificando saldo para ${student.nombre_completo}...`;
 
@@ -1188,26 +1242,64 @@ async function handlePistolBarcodeScan(rawToken) {
       throw new Error(`⚠️ SUPERA LÍMITE DIARIO: Le quedan ₡${student.disponible_hoy.toLocaleString('es-CR')} disponibles hoy de su límite diario asignado.`);
     }
 
-    // 4. Procesar cobro en servidor
+    // 4. Procesar cobro en servidor (o guardar en cola offline si no hay red)
     const items = posCart.map(item => ({
       producto_id: item.product.id,
       cantidad: item.cantidad
     }));
 
-    const resCobro = await fetch('/api/ordenes', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        estudiante_id: student.id,
-        tipo_orden: 'mostrador',
-        momento_entrega: 'inmediato',
-        items,
-        escuela_id: getPosEscuelaId()
-      })
-    });
+    let dataCobro = null;
+    try {
+      const resCobro = await fetch('/api/ordenes', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          estudiante_id: student.id,
+          tipo_orden: 'mostrador',
+          momento_entrega: 'inmediato',
+          items,
+          escuela_id: getPosEscuelaId()
+        })
+      });
 
-    const dataCobro = await resCobro.json();
-    if (!resCobro.ok) throw new Error(dataCobro.error || 'Error al procesar el débito');
+      dataCobro = await resCobro.json();
+      if (!resCobro.ok) throw new Error(dataCobro.error || 'Error al procesar el débito');
+    } catch (errCobro) {
+      if (!navigator.onLine || errCobro.message.includes('fetch') || errCobro.message.includes('NetworkError') || errCobro.message.includes('Failed to fetch')) {
+        const offlineTicketCode = 'OFFLINE-' + Date.now().toString().slice(-6) + '-' + Math.random().toString(36).slice(2, 5).toUpperCase();
+        
+        // Descontar saldo localmente para evitar sobregiro offline
+        actualizarSaldoEstudianteOffline(student.id, totalCompra);
+
+        const offlineOrderRecord = {
+          offline_id: offlineTicketCode,
+          estudiante_id: student.id,
+          estudiante_nombre: student.nombre_completo,
+          tipo_orden: 'mostrador',
+          momento_entrega: 'inmediato',
+          items,
+          total: totalCompra,
+          escuela_id: getPosEscuelaId(),
+          fecha: new Date().toISOString()
+        };
+
+        const currentQueue = getOfflineQueue();
+        currentQueue.push(offlineOrderRecord);
+        saveOfflineQueue(currentQueue);
+
+        dataCobro = {
+          codigo_orden: offlineTicketCode,
+          financiero: {
+            estudiante: {
+              saldo_nuevo: Math.max(0, (student.saldo_colones || 0) - totalCompra)
+            }
+          }
+        };
+        console.log('[Modo Offline] Venta de mostrador registrada localmente:', offlineTicketCode);
+      } else {
+        throw errCobro;
+      }
+    }
 
     // 5. Éxito: Mostrar pantalla de confirmación
     document.getElementById('pistolaStateProcessing').style.display = 'none';
@@ -2589,5 +2681,161 @@ function imprimirTicketTermico(orderData) {
 }
 window.imprimirTicketTermico = imprimirTicketTermico;
 
+// ========================================================
+// SISTEMA DE RESILIENCIA OFFLINE DE LA SODA Y CAJA POS
+// ========================================================
+async function cacheOfflineStudents() {
+  try {
+    const res = await fetch(`/api/estudiantes?escuela_id=${getPosEscuelaId()}`);
+    if (!res.ok) return;
+    const list = await res.json();
+    if (Array.isArray(list) && list.length > 0) {
+      localStorage.setItem('sibo_pos_offline_students', JSON.stringify(list));
+      console.log(`[Modo Offline] ${list.length} estudiantes respaldados en memoria local para ventas sin conexión.`);
+    }
+  } catch (e) {
+    console.warn('[Modo Offline] No se pudieron sincronizar estudiantes para cache offline:', e.message);
+  }
+}
+window.cacheOfflineStudents = cacheOfflineStudents;
 
+function buscarEstudianteOffline(query) {
+  try {
+    const cached = localStorage.getItem('sibo_pos_offline_students');
+    if (!cached) return null;
+    const students = JSON.parse(cached);
+    const q = String(query || '').trim().toLowerCase();
+    return students.find(s => 
+      (s.qr_token && s.qr_token.toLowerCase() === q) ||
+      (s.codigo_estudiante && s.codigo_estudiante.toLowerCase() === q) ||
+      (String(s.id) === q)
+    ) || null;
+  } catch (e) {
+    return null;
+  }
+}
+window.buscarEstudianteOffline = buscarEstudianteOffline;
 
+function actualizarSaldoEstudianteOffline(estId, montoCobrado) {
+  try {
+    const cached = localStorage.getItem('sibo_pos_offline_students');
+    if (!cached) return;
+    const students = JSON.parse(cached);
+    const idx = students.findIndex(s => s.id === estId);
+    if (idx !== -1) {
+      students[idx].saldo_colones = Math.max(0, (students[idx].saldo_colones || 0) - montoCobrado);
+      students[idx].disponible_hoy = Math.max(0, (students[idx].disponible_hoy || 0) - montoCobrado);
+      localStorage.setItem('sibo_pos_offline_students', JSON.stringify(students));
+    }
+  } catch (e) {}
+}
+window.actualizarSaldoEstudianteOffline = actualizarSaldoEstudianteOffline;
+
+function getOfflineQueue() {
+  try {
+    const q = localStorage.getItem('sibo_pos_offline_queue');
+    return q ? JSON.parse(q) : [];
+  } catch (e) {
+    return [];
+  }
+}
+window.getOfflineQueue = getOfflineQueue;
+
+function saveOfflineQueue(queue) {
+  try {
+    localStorage.setItem('sibo_pos_offline_queue', JSON.stringify(queue));
+    updateNetworkStatusUI();
+  } catch (e) {}
+}
+window.saveOfflineQueue = saveOfflineQueue;
+
+function updateNetworkStatusUI() {
+  const badge = document.getElementById('posNetworkStatusBadge');
+  const banner = document.getElementById('posOfflineQueueBanner');
+  const lblCount = document.getElementById('lblPosOfflineCount');
+  const queue = getOfflineQueue();
+  const isOnline = navigator.onLine;
+
+  if (badge) {
+    if (isOnline) {
+      badge.className = 'pos-network-pill online';
+      badge.innerHTML = '<span style="width: 8px; height: 8px; border-radius: 50%; background: #16a34a; display: inline-block;"></span> <span>En Línea</span>';
+    } else {
+      badge.className = 'pos-network-pill offline';
+      badge.innerHTML = '<span style="width: 8px; height: 8px; border-radius: 50%; background: #d97706; display: inline-block;"></span> <span>Modo Offline</span>';
+    }
+  }
+
+  if (banner) {
+    if (queue.length > 0) {
+      banner.style.display = 'flex';
+      if (lblCount) {
+        lblCount.textContent = `${queue.length} venta(s) guardada(s) localmente esperando conexión.`;
+      }
+    } else {
+      banner.style.display = 'none';
+    }
+  }
+}
+window.updateNetworkStatusUI = updateNetworkStatusUI;
+
+async function sincronizarVentasOfflineManual() {
+  const queue = getOfflineQueue();
+  if (queue.length === 0) {
+    alert('No hay ventas offline pendientes de sincronizar.');
+    return;
+  }
+
+  if (!navigator.onLine) {
+    alert('La terminal no detecta conexión a internet en este momento.');
+    return;
+  }
+
+  const btn = document.getElementById('btnSyncOfflinePos');
+  if (btn) {
+    btn.disabled = true;
+    btn.textContent = '🔄 Sincronizando...';
+  }
+
+  try {
+    const res = await fetch('/api/ordenes/sincronizar-offline', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        ordenes: queue,
+        escuela_id: getPosEscuelaId()
+      })
+    });
+
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Error al sincronizar ventas offline');
+
+    // Limpiar cola local
+    localStorage.removeItem('sibo_pos_offline_queue');
+    updateNetworkStatusUI();
+
+    // Refrescar catálogo y estudiantes del servidor
+    await loadCatalog();
+    await cacheOfflineStudents();
+
+    if (window.sounds) window.sounds.playSuccess();
+    alert(`✅ ¡Sincronización Exitosa!\n\nSe han registrado ${data.sincronizadas} venta(s) offline en la base de datos de la soda.`);
+  } catch (err) {
+    if (window.sounds) window.sounds.playError();
+    alert(`Error al sincronizar ventas offline: ${err.message}`);
+  } finally {
+    if (btn) {
+      btn.disabled = false;
+      btn.textContent = '🔄 Sincronizar Ahora';
+    }
+  }
+}
+window.sincronizarVentasOfflineManual = sincronizarVentasOfflineManual;
+
+// Retroalimentación háptica táctil en mostrador POS
+document.addEventListener('pointerdown', (e) => {
+  const btn = e.target.closest('button, .btn-saas, .pos-mobile-nav-btn, .pos-tab-btn, .pos-cat-pill, .product-card, .pos-qty-btn');
+  if (btn && !btn.disabled && window.haptics) {
+    window.haptics.tap();
+  }
+}, { passive: true });

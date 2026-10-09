@@ -131,9 +131,9 @@
             <span class="saas-dot" style="background: #0284c7;"></span>
             Pistola QR Conectada
           </span>
-          <span class="saas-status-badge saas-status-active" title="Conexión en tiempo real activa">
-            <span class="saas-dot"></span>
-            En Línea (SSE)
+          <span id="posNetworkStatusBadge" class="pos-network-pill online" title="Estado de conexión y sincronización con el servidor">
+            <span style="width: 8px; height: 8px; border-radius: 50%; background: #16a34a; display: inline-block;"></span>
+            <span id="posNetworkStatusText">En Línea</span>
           </span>
           <button id="btnPosNotificationToggle" onclick="enablePushNotificationsPrompt()" class="btn-saas btn-saas-outline" style="height: 30px; font-size: 0.76rem; cursor: pointer; display: inline-flex; align-items: center; gap: 4px; color: #0284c7; border-color: #bae6fd;" title="Activar notificaciones de recargas en tiempo real">
             <span>🔔</span> <span id="lblPosNotificationStatus">Notificaciones</span>
@@ -154,6 +154,20 @@
             <input type="checkbox" id="chkPosAutoPrint" style="cursor: pointer; width: 14px; height: 14px;">
             <span>🖨️ Auto-imprimir ticket</span>
           </label>
+        </div>
+
+        <!-- BANNER DE RESILIENCIA OFFLINE DE LA SODA -->
+        <div id="posOfflineQueueBanner" class="pos-offline-banner" style="display: none; border-radius: 12px; margin-top: 4px;">
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <span style="font-size: 1.15rem;">⚡</span>
+            <div>
+              <strong style="display: block; font-size: 0.82rem; line-height: 1.2;">Modo Offline Activo</strong>
+              <span id="lblPosOfflineCount" style="font-size: 0.72rem; opacity: 0.95;">0 ventas guardadas localmente esperando conexión.</span>
+            </div>
+          </div>
+          <button type="button" id="btnSyncOfflinePos" onclick="sincronizarVentasOfflineManual()" class="btn-saas" style="height: 30px; padding: 0 12px; background: white; color: #92400e; font-weight: 800; font-size: 0.76rem; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.15); border: none; cursor: pointer;">
+            🔄 Sincronizar Ahora
+          </button>
         </div>
       </div>
 

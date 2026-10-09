@@ -1234,6 +1234,10 @@
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1-2.5-2.5Z"/></svg>
           <span>Ver Menú</span>
         </button>
+        <button type="button" onclick="abrirModalAjustesCuenta()" class="mode-btn" style="background: var(--bg-main); border: 1.5px solid var(--border); font-size: 0.78rem; font-weight: 800; border-radius: 10px; padding: 7px 11px; cursor: pointer; color: var(--text-main); display: inline-flex; align-items: center; gap: 6px;" title="Ajustes de Cuenta y Privacidad">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+          <span>Ajustes</span>
+        </button>
         <button onclick="logout(true)" class="logout-btn" title="Cerrar sesión" style="display: inline-flex; align-items: center; gap: 6px;">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" x2="9" y1="12" y2="12"/></svg>
           <span class="logout-text">Salir</span>
@@ -2167,6 +2171,9 @@
         <button id="btnModePadres" onclick="toggleParentPanel(true)" class="mode-btn" style="background: var(--bg-main); border: 1.5px solid var(--border); font-size: 0.8rem; font-weight: 800; border-radius: 10px; padding: 7px 11px; cursor: pointer; color: var(--text-main); display: inline-flex; align-items: center; gap: 6px;" title="Acceso al Portal de Padres">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
           <span>Padres</span>
+        </button>
+        <button id="btnAjustesCuentaEst" onclick="abrirModalAjustesCuenta()" class="theme-toggle-btn" title="Ajustes de Cuenta y Privacidad" style="display: inline-flex; align-items: center; justify-content: center; margin-right: 2px;">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
         </button>
         <button id="btnLogout" onclick="logout(true)" class="logout-btn" title="Cerrar sesión y cambiar de cuenta" style="display: inline-flex; align-items: center; gap: 6px;">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" x2="9" y1="12" y2="12"/></svg>
@@ -3232,6 +3239,132 @@
         </button>
       </div>
 
+    </div>
+  </div>
+
+  <!-- MODAL: AJUSTES DE CUENTA, PRIVACIDAD Y EXPERIENCIA SENSORIAL -->
+  <div class="modal-qr-backdrop" id="modalAjustesCuenta" style="display: none; z-index: 10005;" onclick="cerrarModalAjustesCuenta(event)">
+    <div class="modal-qr-card" onclick="event.stopPropagation()" style="max-width: 440px; text-align: left; padding: 22px;">
+      <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1.5px solid var(--border); padding-bottom: 12px; margin-bottom: 16px;">
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <div style="width: 38px; height: 38px; border-radius: 10px; background: #e0f2fe; color: #0284c7; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+            </svg>
+          </div>
+          <div>
+            <h3 style="margin: 0; font-size: 1.12rem; font-weight: 900; color: var(--text-main);">Mi Cuenta y Ajustes</h3>
+            <span id="ajustesCuentaSub" style="font-size: 0.74rem; color: var(--text-muted); font-weight: 600;">Preferencias, privacidad y seguridad</span>
+          </div>
+        </div>
+        <button type="button" onclick="cerrarModalAjustesCuenta()" style="background: none; border: none; font-size: 1.3rem; cursor: pointer; color: var(--text-muted); padding: 4px;">✕</button>
+      </div>
+
+      <!-- Resumen de Usuario Activo -->
+      <div style="background: var(--bg-main); border: 1.5px solid var(--border); border-radius: 14px; padding: 12px 14px; margin-bottom: 14px; display: flex; align-items: center; justify-content: space-between;">
+        <div>
+          <span style="font-size: 0.70rem; color: var(--text-muted); font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px; display: block;">Usuario Activo</span>
+          <strong id="ajustesCuentaNombre" style="font-size: 0.92rem; color: var(--text-main); display: block;">Usuario</strong>
+          <span id="ajustesCuentaRol" style="font-size: 0.74rem; color: #0284c7; font-weight: 700;">Padre / Encargado</span>
+        </div>
+        <span style="font-size: 0.72rem; background: #e0f2fe; color: #0369a1; padding: 4px 10px; border-radius: 20px; font-weight: 800;">Activo</span>
+      </div>
+
+      <!-- Ajustes de Experiencia Sensorial y Táctil -->
+      <div style="margin-bottom: 16px;">
+        <span style="font-size: 0.72rem; font-weight: 800; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; display: block; margin-bottom: 8px;">
+          Experiencia Sensorial y Táctil
+        </span>
+        <div style="background: var(--card-bg); border: 1.5px solid var(--border); border-radius: 12px; padding: 10px 14px; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center;">
+          <div>
+            <strong style="font-size: 0.85rem; color: var(--text-main); display: block;">🔊 Efectos de Sonido</strong>
+            <span style="font-size: 0.72rem; color: var(--text-muted);">Tonos sintetizados para cobros, pagos y escaneos</span>
+          </div>
+          <label class="switch-toggle" style="position: relative; display: inline-block; width: 44px; height: 24px; flex-shrink: 0; margin-left: 10px;">
+            <input type="checkbox" id="chkAjustesSound" onchange="toggleSensorySoundUI(this.checked)" style="opacity: 0; width: 0; height: 0;">
+            <span class="switch-slider" style="position: absolute; cursor: pointer; inset: 0; background-color: #cbd5e1; border-radius: 34px; transition: .25s;"></span>
+          </label>
+        </div>
+
+        <div style="background: var(--card-bg); border: 1.5px solid var(--border); border-radius: 12px; padding: 10px 14px; display: flex; justify-content: space-between; align-items: center;">
+          <div>
+            <strong style="font-size: 0.85rem; color: var(--text-main); display: block;">📳 Vibración Háptica</strong>
+            <span style="font-size: 0.72rem; color: var(--text-muted);">Micro-vibración táctil al pulsar botones y escanear QR</span>
+          </div>
+          <label class="switch-toggle" style="position: relative; display: inline-block; width: 44px; height: 24px; flex-shrink: 0; margin-left: 10px;">
+            <input type="checkbox" id="chkAjustesHaptic" onchange="toggleSensoryHapticUI(this.checked)" style="opacity: 0; width: 0; height: 0;">
+            <span class="switch-slider" style="position: absolute; cursor: pointer; inset: 0; background-color: #cbd5e1; border-radius: 34px; transition: .25s;"></span>
+          </label>
+        </div>
+      </div>
+
+      <!-- Enlaces de Políticas y Privacidad -->
+      <div style="margin-bottom: 18px; padding-top: 4px; border-top: 1px solid var(--border);">
+        <div style="display: flex; gap: 8px; justify-content: space-between; margin-top: 8px;">
+          <a href="/privacidad" target="_blank" style="font-size: 0.75rem; color: #0284c7; text-decoration: underline; font-weight: 700;">
+            Política de Privacidad
+          </a>
+          <a href="/legal" target="_blank" style="font-size: 0.75rem; color: #0284c7; text-decoration: underline; font-weight: 700;">
+            Términos de Servicio
+          </a>
+        </div>
+      </div>
+
+      <!-- Zona de Peligro: Eliminación de Cuenta -->
+      <div class="danger-zone-box" style="margin-bottom: 12px;">
+        <strong style="display: block; font-size: 0.82rem; font-weight: 900; margin-bottom: 3px;">
+          ⚠️ Zona de Peligro: Eliminación de Cuenta
+        </strong>
+        <p style="font-size: 0.72rem; line-height: 1.35; margin: 0 0 10px 0;">
+          Puedes dar de baja tu cuenta y borrar tus datos personales de SiboPay. Esta acción es definitiva e irreversible.
+        </p>
+        <button type="button" onclick="abrirModalConfirmarEliminarCuenta()" class="btn-saas" style="width: 100%; height: 36px; background: #dc2626; color: white; border: 1px solid #b91c1c; font-weight: 800; font-size: 0.82rem; border-radius: 9px; display: inline-flex; align-items: center; justify-content: center; gap: 6px;">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+          <span>Eliminar mi Cuenta y Datos</span>
+        </button>
+      </div>
+
+      <!-- Botón de Cerrar Modal -->
+      <div style="display: flex; justify-content: flex-end;">
+        <button type="button" onclick="cerrarModalAjustesCuenta()" class="btn-saas btn-saas-outline" style="height: 36px; padding: 0 18px; font-weight: 700;">
+          Cerrar
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: CONFIRMACIÓN ESTRICTA DE ELIMINACIÓN DE CUENTA -->
+  <div class="modal-qr-backdrop" id="modalConfirmarEliminarCuenta" style="display: none; z-index: 10010;" onclick="cerrarModalConfirmarEliminarCuenta(event)">
+    <div class="modal-qr-card" onclick="event.stopPropagation()" style="max-width: 420px; text-align: left; padding: 22px; border: 2px solid #fecdd3;">
+      <div style="text-align: center; margin-bottom: 14px;">
+        <div style="width: 48px; height: 48px; border-radius: 50%; background: #fee2e2; color: #dc2626; display: flex; align-items: center; justify-content: center; margin: 0 auto 10px;">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+        </div>
+        <h3 style="margin: 0; font-size: 1.18rem; font-weight: 900; color: #991b1b;">¿Confirmas eliminar tu cuenta?</h3>
+        <p style="font-size: 0.76rem; color: #64748b; margin-top: 4px;">
+          Esta acción no se puede deshacer. Tus accesos, notificaciones y vínculos familiares se borrarán de forma inmediata.
+        </p>
+      </div>
+
+      <div style="background: #fff1f2; border: 1px solid #fecdd3; border-radius: 10px; padding: 10px 12px; margin-bottom: 14px; font-size: 0.74rem; color: #9f1239; line-height: 1.4;">
+        <strong>Para confirmar el borrado:</strong> Introduce tu contraseña de acceso o escribe la palabra <strong>ELIMINAR</strong> a continuación:
+      </div>
+
+      <div style="margin-bottom: 16px;">
+        <label style="display: block; font-size: 0.74rem; font-weight: 800; color: var(--text-main); margin-bottom: 4px;">
+          Contraseña o palabra de confirmación:
+        </label>
+        <input type="password" id="inputConfirmarPassEliminar" placeholder="Contraseña o escribe ELIMINAR" style="width: 100%; height: 40px; padding: 0 12px; border: 1.5px solid #cbd5e1; border-radius: 9px; font-size: 0.88rem; box-sizing: border-box; background: var(--bg-main); color: var(--text-main);">
+      </div>
+
+      <div style="display: flex; gap: 8px; justify-content: flex-end;">
+        <button type="button" onclick="cerrarModalConfirmarEliminarCuenta()" class="btn-saas btn-saas-outline" style="height: 38px; padding: 0 16px; font-weight: 700;">
+          Cancelar
+        </button>
+        <button type="button" id="btnEjecutarEliminacionDefinitiva" onclick="confirmarEliminarCuentaDefinitiva()" class="btn-saas" style="height: 38px; padding: 0 18px; background: #dc2626; color: white; border: 1px solid #b91c1c; font-weight: 800;">
+          Sí, Borrar Mi Cuenta
+        </button>
+      </div>
     </div>
   </div>
 

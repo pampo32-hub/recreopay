@@ -6366,3 +6366,78 @@ body.dark-mode .admin-dash-bar-track {
   border-color: #0284c7 !important;
   box-shadow: 0 0 0 3px rgba(2, 132, 199, 0.25) !important;
 }
+
+/* ==========================================================================
+   EXPERIENCIA TÁCTIL Y SENSORIAL MÓVIL (SIBOPAY NATIVE FEEL)
+   ========================================================================== */
+button, .btn-saas, .mode-btn, .login-submit-btn, .pos-btn, .limit-preset-pill, .pwa-nav-item, .quick-amount-pill, .theme-toggle-btn {
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+
+button:not(:disabled):active,
+.tactile-press:active {
+  transform: scale(0.97) !important;
+  transition: transform 0.08s cubic-bezier(0.25, 1, 0.5, 1) !important;
+}
+
+/* Estado de Red y Resiliencia Offline en POS */
+.pos-network-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 0.72rem;
+  font-weight: 800;
+  padding: 3px 10px;
+  border-radius: 20px;
+  transition: all 0.2s ease;
+  cursor: default;
+}
+
+.pos-network-pill.online {
+  background: #dcfce7;
+  color: #166534;
+  border: 1px solid #86efac;
+}
+
+.pos-network-pill.offline {
+  background: #fef3c7;
+  color: #92400e;
+  border: 1.5px solid #f59e0b;
+  animation: offlinePulse 1.8s infinite;
+}
+
+@keyframes offlinePulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.88; transform: scale(1.02); }
+}
+
+.pos-offline-banner {
+  background: linear-gradient(135deg, #d97706, #b45309);
+  color: #ffffff;
+  padding: 10px 16px;
+  font-size: 0.82rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  box-shadow: 0 2px 8px rgba(180, 83, 9, 0.25);
+  animation: slideDown 0.25s ease-out;
+}
+
+/* Modal y Alertas de Eliminación de Cuenta */
+.danger-zone-box {
+  background: #fff1f2;
+  border: 1.5px solid #fecdd3;
+  border-radius: 12px;
+  padding: 14px;
+  color: #9f1239;
+}
+
+body.dark-mode .danger-zone-box {
+  background: rgba(244, 63, 94, 0.1);
+  border-color: rgba(244, 63, 94, 0.3);
+  color: #fda4af;
+}
+
