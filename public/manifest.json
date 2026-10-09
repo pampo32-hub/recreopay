@@ -1,5 +1,5 @@
 {
-  "name": "SiboPay - Pagos Rápidos y Monedero Digital",
+  "name": "SiboPay - Sistema Inteligente de Billetera Online",
   "short_name": "SiboPay",
   "start_url": "/index.html",
   "scope": "/",
@@ -12,7 +12,7 @@
   "theme_color": "#0284c7",
   "lang": "es",
   "categories": ["finance", "shopping", "business"],
-  "description": "Plataforma digital de pagos rápidos, transferencias y monedero",
+  "description": "Sistema inteligente de billetera online",
   "icons": [
     {
       "src": "/icons/icon-192.png",
