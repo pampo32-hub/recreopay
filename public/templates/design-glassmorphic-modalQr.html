@@ -1,0 +1,52 @@
+﻿  <!-- ========================================================================== -->
+  <!-- MODAL INMERSIVO QR: DISEÃ‘O GLASSMORPHISM INMERSIVO (FROSTED GLASS & GLOW)  -->
+  <!-- NOTA DE ROLLBACK: Respaldo original en public/templates/backup-modalQr-original.html -->
+  <!-- ========================================================================== -->
+  <div class="modal-qr-sibopay-immersive glassmorphic-qr-modal" id="modalQr" style="display: none;" onclick="closeQrModal(event)">
+    <!-- FONDO SUPERIOR CON LOGO Y MARCA SIBOPAY -->
+    <div class="qr-immersive-bg-header glassmorphic-qr-header">
+      <div class="qr-immersive-brand-header">
+        <div class="qr-immersive-brand-logo-wrap glassmorphic-brand-logo">
+          <img src="/img/sibopay-emblem.png" alt="SiboPay" class="qr-immersive-brand-logo">
+        </div>
+        <div class="qr-immersive-brand-title">
+          <span>Sibo</span><strong class="brand-pay-text">Pay</strong>
+        </div>
+      </div>
+    </div>
+
+    <!-- CONTENEDOR CENTRAL: TARJETA DE CRISTAL ESMERILADO Y BOTÃ“N CERRAR -->
+    <div class="qr-immersive-content" onclick="event.stopPropagation()">
+      <div class="qr-immersive-card glassmorphic-qr-card">
+        <div class="qr-card-header-title glassmorphic-title-badge">MI CARNÃ‰ SIBOPAY</div>
+
+        <!-- Banner especial cuando el lÃ­mite diario fue alcanzado pero tiene preÃ³rdenes -->
+        <div id="qrPreorderOnlyBanner" style="display: none; background: rgba(59, 130, 246, 0.15); border: 1.5px solid rgba(147, 197, 253, 0.4); color: #e0f2fe; border-radius: 12px; padding: 8px 12px; margin-bottom: 12px; font-size: 0.75rem; text-align: center; font-weight: 700; line-height: 1.35; backdrop-filter: blur(8px);">
+          ðŸ“¦ VÃ¡lido exclusivamente para retirar tu Pre-Orden en la soda.<br>
+          <span style="font-size: 0.70rem; color: #93c5fd;">Compras nuevas en mostrador bloqueadas por lÃ­mite diario.</span>
+        </div>
+
+        <div class="qr-scanner-frame-wrapper glassmorphic-qr-frame">
+          <div class="qr-frame-corner top-left"></div>
+          <div class="qr-frame-corner top-right"></div>
+          <div class="qr-frame-corner bottom-left"></div>
+          <div class="qr-frame-corner bottom-right"></div>
+          
+          <img id="qrDisplayImg" class="qr-immersive-code-img" src="" alt="CÃ³digo QR">
+
+          <!-- LOGO DE LA 'S' EN EL CENTRO DEL QR -->
+          <div class="qr-center-logo-badge" title="SiboPay">
+            <img src="/img/sibopay-emblem.png" alt="S" class="qr-center-logo-img">
+          </div>
+        </div>
+
+        <div class="qr-card-token-text glassmorphic-token-pill" id="qrTokenDisplay">
+          CODIGO-QR
+        </div>
+      </div>
+
+      <!-- BOTÃ“N TIPO PÃLDORA DE CRISTAL -->
+      <button type="button" onclick="closeQrModal()" class="qr-immersive-btn-close glassmorphic-btn-pill">
+        Cerrar
+      </button>
+    </div>

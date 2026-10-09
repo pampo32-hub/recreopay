@@ -22,11 +22,8 @@
 </head>
 <body class="">
 
-  <!-- ========================================================================== -->
-  <!-- VISTA DE LOGIN: DISEÑO GLASSMORPHISM INMERSIVO (FROSTED GLASS & SPECULAR GLOW) -->
-  <!-- NOTA DE ROLLBACK: Respaldo original en public/templates/backup-viewLogin-original.html -->
-  <!-- ========================================================================== -->
-  <div id="viewLogin" class="splash-welcome-screen glassmorphic-welcome-screen" style="display: none;">
+  <!-- VISTA DE LOGIN: WELCOME SPLASH SCREEN & BOTTOM SHEET (ESTILO ORDER-EAT / SIBOPAY) -->
+  <div id="viewLogin" class="splash-welcome-screen" style="display: none;">
     <!-- Patrón de alimentos en marca de agua difuminada -->
     <div class="splash-doodle-bg"></div>
 
@@ -43,11 +40,11 @@
 
       <!-- Sección inferior: Botones de acción y Disclaimer -->
       <div class="splash-actions-box">
-        <button type="button" class="splash-btn-primary glassmorphic-btn-splash-primary" onclick="openLoginSheet('login')">
+        <button type="button" class="splash-btn-primary" onclick="openLoginSheet('login')">
           Iniciar Sesión
         </button>
 
-        <button type="button" class="splash-btn-secondary glassmorphic-btn-splash-secondary" onclick="openLoginSheet('register')">
+        <button type="button" class="splash-btn-secondary" onclick="openLoginSheet('register')">
           Registrarse
         </button>
 
@@ -62,7 +59,7 @@
 
     <!-- BOTTOM SHEET: VENTANA INFERIOR DESLIZABLE PARA LOGIN Y REGISTRO -->
     <div id="loginBottomSheet" class="bottom-sheet-backdrop" onclick="closeLoginSheet(event)">
-      <div class="bottom-sheet-card glassmorphic-login-card" onclick="event.stopPropagation()">
+      <div class="bottom-sheet-card" onclick="event.stopPropagation()">
         <div class="bottom-sheet-pill-handle"></div>
         
         <div class="bottom-sheet-header">
@@ -131,13 +128,13 @@
 
         <!-- CONTENIDO 2: REGISTRO DE PADRES -->
         <div id="sheetContentRegister" style="display: none;">
-          <div class="login-register-banner" style="background: linear-gradient(135deg, rgba(255,255,255,0.12) 0%, rgba(255,255,255,0.06) 100%); border: 1.5px solid rgba(255,255,255,0.25); border-radius: 12px; padding: 10px 12px; margin-bottom: 14px; display: flex; align-items: center; gap: 10px;">
-            <div style="width: 36px; height: 36px; border-radius: 10px; background: rgba(255,255,255,0.9); border: 1px solid rgba(255,255,255,0.4); display: flex; align-items: center; justify-content: center; flex-shrink: 0; padding: 4px;">
+          <div style="background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%); border: 1.5px solid #bae6fd; border-radius: 12px; padding: 10px 12px; margin-bottom: 14px; display: flex; align-items: center; gap: 10px;">
+            <div style="width: 36px; height: 36px; border-radius: 10px; background: white; border: 1px solid #bae6fd; display: flex; align-items: center; justify-content: center; flex-shrink: 0; padding: 4px;">
               <img src="/img/sibopay-emblem.png" alt="SiboPay" style="width: 100%; height: 100%; object-fit: contain;">
             </div>
             <div>
-              <strong style="color: #38bdf8; font-size: 0.86rem; display: block; font-weight: 800;">Registro de Padres o Encargados</strong>
-              <span style="font-size: 0.72rem; color: rgba(255,255,255,0.85); display: block;">Crea tu cuenta para vincular a tus hijos y recargarles saldo con SINPE móvil.</span>
+              <strong style="color: #0369a1; font-size: 0.86rem; display: block; font-weight: 800;">Registro de Padres o Encargados</strong>
+              <span style="font-size: 0.72rem; color: #475569; display: block;">Crea tu cuenta para vincular a tus hijos y recargarles saldo con SINPE móvil.</span>
             </div>
           </div>
 
@@ -2317,15 +2314,12 @@
 
   </div>
 
-  <!-- ========================================================================== -->
-  <!-- MODAL INMERSIVO QR: DISEÑO GLASSMORPHISM INMERSIVO (FROSTED GLASS & GLOW)  -->
-  <!-- NOTA DE ROLLBACK: Respaldo original en public/templates/backup-modalQr-original.html -->
-  <!-- ========================================================================== -->
-  <div class="modal-qr-sibopay-immersive glassmorphic-qr-modal" id="modalQr" style="display: none;" onclick="closeQrModal(event)">
-    <!-- FONDO SUPERIOR CON LOGO Y MARCA SIBOPAY -->
-    <div class="qr-immersive-bg-header glassmorphic-qr-header">
+  <!-- MODAL INMERSIVO: CÓDIGO QR PARA PRESENTAR EN LA SODA (DISEÑO SIBOPAY EXACTO) -->
+  <div class="modal-qr-sibopay-immersive" id="modalQr" style="display: none;" onclick="closeQrModal(event)">
+    <!-- FONDO SUPERIOR CELESTE CON LOGO Y MARCA SIBOPAY -->
+    <div class="qr-immersive-bg-header">
       <div class="qr-immersive-brand-header">
-        <div class="qr-immersive-brand-logo-wrap glassmorphic-brand-logo">
+        <div class="qr-immersive-brand-logo-wrap">
           <img src="/img/sibopay-emblem.png" alt="SiboPay" class="qr-immersive-brand-logo">
         </div>
         <div class="qr-immersive-brand-title">
@@ -2334,18 +2328,18 @@
       </div>
     </div>
 
-    <!-- CONTENEDOR CENTRAL: TARJETA DE CRISTAL ESMERILADO Y BOTÓN CERRAR -->
+    <!-- CONTENEDOR CENTRAL: TARJETA BLANCA Y BOTÓN CERRAR -->
     <div class="qr-immersive-content" onclick="event.stopPropagation()">
-      <div class="qr-immersive-card glassmorphic-qr-card">
-        <div class="qr-card-header-title glassmorphic-title-badge">MI CARNÉ SIBOPAY</div>
+      <div class="qr-immersive-card">
+        <div class="qr-card-header-title">MI CARNÉ SIBOPAY</div>
 
         <!-- Banner especial cuando el límite diario fue alcanzado pero tiene preórdenes -->
-        <div id="qrPreorderOnlyBanner" style="display: none; background: rgba(59, 130, 246, 0.15); border: 1.5px solid rgba(147, 197, 253, 0.4); color: #e0f2fe; border-radius: 12px; padding: 8px 12px; margin-bottom: 12px; font-size: 0.75rem; text-align: center; font-weight: 700; line-height: 1.35; backdrop-filter: blur(8px);">
+        <div id="qrPreorderOnlyBanner" style="display: none; background: #eff6ff; border: 1.5px solid #bfdbfe; color: #1e40af; border-radius: 10px; padding: 7px 10px; margin-bottom: 10px; font-size: 0.75rem; text-align: center; font-weight: 700; line-height: 1.35;">
           📦 Válido exclusivamente para retirar tu Pre-Orden en la soda.<br>
-          <span style="font-size: 0.70rem; color: #93c5fd;">Compras nuevas en mostrador bloqueadas por límite diario.</span>
+          <span style="font-size: 0.70rem; color: #3b82f6;">Compras nuevas en mostrador bloqueadas por límite diario.</span>
         </div>
 
-        <div class="qr-scanner-frame-wrapper glassmorphic-qr-frame">
+        <div class="qr-scanner-frame-wrapper">
           <div class="qr-frame-corner top-left"></div>
           <div class="qr-frame-corner top-right"></div>
           <div class="qr-frame-corner bottom-left"></div>
@@ -2359,13 +2353,13 @@
           </div>
         </div>
 
-        <div class="qr-card-token-text glassmorphic-token-pill" id="qrTokenDisplay">
+        <div class="qr-card-token-text" id="qrTokenDisplay">
           CODIGO-QR
         </div>
       </div>
 
-      <!-- BOTÓN TIPO PÍLDORA DE CRISTAL -->
-      <button type="button" onclick="closeQrModal()" class="qr-immersive-btn-close glassmorphic-btn-pill">
+      <!-- BOTÓN CELESTE TIPO PÍLDORA -->
+      <button type="button" onclick="closeQrModal()" class="qr-immersive-btn-close">
         Cerrar
       </button>
     </div>
