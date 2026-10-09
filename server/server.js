@@ -2515,14 +2515,17 @@ app.get('/api/developer/estudiantes/:id/kardex', (req, res) => {
       WHERE estudiante_id = ? AND monto_colones < 0 AND (revertida IS NULL OR revertida = 0)
     `).get(estId) || { total: 0, cant: 0 };
 
+    const totalComprasEntregadas = compras.filter(o => o.estado === 'entregado').reduce((acc, o) => acc + (o.total_colones || 0), 0);
+    const cantComprasReal = compras.filter(o => o.estado !== 'cancelado').length;
+
     res.json({
       estudiante: est,
       totales: {
         saldo_actual: est.saldo_colones || 0,
         total_recargas: Number(totalRecargasRow.total || 0),
         cant_recargas: Number(totalRecargasRow.cant || 0),
-        total_compras: Number(totalComprasRow.total || 0),
-        cant_compras: Number(totalComprasRow.cant || 0)
+        total_compras: Number(totalComprasRow.total || totalComprasEntregadas || 0),
+        cant_compras: Math.max(Number(totalComprasRow.cant || 0), cantComprasReal)
       },
       compras,
       recargas,
