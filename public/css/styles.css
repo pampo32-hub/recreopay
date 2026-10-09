@@ -245,11 +245,7 @@ body.dark-mode .logout-btn {
     gap: 6px;
   }
   .wallet-card .balance-col .amount {
-    font-size: 1.4rem;
-  }
-  .wallet-card .qr-toggle-btn {
-    padding: 5px 9px;
-    font-size: 0.72rem;
+    font-size: 1.45rem;
   }
 }
 
