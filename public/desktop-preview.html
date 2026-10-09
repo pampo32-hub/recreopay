@@ -4,7 +4,10 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>SiboPay Costa Rica - Plataforma de Pagos y Monedero Escolar Digital</title>
-  <link rel="icon" type="image/png" href="img/sibopay-emblem.png">
+  <link rel="manifest" href="/manifest.json">
+  <link rel="icon" type="image/png" href="/img/sibopay-emblem.png">
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+  <meta name="theme-color" content="#0284c7">
   <!-- Tailwind CDN & Google Fonts -->
   <script src="https://www.gstatic.com/antigravity/web/dev/tailwindcss.min.js"></script>
   <style>
@@ -634,13 +637,18 @@
     </div>
   </footer>
 
-  <!-- SCRIPT PARA REDIRECCIÓN DIRECTA A LA APP -->
+  <!-- SCRIPT PARA REDIRECCIÓN DIRECTA A LA APP Y SERVICE WORKER -->
   <script>
     function toggleLoginModal() {
       window.location.href = '/app';
     }
     function quickLoginRole() {
       window.location.href = '/app';
+    }
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/sw.js?v=16.0').catch(err => console.log('SW error:', err));
+      });
     }
   </script>
 
