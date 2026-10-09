@@ -9827,6 +9827,7 @@ let currentDevSinpeItems = [];
 let devSinpeSearchTimer = null;
 let currentDevSinpeSelectedItem = null;
 let devCachedEstudiantesList = [];
+let currentVincularBancoItem = null;
 
 /**
  * Carga y actualiza los datos del Buscador Universal de SINPE Móvil
@@ -10413,10 +10414,23 @@ async function abrirModalVincularBancoDev(bancoTxId) {
   const item = currentDevSinpeItems.find(x => x.raw_id === bancoTxId && x.origen === 'banco');
   if (!item) return;
 
+  currentVincularBancoItem = item;
+
   const modal = document.getElementById('modalDevSinpeVincular');
   const inputId = document.getElementById('devVincularBancoTxId');
   const resumenBox = document.getElementById('devVincularDepositoResumen');
+  const buscadorBox = document.getElementById('devVincularSeccionBuscador');
+  const accionesBox = document.getElementById('devVincularFormAcciones');
+  const exitoBox = document.getElementById('devVincularResultadoExito');
+  const fichaBox = document.getElementById('devVincularFichaEstudiante');
+
   if (!modal) return;
+
+  // Restaurar vistas
+  if (buscadorBox) buscadorBox.style.display = 'block';
+  if (accionesBox) accionesBox.style.display = 'block';
+  if (exitoBox) exitoBox.style.display = 'none';
+  if (fichaBox) fichaBox.style.display = 'none';
 
   if (inputId) inputId.value = bancoTxId;
   if (resumenBox) {
@@ -10426,15 +10440,15 @@ async function abrirModalVincularBancoDev(bancoTxId) {
         <strong style="color: var(--text-main); font-family: monospace;">${item.comprobante}</strong>
       </div>
       <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
-        <span style="color: var(--text-muted);">Monto Bancario:</span>
-        <strong style="color: #10b981; font-size: 1rem;">₡${Number(item.monto).toLocaleString('es-CR')}</strong>
+        <span style="color: var(--text-muted);">Monto Bancario Huérfano:</span>
+        <strong style="color: #10b981; font-size: 1.05rem;">₡${Number(item.monto).toLocaleString('es-CR')}</strong>
       </div>
       <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
         <span style="color: var(--text-muted);">Banco de Origen:</span>
         <span>${item.banco_origen || 'Banco'}</span>
       </div>
       <div style="display: flex; justify-content: space-between;">
-        <span style="color: var(--text-muted);">Remitente:</span>
+        <span style="color: var(--text-muted);">Remitente Reportado:</span>
         <span>${item.padre_nombre || 'N/A'} ${item.padre_telefono ? `(${item.padre_telefono})` : ''}</span>
       </div>
     `;
@@ -10459,6 +10473,12 @@ function closeModalDevSinpeVincular() {
   if (modal) modal.style.display = 'none';
 }
 window.closeModalDevSinpeVincular = closeModalDevSinpeVincular;
+
+function cerrarModalVincularExitoDev() {
+  closeModalDevSinpeVincular();
+  loadDevSinpeUniversal();
+}
+window.cerrarModalVincularExitoDev = cerrarModalVincularExitoDev;
 
 async function cargarEstudiantesParaVinculacion() {
   const select = document.getElementById('devVincularEstudianteSelect');
@@ -10514,6 +10534,8 @@ function filtrarEstudiantesParaVincular() {
 
   if (filtered.length === 0) {
     select.innerHTML = `<option disabled value="" style="padding: 10px; color: #ef4444; font-weight: 700;">⚠️ No se encontró ningún estudiante con "${rawQuery}"</option>`;
+    const fichaBox = document.getElementById('devVincularFichaEstudiante');
+    if (fichaBox) fichaBox.style.display = 'none';
     return;
   }
 
@@ -10530,9 +10552,71 @@ function filtrarEstudiantesParaVincular() {
 
   if (filtered.length > 0) {
     select.selectedIndex = 0;
+    seleccionarEstudianteParaVincular(select.value);
   }
 }
 window.filtrarEstudiantesParaVincular = filtrarEstudiantesParaVincular;
+
+/**
+ * Desplegar Ficha Técnica del Estudiante con saldo actual y saldo proyectado
+ */
+function seleccionarEstudianteParaVincular(estudianteId, isDblClick = false) {
+  const fichaBox = document.getElementById('devVincularFichaEstudiante');
+  if (!fichaBox) return;
+
+  if (!estudianteId) {
+    fichaBox.style.display = 'none';
+    return;
+  }
+
+  const est = devCachedEstudiantesList.find(x => String(x.id) === String(estudianteId));
+  if (!est) {
+    fichaBox.style.display = 'none';
+    return;
+  }
+
+  const avatar = document.getElementById('devVincularFichaAvatar');
+  const carnet = document.getElementById('devVincularFichaCarnet');
+  const escuela = document.getElementById('devVincularFichaEscuela');
+  const nombre = document.getElementById('devVincularFichaNombre');
+  const grado = document.getElementById('devVincularFichaGrado');
+  const padre = document.getElementById('devVincularFichaPadre');
+  const saldoActualEl = document.getElementById('devVincularSaldoActual');
+  const montoIngresoEl = document.getElementById('devVincularMontoIngreso');
+  const saldoProyectadoEl = document.getElementById('devVincularSaldoProyectado');
+
+  // Iniciales avatar
+  const parts = (est.nombre_completo || 'ES').trim().split(/\s+/);
+  const initials = parts.length >= 2 ? (parts[0][0] + parts[1][0]).toUpperCase() : parts[0].substring(0, 2).toUpperCase();
+  if (avatar) avatar.textContent = initials;
+
+  if (carnet) carnet.textContent = est.codigo_estudiante || `ID #${est.id}`;
+  if (escuela) escuela.textContent = est.escuela_nombre || 'Escuela';
+  if (nombre) nombre.textContent = est.nombre_completo;
+  if (grado) grado.textContent = `${est.grado || ''} ${est.seccion ? '· Sec. ' + est.seccion : ''}`.trim() || 'Estudiante';
+  if (padre) padre.textContent = `${est.padre_nombre || 'Sin encargado'} ${est.padre_telefono ? '(' + est.padre_telefono + ')' : ''}`;
+
+  const saldoActual = Number(est.saldo_colones || 0);
+  const montoIngreso = Number(currentVincularBancoItem?.monto || 0);
+  const saldoProyectado = saldoActual + montoIngreso;
+
+  if (saldoActualEl) saldoActualEl.textContent = `₡${saldoActual.toLocaleString('es-CR')}`;
+  if (montoIngresoEl) montoIngresoEl.textContent = `+₡${montoIngreso.toLocaleString('es-CR')}`;
+  if (saldoProyectadoEl) saldoProyectadoEl.textContent = `₡${saldoProyectado.toLocaleString('es-CR')}`;
+
+  fichaBox.style.display = 'block';
+
+  // Si fue doble clic, dar animación de foco al botón de confirmar
+  if (isDblClick) {
+    const btn = document.getElementById('btnDevConfirmarVincular');
+    if (btn) {
+      btn.focus();
+      btn.style.transform = 'scale(1.04)';
+      setTimeout(() => { if (btn) btn.style.transform = ''; }, 300);
+    }
+  }
+}
+window.seleccionarEstudianteParaVincular = seleccionarEstudianteParaVincular;
 
 async function ejecutarVinculacionBancoDev(e) {
   e.preventDefault();
@@ -10549,7 +10633,7 @@ async function ejecutarVinculacionBancoDev(e) {
   try {
     if (btn) {
       btn.disabled = true;
-      btn.textContent = 'Acreditando...';
+      btn.textContent = 'Acreditando en PostgreSQL...';
     }
 
     const res = await fetch('/api/developer/sinpe/vincular-banco', {
@@ -10566,10 +10650,41 @@ async function ejecutarVinculacionBancoDev(e) {
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || 'No se pudo vincular la transacción');
 
-    closeModalDevSinpeVincular();
+    const resObj = data.resultado || {};
+
+    // Actualizar saldo del estudiante en la caché local
+    const cachedEst = devCachedEstudiantesList.find(x => x.id === resObj.estudiante_id);
+    if (cachedEst) {
+      cachedEst.saldo_colones = resObj.saldo_nuevo;
+    }
+
+    // Mostrar pantalla de auditoría post-vinculación en el modal
+    const buscadorBox = document.getElementById('devVincularSeccionBuscador');
+    const accionesBox = document.getElementById('devVincularFormAcciones');
+    const exitoBox = document.getElementById('devVincularResultadoExito');
+
+    if (buscadorBox) buscadorBox.style.display = 'none';
+    if (accionesBox) accionesBox.style.display = 'none';
+
+    if (exitoBox) {
+      const nombreEl = document.getElementById('devExitoEstudianteNombre');
+      const compEl = document.getElementById('devExitoComprobante');
+      const antEl = document.getElementById('devExitoSaldoAnterior');
+      const montoEl = document.getElementById('devExitoMontoAcreditado');
+      const nuevoEl = document.getElementById('devExitoSaldoNuevo');
+
+      if (nombreEl) nombreEl.textContent = resObj.estudiante_nombre || 'Estudiante';
+      if (compEl) compEl.textContent = `#${resObj.comprobante || 'N/A'}`;
+      if (antEl) antEl.textContent = `₡${Number(resObj.saldo_anterior || 0).toLocaleString('es-CR')}`;
+      if (montoEl) montoEl.textContent = `+₡${Number(resObj.monto || 0).toLocaleString('es-CR')}`;
+      if (nuevoEl) nuevoEl.textContent = `₡${Number(resObj.saldo_nuevo || 0).toLocaleString('es-CR')}`;
+
+      exitoBox.style.display = 'block';
+    }
+
     if (window.sounds) window.sounds.playSuccess();
-    alert(data.mensaje || '¡Depósito bancario acreditado con éxito!');
-    await loadDevSinpeUniversal();
+    // Refrescar tabla del panel developer en segundo plano
+    loadDevSinpeUniversal();
   } catch (err) {
     if (window.sounds) window.sounds.playError();
     alert('Error al vincular: ' + err.message);

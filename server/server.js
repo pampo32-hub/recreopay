@@ -2549,7 +2549,11 @@ app.post('/api/developer/sinpe/vincular-banco', (req, res) => {
     broadcastEvent('solicitud_sinpe_procesada', resultado);
     broadcastEvent('movimiento_registrado', resultado);
 
-    res.json({ exito: true, resultado, mensaje: `¡Depósito bancario de ₡${Number(resultado.monto).toLocaleString('es-CR')} vinculado y acreditado con éxito a ${resultado.estudiante_nombre}!` });
+    res.json({
+      exito: true,
+      resultado,
+      mensaje: `¡Depósito bancario de ₡${Number(resultado.monto).toLocaleString('es-CR')} vinculado y acreditado con éxito a ${resultado.estudiante_nombre}! Saldo anterior: ₡${Number(resultado.saldo_anterior).toLocaleString('es-CR')} ➔ Nuevo saldo: ₡${Number(resultado.saldo_nuevo).toLocaleString('es-CR')}`
+    });
   } catch (err) {
     console.error('Error en /api/developer/sinpe/vincular-banco:', err);
     res.status(400).json({ error: err.message });

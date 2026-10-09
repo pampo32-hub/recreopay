@@ -2209,9 +2209,12 @@ function vincularBancoAEstudianteDev({ bancoTxId, estudianteId, usuarioId, notas
       solicitud_id: resSol.lastInsertRowid || resSol.id,
       estudiante_id: est.id,
       estudiante_nombre: est.nombre_completo,
+      estudiante_codigo: est.codigo_estudiante,
       monto,
+      saldo_anterior: resultadoSaldo.saldo_anterior,
       saldo_nuevo: resultadoSaldo.saldo_nuevo,
-      comprobante: tx.reference_number || tx.id
+      comprobante: tx.reference_number || tx.id,
+      banco_origen: tx.origin_bank || 'Banco'
     };
   });
 

@@ -3943,7 +3943,7 @@
 
   <!-- 3. MODAL: VINCULAR DEPÓSITO BANCARIO HUÉRFANO A UN ESTUDIANTE -->
   <div class="modal-qr-backdrop" id="modalDevSinpeVincular" style="display: none;" onclick="closeModalDevSinpeVincular()">
-    <div class="modal-qr-card" onclick="event.stopPropagation()" style="max-width: 520px; text-align: left; padding: 22px;">
+    <div class="modal-qr-card" onclick="event.stopPropagation()" style="max-width: 530px; max-height: 90vh; overflow-y: auto; text-align: left; padding: 22px; box-sizing: border-box;">
       <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1.5px solid var(--border); padding-bottom: 12px; margin-bottom: 16px;">
         <div style="display: flex; align-items: center; gap: 10px;">
           <div style="width: 36px; height: 36px; border-radius: 10px; background: #f0f9ff; color: #0284c7; display: flex; align-items: center; justify-content: center; font-size: 1.2rem;">
@@ -3965,29 +3965,117 @@
           <!-- Inyectado dinámicamente -->
         </div>
 
-        <div style="margin-bottom: 16px;">
-          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px;">
-            <label style="font-size: 0.82rem; font-weight: 800; color: var(--text-main); margin: 0;">Buscar Estudiante Beneficiario: *</label>
-            <span id="devVincularCountBadge" style="font-size: 0.74rem; color: #0284c7; font-weight: 800;"></span>
+        <!-- SECCIÓN DE BÚSQUEDA Y SELECCIÓN -->
+        <div id="devVincularSeccionBuscador">
+          <div style="margin-bottom: 14px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px;">
+              <label style="font-size: 0.82rem; font-weight: 800; color: var(--text-main); margin: 0;">Buscar Estudiante Beneficiario: *</label>
+              <span id="devVincularCountBadge" style="font-size: 0.74rem; color: #0284c7; font-weight: 800;"></span>
+            </div>
+            <input type="text" id="devVincularEstudianteSearch" placeholder="Escribe el nombre del alumno, grado o carné (ej: Sofía, Mateo)..." oninput="filtrarEstudiantesParaVincular()" style="width: 100%; padding: 10px 12px; border-radius: 10px; border: 1.5px solid var(--border); background: var(--bg-main); color: var(--text-main); font-size: 0.86rem; font-weight: 700; box-sizing: border-box; margin-bottom: 6px;">
+            <select id="devVincularEstudianteSelect" required size="5" onchange="seleccionarEstudianteParaVincular(this.value)" onclick="seleccionarEstudianteParaVincular(this.value)" ondblclick="seleccionarEstudianteParaVincular(this.value, true)" style="width: 100%; min-height: 120px; padding: 6px; border-radius: 10px; border: 1.5px solid var(--border); background: var(--card-bg); color: var(--text-main); font-size: 0.82rem; font-weight: 600;">
+              <!-- Opciones inyectadas -->
+            </select>
+            <div style="font-size: 0.72rem; color: var(--text-muted); margin-top: 4px; font-weight: 600;">
+              💡 Toca o da doble clic a un estudiante para ver su ficha técnica y saldo actual.
+            </div>
           </div>
-          <input type="text" id="devVincularEstudianteSearch" placeholder="Escribe el nombre del alumno, grado o carné (ej: Sofía, Mateo)..." oninput="filtrarEstudiantesParaVincular()" style="width: 100%; padding: 10px 12px; border-radius: 10px; border: 1.5px solid var(--border); background: var(--bg-main); color: var(--text-main); font-size: 0.86rem; font-weight: 700; box-sizing: border-box; margin-bottom: 6px;">
-          <select id="devVincularEstudianteSelect" required size="6" style="width: 100%; min-height: 150px; padding: 6px; border-radius: 10px; border: 1.5px solid var(--border); background: var(--card-bg); color: var(--text-main); font-size: 0.82rem; font-weight: 600;">
-            <!-- Opciones inyectadas -->
-          </select>
+
+          <!-- TARJETA / FICHA TÉCNICA DEL ALUMNO SELECCIONADO -->
+          <div id="devVincularFichaEstudiante" style="display: none; background: linear-gradient(135deg, rgba(2, 132, 199, 0.05), rgba(16, 185, 129, 0.06)); border: 2px solid #0284c7; border-radius: 14px; padding: 14px; margin-bottom: 16px; box-shadow: 0 4px 14px rgba(2, 132, 199, 0.08);">
+            <!-- Encabezado con datos del estudiante -->
+            <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 12px;">
+              <div id="devVincularFichaAvatar" style="width: 44px; height: 44px; border-radius: 12px; background: linear-gradient(135deg, #0284c7, #3b82f6); color: white; display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 1.1rem; box-shadow: 0 4px 10px rgba(2, 132, 199, 0.25); flex-shrink: 0;">
+                ES
+              </div>
+              <div style="flex: 1; min-width: 0;">
+                <div style="display: flex; align-items: center; gap: 6px; flex-wrap: wrap;">
+                  <span id="devVincularFichaCarnet" style="font-size: 0.72rem; font-weight: 800; background: #e0f2fe; color: #0369a1; padding: 2px 7px; border-radius: 6px;">EST-001</span>
+                  <span id="devVincularFichaEscuela" style="font-size: 0.72rem; font-weight: 700; color: #64748b;">Escuela</span>
+                </div>
+                <h4 id="devVincularFichaNombre" style="margin: 2px 0 0 0; font-size: 1.05rem; font-weight: 900; color: var(--text-main); word-break: break-word;">Nombre Estudiante</h4>
+                <div style="font-size: 0.76rem; color: #0284c7; font-weight: 700; margin-top: 1px;">
+                  <span id="devVincularFichaGrado">Grado - Sección</span> · <span id="devVincularFichaPadre" style="color: var(--text-muted);">Encargado</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Cuadrícula de Balances: Antes, Depósito, Saldo Resultante -->
+            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; background: var(--card-bg); border-radius: 10px; padding: 10px; border: 1px solid var(--border);">
+              <div style="text-align: center;">
+                <div style="font-size: 0.67rem; font-weight: 800; color: var(--text-muted); text-transform: uppercase;">Saldo Actual</div>
+                <div id="devVincularSaldoActual" style="font-size: 0.98rem; font-weight: 900; color: var(--text-main); margin-top: 2px;">₡0</div>
+                <span style="font-size: 0.63rem; color: #64748b;">(Antes)</span>
+              </div>
+              <div style="text-align: center; border-left: 1px dashed var(--border); border-right: 1px dashed var(--border);">
+                <div style="font-size: 0.67rem; font-weight: 800; color: #0284c7; text-transform: uppercase;">+ Acreditar</div>
+                <div id="devVincularMontoIngreso" style="font-size: 0.98rem; font-weight: 900; color: #0284c7; margin-top: 2px;">+₡0</div>
+                <span style="font-size: 0.63rem; color: #0284c7;">(Depósito)</span>
+              </div>
+              <div style="text-align: center; background: rgba(16, 185, 129, 0.08); border-radius: 8px; padding: 4px;">
+                <div style="font-size: 0.67rem; font-weight: 800; color: #166534; text-transform: uppercase;">Proyección</div>
+                <div id="devVincularSaldoProyectado" style="font-size: 1.05rem; font-weight: 950; color: #10b981; margin-top: 2px;">₡0</div>
+                <span style="font-size: 0.63rem; color: #059669; font-weight: 700;">↗️ Nuevo</span>
+              </div>
+            </div>
+          </div>
         </div>
 
-        <div style="margin-bottom: 18px;">
-          <label style="font-size: 0.82rem; font-weight: 800; color: var(--text-main); display: block; margin-bottom: 5px;">Nota de Auditoría (Opcional):</label>
-          <input type="text" id="devVincularNotas" placeholder="Ej: Confirmado vía WhatsApp con el padre Carlos" style="width: 100%; padding: 10px 12px; border-radius: 10px; border: 1.5px solid var(--border); background: var(--bg-main); color: var(--text-main); font-size: 0.84rem; box-sizing: border-box;">
+        <!-- PANTALLA DE AUDITORÍA POST-VINCULACIÓN (VERIFICACIÓN EN BASE DE DATOS) -->
+        <div id="devVincularResultadoExito" style="display: none; background: #f0fdf4; border: 2px solid #10b981; border-radius: 14px; padding: 18px; text-align: center; margin-bottom: 16px;">
+          <div style="width: 46px; height: 46px; border-radius: 50%; background: #10b981; color: white; display: inline-flex; align-items: center; justify-content: center; font-size: 1.5rem; margin-bottom: 8px; box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);">
+            ✓
+          </div>
+          <h3 style="margin: 0 0 4px 0; color: #065f46; font-size: 1.15rem; font-weight: 900;">¡Depósito Bancario Acreditado!</h3>
+          <p style="margin: 0 0 14px 0; font-size: 0.78rem; color: #047857; font-weight: 600;">
+            El saldo fue asignado y verificado en la base de datos PostgreSQL.
+          </p>
+
+          <div style="background: white; border: 1.5px solid #a7f3d0; border-radius: 12px; padding: 12px; text-align: left; margin-bottom: 14px;">
+            <div style="display: flex; justify-content: space-between; margin-bottom: 6px; font-size: 0.82rem;">
+              <span style="color: #64748b; font-weight: 700;">Estudiante:</span>
+              <strong id="devExitoEstudianteNombre" style="color: var(--text-main); font-weight: 800;">-</strong>
+            </div>
+            <div style="display: flex; justify-content: space-between; margin-bottom: 6px; font-size: 0.82rem;">
+              <span style="color: #64748b; font-weight: 700;">Comprobante:</span>
+              <code id="devExitoComprobante" style="color: #0284c7; font-weight: 800;">-</code>
+            </div>
+            <div style="border-top: 1px dashed #d1d5db; margin: 8px 0; padding-top: 8px;">
+              <div style="display: flex; justify-content: space-between; margin-bottom: 4px; font-size: 0.82rem;">
+                <span style="color: #64748b;">Saldo anterior:</span>
+                <span id="devExitoSaldoAnterior" style="font-weight: 700; color: #475569;">₡0</span>
+              </div>
+              <div style="display: flex; justify-content: space-between; margin-bottom: 6px; font-size: 0.82rem;">
+                <span style="color: #059669; font-weight: 700;">+ Depósito acreditado:</span>
+                <strong id="devExitoMontoAcreditado" style="color: #059669; font-weight: 800;">+₡0</strong>
+              </div>
+              <div style="display: flex; justify-content: space-between; align-items: center; background: #ecfdf5; padding: 8px 10px; border-radius: 8px; border: 1px solid #a7f3d0;">
+                <span style="color: #065f46; font-weight: 900; font-size: 0.88rem;">SALDO ACTUALIZADO:</span>
+                <strong id="devExitoSaldoNuevo" style="color: #059669; font-size: 1.15rem; font-weight: 950;">₡0</strong>
+              </div>
+            </div>
+          </div>
+
+          <button type="button" onclick="cerrarModalVincularExitoDev()" class="dev-action-btn dev-action-btn-primary" style="width: 100%; padding: 12px; font-size: 0.92rem; font-weight: 900; box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);">
+            Entendido / Cerrar
+          </button>
         </div>
 
-        <div style="display: flex; justify-content: flex-end; gap: 10px; border-top: 1.5px solid var(--border); padding-top: 14px;">
-          <button type="button" onclick="closeModalDevSinpeVincular()" style="padding: 10px 16px; border-radius: 10px; border: 1.5px solid var(--border); background: var(--bg-main); color: var(--text-main); font-weight: 800; font-size: 0.85rem; cursor: pointer;">
-            Cancelar
-          </button>
-          <button type="submit" id="btnDevConfirmarVincular" class="dev-action-btn dev-action-btn-primary" style="padding: 10px 22px; font-size: 0.88rem; font-weight: 800;">
-            Acreditar y Vincular
-          </button>
+        <!-- NOTA Y BOTONES DE ACCIÓN DEL FORMULARIO -->
+        <div id="devVincularFormAcciones">
+          <div style="margin-bottom: 18px;">
+            <label style="font-size: 0.82rem; font-weight: 800; color: var(--text-main); display: block; margin-bottom: 5px;">Nota de Auditoría (Opcional):</label>
+            <input type="text" id="devVincularNotas" placeholder="Ej: Confirmado vía WhatsApp con el padre Carlos" style="width: 100%; padding: 10px 12px; border-radius: 10px; border: 1.5px solid var(--border); background: var(--bg-main); color: var(--text-main); font-size: 0.84rem; box-sizing: border-box;">
+          </div>
+
+          <div style="display: flex; justify-content: flex-end; gap: 10px; border-top: 1.5px solid var(--border); padding-top: 14px;">
+            <button type="button" onclick="closeModalDevSinpeVincular()" style="padding: 10px 16px; border-radius: 10px; border: 1.5px solid var(--border); background: var(--bg-main); color: var(--text-main); font-weight: 800; font-size: 0.85rem; cursor: pointer;">
+              Cancelar
+            </button>
+            <button type="submit" id="btnDevConfirmarVincular" class="dev-action-btn dev-action-btn-primary" style="padding: 10px 22px; font-size: 0.88rem; font-weight: 800;">
+              Acreditar y Vincular
+            </button>
+          </div>
         </div>
       </form>
     </div>
@@ -4540,10 +4628,10 @@
     </button>
   </nav>
 
-  <script src="/js/dialogs.js?v=19.1"></script>
-  <script src="/js/sounds.js?v=19.1"></script>
+  <script src="/js/dialogs.js?v=19.2"></script>
+  <script src="/js/sounds.js?v=19.2"></script>
   <script src="/js/jsQR.js" defer></script>
-  <script src="/js/food-icons.js?v=19.1" defer></script>
-  <script src="/js/app.js?v=19.1"></script>
+  <script src="/js/food-icons.js?v=19.2" defer></script>
+  <script src="/js/app.js?v=19.2"></script>
 </body>
 </html>
