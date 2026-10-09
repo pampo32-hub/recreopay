@@ -2439,12 +2439,18 @@ app.get(['/api/admin/estudiantes', '/api/developer/estudiantes/buscar'], (req, r
       sql += ' AND e.escuela_id = ?';
       params.push(escuelaId);
     }
+    sql += ' ORDER BY e.nombre_completo ASC LIMIT 500';
+    let list = db.prepare(sql).all(...params);
     if (q) {
-      sql += ' AND (e.nombre_completo LIKE ? OR e.codigo_estudiante LIKE ? OR e.padre_nombre LIKE ? OR e.padre_telefono LIKE ?)';
-      params.push(`%${q}%`, `%${q}%`, `%${q}%`, `%${q}%`);
+      const normQ = q.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+      list = list.filter(e => {
+        const n = (e.nombre_completo || '').normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+        const c = (e.codigo_estudiante || '').toLowerCase();
+        const p = (e.padre_nombre || '').normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+        const t = (e.padre_telefono || '').toLowerCase();
+        return n.includes(normQ) || c.includes(normQ) || p.includes(normQ) || t.includes(normQ);
+      });
     }
-    sql += ' ORDER BY e.nombre_completo ASC LIMIT 200';
-    const list = db.prepare(sql).all(...params);
     res.json(list);
   } catch (error) {
     res.status(500).json({ error: error.message });
