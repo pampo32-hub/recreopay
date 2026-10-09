@@ -1,5 +1,5 @@
 {
-  "name": "SiboPay - Plataforma de Pagos y Monedero Escolar",
+  "name": "SiboPay - Pagos Rápidos y Monedero Digital",
   "short_name": "SiboPay",
   "start_url": "/index.html",
   "scope": "/",
@@ -8,9 +8,9 @@
   "orientation": "portrait",
   "background_color": "#052036",
   "theme_color": "#0284c7",
-  "lang": "es-CR",
-  "categories": ["finance", "education", "shopping"],
-  "description": "Plataforma Digital de Pagos Rápidos, Transferencias y Monedero Escolar en Costa Rica",
+  "lang": "es",
+  "categories": ["finance", "shopping", "business"],
+  "description": "Plataforma digital de pagos rápidos, transferencias y monedero",
   "icons": [
     {
       "src": "/icons/icon-192.png",
@@ -44,14 +44,14 @@
       "sizes": "1080x2400",
       "type": "image/png",
       "form_factor": "narrow",
-      "label": "Carné Digital y Monedero Escolar"
+      "label": "Billetera Digital y Carné QR"
     },
     {
       "src": "/screenshots/screen3.png",
       "sizes": "1080x2400",
       "type": "image/png",
       "form_factor": "narrow",
-      "label": "Menú y Pedidos en Soda"
+      "label": "Catálogo Digital y Pedidos"
     }
   ]
 }
