@@ -155,8 +155,12 @@ console.log = function(...args) {
     if (text.includes('[SINPE')) { tag = 'SINPE'; }
     else if (text.includes('[WebPush')) { tag = 'WEBPUSH'; }
     else if (text.includes('[PISTOLA')) { tag = 'PISTOLA'; }
-    else if (text.includes('[Seguridad')) { tag = 'AUTH'; }
-    else if (text.includes('[AUTO-EXPIRACION')) { tag = 'CRON'; }
+    else if (text.includes('[AUTH]') || text.includes('[SEGURIDAD]') || text.includes('[Seguridad')) { tag = 'AUTH'; }
+    else if (text.includes('[ORDEN]')) { tag = 'ORDEN'; }
+    else if (text.includes('[SODA]')) { tag = 'SODA'; }
+    else if (text.includes('[RECARGA]')) { tag = 'RECARGA'; }
+    else if (text.includes('[TRANSFERENCIA]')) { tag = 'TRANSFER'; }
+    else if (text.includes('[AUTO-EXPIRACION') || text.includes('[CRON]')) { tag = 'CRON'; }
     pushServerLog(level, tag, text);
   } catch (e) {}
 };
@@ -165,7 +169,12 @@ console.warn = function(...args) {
   origConsoleWarn.apply(console, args);
   try {
     const text = args.map(a => (typeof a === 'object' ? JSON.stringify(a) : String(a))).join(' ');
-    pushServerLog('warn', 'WARN', text);
+    let tag = 'WARN';
+    if (text.includes('[AUTH]') || text.includes('[SEGURIDAD]')) tag = 'AUTH';
+    else if (text.includes('[ORDEN]') || text.includes('[SODA]')) tag = 'ORDEN';
+    else if (text.includes('[SINPE]') || text.includes('[RECARGA]')) tag = 'SINPE';
+    else if (text.includes('[TRANSFERENCIA]')) tag = 'TRANSFER';
+    pushServerLog('warn', tag, text);
   } catch (e) {}
 };
 
@@ -173,7 +182,11 @@ console.error = function(...args) {
   origConsoleError.apply(console, args);
   try {
     const text = args.map(a => (typeof a === 'object' ? (a && a.stack ? a.stack : JSON.stringify(a)) : String(a))).join(' ');
-    pushServerLog('error', 'ERROR', text);
+    let tag = 'ERROR';
+    if (text.includes('[AUTH]') || text.includes('[SEGURIDAD]')) tag = 'AUTH';
+    else if (text.includes('[ORDEN]') || text.includes('[SODA]')) tag = 'ORDEN';
+    else if (text.includes('[SINPE]') || text.includes('[RECARGA]')) tag = 'SINPE';
+    pushServerLog('error', tag, text);
   } catch (e) {}
 };
 
@@ -390,11 +403,18 @@ app.post('/api/auth/login', (req, res) => {
     const cleanPass = String(password).trim();
 
     const user = db.prepare('SELECT * FROM usuarios WHERE LOWER(username) = ?').get(cleanUser);
-    if (!user || user.password_hash !== cleanPass) {
+    if (!user) {
+      console.warn(`[AUTH] 🔒 Intento de inicio de sesión fallido: El usuario "${cleanUser}" no existe en el sistema`);
+      return res.status(401).json({ error: 'Usuario o contraseña incorrectos' });
+    }
+
+    if (user.password_hash !== cleanPass) {
+      console.warn(`[AUTH] ⚠️ Error al inicio de sesión: Contraseña incorrecta para el usuario "${cleanUser}" (Rol: ${user.rol || 'desconocido'})`);
       return res.status(401).json({ error: 'Usuario o contraseña incorrectos' });
     }
 
     if (user.activo === 0) {
+      console.warn(`[AUTH] ⛔ Acceso bloqueado: La cuenta del usuario "${cleanUser}" está desactivada o suspendida`);
       return res.status(403).json({ error: 'Tu cuenta ha sido bloqueada por la administración.' });
     }
 
@@ -451,6 +471,9 @@ app.post('/api/auth/login', (req, res) => {
       }
       hijos = hijos.map(h => enriquecerEstudianteFinanzas(h));
     }
+
+    const escNom = escuela ? escuela.nombre : 'Sede Central';
+    console.log(`[AUTH] 🛡️ Inicio de sesión exitoso: "${user.nombre || user.username}" (${user.username}) [Rol: ${user.rol.toUpperCase()}, Escuela: ${escNom}]`);
 
     res.json({
       success: true,
@@ -3573,6 +3596,12 @@ app.post('/api/estudiantes/:id/recarga', (req, res) => {
     broadcastEvent('recarga_exitosa', resultado);
     broadcastEvent('estudiante_actualizado', { id: estudianteId, estudiante_id: estudianteId, saldo_colones: resultado.saldo_nuevo });
     broadcastEvent('saldo_actualizado', { id: estudianteId, estudiante_id: estudianteId, saldo_colones: resultado.saldo_nuevo });
+
+    const montoFmt = `₡${parseInt(monto, 10).toLocaleString('es-CR')}`;
+    const est = db.prepare('SELECT nombre_completo FROM estudiantes WHERE id = ?').get(estudianteId);
+    const estNom = est ? est.nombre_completo : `Estudiante #${estudianteId}`;
+    console.log(`[RECARGA] 💵 Recarga de ${montoFmt} aplicada a ${estNom} (Nuevo saldo: ₡${(resultado.saldo_nuevo || 0).toLocaleString('es-CR')})`);
+
     res.json(resultado);
   } catch (error) {
     res.status(400).json({ error: error.message });
@@ -3667,6 +3696,8 @@ app.post('/api/sinpe/solicitar', (req, res) => {
         data: { url: '/pos.html?tab=sinpe' }
       }
     });
+
+    console.log(`[SINPE] 📲 Reporte de recarga SINPE: ₡${montoFmt} para ${payloadNotificacion.estudiante_nombre} (Comprobante: #${payloadNotificacion.comprobante_sinpe || payloadNotificacion.codigo_detalle || 'N/A'})`);
 
     res.json({
       success: true,
@@ -3959,10 +3990,12 @@ app.post('/api/sinpe/procesar', (req, res) => {
     });
 
     if (resultado.estado === 'aprobada') {
+      console.log(`[SINPE] 💸 Recarga SINPE de ₡${(resultado.monto || 0).toLocaleString('es-CR')} APROBADA para ${resultado.estudiante_nombre} (Comprobante #${resultado.comprobante_sinpe || 'N/A'}). Nuevo saldo: ₡${(resultado.saldo_nuevo || 0).toLocaleString('es-CR')}`);
       broadcastEvent('recarga_exitosa', resultado);
       broadcastEvent('estudiante_actualizado', { id: resultado.estudiante_id, saldo_colones: resultado.saldo_nuevo });
       broadcastEvent('saldo_actualizado', { id: resultado.estudiante_id, saldo_colones: resultado.saldo_nuevo });
     } else if (resultado.estado === 'rechazada') {
+      console.warn(`[SINPE] ❌ Recarga SINPE de ₡${(resultado.monto || 0).toLocaleString('es-CR')} RECHAZADA para ${resultado.estudiante_nombre} (Comprobante #${resultado.comprobante_sinpe || 'N/A'}). Motivo: "${motivo || 'Comprobante no verificado'}"`);
       broadcastEvent('sinpe_rechazado', resultado);
     }
     broadcastEvent('solicitud_sinpe_procesada', resultado);
@@ -4113,8 +4146,15 @@ app.post('/api/transferencias', (req, res) => {
       broadcastEvent('estudiante_actualizado', { id: resultado.receptor.id, estudiante_id: resultado.receptor.id, saldo_colones: resultado.receptor.saldo_nuevo });
     }
 
+    console.log(`[TRANSFERENCIA] 🔄 Transferencia P2P: ${resultado.emisor.nombre} transfirió ₡${(resultado.monto || 0).toLocaleString('es-CR')} a ${resultado.receptor.nombre} (Motivo: "${motivo || 'Sin motivo'}")`);
+
     res.json(resultado);
   } catch (error) {
+    if (error.message.includes('PIN')) {
+      const em = db.prepare('SELECT nombre_completo FROM estudiantes WHERE id = ?').get(emisor_id);
+      const nom = em ? em.nombre_completo : `Estudiante #${emisor_id}`;
+      console.warn(`[SEGURIDAD] ⛔ PIN de seguridad incorrecto ingresado para transferir desde la cuenta de ${nom}`);
+    }
     res.status(400).json({ error: error.message });
   }
 });
@@ -4260,6 +4300,17 @@ app.post('/api/ordenes', (req, res) => {
       };
       broadcastEvent('estudiante_actualizado', payloadActualizacion);
       broadcastEvent('saldo_actualizado', payloadActualizacion);
+    }
+
+    const estRow = db.prepare('SELECT nombre_completo FROM estudiantes WHERE id = ?').get(targetEstudianteId);
+    const estNom = estRow ? estRow.nombre_completo : `Estudiante #${targetEstudianteId}`;
+    const totalFmt = `₡${(resultado.total_colones || 0).toLocaleString('es-CR')}`;
+
+    if (tipo_orden === 'preorden') {
+      const momentoLbl = formatMomentoLabel(momento_entrega, resultado.escuela_id || 1);
+      console.log(`[ORDEN] 🥪 Pre-orden ${resultado.codigo_orden} creada para ${estNom} (${momentoLbl}) • Total: ${totalFmt} (Monto retenido)`);
+    } else {
+      console.log(`[SODA] 🛒 Venta mostrador ${resultado.codigo_orden} cobrada a ${estNom} • Total: ${totalFmt}`);
     }
 
     res.status(201).json(resultado);
@@ -4452,7 +4503,9 @@ app.post('/api/ordenes/:id/cancelar', (req, res) => {
     broadcastEvent('preordenes_actualizadas', { id: ordenId });
     broadcastEvent('recargar_catalogo', {});
 
-    console.log(`[ORDEN] 🚫 Orden #${ordenId} (${ord.codigo_orden || 'Sin código'}) cancelada (${motivoFinal}). Monto liberado: ₡${(ord.total_colones || 0).toLocaleString('es-CR')}`);
+    const estNom = est ? est.nombre_completo : `Estudiante #${ord.estudiante_id}`;
+    const montoFmt = `₡${(ord.total_colones || 0).toLocaleString('es-CR')}`;
+    console.log(`[ORDEN] 🚫 Orden ${ord.codigo_orden || '#' + ordenId} (${montoFmt}) cancelada para ${estNom} (${motivoFinal}). Saldo disponible liberado.`);
 
     res.json({
       success: true,
@@ -4480,6 +4533,9 @@ app.put('/api/ordenes/:id/estado', (req, res) => {
       return res.status(403).json({ error: 'No tienes permisos para modificar órdenes de otra escuela.' });
     }
 
+    const estRow = db.prepare('SELECT nombre_completo FROM estudiantes WHERE id = ?').get(ord.estudiante_id);
+    const estNom = estRow ? estRow.nombre_completo : `Estudiante #${ord.estudiante_id}`;
+
     let actualizada;
     if (estado === 'entregado') {
       // Si es preorden y no ha sido debitada todavía
@@ -4493,6 +4549,7 @@ app.put('/api/ordenes/:id/estado', (req, res) => {
         db.prepare("UPDATE ordenes SET estado = 'entregado', entregado_en = datetime('now', 'localtime') WHERE id = ?").run(ordenId);
         actualizada = db.prepare('SELECT * FROM ordenes WHERE id = ?').get(ordenId);
       }
+      console.log(`[SODA] ✅ Orden ${ord.codigo_orden || '#' + ordenId} ENTREGADA a ${estNom} (Cajero #${cajero_id || 6}). Cobro: ₡${(ord.total_colones || 0).toLocaleString('es-CR')}`);
     } else if (estado === 'cancelado') {
       cancelarPreorden(ordenId, motivo || 'Cancelada desde terminal');
       actualizada = db.prepare('SELECT * FROM ordenes WHERE id = ?').get(ordenId);
@@ -4505,6 +4562,7 @@ app.put('/api/ordenes/:id/estado', (req, res) => {
       broadcastEvent('orden_cancelada', { id: ordenId, codigo_orden: ord.codigo_orden, orden: actualizada });
       broadcastEvent('preordenes_actualizadas', { id: ordenId });
       broadcastEvent('recargar_catalogo', {});
+      console.log(`[ORDEN] 🚫 Orden ${ord.codigo_orden || '#' + ordenId} cancelada para ${estNom} (${motivo || 'Cancelada desde terminal'}). Saldo liberado.`);
     } else {
       db.prepare(`
         UPDATE ordenes 
@@ -4512,6 +4570,10 @@ app.put('/api/ordenes/:id/estado', (req, res) => {
         WHERE id = ?
       `).run(estado, ordenId);
       actualizada = db.prepare('SELECT * FROM ordenes WHERE id = ?').get(ordenId);
+      if (estado === 'en_preparacion' || estado === 'listo') {
+        const lbl = estado === 'listo' ? '✅ LISTA PARA RETIRAR' : '👨‍🍳 EN PREPARACIÓN';
+        console.log(`[ORDEN] ${lbl}: Orden ${ord.codigo_orden || '#' + ordenId} de ${estNom}`);
+      }
     }
 
     broadcastEvent('orden_actualizada', actualizada);
@@ -4578,6 +4640,8 @@ app.post('/api/ordenes/despachar-qr', (req, res) => {
     broadcastEvent('estudiante_actualizado', despacho.estudiante);
     broadcastEvent('saldo_actualizado', despacho.estudiante);
 
+    console.log(`[SODA] 🥪 Pre-orden ${preorden.codigo_orden} despachada a ${est.nombre_completo} por QR. Cobro formal: ₡${(preorden.total_colones || 0).toLocaleString('es-CR')} (Cajero #${cajero_id || 6})`);
+
     res.json(responseData);
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -4592,6 +4656,7 @@ app.post('/api/pos/cierre-caja', (req, res) => {
     broadcastEvent('cierre_caja_realizado', resultado);
     broadcastEvent('recargar_catalogo', {});
     broadcastEvent('preordenes_actualizadas', {});
+    console.log(`[CRON] 🌙 Cierre de caja: ${resultado.count} pre-orden(es) no retiradas expiradas. Saldo liberado: ₡${(resultado.liberadoColones || 0).toLocaleString('es-CR')}`);
     res.json({
       exito: true,
       mensaje: `Cierre de caja completado con éxito. ${resultado.count} pre-orden(es) no retiradas fueron canceladas y su monto fue liberado al disponible de los estudiantes.`,

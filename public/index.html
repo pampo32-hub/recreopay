@@ -11,9 +11,9 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="SiboPay">
-  <link rel="preload" href="/css/styles.css?v=19.7" as="style">
-  <link rel="preload" href="/js/app.js?v=19.7" as="script">
-  <link rel="stylesheet" href="/css/styles.css?v=19.7">
+  <link rel="preload" href="/css/styles.css?v=19.8" as="style">
+  <link rel="preload" href="/js/app.js?v=19.8" as="script">
+  <link rel="stylesheet" href="/css/styles.css?v=19.8">
   <link rel="stylesheet" href="/css/desktop.css?v=2.2">
   <style>
     /* Transiciones suaves */
@@ -989,8 +989,10 @@
         <div class="dev-terminal-toolbar">
           <div class="dev-terminal-filters">
             <button type="button" class="dev-terminal-filter-btn active" data-filter="all" onclick="setDevLogsFilter('all', this)">Todos</button>
+            <button type="button" class="dev-terminal-filter-btn" data-filter="auth" onclick="setDevLogsFilter('auth', this)">🔒 Auth</button>
+            <button type="button" class="dev-terminal-filter-btn" data-filter="orden" onclick="setDevLogsFilter('orden', this)">🥪 Órdenes</button>
+            <button type="button" class="dev-terminal-filter-btn" data-filter="sinpe" onclick="setDevLogsFilter('sinpe', this)">💸 Finanzas</button>
             <button type="button" class="dev-terminal-filter-btn" data-filter="http" onclick="setDevLogsFilter('http', this)">⚡ HTTP</button>
-            <button type="button" class="dev-terminal-filter-btn" data-filter="sinpe" onclick="setDevLogsFilter('sinpe', this)">🏦 SINPE</button>
             <button type="button" class="dev-terminal-filter-btn" data-filter="warn" onclick="setDevLogsFilter('warn', this)">⚠️ Avisos</button>
             <button type="button" class="dev-terminal-filter-btn" data-filter="error" onclick="setDevLogsFilter('error', this)">❌ Errores</button>
             <button type="button" class="dev-terminal-filter-btn" data-filter="sistema" onclick="setDevLogsFilter('sistema', this)">⚙️ Sistema</button>
@@ -4943,6 +4945,6 @@
   <script src="/js/sounds.js?v=19.4"></script>
   <script src="/js/jsQR.js" defer></script>
   <script src="/js/food-icons.js?v=19.4" defer></script>
-  <script src="/js/app.js?v=19.7"></script>
+  <script src="/js/app.js?v=19.8"></script>
 </body>
 </html>

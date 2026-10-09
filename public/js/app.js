@@ -9802,9 +9802,22 @@ function conectarStreamLogsEnVivo() {
 function logCumpleFiltros(log) {
   if (devLogsFilter !== 'all') {
     const filter = devLogsFilter.toLowerCase();
-    const levelMatch = (log.level || '').toLowerCase() === filter;
-    const tagMatch = (log.tag || '').toLowerCase() === filter;
-    if (!levelMatch && !tagMatch) return false;
+    const level = (log.level || '').toLowerCase();
+    const tag = (log.tag || '').toLowerCase();
+
+    if (filter === 'auth') {
+      if (tag !== 'auth' && tag !== 'seguridad') return false;
+    } else if (filter === 'orden') {
+      if (tag !== 'orden' && tag !== 'soda') return false;
+    } else if (filter === 'sinpe' || filter === 'finanzas') {
+      if (tag !== 'sinpe' && tag !== 'recarga' && tag !== 'transfer' && tag !== 'transferencia') return false;
+    } else if (filter === 'sistema') {
+      if (tag !== 'sistema' && tag !== 'cron' && tag !== 'pm2' && tag !== 'pistola' && tag !== 'webpush') return false;
+    } else {
+      const levelMatch = level === filter;
+      const tagMatch = tag === filter;
+      if (!levelMatch && !tagMatch) return false;
+    }
   }
   if (devLogsSearchQuery) {
     const q = devLogsSearchQuery.toLowerCase();
@@ -9881,9 +9894,9 @@ function getTagCssClass(tag, level) {
   if (lvl === 'error' || t === 'error') return 'tag-error';
   if (lvl === 'warn' || t === 'warn') return 'tag-warn';
   if (t === 'http') return 'tag-http';
-  if (t === 'sinpe') return 'tag-sinpe';
-  if (t === 'auth') return 'tag-auth';
-  if (t === 'orden') return 'tag-orden';
+  if (t === 'sinpe' || t === 'recarga' || t === 'transfer' || t === 'transferencia') return 'tag-sinpe';
+  if (t === 'auth' || t === 'seguridad') return 'tag-auth';
+  if (t === 'orden' || t === 'soda') return 'tag-orden';
   if (t === 'sistema' || t === 'pm2' || t === 'cron') return 'tag-sistema';
   return 'tag-app';
 }
