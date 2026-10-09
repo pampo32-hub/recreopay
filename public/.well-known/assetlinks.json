@@ -1,0 +1,8 @@
+[{
+  "relation": ["delegate_permission/common.handle_all_urls"],
+  "target": {
+    "namespace": "android_app",
+    "package_name": "com.sibopay.twa",
+    "sha256_cert_fingerprints": ["A5:ED:D0:0A:24:5F:96:93:15:DE:D9:24:42:BD:43:00:AE:0A:65:5A:B0:88:EA:CC:94:E9:A7:98:C5:23:26:9B"]
+  }
+}]

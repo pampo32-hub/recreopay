@@ -118,13 +118,20 @@ app.get('/desktop-preview.html', (req, res) => {
   res.redirect(301, '/');
 });
 
+// Android Digital Asset Links para TWA (Google Play Store)
+app.get(['/.well-known/assetlinks.json', '/.well-known/assetlinks'], (req, res) => {
+  res.setHeader('Content-Type', 'application/json');
+  res.sendFile(path.join(__dirname, '../public/.well-known/assetlinks.json'));
+});
+
 // Servir archivos estáticos con compresión y caché optimizado para PWA
 app.use(express.static(path.join(__dirname, '../public'), {
+  dotfiles: 'allow',
   etag: true,
   maxAge: '1d',
   setHeaders: (res, filePath) => {
     // Para HTML y Service Worker: siempre revalidar para garantizar actualizaciones inmediatas
-    if (filePath.endsWith('.html') || filePath.endsWith('sw.js') || filePath.endsWith('manifest.json')) {
+    if (filePath.endsWith('.html') || filePath.endsWith('sw.js') || filePath.endsWith('manifest.json') || filePath.includes('assetlinks.json')) {
       res.setHeader('Cache-Control', 'no-cache, must-revalidate');
     } else {
       // Para CSS, JS, imágenes y fuentes: permitir caché con stale-while-revalidate para arranque instantáneo
