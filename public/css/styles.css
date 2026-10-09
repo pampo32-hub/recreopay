@@ -4263,11 +4263,11 @@ body.dark-mode .carousel-nav-btn {
    DEVELOPER MASTER SUITE (#viewDeveloper) - TEMA SIBOPAY LIMPIO
    ========================================================================== */
 .dev-container {
-  max-width: 1040px;
+  max-width: 1420px;
   margin: 0 auto;
   min-height: 100vh;
   background: var(--bg-main, #f8fafc);
-  padding: calc(18px + var(--safe-top)) 18px calc(60px + var(--safe-bottom)) 18px;
+  padding: calc(18px + var(--safe-top)) 20px calc(60px + var(--safe-bottom)) 20px;
   box-sizing: border-box;
   width: 100%;
 }
@@ -4368,42 +4368,123 @@ body.dark-mode .carousel-nav-btn {
   box-shadow: 0 2px 6px rgba(239, 68, 68, 0.15);
 }
 
+/* Layout Split: Menú Lateral a la Izquierda y Contenido Principal a la Derecha */
+.dev-layout-split {
+  display: flex;
+  align-items: flex-start;
+  gap: 22px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.dev-sidebar {
+  width: 270px;
+  flex-shrink: 0;
+}
+
+.dev-sidebar-inner {
+  position: sticky;
+  top: calc(18px + var(--safe-top));
+  background: var(--card-bg, #ffffff);
+  border: 1px solid var(--border, #e2e8f0);
+  border-radius: 18px;
+  padding: 14px;
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.04);
+}
+
+.dev-sidebar-header {
+  padding: 4px 6px 10px 6px;
+  border-bottom: 1px solid var(--border, #e2e8f0);
+  margin-bottom: 10px;
+}
+
+.dev-sidebar-title {
+  font-size: 0.72rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-muted, #64748b);
+}
+
+.dev-main-content {
+  flex: 1;
+  min-width: 0;
+  width: 100%;
+}
+
 .dev-tabs-nav {
   display: flex;
-  gap: 8px;
-  overflow-x: auto;
-  margin-bottom: 22px;
-  padding-bottom: 4px;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 0;
+  padding-bottom: 0;
+  width: 100%;
 }
 
 .dev-tab-btn {
-  padding: 10px 18px;
+  width: 100%;
+  padding: 11px 14px;
   border-radius: 12px;
   font-size: 0.86rem;
   font-weight: 700;
-  border: 1.5px solid var(--border, #e2e8f0);
-  background: var(--card-bg, #ffffff);
-  color: #64748b;
+  border: 1.5px solid transparent;
+  background: transparent;
+  color: var(--text-muted, #64748b);
   cursor: pointer;
-  white-space: nowrap;
+  white-space: normal;
   display: flex;
   align-items: center;
-  gap: 8px;
-  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
+  gap: 12px;
+  transition: all 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+  box-sizing: border-box;
+  text-align: left;
+}
+
+.dev-tab-btn svg {
+  flex-shrink: 0;
+  color: var(--text-muted, #64748b);
+  transition: color 0.18s ease;
+}
+
+.dev-tab-btn span:first-of-type {
+  flex: 1;
+  line-height: 1.35;
 }
 
 .dev-tab-btn:hover {
   color: #0284c7;
-  border-color: #cbd5e1;
-  background: #f8fafc;
+  border-color: rgba(2, 132, 199, 0.2);
+  background: rgba(2, 132, 199, 0.06);
+}
+
+.dev-tab-btn:hover svg {
+  color: #0284c7;
 }
 
 .dev-tab-btn.active {
   background: #0284c7;
   color: #ffffff;
   border-color: #0284c7;
-  box-shadow: 0 3px 12px rgba(2, 132, 199, 0.25);
+  box-shadow: 0 4px 14px rgba(2, 132, 199, 0.28);
+}
+
+.dev-tab-btn.active svg {
+  color: #ffffff;
+}
+
+body.dark-mode .dev-tab-btn:hover {
+  color: #38bdf8;
+  border-color: rgba(56, 189, 248, 0.25);
+  background: rgba(56, 189, 248, 0.12);
+}
+
+body.dark-mode .dev-tab-btn:hover svg {
+  color: #38bdf8;
+}
+
+body.dark-mode .dev-tab-btn.active {
+  background: #0284c7;
+  color: #ffffff;
 }
 
 .dev-card-uploader-box {
@@ -4590,6 +4671,60 @@ body.dark-mode .carousel-nav-btn {
   color: #ffffff !important;
   border: 1px solid rgba(255, 255, 255, 0.25) !important;
   backdrop-filter: blur(6px) !important;
+}
+
+@media (max-width: 860px) {
+  .dev-layout-split {
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .dev-sidebar {
+    width: 100%;
+    position: static;
+  }
+
+  .dev-sidebar-inner {
+    position: static;
+    padding: 0;
+    background: transparent;
+    border: none;
+    box-shadow: none;
+  }
+
+  .dev-sidebar-header {
+    display: none;
+  }
+
+  .dev-tabs-nav {
+    flex-direction: row;
+    overflow-x: auto;
+    gap: 8px;
+    padding-bottom: 6px;
+    -webkit-overflow-scrolling: touch;
+    width: 100%;
+  }
+
+  .dev-tab-btn {
+    width: auto;
+    white-space: nowrap;
+    padding: 9px 14px;
+    font-size: 0.82rem;
+    background: var(--card-bg, #ffffff);
+    border: 1px solid var(--border, #e2e8f0);
+    border-radius: 12px;
+    flex-shrink: 0;
+  }
+
+  .dev-tab-btn span:first-of-type {
+    flex: initial;
+  }
+
+  .dev-tab-btn.active {
+    background: #0284c7;
+    color: #ffffff;
+    border-color: #0284c7;
+  }
 }
 
 @media (max-width: 650px) {

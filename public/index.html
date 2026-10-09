@@ -11,9 +11,9 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="SiboPay">
-  <link rel="preload" href="/css/styles.css?v=19.4" as="style">
-  <link rel="preload" href="/js/app.js?v=19.4" as="script">
-  <link rel="stylesheet" href="/css/styles.css?v=19.4">
+  <link rel="preload" href="/css/styles.css?v=19.5" as="style">
+  <link rel="preload" href="/js/app.js?v=19.5" as="script">
+  <link rel="stylesheet" href="/css/styles.css?v=19.5">
   <link rel="stylesheet" href="/css/desktop.css?v=2.2">
   <style>
     /* Transiciones suaves */
@@ -225,38 +225,50 @@
       </div>
     </header>
 
-    <!-- NAVEGACIÓN DE PESTAÑAS DEVELOPER -->
-    <nav class="dev-tabs-nav">
-      <button class="dev-tab-btn active" id="btnDevTabUsuarios" onclick="switchDevTab('usuarios')" style="display: inline-flex; align-items: center; gap: 8px;">
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
-        <span>Usuarios & Administradores</span>
-      </button>
-      <button class="dev-tab-btn" id="btnDevTabDisenos" onclick="switchDevTab('disenos')" style="display: inline-flex; align-items: center; gap: 8px;">
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="13.5" cy="6.5" r=".5" fill="currentColor"/><circle cx="17.5" cy="10.5" r=".5" fill="currentColor"/><circle cx="8.5" cy="7.5" r=".5" fill="currentColor"/><circle cx="6.5" cy="12.5" r=".5" fill="currentColor"/><path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.926 0 1.648-.746 1.648-1.688 0-.437-.18-.835-.437-1.125-.29-.289-.438-.652-.438-1.125a1.64 1.64 0 0 1 1.668-1.668h1.996c3.051 0 5.555-2.503 5.555-5.554C21.965 6.012 17.461 2 12 2z"/></svg>
-        <span>Diseños de Tarjetas (Subir & Gestionar)</span>
-      </button>
-      <button class="dev-tab-btn" id="btnDevTabDiagnostico" onclick="switchDevTab('diagnostico')" style="display: inline-flex; align-items: center; gap: 8px;">
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
-        <span>Diagnóstico del Sistema & BD</span>
-      </button>
-      <button class="dev-tab-btn" id="btnDevTabEscuelas" onclick="switchDevTab('escuelas')" style="display: inline-flex; align-items: center; gap: 8px;">
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18"/><path d="M5 21V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16"/><path d="M9 21v-4a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v4"/><line x1="9" y1="9" x2="9" y2="9.01"/><line x1="15" y1="9" x2="15" y2="9.01"/></svg>
-        <span>Escuelas & Sedes</span>
-      </button>
-      <button class="dev-tab-btn" id="btnDevTabImportacion" onclick="switchDevTab('importacion')" style="display: inline-flex; align-items: center; gap: 8px;">
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
-        <span>Carga Masiva (Excel/CSV)</span>
-      </button>
-      <button class="dev-tab-btn" id="btnDevTabSinpe" onclick="switchDevTab('sinpe')" style="display: inline-flex; align-items: center; gap: 8px;">
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-        <span>🔍 Buscador SINPE Móvil</span>
-        <span id="devSinpePendingBadge" style="display: none; background: #ef4444; color: #ffffff; font-size: 0.68rem; font-weight: 900; padding: 2px 7px; border-radius: 999px; line-height: 1;">0</span>
-      </button>
-      <button class="dev-tab-btn" id="btnDevTabKardex" onclick="switchDevTab('kardex')" style="display: inline-flex; align-items: center; gap: 8px;">
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1-2.5-2.5Z"/><path d="M6 6h10"/><path d="M6 10h10"/><path d="M6 14h6"/></svg>
-        <span>🎓 Kardex & Alumnos 360°</span>
-      </button>
-    </nav>
+    <!-- LAYOUT SPLIT: SIDEBAR A LA IZQUIERDA Y CONTENIDO A LA DERECHA -->
+    <div class="dev-layout-split">
+      <!-- SIDEBAR LATERAL IZQUIERDA -->
+      <aside class="dev-sidebar">
+        <div class="dev-sidebar-inner">
+          <div class="dev-sidebar-header">
+            <span class="dev-sidebar-title">Módulos del Sistema</span>
+          </div>
+          <nav class="dev-tabs-nav">
+            <button class="dev-tab-btn active" id="btnDevTabUsuarios" onclick="switchDevTab('usuarios')">
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+              <span>Usuarios & Administradores</span>
+            </button>
+            <button class="dev-tab-btn" id="btnDevTabDisenos" onclick="switchDevTab('disenos')">
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="13.5" cy="6.5" r=".5" fill="currentColor"/><circle cx="17.5" cy="10.5" r=".5" fill="currentColor"/><circle cx="8.5" cy="7.5" r=".5" fill="currentColor"/><circle cx="6.5" cy="12.5" r=".5" fill="currentColor"/><path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.926 0 1.648-.746 1.648-1.688 0-.437-.18-.835-.437-1.125-.29-.289-.438-.652-.438-1.125a1.64 1.64 0 0 1 1.668-1.668h1.996c3.051 0 5.555-2.503 5.555-5.554C21.965 6.012 17.461 2 12 2z"/></svg>
+              <span>Diseños de Tarjetas</span>
+            </button>
+            <button class="dev-tab-btn" id="btnDevTabDiagnostico" onclick="switchDevTab('diagnostico')">
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+              <span>Diagnóstico del Sistema & BD</span>
+            </button>
+            <button class="dev-tab-btn" id="btnDevTabEscuelas" onclick="switchDevTab('escuelas')">
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18"/><path d="M5 21V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16"/><path d="M9 21v-4a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v4"/><line x1="9" y1="9" x2="9" y2="9.01"/><line x1="15" y1="9" x2="15" y2="9.01"/></svg>
+              <span>Escuelas & Sedes</span>
+            </button>
+            <button class="dev-tab-btn" id="btnDevTabImportacion" onclick="switchDevTab('importacion')">
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+              <span>Carga Masiva (Excel/CSV)</span>
+            </button>
+            <button class="dev-tab-btn" id="btnDevTabSinpe" onclick="switchDevTab('sinpe')">
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+              <span>Buscador SINPE Móvil</span>
+              <span id="devSinpePendingBadge" style="display: none; background: #ef4444; color: #ffffff; font-size: 0.68rem; font-weight: 900; padding: 2px 7px; border-radius: 999px; line-height: 1; margin-left: auto;">0</span>
+            </button>
+            <button class="dev-tab-btn" id="btnDevTabKardex" onclick="switchDevTab('kardex')">
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1-2.5-2.5Z"/><path d="M6 6h10"/><path d="M6 10h10"/><path d="M6 14h6"/></svg>
+              <span>Kardex & Alumnos 360°</span>
+            </button>
+          </nav>
+        </div>
+      </aside>
+
+      <!-- CONTENEDOR DE CONTENIDO PRINCIPAL A LA DERECHA -->
+      <main class="dev-main-content">
 
     <!-- 1. PESTAÑA: USUARIOS Y ADMINISTRADORES -->
     <div id="devTabContentUsuarios" class="dev-tab-content">
@@ -911,6 +923,8 @@
           </div>
         </div>
       </div>
+    </div>
+      </main>
     </div>
   </div>
 
