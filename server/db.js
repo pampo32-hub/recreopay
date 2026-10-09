@@ -97,7 +97,7 @@ if (isPg) {
       return (...args) => fn(...args);
     }
   };
-  console.log('🐘 Conectado a PostgreSQL central (recreopay_db)');
+  console.log('🐘 Conectado a PostgreSQL central (sibopay_db)');
 } else {
   const Database = require('better-sqlite3');
   const dbPath = path.join(__dirname, 'recreopay.db');

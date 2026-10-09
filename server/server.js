@@ -1854,7 +1854,7 @@ app.get('/api/developer/stats', (req, res) => {
     const totalDisenos = db.prepare('SELECT COUNT(*) as count FROM disenos_tarjetas WHERE activo = 1').get().count;
 
     let dbTipo = Boolean(process.env.DATABASE_URL) ? 'PostgreSQL' : 'SQLite';
-    let dbDetalle = Boolean(process.env.DATABASE_URL) ? 'PostgreSQL Central (recreopay_db)' : 'WAL Mode Activado';
+    let dbDetalle = Boolean(process.env.DATABASE_URL) ? 'PostgreSQL Central (sibopay_db)' : 'WAL Mode Activado';
     let dbSizeFormatted = '0 KB';
     let dbSizeBytes = 0;
 
@@ -2045,11 +2045,11 @@ async function ejecutarBackupBaseDatos() {
     const targetPath = path.join(backupsDir, filename);
     const dbUrl = process.env.DATABASE_URL;
     const parsed = new URL(dbUrl);
-    const user = parsed.username || 'postgres';
+    const user = parsed.username || 'sibopay_user';
     const password = parsed.password || '';
     const host = parsed.hostname || '127.0.0.1';
     const port = parsed.port || '5432';
-    const dbname = parsed.pathname ? parsed.pathname.replace(/^\//, '') : 'recreopay_db';
+    const dbname = parsed.pathname ? parsed.pathname.replace(/^\//, '') : 'sibopay_db';
 
     return new Promise((resolve, reject) => {
       const { exec } = require('child_process');

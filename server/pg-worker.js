@@ -9,7 +9,7 @@ types.setTypeParser(1700, (val) => val === null ? null : parseFloat(val)); // nu
 types.setTypeParser(700, (val) => val === null ? null : parseFloat(val));  // float4 / real
 types.setTypeParser(701, (val) => val === null ? null : parseFloat(val));  // float8 / double precision
 
-const connectionString = process.env.DATABASE_URL || 'postgresql://postgres:GammaPos2026@127.0.0.1:5432/recreopay_db';
+const connectionString = process.env.DATABASE_URL || 'postgresql://sibopay_user:SiboPay_Postgres_2026_SecureKey!@127.0.0.1:5432/sibopay_db';
 
 const pool = new Pool({
   connectionString,

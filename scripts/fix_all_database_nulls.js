@@ -1,6 +1,6 @@
 const { Client } = require('pg');
 
-const pgUrl = process.env.DATABASE_URL || 'postgresql://postgres:GammaPos2026@127.0.0.1:5432/recreopay_db';
+const pgUrl = process.env.DATABASE_URL || 'postgresql://sibopay_user:SiboPay_Postgres_2026_SecureKey!@127.0.0.1:5432/sibopay_db';
 
 async function fixAllNulls() {
   const client = new Client({ connectionString: pgUrl });
