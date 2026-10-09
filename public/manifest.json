@@ -5,7 +5,9 @@
   "scope": "/",
   "id": "https://sibopay.com/",
   "display": "standalone",
+  "display_override": ["standalone", "window-controls-overlay"],
   "orientation": "portrait",
+  "prefer_related_applications": false,
   "background_color": "#052036",
   "theme_color": "#0284c7",
   "lang": "es",
@@ -52,6 +54,13 @@
       "type": "image/png",
       "form_factor": "narrow",
       "label": "Catálogo Digital y Pedidos"
+    },
+    {
+      "src": "/screenshots/screen-wide.png",
+      "sizes": "1920x1080",
+      "type": "image/png",
+      "form_factor": "wide",
+      "label": "Plataforma Web y Monedero Digital SiboPay"
     }
   ]
 }
