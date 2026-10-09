@@ -383,6 +383,7 @@ function initDatabase() {
   try { db.exec('ALTER TABLE ordenes ADD COLUMN escuela_id INTEGER DEFAULT 1'); } catch (e) {}
   try { db.exec('ALTER TABLE estudiantes ADD COLUMN card_theme TEXT'); } catch (e) {}
   try { db.exec('ALTER TABLE usuarios ADD COLUMN card_theme TEXT'); } catch (e) {}
+  try { db.exec('ALTER TABLE estudiantes ADD COLUMN bloqueo_qr_biometrico INTEGER DEFAULT 0'); } catch (e) {}
 
   // 10. Diseños de Tarjetas Virtuales para Estudiantes
   try {

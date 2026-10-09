@@ -3509,7 +3509,7 @@ app.post('/api/push/test', async (req, res) => {
 // Actualizar configuración parental (Límite diario, restricciones y transferencias P2P)
 app.put('/api/estudiantes/:id/limite', (req, res) => {
   try {
-    const { limite_diario_colones, alergias, bloquear_chucherias, permitir_transferencias } = req.body;
+    const { limite_diario_colones, alergias, bloquear_chucherias, permitir_transferencias, bloqueo_qr_biometrico } = req.body;
     const estId = req.params.id;
 
     db.prepare(`
@@ -3517,9 +3517,10 @@ app.put('/api/estudiantes/:id/limite', (req, res) => {
       SET limite_diario_colones = COALESCE(?, limite_diario_colones),
           alergias = COALESCE(?, alergias),
           bloquear_chucherias = COALESCE(?, bloquear_chucherias),
-          permitir_transferencias = COALESCE(?, permitir_transferencias)
+          permitir_transferencias = COALESCE(?, permitir_transferencias),
+          bloqueo_qr_biometrico = COALESCE(?, bloqueo_qr_biometrico)
       WHERE id = ?
-    `).run(limite_diario_colones, alergias, bloquear_chucherias, permitir_transferencias, estId);
+    `).run(limite_diario_colones, alergias, bloquear_chucherias, permitir_transferencias, bloqueo_qr_biometrico, estId);
 
     const actualizado = db.prepare('SELECT * FROM estudiantes WHERE id = ?').get(estId);
     if (actualizado) {

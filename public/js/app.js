@@ -1576,21 +1576,31 @@ function showQrModalActual() {
 // --------------------------------------------------------------------------
 let pendingQrUnlockSuccessCallback = null;
 
+function getActiveStudentForQrSecurity() {
+  return currentStudent || currentParentChild || null;
+}
+
 function getQrSecurityKey() {
-  const estId = currentStudent ? (currentStudent.id || currentStudent.codigo_estudiante || 'default') : 'default';
+  const active = getActiveStudentForQrSecurity();
+  const estId = active ? (active.id || active.codigo_estudiante || 'default') : 'default';
   return 'sibopay_qr_security_' + estId;
 }
 
 function isQrSecurityActiveForCurrentStudent() {
+  const active = getActiveStudentForQrSecurity();
+  if (active && (active.bloqueo_qr_biometrico === 1 || active.bloqueo_qr_biometrico === '1' || active.bloqueo_qr_biometrico === true)) {
+    return true;
+  }
   const key = getQrSecurityKey();
   return localStorage.getItem(key) === 'true';
 }
 
 function getQrSecurityPin() {
-  const estId = currentStudent ? (currentStudent.id || currentStudent.codigo_estudiante || 'default') : 'default';
+  const active = getActiveStudentForQrSecurity();
+  const estId = active ? (active.id || active.codigo_estudiante || 'default') : 'default';
   const customPin = localStorage.getItem('sibopay_qr_pin_' + estId);
   if (customPin) return customPin;
-  if (currentStudent && currentStudent.pin_seguridad) return String(currentStudent.pin_seguridad);
+  if (active && active.pin_seguridad) return String(active.pin_seguridad);
   return '1234';
 }
 
@@ -1684,7 +1694,8 @@ async function verifyPlatformBiometrics(credIdBase64) {
 
 async function triggerQrSecurityUnlock(onSuccess, promptTitle, promptDesc) {
   pendingQrUnlockSuccessCallback = onSuccess;
-  const estId = currentStudent ? (currentStudent.id || currentStudent.codigo_estudiante || 'default') : 'default';
+  const active = getActiveStudentForQrSecurity();
+  const estId = active ? (active.id || active.codigo_estudiante || 'default') : 'default';
   const credId = localStorage.getItem('sibopay_bio_cred_' + estId);
 
   // Textos dinámicos en el modal de verificación
@@ -1785,7 +1796,8 @@ function submitQrSecurityPin() {
 }
 
 async function retryQrBiometrics() {
-  const estId = currentStudent ? (currentStudent.id || currentStudent.codigo_estudiante || 'default') : 'default';
+  const active = getActiveStudentForQrSecurity();
+  const estId = active ? (active.id || active.codigo_estudiante || 'default') : 'default';
   const credId = localStorage.getItem('sibopay_bio_cred_' + estId);
   try {
     const verified = await verifyPlatformBiometrics(credId);
@@ -1804,8 +1816,9 @@ async function retryQrBiometrics() {
 }
 
 async function openQrSecuritySettings() {
-  // Si la seguridad YA está activa, exigir autenticación con Face ID o PIN para entrar
-  if (isQrSecurityActiveForCurrentStudent()) {
+  const isParent = Boolean(currentUser && currentUser.rol === 'padre');
+  // Si la seguridad YA está activa y NO es un padre ya autenticado en su portal, exigir autenticación
+  if (!isParent && isQrSecurityActiveForCurrentStudent()) {
     triggerQrSecurityUnlock(() => {
       showQrSecuritySettingsModalActual();
     }, 'Administración de Seguridad', 'Verifica tu identidad con Face ID, Huella o PIN para acceder a los ajustes de seguridad.');
@@ -1824,6 +1837,12 @@ async function showQrSecuritySettingsModalActual() {
 
   const pinBackupInput = document.getElementById('inputSettingsPinBackup');
   if (pinBackupInput) pinBackupInput.value = getQrSecurityPin();
+
+  const active = getActiveStudentForQrSecurity();
+  const subEl = document.getElementById('lblQrSecuritySettingsSub');
+  if (subEl) {
+    subEl.textContent = active ? `Estudiante: ${active.nombre_completo || 'Seleccionado'}` : 'Protege tu código de pago en este teléfono';
+  }
 
   const statusBox = document.getElementById('qrBioDeviceStatus');
   if (statusBox) {
@@ -1849,38 +1868,69 @@ function closeQrSecuritySettings(e) {
   const modal = document.getElementById('modalQrSecuritySettings');
   if (modal) modal.style.display = 'none';
   updateQrSecurityBadgeUI();
+  updateParentQrSecurityCardUI();
 }
 
 async function toggleQrBiometricSetting(enabled) {
-  const estId = currentStudent ? (currentStudent.id || currentStudent.codigo_estudiante || 'default') : 'default';
+  const active = getActiveStudentForQrSecurity();
+  const estId = active ? (active.id || active.codigo_estudiante || 'default') : 'default';
   const key = getQrSecurityKey();
   const chk = document.getElementById('chkQrBiometricsEnabled');
 
-  if (enabled) {
-    const bioAvailable = await checkDeviceBiometricsSupport();
-    if (bioAvailable) {
+  const applyToggle = async (val) => {
+    if (val) {
+      const bioAvailable = await checkDeviceBiometricsSupport();
+      if (bioAvailable) {
+        try {
+          const studentIdent = active ? (active.codigo_estudiante || active.nombre_completo) : 'estudiante';
+          const credId = await registerPlatformBiometrics(studentIdent);
+          localStorage.setItem('sibopay_bio_cred_' + estId, credId);
+        } catch (regErr) {
+          console.warn('Registro biométrico omitido o cancelado por el usuario:', regErr);
+        }
+      }
+      localStorage.setItem(key, 'true');
+      if (active) active.bloqueo_qr_biometrico = 1;
+    } else {
+      localStorage.setItem(key, 'false');
+      if (active) active.bloqueo_qr_biometrico = 0;
+    }
+    if (chk) chk.checked = val;
+    updateQrSecurityBadgeUI();
+    updateParentQrSecurityCardUI();
+
+    // Sincronizar en el backend si tenemos el ID del estudiante
+    if (active && active.id) {
       try {
-        const studentIdent = currentStudent ? (currentStudent.codigo_estudiante || currentStudent.nombre_completo) : 'estudiante';
-        const credId = await registerPlatformBiometrics(studentIdent);
-        localStorage.setItem('sibopay_bio_cred_' + estId, credId);
-      } catch (regErr) {
-        console.warn('Registro biométrico omitido o cancelado por el usuario:', regErr);
+        await fetch(`/api/estudiantes/${active.id}/limite`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ bloqueo_qr_biometrico: val ? 1 : 0 })
+        });
+      } catch (e) {
+        console.warn('Error sincronizando bloqueo_qr_biometrico con el servidor:', e);
       }
     }
-    localStorage.setItem(key, 'true');
-    updateQrSecurityBadgeUI();
+  };
+
+  if (enabled) {
+    await applyToggle(true);
   } else {
-    // Si intenta desactivar, exigir autenticación obligatoria
-    triggerQrSecurityUnlock(() => {
-      localStorage.setItem(key, 'false');
-      if (chk) chk.checked = false;
-      updateQrSecurityBadgeUI();
+    const isParent = Boolean(currentUser && currentUser.rol === 'padre');
+    if (isParent) {
+      // El padre en su propio portal autenticado puede desactivarlo directamente
+      await applyToggle(false);
       if (window.sounds) window.sounds.playSuccess();
-      alert('La protección biométrica ha sido desactivada.');
-    }, 'Desactivar Seguridad', 'Verifica tu identidad para confirmar la desactivación de la seguridad.');
-    
-    // Mantener el switch en ON mientras se confirma
-    if (chk) chk.checked = true;
+      alert('La protección biométrica ha sido desactivada para este carné.');
+    } else {
+      // En modo estudiante, exigir Face ID o PIN antes de apagar
+      triggerQrSecurityUnlock(async () => {
+        await applyToggle(false);
+        if (window.sounds) window.sounds.playSuccess();
+        alert('La protección biométrica ha sido desactivada.');
+      }, 'Desactivar Seguridad', 'Verifica tu identidad para confirmar la desactivación de la seguridad.');
+      if (chk) chk.checked = true;
+    }
   }
 }
 
@@ -1891,8 +1941,22 @@ function saveSettingsPinBackup() {
     alert('El PIN debe tener 4 dígitos numéricos.');
     return;
   }
-  const estId = currentStudent ? (currentStudent.id || currentStudent.codigo_estudiante || 'default') : 'default';
+  const active = getActiveStudentForQrSecurity();
+  const estId = active ? (active.id || active.codigo_estudiante || 'default') : 'default';
   localStorage.setItem('sibopay_qr_pin_' + estId, pin);
+  if (active) active.pin_seguridad = pin;
+
+  // Sincronizar también con backend
+  if (active && active.id) {
+    fetch('/api/padres/restablecer-acceso', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        estudiante_id: active.id,
+        nuevo_pin: pin
+      })
+    }).catch(e => console.warn('Error sincronizando PIN con backend:', e));
+  }
 
   const msg = document.getElementById('msgSettingsPinSaved');
   if (msg) {
@@ -1907,6 +1971,21 @@ function updateQrSecurityBadgeUI() {
 
   if (qrBtnText) {
     qrBtnText.textContent = isEnabled ? '🔒 Mi QR' : 'Mi QR';
+  }
+}
+
+function updateParentQrSecurityCardUI() {
+  const badge = document.getElementById('badgeParentQrSecStatus');
+  if (!badge) return;
+  const isEnabled = isQrSecurityActiveForCurrentStudent();
+  if (isEnabled) {
+    badge.textContent = 'Activo 🔒';
+    badge.style.background = '#15803d';
+    badge.style.color = '#ffffff';
+  } else {
+    badge.textContent = 'Inactivo';
+    badge.style.background = '#64748b';
+    badge.style.color = '#ffffff';
   }
 }
 
@@ -3320,6 +3399,7 @@ function selectParentChild(childId) {
   if (found) {
     currentParentChild = found;
     renderParentDashboardView();
+    updateParentQrSecurityCardUI();
     if (window.sounds) window.sounds.playTap();
   }
 }
@@ -3405,6 +3485,8 @@ function openParentSubView(viewKey, shouldScroll = true) {
     loadParentSinpeRequests(currentParentChild.id);
   } else if (viewKey === 'historial' && currentParentChild) {
     loadActiveChildHistory(currentParentChild.id);
+  } else if (viewKey === 'credenciales') {
+    updateParentQrSecurityCardUI();
   }
 
   if (!isDesktop && targetEl && shouldScroll) {

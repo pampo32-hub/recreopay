@@ -1366,7 +1366,7 @@
             <div class="parent-nav-box-icon">🔒</div>
             <div class="parent-nav-box-text">
               <strong>Seguridad y PIN</strong>
-              <span>PIN escolar y contraseña</span>
+              <span>Huella / Face ID y contraseñas</span>
             </div>
             <span class="parent-nav-arrow">›</span>
           </div>
@@ -1464,6 +1464,14 @@
                   <div>
                     <strong style="display: block; font-size: 0.84rem; color: var(--text-main);">Ver Compras Recientes</strong>
                     <span style="font-size: 0.7rem; color: var(--text-muted);">Auditar consumos en caja</span>
+                  </div>
+                </button>
+
+                <button type="button" onclick="openParentSubView('credenciales')" class="btn-saas btn-saas-outline" style="padding: 12px 14px; border-radius: 12px; display: flex; align-items: center; gap: 10px; justify-content: flex-start; text-align: left; border-color: #86efac; background: #f0fdf4;">
+                  <span style="font-size: 1.3rem;">🛡️</span>
+                  <div>
+                    <strong style="display: block; font-size: 0.84rem; color: #166534;">Seguridad del Carné QR</strong>
+                    <span style="font-size: 0.7rem; color: #15803d;">Huella, Face ID y PIN</span>
                   </div>
                 </button>
               </div>
@@ -1932,6 +1940,25 @@
           <div class="parent-subview-child-tag">
             <span class="parentSubViewChildAvatarBadge">ES</span>
             <span class="parentSubViewChildName">Estudiante</span>
+          </div>
+        </div>
+
+        <!-- 1. BLOQUEO BIOMÉTRICO / FACE ID / PIN DEL CARNÉ QR -->
+        <div class="parent-card" style="border: 1.5px solid #86efac; background: #f0fdf4; margin-bottom: 16px;">
+          <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
+            <div style="display: flex; align-items: center; gap: 12px; min-width: 220px;">
+              <div style="width: 44px; height: 44px; border-radius: 12px; background: #dcfce7; color: #16a34a; display: flex; align-items: center; justify-content: center; font-size: 1.35rem; flex-shrink: 0; box-shadow: 0 2px 6px rgba(22, 163, 74, 0.15);">
+                🛡️
+              </div>
+              <div>
+                <strong style="font-size: 0.95rem; color: #166534; display: block;">Bloqueo Huella / Face ID / PIN del QR</strong>
+                <span style="font-size: 0.76rem; color: #475569; display: block; margin-top: 2px;">Exigir autenticación biométrica en el teléfono para mostrar el carné QR de pago</span>
+              </div>
+            </div>
+            <button type="button" onclick="openQrSecuritySettings()" class="btn-saas btn-saas-primary" style="background: #16a34a; border-color: #16a34a; padding: 9px 18px; font-weight: 800; font-size: 0.84rem; cursor: pointer; border-radius: 10px; box-shadow: 0 3px 8px rgba(22, 163, 74, 0.25); display: inline-flex; align-items: center; gap: 6px;">
+              <span>Configurar Seguridad</span>
+              <span id="badgeParentQrSecStatus" style="background: rgba(255,255,255,0.25); font-size: 0.72rem; padding: 2px 6px; border-radius: 6px;">⚙️</span>
+            </button>
           </div>
         </div>
 
@@ -2429,7 +2456,7 @@
           </div>
           <div>
             <h3 style="margin: 0; font-size: 1.05rem; font-weight: 800; color: var(--text-main, #0f172a);">Seguridad del Carné QR</h3>
-            <span style="font-size: 0.72rem; color: var(--text-muted, #64748b);">Protege tu código de pago en este teléfono</span>
+            <span id="lblQrSecuritySettingsSub" style="font-size: 0.72rem; color: var(--text-muted, #64748b);">Protege tu código de pago en este teléfono</span>
           </div>
         </div>
         <button type="button" onclick="closeQrSecuritySettings()" style="background: none; border: none; font-size: 1.2rem; cursor: pointer; color: #64748b;">✕</button>
