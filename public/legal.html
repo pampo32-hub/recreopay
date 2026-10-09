@@ -68,20 +68,24 @@
 
   <!-- NAVEGACIÓN SUPERIOR MINIMALISTA -->
   <header class="max-w-4xl mx-auto mb-6 flex items-center justify-between no-print">
-    <a href="/landing" class="flex items-center gap-3 group">
+    <a href="/app" id="linkLogoLegal" onclick="manejarRetornoApp(event)" class="flex items-center gap-3 group">
       <img src="/img/sibopay-emblem.png" alt="SiboPay" class="w-10 h-10 object-contain drop-shadow-sm group-hover:scale-105 transition-transform">
       <span class="text-2xl font-black tracking-tight text-slate-900">Sibo<span class="text-sky-600">Pay</span></span>
     </a>
 
-    <div class="flex items-center gap-3">
+    <div class="flex items-center gap-2 sm:gap-3">
       <button onclick="window.print()" class="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold text-slate-600 bg-white border border-slate-200 hover:bg-slate-50 transition">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
         <span>Imprimir</span>
       </button>
 
-      <a href="/landing" class="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-xs font-bold text-slate-700 bg-white border border-slate-200 hover:text-slate-900 transition">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
-        <span>Volver al inicio</span>
+      <a id="btnNavReturn" href="/app" onclick="manejarRetornoApp(event)" class="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-black text-slate-800 bg-white border border-slate-200 hover:bg-slate-50 transition shadow-sm">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m15 18-6-6 6-6"/></svg>
+        <span id="txtNavReturn">Volver a la App</span>
+      </a>
+
+      <a id="btnNavLanding" href="/" class="hidden inline-flex items-center gap-1 px-3 py-2 rounded-xl text-xs font-semibold text-slate-500 hover:text-slate-800 transition">
+        <span>Inicio</span>
       </a>
     </div>
   </header>
@@ -357,7 +361,13 @@
     </article>
 
     <!-- PIE DEL DOCUMENTO / HOJA FORMAL -->
-    <div class="mt-12 pt-6 border-t border-slate-200 text-center text-xs text-slate-500 space-y-2">
+    <div class="mt-12 pt-6 border-t border-slate-200 text-center text-xs text-slate-500 space-y-3">
+      <div class="flex justify-center pb-2">
+        <a href="/app" onclick="manejarRetornoApp(event)" class="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-black text-white bg-sky-600 hover:bg-sky-700 transition shadow-sm cursor-pointer">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m15 18-6-6 6-6"/></svg>
+          <span class="txtRetornoApp">Regresar a la Aplicación SiboPay</span>
+        </a>
+      </div>
       <div class="flex items-center justify-center gap-3 font-medium text-slate-600">
         <span>SiboPay Costa Rica</span>
         <span>•</span>
@@ -373,6 +383,42 @@
 
   <!-- LÓGICA DE INTERCAMBIO ENTRE PESTAÑAS Y URL HASH -->
   <script>
+    function detectarOrigen() {
+      const params = new URLSearchParams(window.location.search);
+      const isFromApp = params.get('from') === 'app' || document.referrer.includes('/app') || document.referrer.includes('sibopay.com/app');
+      const btnReturn = document.getElementById('btnNavReturn');
+      const txtReturn = document.getElementById('txtNavReturn');
+      const btnLanding = document.getElementById('btnNavLanding');
+      const txtsAll = document.querySelectorAll('.txtRetornoApp');
+
+      if (isFromApp) {
+        if (txtReturn) txtReturn.textContent = 'Volver a la App';
+        if (btnReturn) btnReturn.href = '/app';
+        if (btnLanding) btnLanding.classList.add('hidden');
+        txtsAll.forEach(el => el.textContent = 'Regresar a la Aplicación SiboPay');
+      } else {
+        if (txtReturn) txtReturn.textContent = 'Ingresar a la App';
+        if (btnReturn) btnReturn.href = '/app';
+        if (btnLanding) btnLanding.classList.remove('hidden');
+        txtsAll.forEach(el => el.textContent = 'Ir a la Aplicación SiboPay');
+      }
+    }
+
+    function manejarRetornoApp(e) {
+      if (e) e.preventDefault();
+      const params = new URLSearchParams(window.location.search);
+      const isFromApp = params.get('from') === 'app' || document.referrer.includes('/app') || document.referrer.includes('sibopay.com/app');
+
+      if (isFromApp && window.history.length > 1) {
+        window.history.back();
+        setTimeout(() => {
+          window.location.href = '/app';
+        }, 250);
+      } else {
+        window.location.href = '/app';
+      }
+    }
+
     function switchLegalDoc(docType) {
       const btnTerminos = document.getElementById('tabBtnTerminos');
       const btnPrivacidad = document.getElementById('tabBtnPrivacidad');
@@ -398,8 +444,9 @@
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }
 
-    // Inicializar según ruta o hash
+    // Inicializar según ruta o hash y detectar origen
     window.addEventListener('DOMContentLoaded', () => {
+      detectarOrigen();
       const path = window.location.pathname.toLowerCase();
       const hash = window.location.hash.toLowerCase();
 
