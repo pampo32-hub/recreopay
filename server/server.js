@@ -39,7 +39,9 @@ const {
   buscarSinpeUniversalDev,
   forzarAprobarSolicitudDev,
   rechazarSolicitudDev,
-  vincularBancoAEstudianteDev
+  vincularBancoAEstudianteDev,
+  obtenerConfiguraciones,
+  guardarConfiguracionesMultiples
 } = require('./db');
 const { checkSinpeEmailsOnce, simularSinpeEmail } = require('./sinpeImapService');
 const { normalizarCodigoDetalle, parseSinpeEmail } = require('./sinpeParser');
@@ -96,6 +98,24 @@ async function sendWebPushNotification({ escuelaId = null, payload, roles = ['ad
 const compression = require('compression');
 const app = express();
 const PORT = process.env.PORT || 3030;
+
+// ==========================================
+// CONFIGURACIÓN GLOBAL EN MEMORIA ("EN CALIENTE")
+// ==========================================
+let globalConfig = {};
+try {
+  const cfgData = obtenerConfiguraciones();
+  globalConfig = cfgData.configs || {};
+} catch (e) {
+  console.warn('Error precargando configuraciones en memoria:', e.message);
+}
+
+function getConfig(key, defaultValue) {
+  if (globalConfig && globalConfig[key] !== undefined && globalConfig[key] !== null) {
+    return globalConfig[key];
+  }
+  return defaultValue;
+}
 
 // ==========================================
 // MÓDULO: TERMINAL WEB Y LOGS EN VIVO (DEVELOPER)
@@ -2491,6 +2511,110 @@ app.post('/api/developer/logs/clear', (req, res) => {
 });
 
 // ==========================================
+// CONFIGURACIÓN DEL SISTEMA Y REGLAS EN CALIENTE (DEVELOPER)
+// ==========================================
+
+// Endpoint público para que la app conozca las directrices del negocio
+app.get('/api/configuraciones', (req, res) => {
+  res.json({
+    success: true,
+    configuraciones: {
+      sinpe_monto_minimo: parseInt(getConfig('sinpe_monto_minimo', 1000), 10),
+      sinpe_monto_maximo: parseInt(getConfig('sinpe_monto_maximo', 50000), 10),
+      sinpe_montos_sugeridos: getConfig('sinpe_montos_sugeridos', '2000,3000,5000,10000'),
+      estudiante_limite_diario_default: parseInt(getConfig('estudiante_limite_diario_default', 3000), 10),
+      estudiante_permitir_transferencias_default: parseInt(getConfig('estudiante_permitir_transferencias_default', 1), 10),
+      preordenes_hora_corte: getConfig('preordenes_hora_corte', '17:00'),
+      preordenes_anticipacion_minutos: parseInt(getConfig('preordenes_anticipacion_minutos', 30), 10),
+      preordenes_cancelacion_estudiantes: parseInt(getConfig('preordenes_cancelacion_estudiantes', 1), 10),
+      soporte_whatsapp: getConfig('soporte_whatsapp', '50688888888'),
+      modo_mantenimiento: parseInt(getConfig('modo_mantenimiento', 0), 10),
+      modo_mantenimiento_mensaje: getConfig('modo_mantenimiento_mensaje', 'Estamos realizando mejoras técnicas en el sistema. Los pedidos y recargas se reanudarán en breve.')
+    }
+  });
+});
+
+// Endpoint administrativo para ver el estado completo
+app.get('/api/developer/configuraciones', (req, res) => {
+  try {
+    const data = obtenerConfiguraciones();
+    res.json({
+      success: true,
+      configs: globalConfig,
+      lista: data.lista
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Guardar y aplicar reglas en caliente
+app.post('/api/developer/configuraciones', (req, res) => {
+  try {
+    const { updates } = req.body;
+    if (!updates || typeof updates !== 'object') {
+      return res.status(400).json({ error: 'Configuraciones inválidas' });
+    }
+
+    const resultado = guardarConfiguracionesMultiples(updates);
+    globalConfig = resultado.configs;
+
+    broadcastEvent('configuracion_actualizada', {
+      configuraciones: globalConfig,
+      actualizado_en: new Date().toISOString()
+    });
+
+    console.log(`[SISTEMA] ⚙️ Reglas de negocio actualizadas en caliente por developer (${Object.keys(updates).length} parámetros modificados)`);
+
+    res.json({
+      success: true,
+      mensaje: '¡Reglas de negocio actualizadas en caliente con éxito!',
+      ...resultado
+    });
+  } catch (err) {
+    console.error('Error guardando configuraciones:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Restablecer reglas a valores de fábrica
+app.post('/api/developer/configuraciones/reset', (req, res) => {
+  try {
+    const defaultsObj = {
+      sinpe_monto_minimo: '1000',
+      sinpe_monto_maximo: '50000',
+      sinpe_montos_sugeridos: '2000,3000,5000,10000',
+      estudiante_limite_diario_default: '3000',
+      estudiante_permitir_transferencias_default: '1',
+      preordenes_hora_corte: '17:00',
+      preordenes_anticipacion_minutos: '30',
+      preordenes_cancelacion_estudiantes: '1',
+      soporte_whatsapp: '50688888888',
+      modo_mantenimiento: '0',
+      modo_mantenimiento_mensaje: 'Estamos realizando mejoras técnicas en el sistema. Los pedidos y recargas se reanudarán en breve.'
+    };
+
+    const resultado = guardarConfiguracionesMultiples(defaultsObj);
+    globalConfig = resultado.configs;
+
+    broadcastEvent('configuracion_actualizada', {
+      configuraciones: globalConfig,
+      actualizado_en: new Date().toISOString()
+    });
+
+    console.log('[SISTEMA] 🔄 Reglas de negocio restablecidas a sus valores por defecto');
+
+    res.json({
+      success: true,
+      mensaje: 'Reglas de negocio restablecidas a valores de fábrica',
+      ...resultado
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ==========================================
 // CARGA MASIVA DE ESTUDIANTES (DEVELOPER)
 // ==========================================
 app.post('/api/developer/estudiantes/importar-masivo', (req, res) => {
@@ -3656,6 +3780,14 @@ app.post('/api/sinpe/solicitar', (req, res) => {
     if (isNaN(montoNum) || montoNum <= 0) {
       return res.status(400).json({ error: 'Ingresa un monto válido mayor a ₡0' });
     }
+    const minSinpe = parseInt(getConfig('sinpe_monto_minimo', 1000), 10);
+    const maxSinpe = parseInt(getConfig('sinpe_monto_maximo', 50000), 10);
+    if (montoNum < minSinpe) {
+      return res.status(400).json({ error: `El monto mínimo de recarga SINPE es de ₡${minSinpe.toLocaleString('es-CR')}` });
+    }
+    if (montoNum > maxSinpe) {
+      return res.status(400).json({ error: `El monto máximo de recarga SINPE por transacción es de ₡${maxSinpe.toLocaleString('es-CR')}` });
+    }
     const cleanComp = String(comprobante || '').trim();
     const cleanCod = codigo_detalle ? String(codigo_detalle).trim() : null;
     if (!cleanComp && !cleanCod) {
@@ -4474,9 +4606,16 @@ app.post('/api/ordenes/:id/cancelar', (req, res) => {
       return res.status(400).json({ error: `Esta orden ya se encuentra ${ord.estado}.` });
     }
 
-    // Si viene estudiante_id (portal de alumno), verificar pertenencia
+    // Si viene estudiante_id (portal de alumno), verificar pertenencia y permisos
     if (estudiante_id && parseInt(estudiante_id, 10) !== ord.estudiante_id) {
       return res.status(403).json({ error: 'No tienes permisos para cancelar una orden de otro estudiante.' });
+    }
+
+    if (usuario_rol === 'estudiante') {
+      const allowStudentCancel = parseInt(getConfig('preordenes_cancelacion_estudiantes', 1), 10);
+      if (allowStudentCancel === 0) {
+        return res.status(403).json({ error: 'La política del colegio solo permite a los padres de familia cancelar pre-órdenes.' });
+      }
     }
 
     let rolMotivo = 'Cancelada por el usuario';

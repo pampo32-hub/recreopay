@@ -65,10 +65,11 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
   checkHttpsEnvironment();
   cargarHorariosPublicos();
+  cargarConfiguracionesPublicas();
 
   // Registrar Service Worker para PWA
   if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('/sw.js?v=18.1').then(reg => {
+    navigator.serviceWorker.register('/sw.js?v=19.9').then(reg => {
       reg.update().catch(() => {});
       if ('Notification' in window && Notification.permission === 'granted') {
         subscribeDeviceToWebPush().catch(() => {});
@@ -636,6 +637,12 @@ function switchDevTab(tab) {
     if (btn) btn.classList.add('active');
     if (content) content.style.display = 'block';
     initDevLogsTerminal();
+  } else if (tab === 'reglas') {
+    const btn = document.getElementById('btnDevTabReglas');
+    const content = document.getElementById('devTabContentReglas');
+    if (btn) btn.classList.add('active');
+    if (content) content.style.display = 'block';
+    cargarReglasNegocioDev();
   }
 }
 
@@ -3229,6 +3236,19 @@ function initStudentSSE() {
         }
       }
     } catch (err) {}
+  });
+
+  // Configuración del sistema y reglas de negocio actualizadas en caliente
+  sse.addEventListener('configuracion_actualizada', (e) => {
+    try {
+      const data = JSON.parse(e.data);
+      if (data && data.configuraciones) {
+        window.appConfig = data.configuraciones;
+        aplicarConfiguracionPublica(window.appConfig);
+      }
+    } catch (err) {
+      console.warn('Error en SSE configuracion_actualizada:', err);
+    }
   });
 
   // Saldo actualizado (débito, recarga, ajuste de límite)
@@ -12020,5 +12040,269 @@ function abrirCarnetEstudianteDesdeDev() {
   }
 }
 window.abrirCarnetEstudianteDesdeDev = abrirCarnetEstudianteDesdeDev;
+
+// ============================================================================
+// CONFIGURACIONES PÚBLICAS Y REGLAS DE NEGOCIO "EN CALIENTE"
+// ============================================================================
+
+window.appConfig = {
+  sinpe_monto_minimo: 1000,
+  sinpe_monto_maximo: 50000,
+  sinpe_montos_sugeridos: '2000,3000,5000,10000',
+  estudiante_limite_diario_default: 3000,
+  estudiante_permitir_transferencias_default: 1,
+  preordenes_hora_corte: '17:00',
+  preordenes_anticipacion_minutos: 30,
+  preordenes_cancelacion_estudiantes: 1,
+  soporte_whatsapp: '50688888888',
+  modo_mantenimiento: 0,
+  modo_mantenimiento_mensaje: 'Estamos realizando mejoras técnicas en el sistema. Los pedidos y recargas se reanudarán en breve.'
+};
+
+async function cargarConfiguracionesPublicas() {
+  try {
+    const res = await fetch('/api/configuraciones');
+    if (!res.ok) return;
+    const data = await res.json();
+    if (data && data.configuraciones) {
+      window.appConfig = data.configuraciones;
+      aplicarConfiguracionPublica(window.appConfig);
+    }
+  } catch (e) {
+    console.warn('Error cargando configuraciones públicas:', e);
+  }
+}
+
+function aplicarConfiguracionPublica(cfg) {
+  if (!cfg) return;
+
+  // 1. Modo Mantenimiento
+  const enMantenimiento = Number(cfg.modo_mantenimiento) === 1;
+  const msgMantenimiento = cfg.modo_mantenimiento_mensaje || 'Estamos realizando mejoras técnicas en el sistema. Los pedidos se reanudarán en breve.';
+  
+  const parentBanner = document.getElementById('parentMaintenanceBanner');
+  const parentText = document.getElementById('parentMaintenanceBannerText');
+  if (parentBanner) {
+    parentBanner.style.display = enMantenimiento ? 'flex' : 'none';
+    if (parentText) parentText.textContent = msgMantenimiento;
+  }
+
+  const studentBanner = document.getElementById('studentMaintenanceBanner');
+  const studentText = document.getElementById('studentMaintenanceBannerText');
+  if (studentBanner) {
+    studentBanner.style.display = enMantenimiento ? 'flex' : 'none';
+    if (studentText) studentText.textContent = msgMantenimiento;
+  }
+
+  // 2. Presets de SINPE sugeridos para el padre
+  const presetsContainer = document.getElementById('parentSinpePresetsContainer');
+  if (presetsContainer && cfg.sinpe_montos_sugeridos) {
+    const montos = String(cfg.sinpe_montos_sugeridos)
+      .split(',')
+      .map(m => parseInt(m.trim(), 10))
+      .filter(m => !isNaN(m) && m > 0);
+    
+    if (montos.length > 0) {
+      presetsContainer.innerHTML = montos.map(m => `
+        <button type="button" onclick="setParentSinpeMonto(${m})" style="background: white; border: 1px solid #86efac; color: #166534; font-size: 0.74rem; font-weight: 700; padding: 4px 9px; border-radius: 8px; cursor: pointer;">₡${m.toLocaleString('es-CR')}</button>
+      `).join('');
+    }
+  }
+
+  // 3. Monto placeholder y min en SINPE del padre
+  const inputSinpe = document.getElementById('inputParentSinpeMonto');
+  if (inputSinpe && cfg.sinpe_monto_minimo) {
+    inputSinpe.min = cfg.sinpe_monto_minimo;
+  }
+
+  // 4. Enlaces dinámicos de WhatsApp
+  if (cfg.soporte_whatsapp) {
+    const cleanTel = String(cfg.soporte_whatsapp).replace(/[^0-9]/g, '');
+    const waUrl = `https://wa.me/${cleanTel}`;
+    document.querySelectorAll('.link-soporte-whatsapp').forEach(a => {
+      a.href = waUrl;
+    });
+  }
+}
+
+// ==========================================
+// CONFIGURADOR DE REGLAS DE NEGOCIO "EN CALIENTE" (DEVELOPER)
+// ==========================================
+
+async function cargarReglasNegocioDev() {
+  try {
+    const res = await fetch('/api/developer/configuraciones');
+    if (!res.ok) throw new Error('Error al consultar configuraciones');
+    const data = await res.json();
+    const cfg = data.configs || {};
+
+    const elMinSinpe = document.getElementById('cfg_sinpe_monto_minimo');
+    if (elMinSinpe) elMinSinpe.value = cfg.sinpe_monto_minimo || 1000;
+
+    const elMaxSinpe = document.getElementById('cfg_sinpe_monto_maximo');
+    if (elMaxSinpe) elMaxSinpe.value = cfg.sinpe_monto_maximo || 50000;
+
+    const elSugeridos = document.getElementById('cfg_sinpe_montos_sugeridos');
+    if (elSugeridos) elSugeridos.value = cfg.sinpe_montos_sugeridos || '2000, 3000, 5000, 10000';
+
+    const elLimiteEst = document.getElementById('cfg_estudiante_limite_diario_default');
+    if (elLimiteEst) elLimiteEst.value = cfg.estudiante_limite_diario_default || 3000;
+
+    const elTransfEst = document.getElementById('cfg_estudiante_permitir_transferencias_default');
+    if (elTransfEst) elTransfEst.checked = String(cfg.estudiante_permitir_transferencias_default) === '1';
+
+    const elCorte = document.getElementById('cfg_preordenes_hora_corte');
+    if (elCorte) elCorte.value = cfg.preordenes_hora_corte || '17:00';
+
+    const elAnticipacion = document.getElementById('cfg_preordenes_anticipacion_minutos');
+    if (elAnticipacion) elAnticipacion.value = cfg.preordenes_anticipacion_minutos || 30;
+
+    const elCancelEst = document.getElementById('cfg_preordenes_cancelacion_estudiantes');
+    if (elCancelEst) elCancelEst.checked = String(cfg.preordenes_cancelacion_estudiantes) !== '0';
+
+    const elWhatsapp = document.getElementById('cfg_soporte_whatsapp');
+    if (elWhatsapp) {
+      elWhatsapp.value = cfg.soporte_whatsapp || '50688888888';
+      actualizarPreviewWhatsapp(elWhatsapp.value);
+    }
+
+    const elMantenimiento = document.getElementById('cfg_modo_mantenimiento');
+    const isMantenimiento = String(cfg.modo_mantenimiento) === '1';
+    if (elMantenimiento) {
+      elMantenimiento.checked = isMantenimiento;
+      toggleMantenimientoUiState(isMantenimiento);
+    }
+
+    const elMsgMantenimiento = document.getElementById('cfg_modo_mantenimiento_mensaje');
+    if (elMsgMantenimiento) {
+      elMsgMantenimiento.value = cfg.modo_mantenimiento_mensaje || 'Estamos realizando mejoras técnicas en el sistema. Los pedidos y recargas se reanudarán en breve.';
+    }
+  } catch (err) {
+    console.error('Error cargando reglas de negocio dev:', err);
+    mostrarAlertaReglasDev(`Error cargando configuraciones: ${err.message}`, false);
+  }
+}
+
+function actualizarPreviewWhatsapp(val) {
+  const preview = document.getElementById('cfgWhatsappPreview');
+  if (!preview) return;
+  const clean = String(val || '').replace(/[^0-9]/g, '');
+  preview.textContent = clean ? `https://wa.me/${clean}` : 'https://wa.me/...';
+}
+
+function toggleMantenimientoUiState(activo) {
+  const tag = document.getElementById('cfgMantenimientoStatusTag');
+  if (!tag) return;
+  if (activo) {
+    tag.style.background = '#fee2e2';
+    tag.style.color = '#b91c1c';
+    tag.textContent = '⚠️ ACTIVO - Pausa Operativa';
+  } else {
+    tag.style.background = '#f1f5f9';
+    tag.style.color = '#64748b';
+    tag.textContent = 'Desactivado';
+  }
+}
+
+async function guardarReglasNegocioDev() {
+  try {
+    const minSinpe = parseInt(document.getElementById('cfg_sinpe_monto_minimo')?.value || 1000, 10);
+    const maxSinpe = parseInt(document.getElementById('cfg_sinpe_monto_maximo')?.value || 50000, 10);
+    const sugeridos = (document.getElementById('cfg_sinpe_montos_sugeridos')?.value || '2000, 3000, 5000, 10000').trim();
+    const limiteEst = parseInt(document.getElementById('cfg_estudiante_limite_diario_default')?.value || 3000, 10);
+    const transfEst = document.getElementById('cfg_estudiante_permitir_transferencias_default')?.checked ? '1' : '0';
+    const horaCorte = (document.getElementById('cfg_preordenes_hora_corte')?.value || '17:00').trim();
+    const anticipacion = parseInt(document.getElementById('cfg_preordenes_anticipacion_minutos')?.value || 30, 10);
+    const cancelEst = document.getElementById('cfg_preordenes_cancelacion_estudiantes')?.checked ? '1' : '0';
+    const whatsapp = (document.getElementById('cfg_soporte_whatsapp')?.value || '50688888888').trim();
+    const mantenimiento = document.getElementById('cfg_modo_mantenimiento')?.checked ? '1' : '0';
+    const msgMantenimiento = (document.getElementById('cfg_modo_mantenimiento_mensaje')?.value || '').trim();
+
+    if (minSinpe <= 0) return alert('El monto mínimo de SINPE debe ser mayor a 0');
+    if (maxSinpe < minSinpe) return alert('El monto máximo de SINPE debe ser mayor o igual al monto mínimo');
+
+    const updates = {
+      sinpe_monto_minimo: String(minSinpe),
+      sinpe_monto_maximo: String(maxSinpe),
+      sinpe_montos_sugeridos: sugeridos,
+      estudiante_limite_diario_default: String(limiteEst),
+      estudiante_permitir_transferencias_default: transfEst,
+      preordenes_hora_corte: horaCorte,
+      preordenes_anticipacion_minutos: String(anticipacion),
+      preordenes_cancelacion_estudiantes: cancelEst,
+      soporte_whatsapp: whatsapp,
+      modo_mantenimiento: mantenimiento,
+      modo_mantenimiento_mensaje: msgMantenimiento
+    };
+
+    const res = await fetch('/api/developer/configuraciones', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ updates })
+    });
+
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Error al guardar reglas de negocio');
+
+    if (window.sounds) window.sounds.playSuccess();
+    mostrarAlertaReglasDev('✅ ¡Reglas de negocio actualizadas y aplicadas en caliente con éxito!', true);
+
+    // Actualizar configuración en la ventana actual
+    if (data.configs) {
+      window.appConfig = data.configs;
+      aplicarConfiguracionPublica(window.appConfig);
+    }
+  } catch (err) {
+    console.error('Error guardando reglas de negocio dev:', err);
+    if (window.sounds) window.sounds.playError();
+    mostrarAlertaReglasDev(`❌ Error al aplicar cambios: ${err.message}`, false);
+  }
+}
+
+async function resetearReglasNegocioDev() {
+  if (!confirm('¿Deseas restablecer todas las reglas de negocio a sus valores de fábrica recomendados?')) {
+    return;
+  }
+
+  try {
+    const res = await fetch('/api/developer/configuraciones/reset', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' }
+    });
+
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Error al restablecer');
+
+    if (window.sounds) window.sounds.playSuccess();
+    mostrarAlertaReglasDev('🔄 Valores de fábrica restablecidos correctamente.', true);
+    await cargarReglasNegocioDev();
+  } catch (err) {
+    if (window.sounds) window.sounds.playError();
+    mostrarAlertaReglasDev(`❌ Error: ${err.message}`, false);
+  }
+}
+
+function mostrarAlertaReglasDev(mensaje, esExito) {
+  const alertEl = document.getElementById('devReglasSyncAlert');
+  if (!alertEl) return;
+  alertEl.style.display = 'flex';
+  alertEl.style.background = esExito ? '#ecfdf5' : '#fef2f2';
+  alertEl.style.color = esExito ? '#065f46' : '#991b1b';
+  alertEl.style.border = `1.5px solid ${esExito ? '#a7f3d0' : '#fecaca'}`;
+  alertEl.innerHTML = `<span>${mensaje}</span>`;
+
+  setTimeout(() => {
+    alertEl.style.display = 'none';
+  }, 4500);
+}
+
+window.cargarConfiguracionesPublicas = cargarConfiguracionesPublicas;
+window.aplicarConfiguracionPublica = aplicarConfiguracionPublica;
+window.cargarReglasNegocioDev = cargarReglasNegocioDev;
+window.guardarReglasNegocioDev = guardarReglasNegocioDev;
+window.resetearReglasNegocioDev = resetearReglasNegocioDev;
+window.actualizarPreviewWhatsapp = actualizarPreviewWhatsapp;
+window.toggleMantenimientoUiState = toggleMantenimientoUiState;
+
 
 

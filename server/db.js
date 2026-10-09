@@ -216,8 +216,23 @@ function initDatabase() {
       `);
     } catch (e) {}
 
+    try {
+      db.exec(`
+        CREATE TABLE IF NOT EXISTS configuracion_sistema (
+          clave VARCHAR(80) PRIMARY KEY,
+          valor TEXT NOT NULL,
+          categoria VARCHAR(50) DEFAULT 'general',
+          descripcion TEXT,
+          actualizado_en TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        );
+      `);
+    } catch (e) {
+      console.error('Error creando configuracion_sistema en PostgreSQL:', e);
+    }
+
     seedUsuarios();
     seedDisenosTarjetas();
+    seedConfiguraciones();
     migrarTrazabilidadSinpeRechazadas();
     return;
   }
@@ -461,10 +476,23 @@ function initDatabase() {
     `);
   } catch (e) {}
 
+  try {
+    db.exec(`
+      CREATE TABLE IF NOT EXISTS configuracion_sistema (
+        clave TEXT PRIMARY KEY,
+        valor TEXT NOT NULL,
+        categoria TEXT DEFAULT 'general',
+        descripcion TEXT,
+        actualizado_en DATETIME DEFAULT CURRENT_TIMESTAMP
+      );
+    `);
+  } catch (e) {}
+
   migrarTrazabilidadSinpeRechazadas();
   seedInitialData();
   seedUsuarios();
   seedDisenosTarjetas();
+  seedConfiguraciones();
 }
 
 function migrarTrazabilidadSinpeRechazadas() {
@@ -592,6 +620,69 @@ function seedDisenosTarjetas() {
   } catch (err) {
     console.error('Error inicializando diseños de tarjetas:', err.message);
   }
+}
+
+// ============================================================================
+// CONFIGURACIÓN DEL SISTEMA Y REGLAS DE NEGOCIO "EN CALIENTE"
+// ============================================================================
+
+const DEFAULTS_CONFIG = [
+  { clave: 'sinpe_monto_minimo', valor: '1000', categoria: 'finanzas', descripcion: 'Monto mínimo permitido para recargas por SINPE Móvil (CRC)' },
+  { clave: 'sinpe_monto_maximo', valor: '50000', categoria: 'finanzas', descripcion: 'Monto máximo de seguridad por transacción SINPE Móvil (CRC)' },
+  { clave: 'sinpe_montos_sugeridos', valor: '2000,3000,5000,10000', categoria: 'finanzas', descripcion: 'Botones de montos sugeridos para recarga rápida en la app' },
+  { clave: 'estudiante_limite_diario_default', valor: '3000', categoria: 'estudiantes', descripcion: 'Límite de gasto diario por defecto asignado a nuevos estudiantes (CRC)' },
+  { clave: 'estudiante_permitir_transferencias_default', valor: '1', categoria: 'estudiantes', descripcion: 'Permitir transferencias P2P a nuevos estudiantes por defecto (1=Sí, 0=No)' },
+  { clave: 'preordenes_hora_corte', valor: '17:00', categoria: 'preordenes', descripcion: 'Hora de corte general sugerida para emisión de pre-órdenes (HH:mm)' },
+  { clave: 'preordenes_anticipacion_minutos', valor: '30', categoria: 'preordenes', descripcion: 'Anticipación mínima en minutos antes del recreo/almuerzo para pre-órdenes' },
+  { clave: 'preordenes_cancelacion_estudiantes', valor: '1', categoria: 'preordenes', descripcion: 'Permitir que los estudiantes cancelen sus propias pre-órdenes (1=Sí, 0=Solo Padres)' },
+  { clave: 'soporte_whatsapp', valor: '50688888888', categoria: 'soporte', descripcion: 'Número telefónico oficial de WhatsApp para atención y soporte técnico' },
+  { clave: 'modo_mantenimiento', valor: '0', categoria: 'sistema', descripcion: 'Modo Mantenimiento global (1=Activado / Bloquea compras, 0=Desactivado)' },
+  { clave: 'modo_mantenimiento_mensaje', valor: 'Estamos realizando mejoras técnicas en el sistema. Los pedidos y recargas se reanudarán en breve.', categoria: 'sistema', descripcion: 'Mensaje visible en la app para los clientes durante el mantenimiento' }
+];
+
+function seedConfiguraciones() {
+  try {
+    for (const c of DEFAULTS_CONFIG) {
+      const exists = db.prepare('SELECT clave FROM configuracion_sistema WHERE clave = ?').get(c.clave);
+      if (!exists) {
+        db.prepare('INSERT INTO configuracion_sistema (clave, valor, categoria, descripcion) VALUES (?, ?, ?, ?)').run(c.clave, c.valor, c.categoria, c.descripcion);
+      }
+    }
+  } catch (err) {
+    console.error('Error sembrando configuraciones por defecto:', err.message);
+  }
+}
+
+function obtenerConfiguraciones() {
+  try {
+    const rows = db.prepare('SELECT clave, valor, categoria, descripcion, actualizado_en FROM configuracion_sistema ORDER BY categoria, clave').all();
+    const configObj = {};
+    rows.forEach(r => {
+      configObj[r.clave] = r.valor;
+    });
+    return { configs: configObj, lista: rows };
+  } catch (err) {
+    console.error('Error obteniendo configuraciones:', err.message);
+    return { configs: {}, lista: [] };
+  }
+}
+
+function guardarConfiguracion(clave, valor) {
+  const cleanVal = String(valor !== undefined && valor !== null ? valor : '');
+  const exists = db.prepare('SELECT clave FROM configuracion_sistema WHERE clave = ?').get(clave);
+  if (exists) {
+    db.prepare("UPDATE configuracion_sistema SET valor = ?, actualizado_en = CURRENT_TIMESTAMP WHERE clave = ?").run(cleanVal, clave);
+  } else {
+    db.prepare('INSERT INTO configuracion_sistema (clave, valor) VALUES (?, ?)').run(clave, cleanVal);
+  }
+}
+
+function guardarConfiguracionesMultiples(updates) {
+  if (!updates || typeof updates !== 'object') return obtenerConfiguraciones();
+  for (const [k, v] of Object.entries(updates)) {
+    guardarConfiguracion(k, v);
+  }
+  return obtenerConfiguraciones();
 }
 
 function seedInitialData() {
@@ -2556,5 +2647,8 @@ module.exports = {
   buscarSinpeUniversalDev,
   forzarAprobarSolicitudDev,
   rechazarSolicitudDev,
-  vincularBancoAEstudianteDev
+  vincularBancoAEstudianteDev,
+  obtenerConfiguraciones,
+  guardarConfiguracion,
+  guardarConfiguracionesMultiples
 };

@@ -11,9 +11,9 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="SiboPay">
-  <link rel="preload" href="/css/styles.css?v=19.8" as="style">
-  <link rel="preload" href="/js/app.js?v=19.8" as="script">
-  <link rel="stylesheet" href="/css/styles.css?v=19.8">
+  <link rel="preload" href="/css/styles.css?v=19.9" as="style">
+  <link rel="preload" href="/js/app.js?v=19.9" as="script">
+  <link rel="stylesheet" href="/css/styles.css?v=19.9">
   <link rel="stylesheet" href="/css/desktop.css?v=2.2">
   <style>
     /* Transiciones suaves */
@@ -266,6 +266,10 @@
             <button class="dev-tab-btn" id="btnDevTabLogs" onclick="switchDevTab('logs')">
               <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/></svg>
               <span>Terminal & Logs en Vivo</span>
+            </button>
+            <button class="dev-tab-btn" id="btnDevTabReglas" onclick="switchDevTab('reglas')">
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="21" x2="4" y2="14"/><line x1="4" y1="10" x2="4" y2="3"/><line x1="12" y1="21" x2="12" y2="12"/><line x1="12" y1="8" x2="12" y2="3"/><line x1="20" y1="21" x2="20" y2="16"/><line x1="20" y1="12" x2="20" y2="3"/><line x1="1" y1="14" x2="7" y2="14"/><line x1="9" y1="8" x2="15" y2="8"/><line x1="17" y1="16" x2="23" y2="16"/></svg>
+              <span>Reglas "En Caliente"</span>
             </button>
           </nav>
         </div>
@@ -1026,6 +1030,206 @@
           </div>
         </div>
       </div>
+    <!-- 9. PESTAÑA: CONFIGURADOR DE REGLAS DE NEGOCIO "EN CALIENTE" -->
+    <div id="devTabContentReglas" class="dev-tab-content" style="display: none;">
+      <!-- CABECERA DE LA SECCIÓN -->
+      <div style="background: var(--card-bg); border: 1.5px solid var(--border); border-radius: 18px; padding: 22px; margin-bottom: 22px; box-shadow: 0 4px 16px rgba(0,0,0,0.04); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px;">
+        <div style="display: flex; align-items: center; gap: 14px;">
+          <div style="width: 48px; height: 48px; border-radius: 14px; background: linear-gradient(135deg, #0284c7, #0369a1); color: #ffffff; display: flex; align-items: center; justify-content: center; font-size: 1.4rem; box-shadow: 0 4px 12px rgba(2, 132, 199, 0.3); flex-shrink: 0;">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="21" x2="4" y2="14"/><line x1="4" y1="10" x2="4" y2="3"/><line x1="12" y1="21" x2="12" y2="12"/><line x1="12" y1="8" x2="12" y2="3"/><line x1="20" y1="21" x2="20" y2="16"/><line x1="20" y1="12" x2="20" y2="3"/><line x1="1" y1="14" x2="7" y2="14"/><line x1="9" y1="8" x2="15" y2="8"/><line x1="17" y1="16" x2="23" y2="16"/></svg>
+          </div>
+          <div>
+            <h3 style="margin: 0; font-size: 1.25rem; font-weight: 900; color: var(--text-main); display: flex; align-items: center; gap: 8px;">
+              <span>Configurador de Reglas de Negocio "En Caliente"</span>
+              <span style="background: #e0f2fe; color: #0284c7; font-size: 0.72rem; padding: 2px 8px; border-radius: 999px; font-weight: 800;">Tiempo Real</span>
+            </h3>
+            <p style="margin: 4px 0 0 0; font-size: 0.83rem; color: var(--text-muted); line-height: 1.4;">
+              Modifica parámetros financieros, topes operativos y políticas del sistema sin reiniciar el servidor ni tocar código.
+            </p>
+          </div>
+        </div>
+
+        <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+          <button type="button" onclick="resetearReglasNegocioDev()" class="dev-action-btn" style="padding: 10px 16px; font-size: 0.84rem; display: inline-flex; align-items: center; gap: 6px;" title="Restablecer todos los parámetros a sus valores recomendados de fábrica">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
+            <span>Valores de Fábrica</span>
+          </button>
+          <button type="button" onclick="guardarReglasNegocioDev()" class="dev-action-btn dev-action-btn-primary" style="padding: 10px 22px; font-size: 0.88rem; display: inline-flex; align-items: center; gap: 8px; box-shadow: 0 4px 12px rgba(2, 132, 199, 0.25);">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+            <span>Guardar y Aplicar en Vivo</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- BANNER DE ESTADO DE SINCRONIZACIÓN -->
+      <div id="devReglasSyncAlert" style="display: none; padding: 12px 16px; border-radius: 12px; margin-bottom: 20px; font-size: 0.84rem; font-weight: 700; align-items: center; gap: 10px;"></div>
+
+      <!-- REJILLA DE TARJETAS DE CONFIGURACIÓN -->
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap: 20px;">
+        
+        <!-- CARD 1: FINANZAS Y RECARGAS SINPE -->
+        <div class="dev-card" style="background: var(--card-bg); border: 1.5px solid var(--border); border-radius: 16px; padding: 20px; display: flex; flex-direction: column; gap: 16px;">
+          <div style="display: flex; align-items: center; gap: 10px; border-bottom: 1.5px solid var(--border); padding-bottom: 12px;">
+            <div style="width: 36px; height: 36px; border-radius: 10px; background: rgba(16, 185, 129, 0.15); color: #10b981; display: flex; align-items: center; justify-content: center; font-size: 1.1rem;">
+              💸
+            </div>
+            <div>
+              <h4 style="margin: 0; font-size: 0.98rem; font-weight: 800; color: var(--text-main);">Finanzas & Recargas SINPE</h4>
+              <span style="font-size: 0.74rem; color: var(--text-muted);">Límites y montos sugeridos para los padres</span>
+            </div>
+          </div>
+
+          <div>
+            <label style="font-size: 0.76rem; font-weight: 800; color: var(--text-muted); text-transform: uppercase; display: block; margin-bottom: 6px;">Monto Mínimo por Recarga (CRC):</label>
+            <div style="position: relative;">
+              <span style="position: absolute; left: 12px; top: 50%; transform: translateY(-50%); font-weight: 800; color: var(--text-muted);">₡</span>
+              <input type="number" id="cfg_sinpe_monto_minimo" min="100" step="500" style="width: 100%; padding: 10px 12px 10px 30px; border-radius: 10px; border: 1.5px solid var(--border); background: var(--bg-main); color: var(--text-main); font-size: 0.95rem; font-weight: 700; box-sizing: border-box;">
+            </div>
+            <span style="font-size: 0.72rem; color: var(--text-muted); display: block; margin-top: 4px;">Rechaza reportes de recarga por montos inferiores a este valor.</span>
+          </div>
+
+          <div>
+            <label style="font-size: 0.76rem; font-weight: 800; color: var(--text-muted); text-transform: uppercase; display: block; margin-bottom: 6px;">Monto Máximo de Seguridad (CRC):</label>
+            <div style="position: relative;">
+              <span style="position: absolute; left: 12px; top: 50%; transform: translateY(-50%); font-weight: 800; color: var(--text-muted);">₡</span>
+              <input type="number" id="cfg_sinpe_monto_maximo" min="1000" step="5000" style="width: 100%; padding: 10px 12px 10px 30px; border-radius: 10px; border: 1.5px solid var(--border); background: var(--bg-main); color: var(--text-main); font-size: 0.95rem; font-weight: 700; box-sizing: border-box;">
+            </div>
+            <span style="font-size: 0.72rem; color: var(--text-muted); display: block; margin-top: 4px;">Tope máximo admitido por cada transacción individual.</span>
+          </div>
+
+          <div>
+            <label style="font-size: 0.76rem; font-weight: 800; color: var(--text-muted); text-transform: uppercase; display: block; margin-bottom: 6px;">Botones de Montos Sugeridos Rápidos:</label>
+            <input type="text" id="cfg_sinpe_montos_sugeridos" placeholder="2000, 3000, 5000, 10000" style="width: 100%; padding: 10px 12px; border-radius: 10px; border: 1.5px solid var(--border); background: var(--bg-main); color: var(--text-main); font-size: 0.88rem; font-weight: 700; box-sizing: border-box;">
+            <span style="font-size: 0.72rem; color: var(--text-muted); display: block; margin-top: 4px;">Separados por coma. Se renderizan como píldoras de 1 toque en la app.</span>
+          </div>
+        </div>
+
+        <!-- CARD 2: ALUMNOS Y NUEVOS REGISTROS -->
+        <div class="dev-card" style="background: var(--card-bg); border: 1.5px solid var(--border); border-radius: 16px; padding: 20px; display: flex; flex-direction: column; gap: 16px;">
+          <div style="display: flex; align-items: center; gap: 10px; border-bottom: 1.5px solid var(--border); padding-bottom: 12px;">
+            <div style="width: 36px; height: 36px; border-radius: 10px; background: rgba(2, 132, 199, 0.15); color: #0284c7; display: flex; align-items: center; justify-content: center; font-size: 1.1rem;">
+              🎓
+            </div>
+            <div>
+              <h4 style="margin: 0; font-size: 0.98rem; font-weight: 800; color: var(--text-main);">Alumnos & Nuevas Matrículas</h4>
+              <span style="font-size: 0.74rem; color: var(--text-muted);">Valores iniciales aplicados a nuevos estudiantes</span>
+            </div>
+          </div>
+
+          <div>
+            <label style="font-size: 0.76rem; font-weight: 800; color: var(--text-muted); text-transform: uppercase; display: block; margin-bottom: 6px;">Límite Diario por Defecto (CRC):</label>
+            <div style="position: relative;">
+              <span style="position: absolute; left: 12px; top: 50%; transform: translateY(-50%); font-weight: 800; color: var(--text-muted);">₡</span>
+              <input type="number" id="cfg_estudiante_limite_diario_default" min="500" step="500" style="width: 100%; padding: 10px 12px 10px 30px; border-radius: 10px; border: 1.5px solid var(--border); background: var(--bg-main); color: var(--text-main); font-size: 0.95rem; font-weight: 700; box-sizing: border-box;">
+            </div>
+            <span style="font-size: 0.72rem; color: var(--text-muted); display: block; margin-top: 4px;">Tope diario de gasto sugerido al registrar o importar alumnos masivamente.</span>
+          </div>
+
+          <div style="padding: 12px 14px; background: var(--bg-main); border: 1.5px solid var(--border); border-radius: 12px;">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+              <div>
+                <span style="font-size: 0.85rem; font-weight: 800; color: var(--text-main); display: block;">Transferencias P2P entre alumnos</span>
+                <span style="font-size: 0.73rem; color: var(--text-muted);">Habilitar opción por defecto para nuevas cuentas</span>
+              </div>
+              <label class="switch-saas">
+                <input type="checkbox" id="cfg_estudiante_permitir_transferencias_default">
+                <span class="switch-saas-slider round"></span>
+              </label>
+            </div>
+          </div>
+        </div>
+
+        <!-- CARD 3: PRE-ÓRDENES Y HORARIOS DE SODA -->
+        <div class="dev-card" style="background: var(--card-bg); border: 1.5px solid var(--border); border-radius: 16px; padding: 20px; display: flex; flex-direction: column; gap: 16px;">
+          <div style="display: flex; align-items: center; gap: 10px; border-bottom: 1.5px solid var(--border); padding-bottom: 12px;">
+            <div style="width: 36px; height: 36px; border-radius: 10px; background: rgba(249, 115, 22, 0.15); color: #f97316; display: flex; align-items: center; justify-content: center; font-size: 1.1rem;">
+              🥪
+            </div>
+            <div>
+              <h4 style="margin: 0; font-size: 0.98rem; font-weight: 800; color: var(--text-main);">Pre-órdenes & Horarios</h4>
+              <span style="font-size: 0.74rem; color: var(--text-muted);">Horas de corte y políticas de cancelación</span>
+            </div>
+          </div>
+
+          <div>
+            <label style="font-size: 0.76rem; font-weight: 800; color: var(--text-muted); text-transform: uppercase; display: block; margin-bottom: 6px;">Hora de Corte General (HH:mm):</label>
+            <input type="time" id="cfg_preordenes_hora_corte" style="width: 100%; padding: 9px 12px; border-radius: 10px; border: 1.5px solid var(--border); background: var(--bg-main); color: var(--text-main); font-size: 0.92rem; font-weight: 700; box-sizing: border-box;">
+            <span style="font-size: 0.72rem; color: var(--text-muted); display: block; margin-top: 4px;">Hora de cierre habitual para realizar pedidos del día siguiente.</span>
+          </div>
+
+          <div>
+            <label style="font-size: 0.76rem; font-weight: 800; color: var(--text-muted); text-transform: uppercase; display: block; margin-bottom: 6px;">Anticipación Mínima (Minutos):</label>
+            <input type="number" id="cfg_preordenes_anticipacion_minutos" min="5" max="240" step="5" style="width: 100%; padding: 9px 12px; border-radius: 10px; border: 1.5px solid var(--border); background: var(--bg-main); color: var(--text-main); font-size: 0.92rem; font-weight: 700; box-sizing: border-box;">
+            <span style="font-size: 0.72rem; color: var(--text-muted); display: block; margin-top: 4px;">Minutos antes de cada recreo requeridos para preparar el pedido en cocina.</span>
+          </div>
+
+          <div style="padding: 12px 14px; background: var(--bg-main); border: 1.5px solid var(--border); border-radius: 12px;">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+              <div>
+                <span style="font-size: 0.85rem; font-weight: 800; color: var(--text-main); display: block;">Cancelación por Alumnos</span>
+                <span style="font-size: 0.73rem; color: var(--text-muted);">Si se apaga, solo los padres pueden cancelar órdenes</span>
+              </div>
+              <label class="switch-saas">
+                <input type="checkbox" id="cfg_preordenes_cancelacion_estudiantes">
+                <span class="switch-saas-slider round"></span>
+              </label>
+            </div>
+          </div>
+        </div>
+
+        <!-- CARD 4: CANALES DE ATENCIÓN Y SOPORTE -->
+        <div class="dev-card" style="background: var(--card-bg); border: 1.5px solid var(--border); border-radius: 16px; padding: 20px; display: flex; flex-direction: column; gap: 16px;">
+          <div style="display: flex; align-items: center; gap: 10px; border-bottom: 1.5px solid var(--border); padding-bottom: 12px;">
+            <div style="width: 36px; height: 36px; border-radius: 10px; background: rgba(34, 197, 94, 0.15); color: #22c55e; display: flex; align-items: center; justify-content: center; font-size: 1.1rem;">
+              📞
+            </div>
+            <div>
+              <h4 style="margin: 0; font-size: 0.98rem; font-weight: 800; color: var(--text-main);">Atención & Soporte Técnico</h4>
+              <span style="font-size: 0.74rem; color: var(--text-muted);">Líneas directas oficiales de asistencia</span>
+            </div>
+          </div>
+
+          <div>
+            <label style="font-size: 0.76rem; font-weight: 800; color: var(--text-muted); text-transform: uppercase; display: block; margin-bottom: 6px;">WhatsApp Oficial de Soporte (con código país):</label>
+            <input type="text" id="cfg_soporte_whatsapp" placeholder="50688888888" oninput="actualizarPreviewWhatsapp(this.value)" style="width: 100%; padding: 10px 12px; border-radius: 10px; border: 1.5px solid var(--border); background: var(--bg-main); color: var(--text-main); font-size: 0.92rem; font-weight: 700; box-sizing: border-box;">
+            <span style="font-size: 0.72rem; color: var(--text-muted); display: block; margin-top: 4px;">Al cambiarlo aquí, todos los enlaces y botones de ayuda en la app se redirigirán a este número.</span>
+          </div>
+
+          <div style="padding: 10px 12px; background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 10px; font-size: 0.76rem; color: #166534; line-height: 1.4;">
+            💡 <strong>Enlace en vivo generado:</strong> <span id="cfgWhatsappPreview" style="font-family: monospace; font-weight: 700;">https://wa.me/50688888888</span>
+          </div>
+        </div>
+
+        <!-- CARD 5: MODO MANTENIMIENTO / PAUSA OPERATIVA -->
+        <div class="dev-card" style="background: var(--card-bg); border: 1.5px solid var(--border); border-radius: 16px; padding: 20px; display: flex; flex-direction: column; gap: 16px; grid-column: 1 / -1;">
+          <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; border-bottom: 1.5px solid var(--border); padding-bottom: 12px;">
+            <div style="display: flex; align-items: center; gap: 10px;">
+              <div style="width: 36px; height: 36px; border-radius: 10px; background: rgba(239, 68, 68, 0.15); color: #ef4444; display: flex; align-items: center; justify-content: center; font-size: 1.1rem;">
+                🛡️
+              </div>
+              <div>
+                <h4 style="margin: 0; font-size: 0.98rem; font-weight: 800; color: var(--text-main);">Pausa de Operaciones & Modo Mantenimiento</h4>
+                <span style="font-size: 0.74rem; color: var(--text-muted);">Pausa temporal de órdenes y aviso institucional a padres</span>
+              </div>
+            </div>
+
+            <div style="display: flex; align-items: center; gap: 10px;">
+              <span id="cfgMantenimientoStatusTag" style="padding: 4px 10px; border-radius: 8px; font-size: 0.75rem; font-weight: 800; background: #f1f5f9; color: #64748b;">Desactivado</span>
+              <label class="switch-saas">
+                <input type="checkbox" id="cfg_modo_mantenimiento" onchange="toggleMantenimientoUiState(this.checked)">
+                <span class="switch-saas-slider round rose"></span>
+              </label>
+            </div>
+          </div>
+
+          <div>
+            <label style="font-size: 0.76rem; font-weight: 800; color: var(--text-muted); text-transform: uppercase; display: block; margin-bottom: 6px;">Mensaje de Aviso al Usuario:</label>
+            <textarea id="cfg_modo_mantenimiento_mensaje" rows="2" style="width: 100%; padding: 10px 12px; border-radius: 10px; border: 1.5px solid var(--border); background: var(--bg-main); color: var(--text-main); font-size: 0.88rem; line-height: 1.4; box-sizing: border-box;"></textarea>
+            <span style="font-size: 0.72rem; color: var(--text-muted); display: block; margin-top: 4px;">Este texto aparecerá en un banner flotante en la app de los padres y bloqueará la creación de pre-órdenes.</span>
+          </div>
+        </div>
+
+      </div>
     </div>
       </main>
     </div>
@@ -1681,6 +1885,15 @@
       </div>
     </header>
 
+    <!-- BANNER DE MODO MANTENIMIENTO EN PORTAL DE PADRES -->
+    <div id="parentMaintenanceBanner" style="display: none; background: #fff1f2; border: 1.5px solid #fecdd3; color: #9f1239; padding: 12px 16px; border-radius: 14px; margin-bottom: 16px; font-size: 0.84rem; align-items: center; gap: 10px; box-shadow: 0 4px 12px rgba(225, 29, 72, 0.08);">
+      <span style="font-size: 1.3rem;">🛡️</span>
+      <div style="flex: 1;">
+        <strong style="display: block; font-size: 0.86rem; color: #881337;">Aviso de Pausa Temporal</strong>
+        <span id="parentMaintenanceBannerText">Estamos realizando mejoras técnicas en el sistema. Los pedidos se reanudarán en breve.</span>
+      </div>
+    </div>
+
     <!-- BANNER SI NO HAY HIJOS VINCULADOS -->
     <div id="parentNoChildrenBanner" class="parent-card" style="display: none; text-align: center; border: 2px dashed #0284c7; background: #f0f9ff;">
       <div style="width: 52px; height: 52px; border-radius: 50%; background: #e0f2fe; color: #0284c7; display: flex; align-items: center; justify-content: center; margin: 0 auto 10px;">
@@ -2032,7 +2245,7 @@
                 <input type="tel" inputmode="numeric" pattern="[0-9]*" id="inputParentSinpeMonto" placeholder="Ej: 3000" style="width: 100%; padding: 10px 12px 10px 30px; border-radius: 10px; border: 1.8px solid #86efac; font-size: 1.1rem; font-weight: 800; color: #166534; background: white; box-sizing: border-box; outline: none;">
               </div>
               <!-- Montos sugeridos rápidos -->
-              <div style="display: flex; gap: 6px; margin-top: 7px; flex-wrap: wrap;">
+              <div id="parentSinpePresetsContainer" style="display: flex; gap: 6px; margin-top: 7px; flex-wrap: wrap;">
                 <button type="button" onclick="setParentSinpeMonto(1000)" style="background: white; border: 1px solid #86efac; color: #166534; font-size: 0.74rem; font-weight: 700; padding: 4px 9px; border-radius: 8px; cursor: pointer;">₡1.000</button>
                 <button type="button" onclick="setParentSinpeMonto(2000)" style="background: white; border: 1px solid #86efac; color: #166534; font-size: 0.74rem; font-weight: 700; padding: 4px 9px; border-radius: 8px; cursor: pointer;">₡2.000</button>
                 <button type="button" onclick="setParentSinpeMonto(3000)" style="background: white; border: 1px solid #86efac; color: #166534; font-size: 0.74rem; font-weight: 700; padding: 4px 9px; border-radius: 8px; cursor: pointer;">₡3.000</button>
@@ -2585,6 +2798,15 @@
     <div id="bannerCardBlocked" class="banner-card-blocked" style="display: none;">
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="4.93" x2="19.07" y1="4.93" y2="19.07"/></svg>
       <span><strong>TARJETA SUSPENDIDA POR LA SODA.</strong> Acércate al mostrador de la soda para reactivar tu cuenta.</span>
+    </div>
+
+    <!-- BANNER DE MODO MANTENIMIENTO EN CATÁLOGO / ESTUDIANTES -->
+    <div id="studentMaintenanceBanner" style="display: none; background: #fff1f2; border: 1.5px solid #fecdd3; color: #9f1239; padding: 12px 16px; border-radius: 12px; margin: 10px 16px 0 16px; font-size: 0.84rem; align-items: center; gap: 10px; box-shadow: 0 4px 12px rgba(225, 29, 72, 0.08);">
+      <span style="font-size: 1.3rem;">🛡️</span>
+      <div style="flex: 1;">
+        <strong style="display: block; font-size: 0.86rem; color: #881337;">Aviso de Pausa Temporal</strong>
+        <span id="studentMaintenanceBannerText">Estamos realizando mejoras técnicas en el sistema. Los pedidos se reanudarán en breve.</span>
+      </div>
     </div>
 
     <!-- BANNER DE ADVERTENCIA HTTPS PARA TELÉFONOS MÓVILES -->
@@ -4945,6 +5167,6 @@
   <script src="/js/sounds.js?v=19.4"></script>
   <script src="/js/jsQR.js" defer></script>
   <script src="/js/food-icons.js?v=19.4" defer></script>
-  <script src="/js/app.js?v=19.8"></script>
+  <script src="/js/app.js?v=19.9"></script>
 </body>
 </html>
