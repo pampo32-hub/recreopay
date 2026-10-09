@@ -3574,7 +3574,7 @@ app.get('/api/admin/escuela/info', (req, res) => {
 // Modificar Teléfono y Titular de SINPE Móvil de la Escuela (Admin / Developer)
 app.put('/api/admin/escuela/sinpe', (req, res) => {
   try {
-    const { escuela_id, telefono_sinpe, nombre_sinpe, concesionario } = req.body;
+    const { escuela_id, telefono_sinpe, nombre_sinpe, concesionario } = req.body || {};
     if (!telefono_sinpe || !String(telefono_sinpe).trim()) {
       return res.status(400).json({ error: 'El número de teléfono SINPE Móvil es obligatorio' });
     }
