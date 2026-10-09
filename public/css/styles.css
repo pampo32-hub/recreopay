@@ -6337,3 +6337,337 @@ body.dark-mode .admin-dash-bar-track {
   margin-top: 8px;
   text-align: center;
 }
+
+/* ==========================================================================
+   DISEÑO GLASSMORPHISM INMERSIVO (2026 FROSTED GLASS & SPECULAR GLOW)
+   Aplicado a:
+   1. El Modal Inmersivo del Código QR de Pago (#modalQr)
+   2. La Tarjeta de Inicio de Sesión y Bienvenida (#viewLogin & #loginBottomSheet)
+   ========================================================================== */
+
+/* --------------------------------------------------------------------------
+   1. MODAL INMERSIVO QR DE PAGO
+   -------------------------------------------------------------------------- */
+.modal-qr-sibopay-immersive.glassmorphic-qr-modal {
+  background: radial-gradient(circle at 50% 16%, #0284c7 0%, #034870 42%, #021324 100%) !important;
+  backdrop-filter: blur(24px) !important;
+  -webkit-backdrop-filter: blur(24px) !important;
+}
+
+.glassmorphic-qr-modal .qr-immersive-bg-header {
+  background: transparent !important;
+  box-shadow: none !important;
+  border-bottom-left-radius: 0 !important;
+  border-bottom-right-radius: 0 !important;
+}
+
+.glassmorphic-brand-logo {
+  background: rgba(255, 255, 255, 0.18) !important;
+  backdrop-filter: blur(14px) !important;
+  -webkit-backdrop-filter: blur(14px) !important;
+  border: 1.5px solid rgba(255, 255, 255, 0.45) !important;
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.35), inset 0 1.5px 1px rgba(255, 255, 255, 0.7) !important;
+}
+
+.glassmorphic-qr-card {
+  background: rgba(255, 255, 255, 0.14) !important;
+  backdrop-filter: blur(32px) saturate(190%) !important;
+  -webkit-backdrop-filter: blur(32px) saturate(190%) !important;
+  border: 1.5px solid rgba(255, 255, 255, 0.38) !important;
+  border-radius: 30px !important;
+  box-shadow: 0 32px 64px -10px rgba(0, 0, 0, 0.5),
+              inset 0 1.5px 1.5px 0 rgba(255, 255, 255, 0.75),
+              inset 0 -1.5px 1px 0 rgba(0, 0, 0, 0.25) !important;
+  padding: 26px 22px 24px 22px !important;
+  color: #ffffff !important;
+}
+
+body.dark-mode .glassmorphic-qr-card {
+  background: rgba(15, 23, 42, 0.6) !important;
+  border-color: rgba(255, 255, 255, 0.3) !important;
+  box-shadow: 0 32px 70px rgba(0, 0, 0, 0.65), inset 0 1.5px 1px 0 rgba(255, 255, 255, 0.55) !important;
+}
+
+.glassmorphic-title-badge {
+  display: inline-block;
+  padding: 6px 18px;
+  border-radius: 9999px;
+  background: rgba(255, 255, 255, 0.14) !important;
+  border: 1px solid rgba(255, 255, 255, 0.32) !important;
+  color: #ffffff !important;
+  font-size: 0.88rem !important;
+  font-weight: 900 !important;
+  letter-spacing: 1.5px !important;
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.35);
+  margin-bottom: 18px !important;
+  box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.4);
+}
+
+.glassmorphic-qr-frame {
+  background: #ffffff !important;
+  border-radius: 22px !important;
+  padding: 14px !important;
+  box-shadow: 0 16px 36px rgba(0, 0, 0, 0.3), 0 0 0 1px rgba(255, 255, 255, 0.35) !important;
+}
+
+.glassmorphic-qr-frame .qr-frame-corner {
+  border-color: #0284c7 !important;
+  width: 26px !important;
+  height: 26px !important;
+}
+
+.glassmorphic-token-pill {
+  margin-top: 18px !important;
+  display: inline-block;
+  background: rgba(0, 0, 0, 0.45) !important;
+  backdrop-filter: blur(12px) !important;
+  -webkit-backdrop-filter: blur(12px) !important;
+  border: 1px solid rgba(255, 255, 255, 0.3) !important;
+  color: #ffffff !important;
+  padding: 8px 18px !important;
+  border-radius: 9999px !important;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace !important;
+  font-size: 0.95rem !important;
+  font-weight: 800 !important;
+  letter-spacing: 1px !important;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.3), inset 0 1px 1px rgba(255, 255, 255, 0.25) !important;
+}
+
+.glassmorphic-btn-pill {
+  background: rgba(255, 255, 255, 0.2) !important;
+  backdrop-filter: blur(16px) !important;
+  -webkit-backdrop-filter: blur(16px) !important;
+  border: 1.5px solid rgba(255, 255, 255, 0.5) !important;
+  color: #ffffff !important;
+  border-radius: 9999px !important;
+  height: 52px !important;
+  font-size: 1.05rem !important;
+  font-weight: 800 !important;
+  letter-spacing: 0.4px !important;
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.3), inset 0 1.5px 1px rgba(255, 255, 255, 0.6) !important;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1) !important;
+  cursor: pointer;
+}
+
+.glassmorphic-btn-pill:hover,
+.glassmorphic-btn-pill:active {
+  background: rgba(255, 255, 255, 0.32) !important;
+  border-color: rgba(255, 255, 255, 0.8) !important;
+  transform: translateY(-2px);
+  box-shadow: 0 16px 36px rgba(0, 0, 0, 0.4), inset 0 1.5px 1px rgba(255, 255, 255, 0.8) !important;
+}
+
+/* --------------------------------------------------------------------------
+   2. PANTALLA DE BIENVENIDA Y TARJETA DE LOGIN / REGISTRO
+   -------------------------------------------------------------------------- */
+.splash-welcome-screen.glassmorphic-welcome-screen {
+  background: radial-gradient(circle at 50% 12%, #0284c7 0%, #034f7c 45%, #021a36 100%) !important;
+}
+
+@media (min-width: 640px) {
+  .glassmorphic-welcome-screen .splash-content-wrap {
+    background: rgba(255, 255, 255, 0.08);
+    backdrop-filter: blur(24px) saturate(180%);
+    -webkit-backdrop-filter: blur(24px) saturate(180%);
+    border: 1.5px solid rgba(255, 255, 255, 0.25);
+    border-radius: 36px;
+    padding: 44px 36px;
+    box-shadow: 0 30px 60px rgba(0, 0, 0, 0.35), inset 0 1.5px 1px rgba(255, 255, 255, 0.4);
+    margin: auto;
+  }
+}
+
+.glassmorphic-btn-splash-primary {
+  background: #ffffff !important;
+  color: #0284c7 !important;
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.25), inset 0 1.5px 1px #ffffff !important;
+  border: 1px solid rgba(255, 255, 255, 0.8) !important;
+  border-radius: 9999px !important;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1) !important;
+}
+
+.glassmorphic-btn-splash-primary:hover,
+.glassmorphic-btn-splash-primary:active {
+  transform: translateY(-2px);
+  box-shadow: 0 16px 36px rgba(0, 0, 0, 0.32) !important;
+}
+
+.glassmorphic-btn-splash-secondary {
+  background: rgba(255, 255, 255, 0.16) !important;
+  backdrop-filter: blur(14px) !important;
+  -webkit-backdrop-filter: blur(14px) !important;
+  border: 1.5px solid rgba(255, 255, 255, 0.55) !important;
+  color: #ffffff !important;
+  border-radius: 9999px !important;
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.2), inset 0 1px 1px rgba(255, 255, 255, 0.5) !important;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1) !important;
+}
+
+.glassmorphic-btn-splash-secondary:hover,
+.glassmorphic-btn-splash-secondary:active {
+  background: rgba(255, 255, 255, 0.28) !important;
+  border-color: rgba(255, 255, 255, 0.8) !important;
+  transform: translateY(-2px);
+  box-shadow: 0 14px 32px rgba(0, 0, 0, 0.3) !important;
+}
+
+/* Tarjeta de Login (Bottom Sheet & Modal en Escritorio) */
+@media (min-width: 640px) {
+  .bottom-sheet-backdrop {
+    align-items: center !important;
+    padding: 24px !important;
+  }
+  .bottom-sheet-card.glassmorphic-login-card {
+    border-radius: 32px !important;
+    border-bottom: 1.5px solid rgba(255, 255, 255, 0.25) !important;
+    max-height: 88vh;
+  }
+}
+
+.bottom-sheet-card.glassmorphic-login-card,
+.login-card.glassmorphic-login-card {
+  background: rgba(15, 23, 42, 0.82) !important;
+  backdrop-filter: blur(36px) saturate(200%) !important;
+  -webkit-backdrop-filter: blur(36px) saturate(200%) !important;
+  border-top: 1.5px solid rgba(255, 255, 255, 0.45) !important;
+  border-left: 1.5px solid rgba(255, 255, 255, 0.25) !important;
+  border-right: 1.5px solid rgba(255, 255, 255, 0.25) !important;
+  box-shadow: 0 -16px 50px rgba(0, 0, 0, 0.55),
+              inset 0 1.5px 1px 0 rgba(255, 255, 255, 0.6) !important;
+  color: #ffffff !important;
+}
+
+.glassmorphic-login-card .bottom-sheet-pill-handle {
+  background: rgba(255, 255, 255, 0.35) !important;
+}
+
+.glassmorphic-login-card .bottom-sheet-header {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.15) !important;
+}
+
+.glassmorphic-login-card #bottomSheetTitle {
+  color: #ffffff !important;
+  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.3) !important;
+}
+
+.glassmorphic-login-card .bottom-sheet-close-btn {
+  background: rgba(255, 255, 255, 0.12) !important;
+  border: 1px solid rgba(255, 255, 255, 0.25) !important;
+  color: #ffffff !important;
+  border-radius: 50% !important;
+  transition: all 0.15s ease !important;
+}
+
+.glassmorphic-login-card .bottom-sheet-close-btn:hover {
+  background: rgba(255, 255, 255, 0.25) !important;
+  color: #ffffff !important;
+}
+
+.glassmorphic-login-card .login-form-group label {
+  color: rgba(255, 255, 255, 0.95) !important;
+  font-weight: 700 !important;
+  font-size: 0.88rem !important;
+  margin-bottom: 6px !important;
+  display: block;
+}
+
+.glassmorphic-login-card .login-input {
+  background: rgba(255, 255, 255, 0.12) !important;
+  border: 1.5px solid rgba(255, 255, 255, 0.26) !important;
+  color: #ffffff !important;
+  border-radius: 14px !important;
+  padding: 12px 16px !important;
+  font-size: 0.95rem !important;
+  backdrop-filter: blur(12px) !important;
+  -webkit-backdrop-filter: blur(12px) !important;
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.2) !important;
+  transition: all 0.2s ease !important;
+}
+
+.glassmorphic-login-card .login-input::placeholder {
+  color: rgba(255, 255, 255, 0.45) !important;
+}
+
+.glassmorphic-login-card .login-input:focus {
+  background: rgba(255, 255, 255, 0.18) !important;
+  border-color: #38bdf8 !important;
+  outline: none !important;
+  box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.3), inset 0 1px 2px rgba(0, 0, 0, 0.2) !important;
+}
+
+.glassmorphic-login-card .login-submit-btn {
+  background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%) !important;
+  border: 1px solid rgba(255, 255, 255, 0.4) !important;
+  color: #ffffff !important;
+  box-shadow: 0 10px 25px rgba(2, 132, 199, 0.5), inset 0 1.5px 1px rgba(255, 255, 255, 0.6) !important;
+  border-radius: 14px !important;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1) !important;
+}
+
+.glassmorphic-login-card .login-submit-btn:hover {
+  filter: brightness(1.1);
+  transform: translateY(-1px);
+  box-shadow: 0 14px 32px rgba(2, 132, 199, 0.6), inset 0 1.5px 1px rgba(255, 255, 255, 0.8) !important;
+}
+
+.glassmorphic-login-card #loginErrorMsg,
+.glassmorphic-login-card #registerErrorMsg {
+  background: rgba(239, 68, 68, 0.25) !important;
+  border: 1.5px solid rgba(248, 113, 113, 0.5) !important;
+  color: #fecaca !important;
+  backdrop-filter: blur(10px) !important;
+  -webkit-backdrop-filter: blur(10px) !important;
+}
+
+.glassmorphic-login-card .login-register-banner {
+  background: rgba(255, 255, 255, 0.1) !important;
+  border: 1px solid rgba(255, 255, 255, 0.22) !important;
+  border-radius: 14px !important;
+  color: #ffffff !important;
+  backdrop-filter: blur(10px) !important;
+  -webkit-backdrop-filter: blur(10px) !important;
+}
+
+.glassmorphic-login-card .login-register-banner strong {
+  color: #38bdf8 !important;
+}
+
+.glassmorphic-login-card .login-register-banner span {
+  color: rgba(255, 255, 255, 0.85) !important;
+}
+
+.glassmorphic-login-card p {
+  color: rgba(255, 255, 255, 0.8) !important;
+}
+
+.glassmorphic-login-card button[onclick*="switchSheetView"] {
+  color: #38bdf8 !important;
+  text-shadow: 0 1px 4px rgba(56, 189, 248, 0.4);
+}
+
+.glassmorphic-login-card details {
+  border-top-color: rgba(255, 255, 255, 0.15) !important;
+}
+
+.glassmorphic-login-card details summary {
+  color: rgba(255, 255, 255, 0.75) !important;
+}
+
+.glassmorphic-login-card .login-demo-btn {
+  background: rgba(255, 255, 255, 0.1) !important;
+  border: 1px solid rgba(255, 255, 255, 0.2) !important;
+  color: #ffffff !important;
+  border-radius: 10px !important;
+  backdrop-filter: blur(8px) !important;
+  transition: all 0.15s ease !important;
+}
+
+.glassmorphic-login-card .login-demo-btn:hover {
+  background: rgba(255, 255, 255, 0.22) !important;
+  border-color: rgba(255, 255, 255, 0.4) !important;
+  transform: translateY(-1px);
+}
+
+.glassmorphic-login-card .login-demo-btn span {
+  color: #ffffff !important;
+}

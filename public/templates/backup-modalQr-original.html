@@ -1,0 +1,50 @@
+﻿  <!-- MODAL INMERSIVO: CÃ“DIGO QR PARA PRESENTAR EN LA SODA (DISEÃ‘O SIBOPAY EXACTO) -->
+  <div class="modal-qr-sibopay-immersive" id="modalQr" style="display: none;" onclick="closeQrModal(event)">
+    <!-- FONDO SUPERIOR CELESTE CON LOGO Y MARCA SIBOPAY -->
+    <div class="qr-immersive-bg-header">
+      <div class="qr-immersive-brand-header">
+        <div class="qr-immersive-brand-logo-wrap">
+          <img src="/img/sibopay-emblem.png" alt="SiboPay" class="qr-immersive-brand-logo">
+        </div>
+        <div class="qr-immersive-brand-title">
+          <span>Sibo</span><strong class="brand-pay-text">Pay</strong>
+        </div>
+      </div>
+    </div>
+
+    <!-- CONTENEDOR CENTRAL: TARJETA BLANCA Y BOTÃ“N CERRAR -->
+    <div class="qr-immersive-content" onclick="event.stopPropagation()">
+      <div class="qr-immersive-card">
+        <div class="qr-card-header-title">MI CARNÃ‰ SIBOPAY</div>
+
+        <!-- Banner especial cuando el lÃ­mite diario fue alcanzado pero tiene preÃ³rdenes -->
+        <div id="qrPreorderOnlyBanner" style="display: none; background: #eff6ff; border: 1.5px solid #bfdbfe; color: #1e40af; border-radius: 10px; padding: 7px 10px; margin-bottom: 10px; font-size: 0.75rem; text-align: center; font-weight: 700; line-height: 1.35;">
+          ðŸ“¦ VÃ¡lido exclusivamente para retirar tu Pre-Orden en la soda.<br>
+          <span style="font-size: 0.70rem; color: #3b82f6;">Compras nuevas en mostrador bloqueadas por lÃ­mite diario.</span>
+        </div>
+
+        <div class="qr-scanner-frame-wrapper">
+          <div class="qr-frame-corner top-left"></div>
+          <div class="qr-frame-corner top-right"></div>
+          <div class="qr-frame-corner bottom-left"></div>
+          <div class="qr-frame-corner bottom-right"></div>
+          
+          <img id="qrDisplayImg" class="qr-immersive-code-img" src="" alt="CÃ³digo QR">
+
+          <!-- LOGO DE LA 'S' EN EL CENTRO DEL QR -->
+          <div class="qr-center-logo-badge" title="SiboPay">
+            <img src="/img/sibopay-emblem.png" alt="S" class="qr-center-logo-img">
+          </div>
+        </div>
+
+        <div class="qr-card-token-text" id="qrTokenDisplay">
+          CODIGO-QR
+        </div>
+      </div>
+
+      <!-- BOTÃ“N CELESTE TIPO PÃLDORA -->
+      <button type="button" onclick="closeQrModal()" class="qr-immersive-btn-close">
+        Cerrar
+      </button>
+    </div>
+  </div>

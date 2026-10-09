@@ -1,0 +1,158 @@
+﻿<!-- VISTA DE LOGIN: WELCOME SPLASH SCREEN & BOTTOM SHEET (ESTILO ORDER-EAT / SIBOPAY) -->
+  <div id="viewLogin" class="splash-welcome-screen" style="display: none;">
+    <!-- PatrÃ³n de alimentos en marca de agua difuminada -->
+    <div class="splash-doodle-bg"></div>
+
+    <!-- Contenido principal centrado -->
+    <div class="splash-content-wrap">
+      <!-- SecciÃ³n superior/media: Emblema y Marca -->
+      <div class="splash-brand-hero">
+        <div class="splash-emblem-wrap">
+          <img src="/img/sibopay-emblem.png" alt="SiboPay" class="splash-emblem-img">
+        </div>
+        <h1 class="splash-title">SiboPay</h1>
+        <p class="splash-tagline">Sistema Digital de Pagos y Monedero Estudiantil</p>
+      </div>
+
+      <!-- SecciÃ³n inferior: Botones de acciÃ³n y Disclaimer -->
+      <div class="splash-actions-box">
+        <button type="button" class="splash-btn-primary" onclick="openLoginSheet('login')">
+          Iniciar SesiÃ³n
+        </button>
+
+        <button type="button" class="splash-btn-secondary" onclick="openLoginSheet('register')">
+          Registrarse
+        </button>
+
+        <p class="splash-disclaimer">
+          Al iniciar sesiÃ³n y registrarse, acepta nuestros 
+          <a href="/terminos" target="_blank" rel="noopener noreferrer">TÃ©rminos y Condiciones</a> 
+          y nuestra 
+          <a href="/privacidad" target="_blank" rel="noopener noreferrer">PolÃ­tica de Privacidad</a>.
+        </p>
+      </div>
+    </div>
+
+    <!-- BOTTOM SHEET: VENTANA INFERIOR DESLIZABLE PARA LOGIN Y REGISTRO -->
+    <div id="loginBottomSheet" class="bottom-sheet-backdrop" onclick="closeLoginSheet(event)">
+      <div class="bottom-sheet-card" onclick="event.stopPropagation()">
+        <div class="bottom-sheet-pill-handle"></div>
+        
+        <div class="bottom-sheet-header">
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <img src="/img/sibopay-emblem.png" alt="SiboPay" style="width: 24px; height: 24px; object-fit: contain;">
+            <h3 id="bottomSheetTitle" style="margin: 0; font-size: 1.22rem; font-weight: 800; color: #0f172a;">Iniciar SesiÃ³n</h3>
+          </div>
+          <button type="button" class="bottom-sheet-close-btn" onclick="closeLoginSheet()" title="Cerrar">âœ•</button>
+        </div>
+
+        <!-- CONTENIDO 1: INICIAR SESIÃ“N -->
+        <div id="sheetContentLogin">
+          <form id="formLogin" onsubmit="handleLoginSubmit(event)">
+            <div class="login-form-group">
+              <label id="lblLoginUser" for="loginUsername">Usuario, TelÃ©fono o CarnÃ©:</label>
+              <input type="text" id="loginUsername" class="login-input" placeholder="Ej: padre, carlos_papa, 8888-1122 o mateo" required autocomplete="username">
+            </div>
+
+            <div class="login-form-group">
+              <label id="lblLoginPass" for="loginPassword">ContraseÃ±a o PIN:</label>
+              <input type="password" id="loginPassword" class="login-input" placeholder="â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢" required autocomplete="current-password">
+            </div>
+
+            <div id="loginErrorMsg" style="display: none; background: #fee2e2; border: 1px solid #fca5a5; color: #991b1b; padding: 9px 12px; border-radius: 10px; font-size: 0.82rem; font-weight: 700; margin-bottom: 12px; text-align: center;"></div>
+
+            <button type="submit" id="btnLoginSubmit" class="login-submit-btn" style="display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; height: 48px; border-radius: 12px; font-weight: 800; font-size: 1rem; background: linear-gradient(135deg, #0284c7, #0369a1); color: white; border: none; cursor: pointer; box-shadow: 0 4px 14px rgba(2, 132, 199, 0.35);">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" x2="3" y1="12" y2="12"/></svg>
+              <span id="lblBtnLoginText">Ingresar al Sistema</span>
+            </button>
+          </form>
+
+          <div style="text-align: center; margin-top: 14px;">
+            <p style="font-size: 0.82rem; color: #64748b; margin: 0;">
+              Â¿AÃºn no tienes cuenta? 
+              <button type="button" onclick="switchSheetView('register')" style="background: none; border: none; color: #0284c7; font-weight: 800; cursor: pointer; text-decoration: underline; font-size: 0.82rem; padding: 0;">RegÃ­strate como Padre aquÃ­</button>
+            </p>
+          </div>
+
+          <!-- ACCESOS RÃPIDOS DE PRUEBA DESPLEGABLES (DEMO) -->
+          <details style="margin-top: 16px; border-top: 1px solid #f1f5f9; padding-top: 12px;">
+            <summary style="font-size: 0.76rem; font-weight: 800; color: #64748b; cursor: pointer; text-align: center; outline: none;">
+              âš¡ Accesos rÃ¡pidos de prueba (Demo 1-Click)
+            </summary>
+            <div class="login-demo-btns" style="margin-top: 10px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px;">
+              <button type="button" class="login-demo-btn" onclick="quickFillLogin('dev', 'dev123')" style="border: 1.5px solid #0284c7; background: #f0f9ff; padding: 6px 4px; font-size: 0.72rem;">
+                <span style="color: #0284c7; font-weight: 800;">Developer</span>
+              </button>
+              <button type="button" class="login-demo-btn" onclick="quickFillLogin('admin', 'admin123')" style="padding: 6px 4px; font-size: 0.72rem;">
+                <span>Admin Soda</span>
+              </button>
+              <button type="button" class="login-demo-btn" onclick="quickFillLogin('cajero', 'cajero123')" style="padding: 6px 4px; font-size: 0.72rem;">
+                <span>Cajero</span>
+              </button>
+              <button type="button" class="login-demo-btn" onclick="quickFillLogin('padre', 'padre123')" style="padding: 6px 4px; font-size: 0.72rem;">
+                <span>Padre Demo</span>
+              </button>
+              <button type="button" class="login-demo-btn" onclick="quickFillLogin('mateo', '1234')" style="padding: 6px 4px; font-size: 0.72rem;">
+                <span>Mateo (2Â°)</span>
+              </button>
+              <button type="button" class="login-demo-btn" onclick="quickFillLogin('sofia', '1234')" style="padding: 6px 4px; font-size: 0.72rem;">
+                <span>SofÃ­a (3Â°)</span>
+              </button>
+            </div>
+          </details>
+        </div>
+
+        <!-- CONTENIDO 2: REGISTRO DE PADRES -->
+        <div id="sheetContentRegister" style="display: none;">
+          <div style="background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%); border: 1.5px solid #bae6fd; border-radius: 12px; padding: 10px 12px; margin-bottom: 14px; display: flex; align-items: center; gap: 10px;">
+            <div style="width: 36px; height: 36px; border-radius: 10px; background: white; border: 1px solid #bae6fd; display: flex; align-items: center; justify-content: center; flex-shrink: 0; padding: 4px;">
+              <img src="/img/sibopay-emblem.png" alt="SiboPay" style="width: 100%; height: 100%; object-fit: contain;">
+            </div>
+            <div>
+              <strong style="color: #0369a1; font-size: 0.86rem; display: block; font-weight: 800;">Registro de Padres o Encargados</strong>
+              <span style="font-size: 0.72rem; color: #475569; display: block;">Crea tu cuenta para vincular a tus hijos y recargarles saldo con SINPE mÃ³vil.</span>
+            </div>
+          </div>
+
+          <form id="formRegisterPadre" onsubmit="handleRegisterPadreSubmit(event)">
+            <div class="login-form-group">
+              <label for="regNombre">Nombre y Apellidos:</label>
+              <input type="text" id="regNombre" class="login-input" placeholder="Ej: Carlos Alvarado Castro" required autocomplete="name">
+            </div>
+
+            <div class="login-form-group">
+              <label for="regTelefono">TelÃ©fono o Celular (para SINPE):</label>
+              <input type="tel" id="regTelefono" class="login-input" placeholder="Ej: 8888-1122" required autocomplete="tel">
+            </div>
+
+            <div class="login-form-group">
+              <label for="regEmail">Correo ElectrÃ³nico <span style="font-size: 0.72rem; color: #64748b;">(Opcional)</span>:</label>
+              <input type="email" id="regEmail" class="login-input" placeholder="Ej: micorreo@ejemplo.com" autocomplete="email">
+            </div>
+
+            <div class="login-form-group">
+              <label for="regUsername">Nombre de Usuario:</label>
+              <input type="text" id="regUsername" class="login-input" placeholder="Ej: carlos_papa" required autocomplete="username">
+            </div>
+
+            <div class="login-form-group">
+              <label for="regPassword">ContraseÃ±a:</label>
+              <input type="password" id="regPassword" class="login-input" placeholder="MÃ­nimo 4 caracteres" required autocomplete="new-password">
+            </div>
+
+            <div id="registerErrorMsg" style="display: none; background: #fee2e2; border: 1px solid #fca5a5; color: #991b1b; padding: 8px 12px; border-radius: 10px; font-size: 0.8rem; font-weight: 700; margin-bottom: 12px; text-align: center;"></div>
+
+            <button type="submit" id="btnRegisterSubmit" class="login-submit-btn" style="display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; height: 48px; border-radius: 12px; font-weight: 800; font-size: 1rem; background: linear-gradient(135deg, #0284c7, #0369a1); color: white; border: none; cursor: pointer; box-shadow: 0 4px 14px rgba(2, 132, 199, 0.35);">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="7" r="3.5"/><path d="M3 20v-1.5A4.5 4.5 0 0 1 7.5 14h3A4.5 4.5 0 0 1 15 18.5V20"/><circle cx="17.5" cy="7.5" r="2.5"/><path d="M15 14a3.5 3.5 0 0 1 5.5 3v3"/></svg>
+              <span>Crear Cuenta de Padre y Entrar</span>
+            </button>
+          </form>
+
+          <div style="text-align: center; margin-top: 14px;">
+            <p style="font-size: 0.82rem; color: #64748b; margin: 0;">
+              Â¿Ya tienes cuenta registrada? 
+              <button type="button" onclick="switchSheetView('login')" style="background: none; border: none; color: #0284c7; font-weight: 800; cursor: pointer; text-decoration: underline; font-size: 0.82rem; padding: 0;">Inicia sesiÃ³n aquÃ­</button>
+            </p>
+          </div>
+        </div>
+      </div>

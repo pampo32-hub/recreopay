@@ -1,0 +1,594 @@
+﻿/* ==========================================================================
+   BACKUP ORIGINAL: MODAL QR SIBOPAY (ESTILO ORIGINAL)
+   ========================================================================== */
+/* ==========================================================================
+   MODAL QR INMERSIVO SIBOPAY (DISEÃ‘O MÃ“VIL EXACTO A LA REFERENCIA)
+   ========================================================================== */
+.modal-qr-sibopay-immersive {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  background: #f1f5f9;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  padding: calc(16px + var(--safe-top)) 20px calc(24px + var(--safe-bottom)) 20px;
+  box-sizing: border-box;
+  overflow-y: auto;
+  animation: fadeIn 0.2s ease;
+}
+
+body.dark-mode .modal-qr-sibopay-immersive {
+  background: #0b1120;
+}
+
+.qr-immersive-bg-header {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 52%;
+  min-height: 310px;
+  background: linear-gradient(180deg, #0284c7 0%, #0369a1 100%);
+  border-bottom-left-radius: 36px;
+  border-bottom-right-radius: 36px;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding-top: calc(48px + var(--safe-top));
+  box-sizing: border-box;
+  z-index: 1;
+  box-shadow: 0 8px 24px rgba(2, 132, 199, 0.25);
+  pointer-events: none;
+}
+
+.qr-immersive-brand-header {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  pointer-events: auto;
+}
+
+.qr-immersive-brand-logo-wrap {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: #ffffff;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px;
+  box-sizing: border-box;
+}
+
+.qr-immersive-brand-logo {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  border-radius: 50%;
+  display: block;
+}
+
+.qr-immersive-brand-title {
+  font-size: 2.15rem;
+  font-weight: 900;
+  letter-spacing: -0.6px;
+  line-height: 1.1;
+  display: inline-flex;
+  align-items: center;
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.22);
+}
+
+.qr-immersive-brand-title span {
+  color: #ffffff;
+}
+
+.qr-immersive-brand-title .brand-pay-text {
+  color: #38bdf8;
+  font-weight: 900;
+  margin-left: 1px;
+  text-shadow: 0 2px 10px rgba(56, 189, 248, 0.5);
+}
+
+.qr-immersive-content {
+  position: relative;
+  z-index: 2;
+  width: 100%;
+  max-width: 325px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 18px;
+  margin-top: calc(152px + var(--safe-top));
+  animation: zoomIn 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.qr-immersive-card {
+  width: 100%;
+  background: #ffffff;
+  border-radius: 26px;
+  padding: 24px 20px 22px 20px;
+  text-align: center;
+  box-shadow: 0 20px 40px rgba(15, 23, 42, 0.12), 0 4px 16px rgba(0, 0, 0, 0.06);
+  border: 1px solid rgba(226, 232, 240, 0.9);
+  box-sizing: border-box;
+}
+
+body.dark-mode .qr-immersive-card {
+  background: #1e293b;
+  border-color: #334155;
+  box-shadow: 0 20px 45px rgba(0, 0, 0, 0.5);
+}
+
+.qr-card-header-title {
+  font-size: 0.98rem;
+  font-weight: 900;
+  color: #1e293b;
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
+  margin-bottom: 18px;
+}
+
+body.dark-mode .qr-card-header-title {
+  color: #f1f5f9;
+}
+
+.qr-scanner-frame-wrapper {
+  position: relative;
+  width: 224px;
+  height: 224px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  padding: 12px;
+}
+
+.qr-frame-corner {
+  position: absolute;
+  width: 24px;
+  height: 24px;
+  border-color: #94a3b8;
+  border-style: solid;
+}
+
+body.dark-mode .qr-frame-corner {
+  border-color: #64748b;
+}
+
+.qr-frame-corner.top-left {
+  top: 0;
+  left: 0;
+  border-width: 3.5px 0 0 3.5px;
+  border-top-left-radius: 8px;
+}
+
+.qr-frame-corner.top-right {
+  top: 0;
+  right: 0;
+  border-width: 3.5px 3.5px 0 0;
+  border-top-right-radius: 8px;
+}
+
+.qr-frame-corner.bottom-left {
+  bottom: 0;
+  left: 0;
+  border-width: 0 0 3.5px 3.5px;
+  border-bottom-left-radius: 8px;
+}
+
+.qr-frame-corner.bottom-right {
+  bottom: 0;
+  right: 0;
+  border-width: 0 3.5px 3.5px 0;
+  border-bottom-right-radius: 8px;
+}
+
+.qr-immersive-code-img {
+  width: 196px;
+  height: 196px;
+  object-fit: contain;
+  display: block;
+  border-radius: 6px;
+  background: #ffffff;
+}
+
+.qr-center-logo-badge {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 44px;
+  height: 44px;
+  background: #ffffff;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 3px;
+  box-sizing: border-box;
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.22);
+  z-index: 10;
+  border: 2.5px solid #ffffff;
+  pointer-events: none;
+}
+
+.qr-center-logo-img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  border-radius: 50%;
+  display: block;
+}
+
+.qr-card-token-text {
+  margin-top: 18px;
+  font-family: monospace;
+  font-size: 0.92rem;
+  font-weight: 800;
+  color: #64748b;
+  letter-spacing: 0.6px;
+  word-break: break-all;
+}
+
+body.dark-mode .qr-card-token-text {
+  color: #94a3b8;
+}
+
+.qr-immersive-btn-close {
+  width: 100%;
+  height: 50px;
+  border-radius: 999px;
+  background: #0284c7;
+  color: #ffffff;
+  border: none;
+  font-size: 1.05rem;
+  font-weight: 800;
+  cursor: pointer;
+  box-shadow: 0 8px 20px rgba(2, 132, 199, 0.38);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.15s ease, background 0.15s ease, box-shadow 0.15s ease;
+}
+
+.qr-immersive-btn-close:hover {
+  background: #0369a1;
+  box-shadow: 0 10px 24px rgba(2, 132, 199, 0.48);
+}
+
+.qr-immersive-btn-close:active {
+  transform: scale(0.98);
+
+/* ==========================================================================
+   BACKUP ORIGINAL: LOGIN SPLASH & BOTTOM SHEET (ESTILO ORIGINAL)
+   ========================================================================== */
+/* ==========================================================================
+   VISTA DE LOGIN: WELCOME SPLASH & BOTTOM SHEET (ESTILO ORDER-EAT / SIBOPAY)
+   ========================================================================== */
+.splash-welcome-screen {
+  position: fixed;
+  inset: 0;
+  background: linear-gradient(170deg, #0284c7 0%, #0369a1 100%);
+  z-index: 9999;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  user-select: none;
+}
+
+/* PatrÃ³n de siluetas de alimentos difuminado (Marca de agua animada / Floating Watermark) */
+.splash-doodle-bg {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background-image: url("data:image/svg+xml,%3Csvg width='130' height='130' viewBox='0 0 130 130' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' stroke='%23ffffff' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round' opacity='0.16'%3E%3Cpath d='M15 32 h28 a3 3 0 0 1 3 3 v12 a10 10 0 0 1 -10 10 h-14 a10 10 0 0 1 -10 -10 v-12 a3 3 0 0 1 3 -3 z'/%3E%3Cpath d='M24 26 c0 -3 10 -3 10 0'/%3E%3Cpath d='M9 37 h6'/%3E%3Cpath d='M46 37 h6'/%3E%3Cpath d='M92 26 c-6 -8 -16 0 -16 8 c0 10 12 18 16 20 c4 -2 16 -10 16 -20 c0 -8 -10 -16 -16 -8'/%3E%3Cpath d='M92 26 c0 -5 4 -7 7 -8'/%3E%3Cpath d='M20 102 c-4 -4 -3 -10 2 -12 c0 -6 8 -8 12 -4 c4 -6 14 -4 14 3 c4 2 5 8 1 12 c-2 2 -4 3 -7 3 h-15 c-3 0 -5 -1 -7 -2 z'/%3E%3Cpath d='M30 105 v12'/%3E%3Cpath d='M82 86 v24'/%3E%3Cpath d='M78 86 v8 c0 3 8 3 8 0 v-8'/%3E%3Cpath d='M82 94 v16'/%3E%3Cpath d='M98 86 c-3 0 -5 4 -5 9 c0 4 3 6 5 6 v17'/%3E%3Cpath d='M98 86 v32'/%3E%3Cellipse cx='60' cy='62' rx='13' ry='5'/%3E%3Cpath d='M49 62 c2 6 20 6 22 0'/%3E%3C/g%3E%3C/svg%3E");
+  background-size: 130px 130px;
+  background-repeat: repeat;
+  animation: floatingDoodles 55s linear infinite;
+  will-change: background-position;
+}
+
+@keyframes floatingDoodles {
+  0% {
+    background-position: 0 0;
+  }
+  100% {
+    background-position: 520px -260px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .splash-doodle-bg {
+    animation: none;
+  }
+}
+
+.splash-content-wrap {
+  position: relative;
+  z-index: 2;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  align-items: center;
+  padding: 40px 24px calc(28px + env(safe-area-inset-bottom, 16px));
+  max-width: 440px;
+  margin: 0 auto;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.splash-brand-hero {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  margin-top: 10px;
+}
+
+.splash-emblem-wrap {
+  width: 136px;
+  height: 136px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.22);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 3.5px solid rgba(255, 255, 255, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  box-sizing: border-box;
+  box-shadow: 0 16px 36px rgba(0, 0, 0, 0.22);
+  margin-bottom: 22px;
+  animation: pulse 4s infinite ease-in-out;
+}
+
+.splash-emblem-img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  filter: drop-shadow(0 6px 16px rgba(0, 0, 0, 0.2));
+}
+
+.splash-title {
+  color: #ffffff;
+  font-size: 3.1rem;
+  font-weight: 900;
+  letter-spacing: -1.2px;
+  margin: 0;
+  line-height: 1;
+  text-shadow: 0 4px 18px rgba(0, 0, 0, 0.22);
+}
+
+.splash-tagline {
+  color: rgba(255, 255, 255, 0.95);
+  font-size: 1rem;
+  font-weight: 700;
+  margin: 10px 0 0 0;
+  letter-spacing: 0.3px;
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.16);
+}
+
+.splash-actions-box {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  align-items: center;
+}
+
+.splash-btn-primary {
+  width: 100%;
+  height: 54px;
+  border-radius: 9999px;
+  background: #ffffff;
+  color: #0284c7;
+  border: none;
+  font-size: 1.05rem;
+  font-weight: 900;
+  cursor: pointer;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  letter-spacing: 0.2px;
+}
+
+.splash-btn-primary:active {
+  transform: scale(0.97);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.splash-btn-secondary {
+  width: 100%;
+  height: 52px;
+  border-radius: 9999px;
+  background: rgba(255, 255, 255, 0.12);
+  color: #ffffff;
+  border: 2px solid rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  font-size: 1.02rem;
+  font-weight: 900;
+  cursor: pointer;
+  transition: transform 0.15s ease, background 0.15s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  letter-spacing: 0.2px;
+}
+
+.splash-btn-secondary:active {
+  transform: scale(0.97);
+  background: rgba(255, 255, 255, 0.25);
+}
+
+.splash-disclaimer {
+  color: rgba(255, 255, 255, 0.88);
+  font-size: 0.76rem;
+  text-align: center;
+  margin: 6px 0 0 0;
+  line-height: 1.5;
+  font-weight: 600;
+  max-width: 380px;
+}
+
+.splash-disclaimer a {
+  color: #ffffff;
+  font-weight: 900;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+  transition: opacity 0.2s ease;
+}
+
+.splash-disclaimer a:hover {
+  opacity: 0.85;
+}
+
+/* ==========================================================================
+   BOTTOM SHEET (VENTANA INFERIOR DESLIZABLE)
+   ========================================================================== */
+.bottom-sheet-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.65);
+  backdrop-filter: blur(5px);
+  -webkit-backdrop-filter: blur(5px);
+  z-index: 10000;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.25s ease;
+}
+
+.bottom-sheet-backdrop.open {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.bottom-sheet-card {
+  width: 100%;
+  max-width: 460px;
+  background: #ffffff;
+  border-top-left-radius: 28px;
+  border-top-right-radius: 28px;
+  padding: 14px 22px calc(24px + env(safe-area-inset-bottom, 12px));
+  box-shadow: 0 -12px 45px rgba(0, 0, 0, 0.32);
+  max-height: 90vh;
+  overflow-y: auto;
+  box-sizing: border-box;
+  transform: translateY(100%);
+  transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.bottom-sheet-backdrop.open .bottom-sheet-card {
+  transform: translateY(0);
+}
+
+.bottom-sheet-pill-handle {
+  width: 44px;
+  height: 5px;
+  border-radius: 3px;
+  background: #cbd5e1;
+  margin: 0 auto 14px;
+}
+
+.bottom-sheet-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.bottom-sheet-close-btn {
+  background: #f1f5f9;
+  border: none;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  font-size: 1.1rem;
+  color: #64748b;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.bottom-sheet-close-btn:hover {
+  background: #e2e8f0;
+  color: #0f172a;
+}
+
+/* ==========================================================================
+   VISTA DE LOGIN CLÃSICA (COMPATIBILIDAD Y MEMORIA)
+   ========================================================================== */
+.login-overlay {
+  position: fixed;
+  inset: 0;
+  background: radial-gradient(circle at 50% 10%, #0284c7 0%, #0f172a 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  z-index: 9999;
+  overflow-y: auto;
+}
+
+.login-card {
+  background: var(--card-bg, #ffffff);
+  color: var(--text-main, #0f172a);
+  border-radius: 24px;
+  padding: 28px 24px;
+  width: 100%;
+  max-width: 420px;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.45);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  animation: fadeIn 0.25s ease-out;
+}
+
+.login-brand {
+  text-align: center;
+  margin-bottom: 22px;
+}
+
+.login-logo {
+  font-size: 3rem;
+  display: inline-block;
+  background: #e0f2fe;
+  padding: 12px;
+  border-radius: 20px;
+  margin-bottom: 10px;
+}
+
+.login-title {
+  font-size: 1.6rem;
+  font-weight: 900;
+  letter-spacing: -0.5px;
+  color: #0f172a;
+  margin: 0;
+}
+
+.login-subtitle {
+  font-size: 0.8rem;
+  color: #64748b;
+  margin-top: 4px;
+  font-weight: 600;
+}
+
+.login-form-group {
+  margin-bottom: 14px;
