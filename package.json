@@ -22,6 +22,7 @@
   "homepage": "https://github.com/pampo32-hub/recreopay#readme",
   "dependencies": {
     "better-sqlite3": "^13.0.3",
+    "compression": "^1.8.2",
     "cors": "^2.8.6",
     "express": "^5.2.1",
     "imap-simple": "^5.1.0",

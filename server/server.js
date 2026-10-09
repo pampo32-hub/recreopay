@@ -89,8 +89,12 @@ async function sendWebPushNotification({ escuelaId = null, payload, roles = ['ad
   }
 }
 
+const compression = require('compression');
 const app = express();
 const PORT = process.env.PORT || 3030;
+
+// Compresión Gzip de alto rendimiento para HTML, JS, CSS y JSON
+app.use(compression());
 
 // Initialize DB schema & seed data
 initDatabase();
@@ -114,12 +118,18 @@ app.get('/desktop-preview.html', (req, res) => {
   res.redirect(301, '/');
 });
 
+// Servir archivos estáticos con compresión y caché optimizado para PWA
 app.use(express.static(path.join(__dirname, '../public'), {
-  etag: false,
+  etag: true,
+  maxAge: '1d',
   setHeaders: (res, filePath) => {
-    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
-    res.setHeader('Pragma', 'no-cache');
-    res.setHeader('Expires', '0');
+    // Para HTML y Service Worker: siempre revalidar para garantizar actualizaciones inmediatas
+    if (filePath.endsWith('.html') || filePath.endsWith('sw.js') || filePath.endsWith('manifest.json')) {
+      res.setHeader('Cache-Control', 'no-cache, must-revalidate');
+    } else {
+      // Para CSS, JS, imágenes y fuentes: permitir caché con stale-while-revalidate para arranque instantáneo
+      res.setHeader('Cache-Control', 'public, max-age=86400, stale-while-revalidate=604800');
+    }
   }
 }));
 

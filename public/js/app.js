@@ -68,7 +68,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   // Registrar Service Worker para PWA
   if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('/sw.js?v=15.0').then(reg => {
+    navigator.serviceWorker.register('/sw.js?v=16.0').then(reg => {
       reg.update().catch(() => {});
       if ('Notification' in window && Notification.permission === 'granted') {
         subscribeDeviceToWebPush().catch(() => {});
@@ -545,13 +545,39 @@ async function applyUserRoleSession() {
 
     const btnPadres = document.getElementById('btnModePadres');
     if (btnPadres) btnPadres.style.display = 'none';
-    
-    await loadInitialData();
+
+    // 🚀 RENDERIZADO OPTIMISTA INSTANTÁNEO (0 ms):
+    // El estudiante ve su carné, saldo y botón de QR de inmediato con sus datos guardados localmente
     if (currentUser.estudiante) {
-      await selectStudent(currentUser.estudiante.id);
+      currentStudent = currentUser.estudiante;
+      currentAppMode = 'teens';
+      updateStudentUI();
+    }
+
+    // En segundo plano y en paralelo: sincronizar datos frescos sin congelar la pantalla
+    const studentTasks = [loadInitialData(true)];
+
+    if (currentUser.estudiante) {
+      studentTasks.push(
+        fetch(`/api/estudiantes/${currentUser.estudiante.id}`)
+          .then(r => r.json())
+          .then(freshStudent => {
+            if (freshStudent && freshStudent.id) {
+              currentStudent = freshStudent;
+              currentUser.estudiante = freshStudent;
+              try {
+                localStorage.setItem('sibopay_user', JSON.stringify(currentUser));
+              } catch (_) {}
+              updateStudentUI();
+            }
+          })
+          .catch(e => console.warn('Error sincronizando estudiante:', e))
+      );
     } else if (students.length > 0) {
       selectStudent(students[0].id);
     }
+
+    await Promise.allSettled(studentTasks);
   }
 }
 
@@ -678,34 +704,39 @@ function pwaNavigateTo(target) {
   }
 }
 
-async function loadInitialData() {
+async function loadInitialData(isStudent = false) {
   try {
-    // 1. Cargar estudiantes
-    const resEst = await fetch('/api/estudiantes');
-    students = await resEst.json();
-
-    populateStudentSelector();
-
-    // 2. Cargar productos y categorías de la escuela activa
     const escId = (currentUser && currentUser.escuela_id) || (currentStudent && currentStudent.escuela_id) || 1;
-    const resProd = await fetch(`/api/productos?escuela_id=${escId}`);
-    const dataProd = await resProd.json();
-    categories = dataProd.categorias || [];
-    
-    // Deduplicar productos para garantizar que nunca se repita ninguno
-    const seenNames = new Set();
-    products = (dataProd.productos || []).filter(p => {
-      const key = String(p.nombre).trim().toLowerCase();
-      if (seenNames.has(key)) return false;
-      seenNames.add(key);
-      return true;
-    });
 
-    renderCategories();
-    renderProducts();
+    // 🚀 Ejecución paralela ultra rápida con Promise.all
+    const promises = [
+      fetch(`/api/productos?escuela_id=${escId}`).then(r => r.json()).catch(() => ({ categorias: [], productos: [] })),
+      loadCardDesigns()
+    ];
 
-    // 3. Cargar catálogo de diseños de tarjetas
-    await loadCardDesigns();
+    if (!isStudent) {
+      promises.push(fetch('/api/estudiantes').then(r => r.json()).catch(() => []));
+    }
+
+    const [dataProd, _, resEst] = await Promise.all(promises);
+
+    if (dataProd) {
+      categories = dataProd.categorias || [];
+      const seenNames = new Set();
+      products = (dataProd.productos || []).filter(p => {
+        const key = String(p.nombre).trim().toLowerCase();
+        if (seenNames.has(key)) return false;
+        seenNames.add(key);
+        return true;
+      });
+      renderCategories();
+      renderProducts();
+    }
+
+    if (!isStudent && Array.isArray(resEst)) {
+      students = resEst;
+      populateStudentSelector();
+    }
   } catch (error) {
     console.error('Error cargando datos iniciales:', error);
   }

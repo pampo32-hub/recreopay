@@ -1,5 +1,5 @@
-// SiboPay PWA Service Worker v15.0 - Dashboard Ejecutivo de Padres & Persistencia Sesión F5
-const CACHE_NAME = 'sibopay-v15.0';
+// SiboPay PWA Service Worker v16.0 - Ultra Fast Startup & Stale-While-Revalidate
+const CACHE_NAME = 'sibopay-v16.0';
 const STATIC_ASSETS = [
   '/',
   '/index.html',
@@ -7,13 +7,13 @@ const STATIC_ASSETS = [
   '/pistola.html',
   '/carnet.html',
   '/manifest.json',
-  '/css/styles.css',
-  '/css/desktop.css',
-  '/js/dialogs.js',
-  '/js/app.js',
+  '/css/styles.css?v=14.0',
+  '/css/desktop.css?v=2.2',
+  '/js/dialogs.js?v=13.8',
+  '/js/app.js?v=14.0',
   '/js/pos.js',
-  '/js/sounds.js',
-  '/js/food-icons.js',
+  '/js/sounds.js?v=13.8',
+  '/js/food-icons.js?v=1.1',
   '/icons/icon-192.png',
   '/icons/icon-512.png',
   '/img/sibopay-emblem.png',
@@ -46,11 +46,11 @@ self.addEventListener('activate', (event) => {
   );
 });
 
-// Network-First con fallback a caché para navegación y recursos estáticos
+// Estrategia Stale-While-Revalidate para apertura instantánea (0ms) en móviles
 self.addEventListener('fetch', (event) => {
   const url = new URL(event.request.url);
 
-  // APIs y Server-Sent Events (SSE): Directo a red sin caché
+  // APIs y Server-Sent Events (SSE): Directo a red en tiempo real sin caché
   if (url.pathname.startsWith('/api/') || url.pathname.startsWith('/events')) {
     return;
   }
@@ -61,24 +61,33 @@ self.addEventListener('fetch', (event) => {
   }
 
   event.respondWith(
-    fetch(event.request)
-      .then((networkResponse) => {
-        if (networkResponse && networkResponse.status === 200) {
-          const responseClone = networkResponse.clone();
-          caches.open(CACHE_NAME).then((cache) => {
-            cache.put(event.request, responseClone);
-          });
-        }
-        return networkResponse;
-      })
-      .catch(() => {
-        return caches.match(event.request).then((cachedResponse) => {
-          if (cachedResponse) return cachedResponse;
+    caches.match(event.request).then((cachedResponse) => {
+      // Lanzar actualización en segundo plano (revalidate) sin bloquear la pantalla
+      const fetchPromise = fetch(event.request)
+        .then((networkResponse) => {
+          if (networkResponse && networkResponse.status === 200) {
+            const responseClone = networkResponse.clone();
+            caches.open(CACHE_NAME).then((cache) => {
+              cache.put(event.request, responseClone);
+            });
+          }
+          return networkResponse;
+        })
+        .catch(() => {
+          // Si no hay red y era navegación, retornar index.html en caché
           if (event.request.mode === 'navigate') {
             return caches.match('/index.html');
           }
         });
-      })
+
+      // Si ya está en la memoria del teléfono, entregar INMEDIATAMENTE (<15ms)
+      if (cachedResponse) {
+        return cachedResponse;
+      }
+
+      // Si es la primera vez que se descarga, esperar la respuesta de red
+      return fetchPromise;
+    })
   );
 });
 
