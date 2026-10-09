@@ -119,9 +119,20 @@ app.get('/desktop-preview.html', (req, res) => {
 });
 
 // Android Digital Asset Links para TWA (Google Play Store)
-app.get(['/.well-known/assetlinks.json', '/.well-known/assetlinks'], (req, res) => {
-  res.setHeader('Content-Type', 'application/json');
-  res.sendFile(path.join(__dirname, '../public/.well-known/assetlinks.json'));
+const assetlinksPath = path.join(__dirname, '../public/.well-known/assetlinks.json');
+let assetlinksContent = '[]';
+try {
+  assetlinksContent = fs.readFileSync(assetlinksPath, 'utf8');
+} catch (e) {}
+
+app.use((req, res, next) => {
+  if (req.path === '/.well-known/assetlinks.json' || req.path === '/.well-known/assetlinks') {
+    res.setHeader('Content-Type', 'application/json');
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Cache-Control', 'public, max-age=3600');
+    return res.send(assetlinksContent);
+  }
+  next();
 });
 
 // Servir archivos estáticos con compresión y caché optimizado para PWA
