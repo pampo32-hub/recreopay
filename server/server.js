@@ -35,7 +35,11 @@ const {
   enriquecerEstudianteFinanzas,
   obtenerHorariosEscuela,
   actualizarHorariosEscuela,
-  formatTime12h
+  formatTime12h,
+  buscarSinpeUniversalDev,
+  forzarAprobarSolicitudDev,
+  rechazarSolicitudDev,
+  vincularBancoAEstudianteDev
 } = require('./db');
 const { checkSinpeEmailsOnce, simularSinpeEmail } = require('./sinpeImapService');
 const { normalizarCodigoDetalle, parseSinpeEmail } = require('./sinpeParser');
@@ -2410,6 +2414,109 @@ app.post('/api/developer/estudiantes/importar-masivo', (req, res) => {
     });
   } catch (err) {
     res.status(500).json({ error: err.message });
+  }
+});
+
+// ==========================================
+// BUSCADOR UNIVERSAL Y AUDITORÍA SINPE (DEVELOPER)
+// ==========================================
+
+// 1. Buscador universal multicriterio
+app.get('/api/developer/sinpe/buscar', (req, res) => {
+  try {
+    const { q, estado, escuela_id, fecha, origen, limite } = req.query;
+    const data = buscarSinpeUniversalDev({
+      q: q || '',
+      estado: estado || 'todas',
+      escuelaId: escuela_id || null,
+      fecha: fecha || 'todas',
+      origen: origen || 'todas',
+      limite: limite || 100
+    });
+    res.json({ exito: true, ...data });
+  } catch (err) {
+    console.error('Error en /api/developer/sinpe/buscar:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// 2. Aprobación forzada por Developer Master
+app.post('/api/developer/sinpe/aprobar', (req, res) => {
+  try {
+    const { solicitud_id, motivo, usuario_id } = req.body;
+    if (!solicitud_id) {
+      return res.status(400).json({ error: 'solicitud_id es requerido' });
+    }
+
+    const resultado = forzarAprobarSolicitudDev({
+      solicitudId: parseInt(solicitud_id, 10),
+      usuarioId: usuario_id ? parseInt(usuario_id, 10) : null,
+      motivo: motivo || 'Aprobado manualmente por Master Developer'
+    });
+
+    broadcastEvent('recarga_exitosa', resultado);
+    broadcastEvent('estudiante_actualizado', { id: resultado.estudiante_id, saldo_colones: resultado.saldo_nuevo });
+    broadcastEvent('saldo_actualizado', { id: resultado.estudiante_id, saldo_colones: resultado.saldo_nuevo });
+    broadcastEvent('solicitud_sinpe_procesada', resultado);
+    broadcastEvent('movimiento_registrado', resultado);
+
+    res.json({ exito: true, resultado, mensaje: `¡Recarga de ₡${Number(resultado.monto).toLocaleString('es-CR')} acreditada con éxito!` });
+  } catch (err) {
+    console.error('Error en /api/developer/sinpe/aprobar:', err);
+    res.status(400).json({ error: err.message });
+  }
+});
+
+// 3. Rechazo de solicitud por Developer Master
+app.post('/api/developer/sinpe/rechazar', (req, res) => {
+  try {
+    const { solicitud_id, motivo, usuario_id } = req.body;
+    if (!solicitud_id) {
+      return res.status(400).json({ error: 'solicitud_id es requerido' });
+    }
+
+    const resultado = rechazarSolicitudDev({
+      solicitudId: parseInt(solicitud_id, 10),
+      usuarioId: usuario_id ? parseInt(usuario_id, 10) : null,
+      motivo: motivo || 'Comprobante no verificado o inválido'
+    });
+
+    broadcastEvent('sinpe_rechazado', resultado);
+    broadcastEvent('solicitud_sinpe_procesada', resultado);
+    broadcastEvent('movimiento_registrado', resultado);
+
+    res.json({ exito: true, resultado, mensaje: 'Solicitud rechazada y registrada en auditoría con éxito.' });
+  } catch (err) {
+    console.error('Error en /api/developer/sinpe/rechazar:', err);
+    res.status(400).json({ error: err.message });
+  }
+});
+
+// 4. Vincular notificación bancaria huérfana a estudiante
+app.post('/api/developer/sinpe/vincular-banco', (req, res) => {
+  try {
+    const { banco_tx_id, estudiante_id, usuario_id, notas } = req.body;
+    if (!banco_tx_id || !estudiante_id) {
+      return res.status(400).json({ error: 'banco_tx_id y estudiante_id son requeridos' });
+    }
+
+    const resultado = vincularBancoAEstudianteDev({
+      bancoTxId: banco_tx_id,
+      estudianteId: parseInt(estudiante_id, 10),
+      usuarioId: usuario_id ? parseInt(usuario_id, 10) : null,
+      notas: notas || null
+    });
+
+    broadcastEvent('recarga_exitosa', resultado);
+    broadcastEvent('estudiante_actualizado', { id: resultado.estudiante_id, saldo_colones: resultado.saldo_nuevo });
+    broadcastEvent('saldo_actualizado', { id: resultado.estudiante_id, saldo_colones: resultado.saldo_nuevo });
+    broadcastEvent('solicitud_sinpe_procesada', resultado);
+    broadcastEvent('movimiento_registrado', resultado);
+
+    res.json({ exito: true, resultado, mensaje: `¡Depósito bancario de ₡${Number(resultado.monto).toLocaleString('es-CR')} vinculado y acreditado con éxito a ${resultado.estudiante_nombre}!` });
+  } catch (err) {
+    console.error('Error en /api/developer/sinpe/vincular-banco:', err);
+    res.status(400).json({ error: err.message });
   }
 });
 

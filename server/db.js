@@ -1653,6 +1653,571 @@ function procesarSolicitudRecargaSinpe({ solicitudId, accion, usuarioId, motivo,
   return transaction();
 }
 
+/**
+ * Buscador Universal de SINPE Móvil para el Panel Developer Master Suite.
+ * Cruza solicitudes de recarga, notificaciones bancarias (IMAP/Webhook) y movimientos de saldo.
+ */
+function buscarSinpeUniversalDev({ q = '', estado = 'todas', escuelaId = null, fecha = 'todas', origen = 'todas', limite = 100 } = {}) {
+  const cleanQ = (q || '').trim();
+  const searchPattern = cleanQ ? `%${cleanQ}%` : null;
+  const numLimite = Math.min(Math.max(parseInt(limite, 10) || 100, 10), 300);
+
+  // 1. Métricas / KPIs Globales
+  let totalAcreditadoMonto = 0;
+  let totalRecargasCount = 0;
+  try {
+    const rowRec = db.prepare(`
+      SELECT COALESCE(SUM(monto_colones), 0) as total, COUNT(*) as cant
+      FROM transacciones_saldo
+      WHERE tipo = 'recarga_sinpe'
+    `).get();
+    if (rowRec) {
+      totalAcreditadoMonto = Number(rowRec.total || 0);
+      totalRecargasCount = Number(rowRec.cant || 0);
+    }
+  } catch (e) {}
+
+  let totalPendientesCount = 0;
+  let totalRechazadasCount = 0;
+  try {
+    const rowSol = db.prepare(`
+      SELECT 
+        SUM(CASE WHEN estado = 'pendiente' THEN 1 ELSE 0 END) as pendientes,
+        SUM(CASE WHEN estado = 'rechazada' THEN 1 ELSE 0 END) as rechazadas
+      FROM solicitudes_recarga_sinpe
+    `).get();
+    if (rowSol) {
+      totalPendientesCount = Number(rowSol.pendientes || 0);
+      totalRechazadasCount = Number(rowSol.rechazadas || 0);
+    }
+  } catch (e) {}
+
+  let totalBancoUnclaimedCount = 0;
+  let totalBancoUnclaimedMonto = 0;
+  try {
+    const rowBanco = db.prepare(`
+      SELECT COUNT(*) as cant, COALESCE(SUM(amount_crc), 0) as total
+      FROM sinpe_transacciones_banco
+      WHERE status = 'unclaimed'
+    `).get();
+    if (rowBanco) {
+      totalBancoUnclaimedCount = Number(rowBanco.cant || 0);
+      totalBancoUnclaimedMonto = Number(rowBanco.total || 0);
+    }
+  } catch (e) {}
+
+  const resultados = [];
+
+  // Helper de condición de fecha compatible SQLite / PostgreSQL
+  function aplicarCondicionFecha(colName) {
+    if (fecha === 'hoy') {
+      return `date(${colName}) = date('now')`;
+    } else if (fecha === '7dias') {
+      return `${colName} >= datetime('now', '-7 days')`;
+    } else if (fecha === '30dias') {
+      return `${colName} >= datetime('now', '-30 days')`;
+    }
+    return null;
+  }
+
+  // 2. Consulta de Solicitudes de Padres (solicitudes_recarga_sinpe)
+  if (origen === 'todas' || origen === 'solicitudes') {
+    let sqlSol = `
+      SELECT 
+        s.id,
+        'solicitud' as origen_tipo,
+        s.comprobante_sinpe,
+        s.codigo_detalle,
+        s.monto_colones,
+        s.estado,
+        s.notas,
+        s.aprobado_por_usuario_id,
+        s.creado_en as fecha_registro,
+        s.procesado_en as fecha_procesado,
+        e.id as estudiante_id,
+        e.nombre_completo as estudiante_nombre,
+        e.codigo_estudiante,
+        e.grado as estudiante_grado,
+        e.seccion as estudiante_seccion,
+        e.saldo_colones as estudiante_saldo,
+        COALESCE(u.nombre, e.padre_nombre) as padre_nombre,
+        COALESCE(u.telefono, e.padre_telefono) as padre_telefono,
+        esc.id as escuela_id,
+        esc.nombre as escuela_nombre,
+        esc.codigo as escuela_codigo,
+        aprob_u.nombre as procesado_por_nombre
+      FROM solicitudes_recarga_sinpe s
+      JOIN estudiantes e ON e.id = s.estudiante_id
+      LEFT JOIN usuarios u ON u.id = s.padre_usuario_id
+      LEFT JOIN escuelas esc ON esc.id = s.escuela_id
+      LEFT JOIN usuarios aprob_u ON aprob_u.id = s.aprobado_por_usuario_id
+    `;
+    const condSol = [];
+    const paramsSol = [];
+
+    if (searchPattern) {
+      condSol.push(`(
+        s.comprobante_sinpe LIKE ? OR 
+        s.codigo_detalle LIKE ? OR 
+        e.nombre_completo LIKE ? OR 
+        e.codigo_estudiante LIKE ? OR 
+        COALESCE(u.nombre, e.padre_nombre) LIKE ? OR 
+        COALESCE(u.telefono, e.padre_telefono) LIKE ?
+      )`);
+      paramsSol.push(searchPattern, searchPattern, searchPattern, searchPattern, searchPattern, searchPattern);
+    }
+
+    if (estado && estado !== 'todas') {
+      if (estado === 'unclaimed') {
+        condSol.push('1 = 0');
+      } else {
+        condSol.push('s.estado = ?');
+        paramsSol.push(estado);
+      }
+    }
+
+    if (escuelaId && escuelaId !== 'todas') {
+      condSol.push('s.escuela_id = ?');
+      paramsSol.push(parseInt(escuelaId, 10));
+    }
+
+    const condFechaSol = aplicarCondicionFecha('s.creado_en');
+    if (condFechaSol) {
+      condSol.push(condFechaSol);
+    }
+
+    if (condSol.length > 0) {
+      sqlSol += ' WHERE ' + condSol.join(' AND ');
+    }
+    sqlSol += ' ORDER BY s.creado_en DESC LIMIT ?';
+    paramsSol.push(numLimite);
+
+    try {
+      const rowsSol = db.prepare(sqlSol).all(...paramsSol);
+      for (const r of rowsSol) {
+        resultados.push({
+          uid: `sol_${r.id}`,
+          raw_id: r.id,
+          origen: 'solicitud',
+          comprobante: r.comprobante_sinpe,
+          codigo_detalle: r.codigo_detalle,
+          monto: Number(r.monto_colones),
+          estado: r.estado,
+          fecha: r.fecha_registro,
+          fecha_procesado: r.fecha_procesado,
+          notas: r.notas,
+          estudiante_id: r.estudiante_id,
+          estudiante_nombre: r.estudiante_nombre,
+          estudiante_codigo: r.estudiante_codigo,
+          estudiante_grado: r.estudiante_grado,
+          estudiante_seccion: r.estudiante_seccion,
+          estudiante_saldo: Number(r.estudiante_saldo || 0),
+          padre_nombre: r.padre_nombre,
+          padre_telefono: r.padre_telefono,
+          escuela_id: r.escuela_id,
+          escuela_nombre: r.escuela_nombre || 'Sede Central',
+          escuela_codigo: r.escuela_codigo,
+          banco_origen: null,
+          procesado_por: r.procesado_por_nombre
+        });
+      }
+    } catch (e) {
+      console.error('Error buscando en solicitudes_recarga_sinpe:', e);
+    }
+  }
+
+  // 3. Consulta de Notificaciones Bancarias (sinpe_transacciones_banco)
+  if (origen === 'todas' || origen === 'banco') {
+    let sqlBanco = `
+      SELECT 
+        b.id,
+        'banco' as origen_tipo,
+        b.reference_number as comprobante_sinpe,
+        b.codigo_detalle,
+        b.amount_crc as monto_colones,
+        b.status as estado,
+        b.sender_name as padre_nombre,
+        b.sender_phone as padre_telefono,
+        b.origin_bank as banco_origen,
+        b.received_at as fecha_registro,
+        b.verified_at as fecha_procesado,
+        e.id as estudiante_id,
+        e.nombre_completo as estudiante_nombre,
+        e.codigo_estudiante,
+        e.grado as estudiante_grado,
+        e.seccion as estudiante_seccion,
+        e.saldo_colones as estudiante_saldo,
+        esc.id as escuela_id,
+        esc.nombre as escuela_nombre,
+        esc.codigo as escuela_codigo
+      FROM sinpe_transacciones_banco b
+      LEFT JOIN estudiantes e ON e.id = b.claimed_by_estudiante_id
+      LEFT JOIN escuelas esc ON esc.id = e.escuela_id
+    `;
+    const condBanco = [];
+    const paramsBanco = [];
+
+    if (searchPattern) {
+      condBanco.push(`(
+        b.reference_number LIKE ? OR 
+        b.codigo_detalle LIKE ? OR 
+        b.sender_name LIKE ? OR 
+        b.sender_phone LIKE ? OR 
+        b.origin_bank LIKE ? OR 
+        e.nombre_completo LIKE ?
+      )`);
+      paramsBanco.push(searchPattern, searchPattern, searchPattern, searchPattern, searchPattern, searchPattern);
+    }
+
+    if (estado && estado !== 'todas') {
+      if (estado === 'unclaimed') {
+        condBanco.push("b.status = 'unclaimed'");
+      } else if (estado === 'aprobada' || estado === 'used') {
+        condBanco.push("b.status = 'used'");
+      } else if (estado === 'pendiente' || estado === 'rechazada') {
+        condBanco.push('1 = 0');
+      }
+    }
+
+    if (escuelaId && escuelaId !== 'todas') {
+      condBanco.push('e.escuela_id = ?');
+      paramsBanco.push(parseInt(escuelaId, 10));
+    }
+
+    const condFechaBanco = aplicarCondicionFecha('b.received_at');
+    if (condFechaBanco) {
+      condBanco.push(condFechaBanco);
+    }
+
+    if (condBanco.length > 0) {
+      sqlBanco += ' WHERE ' + condBanco.join(' AND ');
+    }
+    sqlBanco += ' ORDER BY b.received_at DESC LIMIT ?';
+    paramsBanco.push(numLimite);
+
+    try {
+      const rowsBanco = db.prepare(sqlBanco).all(...paramsBanco);
+      for (const r of rowsBanco) {
+        resultados.push({
+          uid: `ban_${r.id}`,
+          raw_id: r.id,
+          origen: 'banco',
+          comprobante: r.comprobante_sinpe,
+          codigo_detalle: r.codigo_detalle,
+          monto: Number(r.monto_colones),
+          estado: r.estado,
+          fecha: r.fecha_registro,
+          fecha_procesado: r.fecha_procesado,
+          notas: r.banco_origen ? `Notificación bancaria (${r.banco_origen})` : 'Notificación bancaria',
+          estudiante_id: r.estudiante_id,
+          estudiante_nombre: r.estudiante_nombre,
+          estudiante_codigo: r.estudiante_codigo,
+          estudiante_grado: r.estudiante_grado,
+          estudiante_seccion: r.estudiante_seccion,
+          estudiante_saldo: Number(r.estudiante_saldo || 0),
+          padre_nombre: r.padre_nombre,
+          padre_telefono: r.padre_telefono,
+          escuela_id: r.escuela_id,
+          escuela_nombre: r.escuela_nombre || (r.estudiante_id ? 'Sede Central' : 'Por Asignar'),
+          escuela_codigo: r.escuela_codigo,
+          banco_origen: r.banco_origen,
+          procesado_por: null
+        });
+      }
+    } catch (e) {
+      console.error('Error buscando en sinpe_transacciones_banco:', e);
+    }
+  }
+
+  // 4. Consulta de Movimientos Históricos de Saldo (transacciones_saldo)
+  if (origen === 'todas' || origen === 'saldo') {
+    let sqlTx = `
+      SELECT 
+        t.id,
+        'saldo' as origen_tipo,
+        t.comprobante_sinpe,
+        t.monto_colones,
+        t.tipo,
+        t.descripcion,
+        t.fecha as fecha_registro,
+        e.id as estudiante_id,
+        e.nombre_completo as estudiante_nombre,
+        e.codigo_estudiante,
+        e.grado as estudiante_grado,
+        e.seccion as estudiante_seccion,
+        e.saldo_colones as estudiante_saldo,
+        e.padre_nombre,
+        e.padre_telefono,
+        esc.id as escuela_id,
+        esc.nombre as escuela_nombre,
+        esc.codigo as escuela_codigo
+      FROM transacciones_saldo t
+      JOIN estudiantes e ON e.id = t.estudiante_id
+      LEFT JOIN escuelas esc ON esc.id = t.escuela_id
+      WHERE t.tipo IN ('recarga_sinpe', 'sinpe_rechazado', 'reversion_recarga')
+    `;
+    const condTx = [];
+    const paramsTx = [];
+
+    if (searchPattern) {
+      condTx.push(`(
+        t.comprobante_sinpe LIKE ? OR 
+        t.descripcion LIKE ? OR 
+        e.nombre_completo LIKE ? OR 
+        e.codigo_estudiante LIKE ? OR 
+        e.padre_nombre LIKE ? OR 
+        e.padre_telefono LIKE ?
+      )`);
+      paramsTx.push(searchPattern, searchPattern, searchPattern, searchPattern, searchPattern, searchPattern);
+    }
+
+    if (estado && estado !== 'todas') {
+      if (estado === 'aprobada') {
+        condTx.push("t.tipo = 'recarga_sinpe'");
+      } else if (estado === 'rechazada') {
+        condTx.push("t.tipo = 'sinpe_rechazado'");
+      } else {
+        condTx.push('1 = 0');
+      }
+    }
+
+    if (escuelaId && escuelaId !== 'todas') {
+      condTx.push('t.escuela_id = ?');
+      paramsTx.push(parseInt(escuelaId, 10));
+    }
+
+    const condFechaTx = aplicarCondicionFecha('t.fecha');
+    if (condFechaTx) {
+      condTx.push(condFechaTx);
+    }
+
+    if (condTx.length > 0) {
+      sqlTx += ' AND ' + condTx.join(' AND ');
+    }
+    sqlTx += ' ORDER BY t.fecha DESC LIMIT ?';
+    paramsTx.push(numLimite);
+
+    try {
+      const rowsTx = db.prepare(sqlTx).all(...paramsTx);
+      for (const r of rowsTx) {
+        const existe = resultados.some(x => x.comprobante && r.comprobante_sinpe && x.comprobante === r.comprobante_sinpe && x.monto === Number(r.monto_colones));
+        if (!existe) {
+          resultados.push({
+            uid: `tx_${r.id}`,
+            raw_id: r.id,
+            origen: 'saldo',
+            comprobante: r.comprobante_sinpe,
+            codigo_detalle: null,
+            monto: Number(r.monto_colones),
+            estado: r.tipo === 'recarga_sinpe' ? 'aprobada' : (r.tipo === 'sinpe_rechazado' ? 'rechazada' : 'revertida'),
+            fecha: r.fecha_registro,
+            fecha_procesado: r.fecha_registro,
+            notas: r.descripcion,
+            estudiante_id: r.estudiante_id,
+            estudiante_nombre: r.estudiante_nombre,
+            estudiante_codigo: r.estudiante_codigo,
+            estudiante_grado: r.estudiante_grado,
+            estudiante_seccion: r.estudiante_seccion,
+            estudiante_saldo: Number(r.estudiante_saldo || 0),
+            padre_nombre: r.padre_nombre,
+            padre_telefono: r.padre_telefono,
+            escuela_id: r.escuela_id,
+            escuela_nombre: r.escuela_nombre || 'Sede Central',
+            escuela_codigo: r.escuela_codigo,
+            banco_origen: null,
+            procesado_por: 'Transacción Directa'
+          });
+        }
+      }
+    } catch (e) {
+      console.error('Error buscando en transacciones_saldo:', e);
+    }
+  }
+
+  // Ordenar todo por fecha descendente
+  resultados.sort((a, b) => new Date(b.fecha || 0) - new Date(a.fecha || 0));
+
+  return {
+    resumen: {
+      total_acreditado_sinpe: totalAcreditadoMonto,
+      total_recargas_count: totalRecargasCount,
+      total_pendientes_count: totalPendientesCount,
+      total_rechazadas_count: totalRechazadasCount,
+      total_banco_unclaimed_count: totalBancoUnclaimedCount,
+      total_banco_unclaimed_monto: totalBancoUnclaimedMonto
+    },
+    resultados: resultados.slice(0, numLimite),
+    total_encontrados: resultados.length
+  };
+}
+
+/**
+ * Aprobación forzada por Developer Master (sin restricción de escuela)
+ */
+function forzarAprobarSolicitudDev({ solicitudId, usuarioId, motivo }) {
+  const transaction = db.transaction(() => {
+    const sol = db.prepare('SELECT * FROM solicitudes_recarga_sinpe WHERE id = ?').get(solicitudId);
+    if (!sol) throw new Error('Solicitud de recarga no encontrada');
+    if (sol.estado === 'aprobada') throw new Error('Esta solicitud ya fue aprobada previamente');
+
+    const est = db.prepare('SELECT * FROM estudiantes WHERE id = ?').get(sol.estudiante_id);
+    if (!est) throw new Error('Estudiante asociado no encontrado');
+
+    const desc = motivo || `Recarga SINPE aprobada por Master Developer (Comprobante #${sol.comprobante_sinpe})`;
+
+    const resultadoSaldo = recargaSaldoTransaction({
+      estudianteId: sol.estudiante_id,
+      monto: sol.monto_colones,
+      comprobanteSinpe: sol.comprobante_sinpe,
+      descripcion: desc,
+      escuelaId: sol.escuela_id || est.escuela_id || 1
+    });
+
+    db.prepare(`
+      UPDATE solicitudes_recarga_sinpe 
+      SET estado = 'aprobada', 
+          aprobado_por_usuario_id = ?, 
+          procesado_en = CURRENT_TIMESTAMP, 
+          notas = ?
+      WHERE id = ?
+    `).run(usuarioId || null, desc, solicitudId);
+
+    try {
+      if (sol.comprobante_sinpe) {
+        db.prepare(`
+          UPDATE sinpe_transacciones_banco
+          SET status = 'used', claimed_by_estudiante_id = ?, verified_at = CURRENT_TIMESTAMP
+          WHERE reference_number = ? AND status = 'unclaimed'
+        `).run(sol.estudiante_id, sol.comprobante_sinpe);
+      }
+    } catch (_) {}
+
+    return {
+      solicitud_id: solicitudId,
+      estado: 'aprobada',
+      estudiante_id: sol.estudiante_id,
+      monto: sol.monto_colones,
+      saldo_nuevo: resultadoSaldo.saldo_nuevo,
+      estudiante_nombre: resultadoSaldo.nombre,
+      escuela_id: sol.escuela_id || est.escuela_id || 1
+    };
+  });
+
+  return transaction();
+}
+
+/**
+ * Rechazo de solicitud por Developer Master con registro de auditoría
+ */
+function rechazarSolicitudDev({ solicitudId, usuarioId, motivo }) {
+  const transaction = db.transaction(() => {
+    const sol = db.prepare('SELECT * FROM solicitudes_recarga_sinpe WHERE id = ?').get(solicitudId);
+    if (!sol) throw new Error('Solicitud de recarga no encontrada');
+    if (sol.estado === 'rechazada') throw new Error('Esta solicitud ya fue rechazada previamente');
+
+    const est = db.prepare('SELECT * FROM estudiantes WHERE id = ?').get(sol.estudiante_id);
+    const saldoActual = est ? est.saldo_colones : 0;
+    const motivoRechazo = motivo || 'Comprobante no verificado o inválido (Rechazado por Master Developer)';
+
+    db.prepare(`
+      UPDATE solicitudes_recarga_sinpe 
+      SET estado = 'rechazada', 
+          aprobado_por_usuario_id = ?, 
+          procesado_en = CURRENT_TIMESTAMP, 
+          notas = ?
+      WHERE id = ?
+    `).run(usuarioId || null, motivoRechazo, solicitudId);
+
+    const compLabel = sol.comprobante_sinpe || (sol.codigo_detalle ? `Cód: ${sol.codigo_detalle}` : 'N/A');
+    db.prepare(`
+      INSERT INTO transacciones_saldo 
+      (estudiante_id, tipo, monto_colones, saldo_previo, saldo_posterior, comprobante_sinpe, descripcion, escuela_id)
+      VALUES (?, 'sinpe_rechazado', ?, ?, ?, ?, ?, ?)
+    `).run(
+      sol.estudiante_id,
+      sol.monto_colones,
+      saldoActual,
+      saldoActual,
+      compLabel,
+      `SINPE Rechazado por Developer: ${motivoRechazo} (Comprobante #${compLabel})`,
+      sol.escuela_id || (est ? est.escuela_id : 1) || 1
+    );
+
+    return {
+      solicitud_id: solicitudId,
+      estado: 'rechazada',
+      estudiante_id: sol.estudiante_id,
+      monto: sol.monto_colones,
+      estudiante_nombre: est ? est.nombre_completo : 'Estudiante',
+      motivo: motivoRechazo,
+      escuela_id: sol.escuela_id || (est ? est.escuela_id : 1) || 1
+    };
+  });
+
+  return transaction();
+}
+
+/**
+ * Vincular una notificación bancaria huérfana (sin reclamar) a un estudiante
+ */
+function vincularBancoAEstudianteDev({ bancoTxId, estudianteId, usuarioId, notas }) {
+  const transaction = db.transaction(() => {
+    const tx = db.prepare('SELECT * FROM sinpe_transacciones_banco WHERE id = ?').get(bancoTxId);
+    if (!tx) throw new Error('Transacción bancaria no encontrada');
+    if (tx.status === 'used') throw new Error('Esta transacción bancaria ya fue vinculada anteriormente');
+
+    const est = db.prepare('SELECT * FROM estudiantes WHERE id = ?').get(estudianteId);
+    if (!est) throw new Error('Estudiante no encontrado');
+
+    const monto = Number(tx.amount_crc);
+    if (monto <= 0) throw new Error('El monto de la transacción bancaria no es válido');
+
+    const desc = notas || `SINPE Banco acreditado por Master Developer (Ref #${tx.reference_number || tx.id} - ${tx.origin_bank || 'Banco'})`;
+
+    const resultadoSaldo = recargaSaldoTransaction({
+      estudianteId: est.id,
+      monto,
+      comprobanteSinpe: tx.reference_number || tx.id,
+      descripcion: desc,
+      escuelaId: est.escuela_id || 1
+    });
+
+    db.prepare(`
+      UPDATE sinpe_transacciones_banco
+      SET status = 'used', claimed_by_estudiante_id = ?, verified_at = CURRENT_TIMESTAMP
+      WHERE id = ?
+    `).run(est.id, bancoTxId);
+
+    const resSol = db.prepare(`
+      INSERT INTO solicitudes_recarga_sinpe (
+        estudiante_id, padre_usuario_id, monto_colones, comprobante_sinpe, codigo_detalle,
+        estado, notas, aprobado_por_usuario_id, escuela_id, procesado_en
+      ) VALUES (?, NULL, ?, ?, ?, 'aprobada', ?, ?, ?, CURRENT_TIMESTAMP)
+    `).run(
+      est.id,
+      monto,
+      tx.reference_number || tx.id,
+      tx.codigo_detalle || null,
+      desc,
+      usuarioId || null,
+      est.escuela_id || 1
+    );
+
+    return {
+      exito: true,
+      banco_id: bancoTxId,
+      solicitud_id: resSol.lastInsertRowid || resSol.id,
+      estudiante_id: est.id,
+      estudiante_nombre: est.nombre_completo,
+      monto,
+      saldo_nuevo: resultadoSaldo.saldo_nuevo,
+      comprobante: tx.reference_number || tx.id
+    };
+  });
+
+  return transaction();
+}
+
 function guardarSuscripcionPush({ endpoint, p256dh, auth, userId = null, rol = 'cajero', escuelaId = 1 }) {
   const stmt = db.prepare(`
     INSERT INTO push_subscriptions (endpoint, p256dh, auth, user_id, rol, escuela_id)
@@ -1959,5 +2524,9 @@ module.exports = {
   enriquecerEstudianteFinanzas,
   obtenerHorariosEscuela,
   actualizarHorariosEscuela,
-  formatTime12h
+  formatTime12h,
+  buscarSinpeUniversalDev,
+  forzarAprobarSolicitudDev,
+  rechazarSolicitudDev,
+  vincularBancoAEstudianteDev
 };

@@ -616,6 +616,12 @@ function switchDevTab(tab) {
     if (btn) btn.classList.add('active');
     if (content) content.style.display = 'block';
     cargarEscuelasSelectImportacion();
+  } else if (tab === 'sinpe') {
+    const btn = document.getElementById('btnDevTabSinpe');
+    const content = document.getElementById('devTabContentSinpe');
+    if (btn) btn.classList.add('active');
+    if (content) content.style.display = 'block';
+    loadDevSinpeUniversal();
   }
 }
 
@@ -9812,4 +9818,862 @@ function triggerGlobalHapticFeedback(e) {
 }
 document.addEventListener('touchstart', triggerGlobalHapticFeedback, { passive: true });
 document.addEventListener('pointerdown', triggerGlobalHapticFeedback, { passive: true });
+
+// ========================================================
+// BUSCADOR UNIVERSAL SINPE MÓVIL Y AUDITORÍA MASTER (DEVELOPER)
+// ========================================================
+
+let currentDevSinpeItems = [];
+let devSinpeSearchTimer = null;
+let currentDevSinpeSelectedItem = null;
+let devCachedEstudiantesList = [];
+
+/**
+ * Carga y actualiza los datos del Buscador Universal de SINPE Móvil
+ */
+async function loadDevSinpeUniversal() {
+  const tbody = document.getElementById('devSinpeTableBody');
+  const countBadge = document.getElementById('devSinpeResultCountBadge');
+  const pendingBadge = document.getElementById('devSinpePendingBadge');
+
+  const q = (document.getElementById('devSinpeSearchInput')?.value || '').trim();
+  const estado = document.getElementById('devSinpeFilterEstado')?.value || 'todas';
+  const escuelaId = document.getElementById('devSinpeFilterEscuela')?.value || 'todas';
+  const fecha = document.getElementById('devSinpeFilterFecha')?.value || 'todas';
+  const origen = document.getElementById('devSinpeFilterOrigen')?.value || 'todas';
+
+  // Mostrar / ocultar botón limpiar
+  const btnClear = document.getElementById('btnDevSinpeClearSearch');
+  if (btnClear) btnClear.style.display = q ? 'block' : 'none';
+
+  // Poblar select de escuelas si aún no tiene las opciones cargadas
+  await poblarSelectEscuelasSinpeDev();
+
+  if (tbody) {
+    tbody.innerHTML = `
+      <tr>
+        <td colspan="8" style="text-align: center; padding: 35px; color: var(--text-muted);">
+          <div style="display: inline-flex; align-items: center; gap: 8px;">
+            <svg class="spin" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#0284c7" stroke-width="2.5"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>
+            <span style="font-weight: 700;">Consultando transacciones SINPE en tiempo real...</span>
+          </div>
+        </td>
+      </tr>
+    `;
+  }
+
+  try {
+    const params = new URLSearchParams();
+    if (q) params.set('q', q);
+    if (estado !== 'todas') params.set('estado', estado);
+    if (escuelaId !== 'todas') params.set('escuela_id', escuelaId);
+    if (fecha !== 'todas') params.set('fecha', fecha);
+    if (origen !== 'todas') params.set('origen', origen);
+
+    const res = await fetch(`/api/developer/sinpe/buscar?${params.toString()}`);
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Error al consultar transacciones');
+
+    // 1. Actualizar KPIs de la cabecera
+    const kpiMonto = document.getElementById('devSinpeKpiTotalMonto');
+    const kpiCant = document.getElementById('devSinpeKpiTotalCant');
+    const kpiPend = document.getElementById('devSinpeKpiPendientes');
+    const kpiRech = document.getElementById('devSinpeKpiRechazadas');
+    const kpiBancoUncl = document.getElementById('devSinpeKpiBancoUnclaimed');
+    const kpiBancoUnclMonto = document.getElementById('devSinpeKpiBancoUnclaimedMonto');
+
+    if (kpiMonto) kpiMonto.textContent = `₡${Number(data.resumen?.total_acreditado_sinpe || 0).toLocaleString('es-CR')}`;
+    if (kpiCant) kpiCant.textContent = `${data.resumen?.total_recargas_count || 0} recargas verificadas`;
+    if (kpiPend) kpiPend.textContent = data.resumen?.total_pendientes_count || 0;
+    if (kpiRech) kpiRech.textContent = data.resumen?.total_rechazadas_count || 0;
+    if (kpiBancoUncl) kpiBancoUncl.textContent = data.resumen?.total_banco_unclaimed_count || 0;
+    if (kpiBancoUnclMonto) kpiBancoUnclMonto.textContent = `₡${Number(data.resumen?.total_banco_unclaimed_monto || 0).toLocaleString('es-CR')} en depósitos huérfanos`;
+
+    // Badge en la pestaña superior
+    if (pendingBadge) {
+      const numPend = data.resumen?.total_pendientes_count || 0;
+      pendingBadge.textContent = numPend;
+      pendingBadge.style.display = numPend > 0 ? 'inline-block' : 'none';
+    }
+
+    currentDevSinpeItems = data.resultados || [];
+    if (countBadge) countBadge.textContent = `${currentDevSinpeItems.length} registros`;
+
+    renderDevSinpeTable(currentDevSinpeItems);
+  } catch (err) {
+    console.error('Error al cargar SINPE dev:', err);
+    if (tbody) {
+      tbody.innerHTML = `
+        <tr>
+          <td colspan="8" style="text-align: center; padding: 25px; color: #ef4444; font-weight: 700;">
+            ⚠️ Error al cargar transacciones: ${err.message}
+          </td>
+        </tr>
+      `;
+    }
+  }
+}
+window.loadDevSinpeUniversal = loadDevSinpeUniversal;
+
+/**
+ * Renderiza las filas de la tabla de resultados SINPE
+ */
+function renderDevSinpeTable(items) {
+  const tbody = document.getElementById('devSinpeTableBody');
+  if (!tbody) return;
+
+  if (!items || items.length === 0) {
+    tbody.innerHTML = `
+      <tr>
+        <td colspan="8" style="text-align: center; padding: 40px 20px; color: var(--text-muted);">
+          <div style="font-size: 2.2rem; margin-bottom: 8px;">🔍</div>
+          <div style="font-weight: 800; font-size: 1rem; color: var(--text-main);">No se encontraron transacciones SINPE</div>
+          <p style="font-size: 0.82rem; margin: 4px 0 0; color: var(--text-muted);">Intenta ajustar los términos de búsqueda o cambiar los filtros de estado/fecha.</p>
+        </td>
+      </tr>
+    `;
+    return;
+  }
+
+  tbody.innerHTML = items.map(item => {
+    // Formatear Fecha
+    let fechaStr = 'N/A';
+    if (item.fecha) {
+      try {
+        const d = new Date(item.fecha);
+        fechaStr = d.toLocaleDateString('es-CR', { day: '2-digit', month: '2-digit', year: 'numeric' }) +
+          ' ' + d.toLocaleTimeString('es-CR', { hour: '2-digit', minute: '2-digit', hour12: true });
+      } catch (e) {
+        fechaStr = String(item.fecha);
+      }
+    }
+
+    // Badge de Origen
+    let origenBadge = '';
+    if (item.origen === 'solicitud') {
+      origenBadge = `<span style="background: #f0f9ff; color: #0284c7; border: 1px solid #bae6fd; font-size: 0.70rem; font-weight: 800; padding: 2px 7px; border-radius: 6px; display: inline-flex; align-items: center; gap: 4px;">📱 Solicitud App</span>`;
+    } else if (item.origen === 'banco') {
+      origenBadge = `<span style="background: #f0fdf4; color: #166534; border: 1px solid #bbf7d0; font-size: 0.70rem; font-weight: 800; padding: 2px 7px; border-radius: 6px; display: inline-flex; align-items: center; gap: 4px;">🏦 Banco Notif.</span>`;
+    } else {
+      origenBadge = `<span style="background: #f8fafc; color: #475569; border: 1px solid #cbd5e1; font-size: 0.70rem; font-weight: 800; padding: 2px 7px; border-radius: 6px; display: inline-flex; align-items: center; gap: 4px;">💳 Saldo Directo</span>`;
+    }
+
+    // Badge de Estado
+    let estadoBadge = '';
+    if (item.estado === 'aprobada' || item.estado === 'used') {
+      estadoBadge = `<span style="background: #dcfce7; color: #15803d; border: 1px solid #86efac; font-size: 0.74rem; font-weight: 900; padding: 3px 9px; border-radius: 8px; display: inline-flex; align-items: center; gap: 4px;">✓ Aprobada</span>`;
+    } else if (item.estado === 'pendiente') {
+      estadoBadge = `<span style="background: #fef3c7; color: #b45309; border: 1px solid #fde68a; font-size: 0.74rem; font-weight: 900; padding: 3px 9px; border-radius: 8px; display: inline-flex; align-items: center; gap: 4px;">⏳ Pendiente</span>`;
+    } else if (item.estado === 'rechazada') {
+      estadoBadge = `<span style="background: #fee2e2; color: #b91c1c; border: 1px solid #fca5a5; font-size: 0.74rem; font-weight: 900; padding: 3px 9px; border-radius: 8px; display: inline-flex; align-items: center; gap: 4px;">✕ Rechazada</span>`;
+    } else if (item.estado === 'unclaimed') {
+      estadoBadge = `<span style="background: #e0f2fe; color: #0369a1; border: 1px solid #7dd3fc; font-size: 0.74rem; font-weight: 900; padding: 3px 9px; border-radius: 8px; display: inline-flex; align-items: center; gap: 4px;">🏦 Sin Reclamar</span>`;
+    } else {
+      estadoBadge = `<span style="background: #f1f5f9; color: #475569; font-size: 0.74rem; font-weight: 800; padding: 3px 8px; border-radius: 8px;">${item.estado}</span>`;
+    }
+
+    // Comprobante y Código Detalle
+    const compLabel = item.comprobante || 'Sin ref.';
+    const codigoDetalleHtml = item.codigo_detalle 
+      ? `<div style="margin-top: 3px;"><span style="background: #e2e8f0; color: #334155; font-family: monospace; font-size: 0.70rem; font-weight: 800; padding: 2px 6px; border-radius: 4px;">Cód: ${item.codigo_detalle}</span></div>` 
+      : '';
+
+    // Estudiante y Escuela
+    let estHtml = '';
+    if (item.estudiante_nombre) {
+      estHtml = `
+        <div>
+          <strong style="color: var(--text-main); font-size: 0.85rem; display: block;">${item.estudiante_nombre}</strong>
+          <span style="font-size: 0.74rem; color: var(--text-muted);">${item.estudiante_grado || ''} ${item.estudiante_seccion || ''} · <span style="color: #0284c7; font-weight: 700;">${item.escuela_nombre || ''}</span></span>
+          <div style="font-size: 0.72rem; color: #10b981; font-weight: 800; margin-top: 2px;">Saldo: ₡${Number(item.estudiante_saldo || 0).toLocaleString('es-CR')}</div>
+        </div>
+      `;
+    } else {
+      estHtml = `<span style="background: #fef3c7; color: #92400e; font-size: 0.75rem; font-weight: 800; padding: 3px 8px; border-radius: 6px;">[Depósito Sin Asignar]</span>`;
+    }
+
+    // Remitente / Banco
+    const remitenteNombre = item.padre_nombre || 'No indicado';
+    const remitenteTel = item.padre_telefono ? `<span style="color: var(--text-muted); font-size: 0.74rem;">${item.padre_telefono}</span>` : '';
+    const bancoBadge = item.banco_origen ? `<div style="font-size: 0.70rem; color: #0284c7; font-weight: 700; margin-top: 2px;">🏦 ${item.banco_origen}</div>` : '';
+
+    // Botones de Acción
+    let accionesHtml = `
+      <button type="button" onclick="openModalDevSinpeDetalle('${item.uid}')" class="dev-action-btn" style="padding: 5px 9px; font-size: 0.75rem;" title="Ver ficha técnica completa">
+        👁️ Ficha
+      </button>
+    `;
+
+    // Si es solicitud pendiente
+    if (item.origen === 'solicitud' && item.estado === 'pendiente') {
+      accionesHtml += `
+        <button type="button" onclick="forzarAprobacionSinpeDev(${item.raw_id})" class="dev-action-btn dev-action-btn-primary" style="padding: 5px 10px; font-size: 0.75rem; background: #16a34a; border-color: #16a34a;" title="Aprobar y acreditar saldo ahora">
+          ✓ Aprobar
+        </button>
+        <button type="button" onclick="abrirModalRechazoSinpeDev(${item.raw_id})" class="dev-action-btn dev-action-btn-danger" style="padding: 5px 8px; font-size: 0.75rem;" title="Rechazar solicitud con motivo">
+          ✕
+        </button>
+      `;
+    }
+
+    // Si es notificación bancaria huérfana (sin reclamar)
+    if (item.origen === 'banco' && item.estado === 'unclaimed') {
+      accionesHtml += `
+        <button type="button" onclick="abrirModalVincularBancoDev('${item.raw_id}')" class="dev-action-btn dev-action-btn-primary" style="padding: 5px 10px; font-size: 0.75rem;" title="Asignar y acreditar a un estudiante">
+          🔗 Vincular
+        </button>
+      `;
+    }
+
+    return `
+      <tr style="border-bottom: 1px solid var(--border); transition: background 0.15s ease;">
+        <td style="padding: 12px 14px; white-space: nowrap; color: var(--text-muted); font-size: 0.78rem;">
+          ${fechaStr}
+        </td>
+        <td style="padding: 12px 14px;">
+          <div style="display: flex; align-items: center; gap: 6px;">
+            <strong style="color: var(--text-main); font-family: monospace; font-size: 0.88rem;">${compLabel}</strong>
+            <button type="button" onclick="copiarAlPortapapelesTexto('${compLabel}', this)" style="background: none; border: none; cursor: pointer; color: var(--text-muted); padding: 2px;" title="Copiar comprobante">
+              📋
+            </button>
+          </div>
+          ${codigoDetalleHtml}
+        </td>
+        <td style="padding: 12px 14px; white-space: nowrap;">
+          ${origenBadge}
+        </td>
+        <td style="padding: 12px 14px;">
+          ${estHtml}
+        </td>
+        <td style="padding: 12px 14px;">
+          <div style="font-weight: 700; color: var(--text-main); font-size: 0.82rem;">${remitenteNombre}</div>
+          ${remitenteTel}
+          ${bancoBadge}
+        </td>
+        <td style="padding: 12px 14px; white-space: nowrap;">
+          <strong style="font-size: 1rem; color: #10b981; font-weight: 900;">₡${Number(item.monto || 0).toLocaleString('es-CR')}</strong>
+        </td>
+        <td style="padding: 12px 14px; white-space: nowrap;">
+          ${estadoBadge}
+        </td>
+        <td style="padding: 12px 14px; text-align: right; white-space: nowrap;">
+          <div style="display: inline-flex; gap: 5px; align-items: center;">
+            ${accionesHtml}
+          </div>
+        </td>
+      </tr>
+    `;
+  }).join('');
+}
+
+/**
+ * Debounce para búsqueda en tiempo real
+ */
+function debounceDevSinpeSearch() {
+  if (devSinpeSearchTimer) clearTimeout(devSinpeSearchTimer);
+  devSinpeSearchTimer = setTimeout(() => {
+    loadDevSinpeUniversal();
+  }, 280);
+}
+window.debounceDevSinpeSearch = debounceDevSinpeSearch;
+
+function clearDevSinpeSearch() {
+  const inp = document.getElementById('devSinpeSearchInput');
+  if (inp) inp.value = '';
+  loadDevSinpeUniversal();
+}
+window.clearDevSinpeSearch = clearDevSinpeSearch;
+
+/**
+ * Llena el selector de escuelas del filtro
+ */
+async function poblarSelectEscuelasSinpeDev() {
+  const select = document.getElementById('devSinpeFilterEscuela');
+  if (!select || select.options.length > 1) return;
+
+  try {
+    const res = await fetch('/api/developer/escuelas');
+    const data = await res.json();
+    if (res.ok && Array.isArray(data)) {
+      data.forEach(esc => {
+        const opt = document.createElement('option');
+        opt.value = esc.id;
+        opt.textContent = `${esc.nombre} (${esc.codigo || 'ESC'})`;
+        select.appendChild(opt);
+      });
+    }
+  } catch (e) {}
+}
+
+/**
+ * Abre el modal con la ficha técnica completa de una transacción SINPE
+ */
+function openModalDevSinpeDetalle(uid) {
+  const item = currentDevSinpeItems.find(x => x.uid === uid);
+  if (!item) return;
+
+  currentDevSinpeSelectedItem = item;
+  const modal = document.getElementById('modalDevSinpeDetalle');
+  const body = document.getElementById('modalDevSinpeDetalleBody');
+  const actionsContainer = document.getElementById('modalDevSinpeDetalleActions');
+  if (!modal || !body) return;
+
+  const compLabel = item.comprobante || 'N/A';
+  const fechaFmt = item.fecha ? new Date(item.fecha).toLocaleString('es-CR') : 'N/A';
+  const procesadoFmt = item.fecha_procesado ? new Date(item.fecha_procesado).toLocaleString('es-CR') : 'Sin procesar';
+
+  body.innerHTML = `
+    <!-- Tarjeta Principal con Monto y Comprobante -->
+    <div style="background: #f8fafc; border: 1.5px solid var(--border); border-radius: 14px; padding: 16px; margin-bottom: 16px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
+      <div>
+        <div style="font-size: 0.70rem; font-weight: 800; text-transform: uppercase; color: var(--text-muted); letter-spacing: 0.5px;">Comprobante de Pago</div>
+        <div style="display: flex; align-items: center; gap: 8px; margin-top: 2px;">
+          <span style="font-family: monospace; font-size: 1.25rem; font-weight: 900; color: var(--text-main);">${compLabel}</span>
+          <button type="button" onclick="copiarAlPortapapelesTexto('${compLabel}', this)" style="background: none; border: none; cursor: pointer; color: #0284c7; padding: 2px;" title="Copiar comprobante">
+            📋 Copiar
+          </button>
+        </div>
+        ${item.codigo_detalle ? `<div style="font-size: 0.74rem; color: #64748b; margin-top: 2px;">Código de Detalle: <strong>${item.codigo_detalle}</strong></div>` : ''}
+      </div>
+      <div style="text-align: right;">
+        <div style="font-size: 0.70rem; font-weight: 800; text-transform: uppercase; color: var(--text-muted);">Monto Transferido</div>
+        <div style="font-size: 1.45rem; font-weight: 900; color: #10b981;">₡${Number(item.monto || 0).toLocaleString('es-CR')}</div>
+      </div>
+    </div>
+
+    <!-- Datos del Estudiante y Escuela -->
+    <div style="margin-bottom: 14px;">
+      <h4 style="margin: 0 0 8px 0; font-size: 0.84rem; font-weight: 900; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;">Beneficiario</h4>
+      <div style="background: var(--card-bg); border: 1.5px solid var(--border); border-radius: 12px; padding: 12px; font-size: 0.84rem;">
+        <div style="display: flex; justify-content: space-between; margin-bottom: 6px;">
+          <span style="color: var(--text-muted);">Nombre Estudiante:</span>
+          <strong style="color: var(--text-main);">${item.estudiante_nombre || '[Sin Asignar]'}</strong>
+        </div>
+        <div style="display: flex; justify-content: space-between; margin-bottom: 6px;">
+          <span style="color: var(--text-muted);">Grado y Sección:</span>
+          <span style="color: var(--text-main); font-weight: 700;">${item.estudiante_grado || 'N/A'} ${item.estudiante_seccion || ''}</span>
+        </div>
+        <div style="display: flex; justify-content: space-between; margin-bottom: 6px;">
+          <span style="color: var(--text-muted);">Escuela / Sede:</span>
+          <span style="color: #0284c7; font-weight: 800;">${item.escuela_nombre || 'N/A'}</span>
+        </div>
+        <div style="display: flex; justify-content: space-between;">
+          <span style="color: var(--text-muted);">Saldo Disponible Actual:</span>
+          <strong style="color: #10b981; font-weight: 900;">₡${Number(item.estudiante_saldo || 0).toLocaleString('es-CR')}</strong>
+        </div>
+      </div>
+    </div>
+
+    <!-- Datos de Origen y Remitente -->
+    <div style="margin-bottom: 14px;">
+      <h4 style="margin: 0 0 8px 0; font-size: 0.84rem; font-weight: 900; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;">Remitente & Origen Bancario</h4>
+      <div style="background: var(--card-bg); border: 1.5px solid var(--border); border-radius: 12px; padding: 12px; font-size: 0.84rem;">
+        <div style="display: flex; justify-content: space-between; margin-bottom: 6px;">
+          <span style="color: var(--text-muted);">Nombre Remitente / Padre:</span>
+          <strong style="color: var(--text-main);">${item.padre_nombre || 'No especificado'}</strong>
+        </div>
+        <div style="display: flex; justify-content: space-between; margin-bottom: 6px;">
+          <span style="color: var(--text-muted);">Teléfono Remitente:</span>
+          <span style="color: var(--text-main); font-weight: 700;">${item.padre_telefono ? `<a href="tel:${item.padre_telefono}" style="color:#0284c7;">${item.padre_telefono}</a>` : 'N/A'}</span>
+        </div>
+        <div style="display: flex; justify-content: space-between; margin-bottom: 6px;">
+          <span style="color: var(--text-muted);">Banco Emisor:</span>
+          <span style="color: var(--text-main); font-weight: 700;">${item.banco_origen || 'SINPE Móvil Interbancario'}</span>
+        </div>
+        <div style="display: flex; justify-content: space-between;">
+          <span style="color: var(--text-muted);">Canal de Registro:</span>
+          <span style="font-weight: 800;">${item.origen === 'solicitud' ? '📱 Formulario App Padres' : (item.origen === 'banco' ? '🏦 Webhook / IMAP Bancario' : '💳 Movimiento de Caja')}</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Auditoría y Tiempos -->
+    <div>
+      <h4 style="margin: 0 0 8px 0; font-size: 0.84rem; font-weight: 900; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;">Auditoría y Estado</h4>
+      <div style="background: var(--card-bg); border: 1.5px solid var(--border); border-radius: 12px; padding: 12px; font-size: 0.84rem;">
+        <div style="display: flex; justify-content: space-between; margin-bottom: 6px;">
+          <span style="color: var(--text-muted);">Estado Actual:</span>
+          <strong style="text-transform: uppercase;">${item.estado}</strong>
+        </div>
+        <div style="display: flex; justify-content: space-between; margin-bottom: 6px;">
+          <span style="color: var(--text-muted);">Fecha de Creación:</span>
+          <span style="color: var(--text-main);">${fechaFmt}</span>
+        </div>
+        <div style="display: flex; justify-content: space-between; margin-bottom: 6px;">
+          <span style="color: var(--text-muted);">Fecha de Procesamiento:</span>
+          <span style="color: var(--text-main);">${procesadoFmt}</span>
+        </div>
+        ${item.procesado_por ? `
+          <div style="display: flex; justify-content: space-between; margin-bottom: 6px;">
+            <span style="color: var(--text-muted);">Procesado Por:</span>
+            <strong style="color: #0284c7;">${item.procesado_por}</strong>
+          </div>
+        ` : ''}
+        ${item.notas ? `
+          <div style="margin-top: 8px; padding-top: 8px; border-top: 1px dashed var(--border); font-size: 0.80rem; color: #64748b;">
+            <strong>Notas / Motivo:</strong> ${item.notas}
+          </div>
+        ` : ''}
+      </div>
+    </div>
+  `;
+
+  // Botones de acción dinámicos en el pie del modal
+  if (actionsContainer) {
+    let actHtml = '';
+    if (item.origen === 'solicitud' && item.estado === 'pendiente') {
+      actHtml = `
+        <button type="button" onclick="closeModalDevSinpeDetalle(); forzarAprobacionSinpeDev(${item.raw_id});" class="dev-action-btn dev-action-btn-primary" style="background: #16a34a; border-color: #16a34a; font-weight: 800;">
+          ✓ Aprobar Ahora
+        </button>
+        <button type="button" onclick="closeModalDevSinpeDetalle(); abrirModalRechazoSinpeDev(${item.raw_id});" class="dev-action-btn dev-action-btn-danger" style="font-weight: 800;">
+          ✕ Rechazar
+        </button>
+      `;
+    } else if (item.origen === 'banco' && item.estado === 'unclaimed') {
+      actHtml = `
+        <button type="button" onclick="closeModalDevSinpeDetalle(); abrirModalVincularBancoDev('${item.raw_id}');" class="dev-action-btn dev-action-btn-primary" style="font-weight: 800;">
+          🔗 Vincular a Estudiante
+        </button>
+      `;
+    }
+    actHtml += `
+      <button type="button" onclick="closeModalDevSinpeDetalle()" class="dev-action-btn" style="font-weight: 800;">
+        Cerrar
+      </button>
+    `;
+    actionsContainer.innerHTML = actHtml;
+  }
+
+  modal.style.display = 'flex';
+}
+window.openModalDevSinpeDetalle = openModalDevSinpeDetalle;
+
+function closeModalDevSinpeDetalle() {
+  const modal = document.getElementById('modalDevSinpeDetalle');
+  if (modal) modal.style.display = 'none';
+}
+window.closeModalDevSinpeDetalle = closeModalDevSinpeDetalle;
+
+/**
+ * Copia mensaje listo para responder al padre en WhatsApp
+ */
+function copiarMensajeSoporteWhatsAppSinpe() {
+  if (!currentDevSinpeSelectedItem) return;
+  const it = currentDevSinpeSelectedItem;
+  const comp = it.comprobante || 'N/A';
+  const monto = `₡${Number(it.monto || 0).toLocaleString('es-CR')}`;
+  const est = it.estudiante_nombre || 'Estudiante';
+  let estadoText = 'Aprobada y acreditada con éxito ✓';
+  if (it.estado === 'pendiente') estadoText = 'En proceso de verificación en soda ⏳';
+  if (it.estado === 'rechazada') estadoText = `Rechazada (${it.notas || 'Comprobante no verificado'}) ✕`;
+  if (it.estado === 'unclaimed') estadoText = 'Depósito recibido en cuenta bancaria pendiente de vincular 🏦';
+
+  const msg = 
+`Hola, le saluda Soporte de SiboPay.
+Referente a su recarga SINPE Móvil:
+• Comprobante: #${comp}
+• Monto: ${monto}
+• Estudiante: ${est}
+• Estado: ${estadoText}
+${it.estudiante_saldo !== undefined ? `• Saldo actual disponible: ₡${Number(it.estudiante_saldo).toLocaleString('es-CR')}` : ''}
+
+¡Gracias por utilizar SiboPay Costa Rica!`;
+
+  copiarAlPortapapelesTexto(msg);
+  if (window.sounds) window.sounds.playSuccess();
+  alert('¡Mensaje copiado al portapapeles! Puedes pegarlo directamente en el chat de WhatsApp con el padre de familia.');
+}
+window.copiarMensajeSoporteWhatsAppSinpe = copiarMensajeSoporteWhatsAppSinpe;
+
+/**
+ * Aprobación forzada por Developer Master
+ */
+async function forzarAprobacionSinpeDev(solicitudId) {
+  const confirmar = confirm('¿Confirmas la aprobación y acreditación inmediata de esta recarga SINPE para el estudiante?');
+  if (!confirmar) return;
+
+  try {
+    const res = await fetch('/api/developer/sinpe/aprobar', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        solicitud_id: solicitudId,
+        usuario_id: currentUser?.id || null,
+        motivo: 'Aprobación manual forzada desde Master Developer Suite'
+      })
+    });
+
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'No se pudo aprobar la recarga');
+
+    if (window.sounds) window.sounds.playSuccess();
+    alert(data.mensaje || '¡Recarga acreditada con éxito!');
+    await loadDevSinpeUniversal();
+  } catch (err) {
+    if (window.sounds) window.sounds.playError();
+    alert('Error al aprobar: ' + err.message);
+  }
+}
+window.forzarAprobacionSinpeDev = forzarAprobacionSinpeDev;
+
+/**
+ * Rechazo de solicitud Developer
+ */
+function abrirModalRechazoSinpeDev(solicitudId) {
+  const modal = document.getElementById('modalDevSinpeRechazar');
+  const inputId = document.getElementById('devRechazoSolicitudId');
+  const select = document.getElementById('devRechazoSelectMotivo');
+  const textarea = document.getElementById('devRechazoTextoExplicacion');
+  if (!modal) return;
+
+  if (inputId) inputId.value = solicitudId;
+  if (select) select.value = 'Comprobante no verificado en cuenta bancaria';
+  if (textarea) textarea.value = 'El comprobante reportado no aparece acreditado en los movimientos de la cuenta bancaria de la soda.';
+
+  modal.style.display = 'flex';
+}
+window.abrirModalRechazoSinpeDev = abrirModalRechazoSinpeDev;
+
+function closeModalDevSinpeRechazar() {
+  const modal = document.getElementById('modalDevSinpeRechazar');
+  if (modal) modal.style.display = 'none';
+}
+window.closeModalDevSinpeRechazar = closeModalDevSinpeRechazar;
+
+function actualizarTextoMotivoRechazoDev() {
+  const select = document.getElementById('devRechazoSelectMotivo');
+  const textarea = document.getElementById('devRechazoTextoExplicacion');
+  if (!select || !textarea) return;
+
+  if (select.value === 'Comprobante no verificado en cuenta bancaria') {
+    textarea.value = 'El comprobante reportado no aparece acreditado en los movimientos de la cuenta bancaria de la soda.';
+  } else if (select.value === 'El monto transferido no coincide con la solicitud') {
+    textarea.value = 'El monto verificado en la cuenta difiere del valor ingresado en la solicitud de recarga.';
+  } else if (select.value === 'Comprobante duplicado ya utilizado anteriormente') {
+    textarea.value = 'Este número de comprobante ya fue procesado y acreditado previamente en otra transacción.';
+  } else if (select.value === 'Comprobante ilegible o incompleto') {
+    textarea.value = 'El número o datos del comprobante bancario no son legibles o están incompletos.';
+  } else {
+    textarea.value = '';
+    textarea.focus();
+  }
+}
+window.actualizarTextoMotivoRechazoDev = actualizarTextoMotivoRechazoDev;
+
+async function ejecutarRechazoSinpeDev(e) {
+  e.preventDefault();
+  const inputId = document.getElementById('devRechazoSolicitudId');
+  const textarea = document.getElementById('devRechazoTextoExplicacion');
+  const btn = document.getElementById('btnDevConfirmarRechazo');
+  if (!inputId || !textarea) return;
+
+  const solId = inputId.value;
+  const motivo = textarea.value.trim();
+
+  try {
+    if (btn) {
+      btn.disabled = true;
+      btn.textContent = 'Rechazando...';
+    }
+
+    const res = await fetch('/api/developer/sinpe/rechazar', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        solicitud_id: solId,
+        motivo,
+        usuario_id: currentUser?.id || null
+      })
+    });
+
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'No se pudo rechazar la solicitud');
+
+    closeModalDevSinpeRechazar();
+    if (window.sounds) window.sounds.playSuccess();
+    alert(data.mensaje || 'Solicitud rechazada con éxito.');
+    await loadDevSinpeUniversal();
+  } catch (err) {
+    if (window.sounds) window.sounds.playError();
+    alert('Error al rechazar: ' + err.message);
+  } finally {
+    if (btn) {
+      btn.disabled = false;
+      btn.textContent = 'Confirmar Rechazo';
+    }
+  }
+}
+window.ejecutarRechazoSinpeDev = ejecutarRechazoSinpeDev;
+
+/**
+ * Vincular notificación bancaria huérfana a estudiante
+ */
+async function abrirModalVincularBancoDev(bancoTxId) {
+  const item = currentDevSinpeItems.find(x => x.raw_id === bancoTxId && x.origen === 'banco');
+  if (!item) return;
+
+  const modal = document.getElementById('modalDevSinpeVincular');
+  const inputId = document.getElementById('devVincularBancoTxId');
+  const resumenBox = document.getElementById('devVincularDepositoResumen');
+  if (!modal) return;
+
+  if (inputId) inputId.value = bancoTxId;
+  if (resumenBox) {
+    resumenBox.innerHTML = `
+      <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
+        <span style="color: var(--text-muted);">Comprobante / Ref:</span>
+        <strong style="color: var(--text-main); font-family: monospace;">${item.comprobante}</strong>
+      </div>
+      <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
+        <span style="color: var(--text-muted);">Monto Bancario:</span>
+        <strong style="color: #10b981; font-size: 1rem;">₡${Number(item.monto).toLocaleString('es-CR')}</strong>
+      </div>
+      <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
+        <span style="color: var(--text-muted);">Banco de Origen:</span>
+        <span>${item.banco_origen || 'Banco'}</span>
+      </div>
+      <div style="display: flex; justify-content: space-between;">
+        <span style="color: var(--text-muted);">Remitente:</span>
+        <span>${item.padre_nombre || 'N/A'} ${item.padre_telefono ? `(${item.padre_telefono})` : ''}</span>
+      </div>
+    `;
+  }
+
+  // Cargar estudiantes para selector
+  await cargarEstudiantesParaVinculacion();
+  modal.style.display = 'flex';
+}
+window.abrirModalVincularBancoDev = abrirModalVincularBancoDev;
+
+function closeModalDevSinpeVincular() {
+  const modal = document.getElementById('modalDevSinpeVincular');
+  if (modal) modal.style.display = 'none';
+}
+window.closeModalDevSinpeVincular = closeModalDevSinpeVincular;
+
+async function cargarEstudiantesParaVinculacion() {
+  const select = document.getElementById('devVincularEstudianteSelect');
+  if (!select) return;
+
+  if (devCachedEstudiantesList.length === 0) {
+    try {
+      const res = await fetch('/api/admin/estudiantes');
+      const data = await res.json();
+      if (res.ok && Array.isArray(data)) {
+        devCachedEstudiantesList = data;
+      }
+    } catch (e) {}
+  }
+
+  filtrarEstudiantesParaVincular();
+}
+
+function filtrarEstudiantesParaVincular() {
+  const searchInput = document.getElementById('devVincularEstudianteSearch');
+  const select = document.getElementById('devVincularEstudianteSelect');
+  if (!select) return;
+
+  const query = (searchInput?.value || '').toLowerCase().trim();
+  const filtered = devCachedEstudiantesList.filter(e => {
+    if (!query) return true;
+    return (e.nombre_completo || '').toLowerCase().includes(query) ||
+           (e.codigo_estudiante || '').toLowerCase().includes(query) ||
+           (e.padre_nombre || '').toLowerCase().includes(query);
+  });
+
+  select.innerHTML = filtered.map(e => `
+    <option value="${e.id}">
+      ${e.nombre_completo} · ${e.grado || ''} ${e.seccion || ''} (${e.codigo_estudiante || 'ID ' + e.id}) - Saldo actual: ₡${(e.saldo_colones || 0).toLocaleString('es-CR')}
+    </option>
+  `).join('');
+
+  if (filtered.length > 0) {
+    select.selectedIndex = 0;
+  }
+}
+window.filtrarEstudiantesParaVincular = filtrarEstudiantesParaVincular;
+
+async function ejecutarVinculacionBancoDev(e) {
+  e.preventDefault();
+  const inputId = document.getElementById('devVincularBancoTxId');
+  const selectEst = document.getElementById('devVincularEstudianteSelect');
+  const inputNotas = document.getElementById('devVincularNotas');
+  const btn = document.getElementById('btnDevConfirmarVincular');
+
+  if (!inputId || !selectEst || !selectEst.value) {
+    alert('Por favor selecciona el estudiante que recibirá el saldo.');
+    return;
+  }
+
+  try {
+    if (btn) {
+      btn.disabled = true;
+      btn.textContent = 'Acreditando...';
+    }
+
+    const res = await fetch('/api/developer/sinpe/vincular-banco', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        banco_tx_id: inputId.value,
+        estudiante_id: parseInt(selectEst.value, 10),
+        usuario_id: currentUser?.id || null,
+        notas: inputNotas?.value || null
+      })
+    });
+
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'No se pudo vincular la transacción');
+
+    closeModalDevSinpeVincular();
+    if (window.sounds) window.sounds.playSuccess();
+    alert(data.mensaje || '¡Depósito bancario acreditado con éxito!');
+    await loadDevSinpeUniversal();
+  } catch (err) {
+    if (window.sounds) window.sounds.playError();
+    alert('Error al vincular: ' + err.message);
+  } finally {
+    if (btn) {
+      btn.disabled = false;
+      btn.textContent = 'Acreditar y Vincular';
+    }
+  }
+}
+window.ejecutarVinculacionBancoDev = ejecutarVinculacionBancoDev;
+
+/**
+ * Simulador de Notificación Bancaria para pruebas
+ */
+function openModalDevSimularSinpe() {
+  const modal = document.getElementById('modalDevSimularSinpe');
+  if (modal) modal.style.display = 'flex';
+}
+window.openModalDevSimularSinpe = openModalDevSimularSinpe;
+
+function closeModalDevSimularSinpe() {
+  const modal = document.getElementById('modalDevSimularSinpe');
+  if (modal) modal.style.display = 'none';
+}
+window.closeModalDevSimularSinpe = closeModalDevSimularSinpe;
+
+async function ejecutarSimulacionSinpeDev(e) {
+  e.preventDefault();
+  const banco = document.getElementById('devSimBanco')?.value;
+  const monto = parseInt(document.getElementById('devSimMonto')?.value || 3500, 10);
+  const remitente = document.getElementById('devSimRemitente')?.value;
+  const telefono = document.getElementById('devSimTelefono')?.value;
+  const codigo = document.getElementById('devSimCodigoDetalle')?.value || null;
+  const btn = document.getElementById('btnDevConfirmarSimulacion');
+
+  const randomRef = 'BAC' + Math.floor(100000 + Math.random() * 900000);
+
+  try {
+    if (btn) {
+      btn.disabled = true;
+      btn.textContent = 'Inyectando...';
+    }
+
+    const res = await fetch('/api/sinpe/simular-correo', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        banco,
+        monto,
+        remitente,
+        telefono,
+        codigo,
+        comprobante: randomRef
+      })
+    });
+
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'No se pudo simular la transacción');
+
+    closeModalDevSimularSinpe();
+    if (window.sounds) window.sounds.playSuccess();
+    alert(`⚡ ¡Transacción simulada con éxito!\nReferencia: #${randomRef} por ₡${monto.toLocaleString('es-CR')}.\nYa aparece en el Buscador SINPE.`);
+    await loadDevSinpeUniversal();
+  } catch (err) {
+    if (window.sounds) window.sounds.playError();
+    alert('Error al simular: ' + err.message);
+  } finally {
+    if (btn) {
+      btn.disabled = false;
+      btn.textContent = '⚡ Disparar Transacción';
+    }
+  }
+}
+window.ejecutarSimulacionSinpeDev = ejecutarSimulacionSinpeDev;
+
+/**
+ * Exportar resultados a CSV
+ */
+function exportarSinpeUniversalCsv() {
+  if (!currentDevSinpeItems || currentDevSinpeItems.length === 0) {
+    alert('No hay registros en los resultados actuales para exportar.');
+    return;
+  }
+
+  const headers = ['Fecha', 'Comprobante', 'Codigo Detalle', 'Origen', 'Estado', 'Monto (CRC)', 'Estudiante', 'Escuela', 'Remitente', 'Telefono', 'Banco', 'Notas'];
+  const rows = currentDevSinpeItems.map(item => [
+    item.fecha || '',
+    item.comprobante || '',
+    item.codigo_detalle || '',
+    item.origen || '',
+    item.estado || '',
+    item.monto || 0,
+    item.estudiante_nombre || 'Sin Asignar',
+    item.escuela_nombre || '',
+    item.padre_nombre || '',
+    item.padre_telefono || '',
+    item.banco_origen || '',
+    (item.notas || '').replace(/\r?\n/g, ' ')
+  ]);
+
+  const csvContent = '\uFEFF' + [headers.join(','), ...rows.map(r => r.map(c => `"${String(c).replace(/"/g, '""')}"`).join(','))].join('\r\n');
+  const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  const dateTag = new Date().toISOString().slice(0, 10);
+  a.download = `reporte_sinpe_universal_sibopay_${dateTag}.csv`;
+  document.body.appendChild(a);
+  a.click();
+  setTimeout(() => {
+    if (a.parentNode) a.parentNode.removeChild(a);
+    URL.revokeObjectURL(url);
+  }, 250);
+}
+window.exportarSinpeUniversalCsv = exportarSinpeUniversalCsv;
+
+/**
+ * Helper para copiar texto al portapapeles
+ */
+function copiarAlPortapapelesTexto(texto, btnEl) {
+  if (!texto) return;
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(texto).then(() => {
+      if (btnEl) {
+        const orig = btnEl.innerHTML;
+        btnEl.innerHTML = '✓ Copiado';
+        setTimeout(() => { btnEl.innerHTML = orig; }, 1500);
+      }
+    }).catch(() => {});
+  } else {
+    const ta = document.createElement('textarea');
+    ta.value = texto;
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand('copy');
+    document.body.removeChild(ta);
+    if (btnEl) {
+      const orig = btnEl.innerHTML;
+      btnEl.innerHTML = '✓ Copiado';
+      setTimeout(() => { btnEl.innerHTML = orig; }, 1500);
+    }
+  }
+}
+window.copiarAlPortapapelesTexto = copiarAlPortapapelesTexto;
+
 

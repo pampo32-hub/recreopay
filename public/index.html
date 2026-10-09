@@ -247,6 +247,11 @@
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
         <span>Carga Masiva (Excel/CSV)</span>
       </button>
+      <button class="dev-tab-btn" id="btnDevTabSinpe" onclick="switchDevTab('sinpe')" style="display: inline-flex; align-items: center; gap: 8px;">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <span>🔍 Buscador SINPE Móvil</span>
+        <span id="devSinpePendingBadge" style="display: none; background: #ef4444; color: #ffffff; font-size: 0.68rem; font-weight: 900; padding: 2px 7px; border-radius: 999px; line-height: 1;">0</span>
+      </button>
     </nav>
 
     <!-- 1. PESTAÑA: USUARIOS Y ADMINISTRADORES -->
@@ -591,6 +596,171 @@
         </div>
 
         <div id="devImportResultMsg" style="display: none; margin-top: 16px; padding: 14px; border-radius: 12px; font-size: 0.84rem; line-height: 1.45;"></div>
+      </div>
+    </div>
+
+    <!-- 6. PESTAÑA: BUSCADOR UNIVERSAL SINPE MÓVIL & AUDITORÍA -->
+    <div id="devTabContentSinpe" class="dev-tab-content" style="display: none;">
+      <!-- CABECERA Y ACCIONES RÁPIDAS -->
+      <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 20px; flex-wrap: wrap; gap: 14px;">
+        <div>
+          <div style="display: flex; align-items: center; gap: 10px;">
+            <div style="width: 38px; height: 38px; border-radius: 12px; background: linear-gradient(135deg, #0284c7, #0369a1); color: #ffffff; display: flex; align-items: center; justify-content: center; font-size: 1.25rem; box-shadow: 0 4px 12px rgba(2,132,199,0.3);">
+              🔍
+            </div>
+            <div>
+              <h3 style="margin: 0; font-size: 1.25rem; font-weight: 900; color: var(--text-main);">Buscador Universal de SINPE Móvil & Conciliación</h3>
+              <p style="margin: 3px 0 0 0; font-size: 0.82rem; color: var(--text-muted);">Auditoría global en tiempo real de comprobantes, solicitudes de padres, depósitos bancarios y resolución de disputas.</p>
+            </div>
+          </div>
+        </div>
+        <div style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center;">
+          <button type="button" onclick="loadDevSinpeUniversal()" class="dev-action-btn" style="padding: 9px 15px; font-size: 0.84rem; display: inline-flex; align-items: center; gap: 6px;" title="Actualizar datos en tiempo real">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2"/></svg>
+            <span>Actualizar</span>
+          </button>
+          <button type="button" onclick="openModalDevSimularSinpe()" class="dev-action-btn" style="padding: 9px 15px; font-size: 0.84rem; display: inline-flex; align-items: center; gap: 6px; background: #f0fdf4; color: #166534; border: 1.5px solid #bbf7d0; font-weight: 800;" title="Simular depósito bancario para pruebas">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+            <span>⚡ Simular Depósito Banco</span>
+          </button>
+          <button type="button" onclick="exportarSinpeUniversalCsv()" class="dev-action-btn" style="padding: 9px 15px; font-size: 0.84rem; display: inline-flex; align-items: center; gap: 6px;" title="Descargar reporte en Excel / CSV">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            <span>Descargar CSV</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- KPIS EN TIEMPO REAL -->
+      <div id="devSinpeKpiGrid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 14px; margin-bottom: 22px;">
+        <div style="background: var(--card-bg); border: 1.5px solid var(--border); border-radius: 14px; padding: 16px; box-shadow: 0 2px 8px rgba(0,0,0,0.03);">
+          <div style="font-size: 0.72rem; font-weight: 800; text-transform: uppercase; color: var(--text-muted); letter-spacing: 0.5px; margin-bottom: 6px; display: flex; align-items: center; justify-content: space-between;">
+            <span>Acreditado SINPE</span>
+            <span style="color: #10b981; font-size: 1rem;">💳</span>
+          </div>
+          <div id="devSinpeKpiTotalMonto" style="font-size: 1.35rem; font-weight: 900; color: #10b981;">₡0</div>
+          <div id="devSinpeKpiTotalCant" style="font-size: 0.74rem; color: var(--text-muted); font-weight: 700; margin-top: 2px;">0 recargas verificadas</div>
+        </div>
+
+        <div style="background: var(--card-bg); border: 1.5px solid var(--border); border-radius: 14px; padding: 16px; box-shadow: 0 2px 8px rgba(0,0,0,0.03);">
+          <div style="font-size: 0.72rem; font-weight: 800; text-transform: uppercase; color: var(--text-muted); letter-spacing: 0.5px; margin-bottom: 6px; display: flex; align-items: center; justify-content: space-between;">
+            <span>En Revisión (Pendientes)</span>
+            <span style="color: #f59e0b; font-size: 1rem;">⏳</span>
+          </div>
+          <div id="devSinpeKpiPendientes" style="font-size: 1.35rem; font-weight: 900; color: #f59e0b;">0</div>
+          <div style="font-size: 0.74rem; color: var(--text-muted); font-weight: 700; margin-top: 2px;">Requieren verificación</div>
+        </div>
+
+        <div style="background: var(--card-bg); border: 1.5px solid var(--border); border-radius: 14px; padding: 16px; box-shadow: 0 2px 8px rgba(0,0,0,0.03);">
+          <div style="font-size: 0.72rem; font-weight: 800; text-transform: uppercase; color: var(--text-muted); letter-spacing: 0.5px; margin-bottom: 6px; display: flex; align-items: center; justify-content: space-between;">
+            <span>Rechazadas / Alertas</span>
+            <span style="color: #ef4444; font-size: 1rem;">⚠️</span>
+          </div>
+          <div id="devSinpeKpiRechazadas" style="font-size: 1.35rem; font-weight: 900; color: #ef4444;">0</div>
+          <div style="font-size: 0.74rem; color: var(--text-muted); font-weight: 700; margin-top: 2px;">Comprobantes no válidos</div>
+        </div>
+
+        <div style="background: var(--card-bg); border: 1.5px solid var(--border); border-radius: 14px; padding: 16px; box-shadow: 0 2px 8px rgba(0,0,0,0.03);">
+          <div style="font-size: 0.72rem; font-weight: 800; text-transform: uppercase; color: var(--text-muted); letter-spacing: 0.5px; margin-bottom: 6px; display: flex; align-items: center; justify-content: space-between;">
+            <span>Banco Sin Reclamar</span>
+            <span style="color: #0284c7; font-size: 1rem;">🏦</span>
+          </div>
+          <div id="devSinpeKpiBancoUnclaimed" style="font-size: 1.35rem; font-weight: 900; color: #0284c7;">0</div>
+          <div id="devSinpeKpiBancoUnclaimedMonto" style="font-size: 0.74rem; color: var(--text-muted); font-weight: 700; margin-top: 2px;">₡0 en depósitos huérfanos</div>
+        </div>
+      </div>
+
+      <!-- CAJA DE BÚSQUEDA Y FILTROS MULTI-CRITERIO -->
+      <div style="background: var(--card-bg); border: 1.5px solid var(--border); border-radius: 16px; padding: 18px; margin-bottom: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.04);">
+        <!-- Fila de barra de búsqueda principal -->
+        <div style="display: flex; gap: 10px; margin-bottom: 14px; flex-wrap: wrap;">
+          <div style="position: relative; flex: 1; min-width: 280px;">
+            <input type="text" id="devSinpeSearchInput" placeholder="Buscar por comprobante (ej: BAC244304, 303063), cód. detalle (SIBO-XC69), estudiante, teléfono padre..." oninput="debounceDevSinpeSearch()" style="width: 100%; padding: 12px 38px 12px 42px; border-radius: 12px; border: 1.5px solid var(--border); background: var(--bg-main); color: var(--text-main); font-size: 0.90rem; font-weight: 700; box-sizing: border-box;">
+            <div style="position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: var(--text-muted); pointer-events: none;">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            </div>
+            <button type="button" onclick="clearDevSinpeSearch()" id="btnDevSinpeClearSearch" style="position: absolute; right: 12px; top: 50%; transform: translateY(-50%); background: none; border: none; font-size: 1.1rem; color: var(--text-muted); cursor: pointer; display: none;">✕</button>
+          </div>
+          <button type="button" onclick="loadDevSinpeUniversal()" class="dev-action-btn dev-action-btn-primary" style="padding: 12px 22px; font-size: 0.90rem; font-weight: 800; display: inline-flex; align-items: center; gap: 8px;">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            <span>Buscar</span>
+          </button>
+        </div>
+
+        <!-- Fila de filtros selectivos -->
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 10px;">
+          <div>
+            <label style="font-size: 0.74rem; font-weight: 800; color: var(--text-muted); text-transform: uppercase; display: block; margin-bottom: 4px;">Estado:</label>
+            <select id="devSinpeFilterEstado" onchange="loadDevSinpeUniversal()" style="width: 100%; padding: 9px 12px; border-radius: 10px; border: 1.5px solid var(--border); background: var(--bg-main); color: var(--text-main); font-size: 0.84rem; font-weight: 700;">
+              <option value="todas">Todos los Estados</option>
+              <option value="pendiente">⏳ Solo Pendientes</option>
+              <option value="aprobada">✓ Aprobadas / Acreditadas</option>
+              <option value="rechazada">✕ Rechazadas</option>
+              <option value="unclaimed">🏦 Banco Sin Reclamar</option>
+            </select>
+          </div>
+
+          <div>
+            <label style="font-size: 0.74rem; font-weight: 800; color: var(--text-muted); text-transform: uppercase; display: block; margin-bottom: 4px;">Escuela / Sede:</label>
+            <select id="devSinpeFilterEscuela" onchange="loadDevSinpeUniversal()" style="width: 100%; padding: 9px 12px; border-radius: 10px; border: 1.5px solid var(--border); background: var(--bg-main); color: var(--text-main); font-size: 0.84rem; font-weight: 700;">
+              <option value="todas">Todas las Escuelas</option>
+            </select>
+          </div>
+
+          <div>
+            <label style="font-size: 0.74rem; font-weight: 800; color: var(--text-muted); text-transform: uppercase; display: block; margin-bottom: 4px;">Rango de Fecha:</label>
+            <select id="devSinpeFilterFecha" onchange="loadDevSinpeUniversal()" style="width: 100%; padding: 9px 12px; border-radius: 10px; border: 1.5px solid var(--border); background: var(--bg-main); color: var(--text-main); font-size: 0.84rem; font-weight: 700;">
+              <option value="todas">Todo el Historial</option>
+              <option value="hoy">Hoy</option>
+              <option value="7dias">Últimos 7 días</option>
+              <option value="30dias">Últimos 30 días</option>
+            </select>
+          </div>
+
+          <div>
+            <label style="font-size: 0.74rem; font-weight: 800; color: var(--text-muted); text-transform: uppercase; display: block; margin-bottom: 4px;">Tipo de Registro:</label>
+            <select id="devSinpeFilterOrigen" onchange="loadDevSinpeUniversal()" style="width: 100%; padding: 9px 12px; border-radius: 10px; border: 1.5px solid var(--border); background: var(--bg-main); color: var(--text-main); font-size: 0.84rem; font-weight: 700;">
+              <option value="todas">Todo Unificado</option>
+              <option value="solicitudes">📱 Solicitudes de Padres</option>
+              <option value="banco">🏦 Notificaciones Bancarias</option>
+              <option value="saldo">💳 Movimientos de Saldo</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <!-- LISTADO DE RESULTADOS -->
+      <div style="background: var(--card-bg); border: 1.5px solid var(--border); border-radius: 16px; overflow: hidden; box-shadow: 0 4px 15px rgba(0,0,0,0.04);">
+        <div style="padding: 14px 18px; border-bottom: 1.5px solid var(--border); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
+          <div style="font-weight: 800; font-size: 0.88rem; color: var(--text-main); display: flex; align-items: center; gap: 8px;">
+            <span>Resultados de Búsqueda</span>
+            <span id="devSinpeResultCountBadge" style="background: #e0f2fe; color: #0284c7; padding: 2px 8px; border-radius: 8px; font-size: 0.75rem; font-weight: 800;">0 registros</span>
+          </div>
+          <span style="font-size: 0.76rem; color: var(--text-muted);">Haz clic en cualquier acción para gestionar o auditar</span>
+        </div>
+
+        <div style="overflow-x: auto; max-height: 600px; overflow-y: auto;">
+          <table class="dev-table" style="width: 100%; border-collapse: collapse; font-size: 0.82rem; text-align: left;">
+            <thead style="position: sticky; top: 0; background: var(--card-bg); z-index: 2; border-bottom: 1.5px solid var(--border);">
+              <tr style="color: var(--text-muted); font-size: 0.74rem; text-transform: uppercase; letter-spacing: 0.5px;">
+                <th style="padding: 12px 14px;">Fecha / Hora</th>
+                <th style="padding: 12px 14px;">Comprobante / Detalle</th>
+                <th style="padding: 12px 14px;">Origen</th>
+                <th style="padding: 12px 14px;">Estudiante / Sede</th>
+                <th style="padding: 12px 14px;">Remitente / Banco</th>
+                <th style="padding: 12px 14px;">Monto</th>
+                <th style="padding: 12px 14px;">Estado</th>
+                <th style="padding: 12px 14px; text-align: right;">Acciones</th>
+              </tr>
+            </thead>
+            <tbody id="devSinpeTableBody">
+              <tr>
+                <td colspan="8" style="text-align: center; padding: 30px; color: var(--text-muted);">
+                  Cargando transacciones de SINPE Móvil...
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
   </div>
@@ -3690,6 +3860,201 @@
   </div>
 
   <!-- ======================================================== -->
+  <!-- MODALES DE CONTROL DEVELOPER: BUSCADOR Y AUDITORÍA SINPE -->
+  <!-- ======================================================== -->
+
+  <!-- 1. MODAL: FICHA TÉCNICA Y AUDITORÍA DE TRANSACCIÓN SINPE -->
+  <div class="modal-qr-backdrop" id="modalDevSinpeDetalle" style="display: none;" onclick="closeModalDevSinpeDetalle()">
+    <div class="modal-qr-card" onclick="event.stopPropagation()" style="max-width: 560px; text-align: left; padding: 24px;">
+      <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1.5px solid var(--border); padding-bottom: 14px; margin-bottom: 16px;">
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <div style="width: 36px; height: 36px; border-radius: 10px; background: #e0f2fe; color: #0284c7; display: flex; align-items: center; justify-content: center; font-size: 1.2rem;">
+            🔍
+          </div>
+          <div>
+            <h3 style="margin: 0; font-size: 1.15rem; font-weight: 900; color: var(--text-main);">Ficha de Auditoría SINPE</h3>
+            <span style="font-size: 0.76rem; color: var(--text-muted); font-weight: 600;">Detalle completo de trazabilidad bancaria</span>
+          </div>
+        </div>
+        <button type="button" onclick="closeModalDevSinpeDetalle()" style="background: none; border: none; font-size: 1.3rem; cursor: pointer; color: var(--text-muted); padding: 4px;">✕</button>
+      </div>
+
+      <div id="modalDevSinpeDetalleBody" style="max-height: 480px; overflow-y: auto; padding-right: 4px;">
+        <!-- Inyectado dinámicamente -->
+      </div>
+
+      <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1.5px solid var(--border); padding-top: 14px; margin-top: 16px; flex-wrap: wrap; gap: 10px;">
+        <button type="button" onclick="copiarMensajeSoporteWhatsAppSinpe()" class="dev-action-btn" style="padding: 9px 15px; font-size: 0.82rem; display: inline-flex; align-items: center; gap: 6px; background: #f0fdf4; color: #166534; border: 1.5px solid #bbf7d0; font-weight: 800;">
+          <span>💬 Copiar para WhatsApp</span>
+        </button>
+        <div id="modalDevSinpeDetalleActions" style="display: flex; gap: 8px;">
+          <!-- Inyectado dinámicamente según el estado -->
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 2. MODAL: RECHAZAR SOLICITUD SINPE DEVELOPER -->
+  <div class="modal-qr-backdrop" id="modalDevSinpeRechazar" style="display: none;" onclick="closeModalDevSinpeRechazar()">
+    <div class="modal-qr-card" onclick="event.stopPropagation()" style="max-width: 480px; text-align: left; padding: 22px;">
+      <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1.5px solid var(--border); padding-bottom: 12px; margin-bottom: 16px;">
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <div style="width: 36px; height: 36px; border-radius: 10px; background: #fef2f2; color: #ef4444; display: flex; align-items: center; justify-content: center; font-size: 1.2rem;">
+            ⚠️
+          </div>
+          <div>
+            <h3 style="margin: 0; font-size: 1.15rem; font-weight: 900; color: #ef4444;">Rechazar Recarga SINPE</h3>
+            <span style="font-size: 0.76rem; color: var(--text-muted); font-weight: 600;">Se registrará en auditoría y notificará al padre</span>
+          </div>
+        </div>
+        <button type="button" onclick="closeModalDevSinpeRechazar()" style="background: none; border: none; font-size: 1.3rem; cursor: pointer; color: var(--text-muted); padding: 4px;">✕</button>
+      </div>
+
+      <form id="formDevSinpeRechazar" onsubmit="ejecutarRechazoSinpeDev(event)">
+        <input type="hidden" id="devRechazoSolicitudId">
+
+        <div style="margin-bottom: 14px;">
+          <label style="font-size: 0.82rem; font-weight: 800; color: var(--text-main); display: block; margin-bottom: 5px;">Motivo Frecuente:</label>
+          <select id="devRechazoSelectMotivo" onchange="actualizarTextoMotivoRechazoDev()" style="width: 100%; padding: 10px 12px; border-radius: 10px; border: 1.5px solid var(--border); background: var(--bg-main); color: var(--text-main); font-weight: 700; font-size: 0.85rem;">
+            <option value="Comprobante no verificado en cuenta bancaria">Comprobante no aparece en la cuenta bancaria</option>
+            <option value="El monto transferido no coincide con la solicitud">Monto no coincide con lo reportado</option>
+            <option value="Comprobante duplicado ya utilizado anteriormente">Comprobante duplicado / ya utilizado</option>
+            <option value="Comprobante ilegible o incompleto">Comprobante ilegible o cortado</option>
+            <option value="otro">Otro motivo personalizado...</option>
+          </select>
+        </div>
+
+        <div style="margin-bottom: 18px;">
+          <label style="font-size: 0.82rem; font-weight: 800; color: var(--text-main); display: block; margin-bottom: 5px;">Detalle o Explicación para el Usuario:</label>
+          <textarea id="devRechazoTextoExplicacion" rows="3" required style="width: 100%; padding: 10px 12px; border-radius: 10px; border: 1.5px solid var(--border); background: var(--bg-main); color: var(--text-main); font-size: 0.85rem; font-weight: 600; box-sizing: border-box;"></textarea>
+        </div>
+
+        <div style="display: flex; justify-content: flex-end; gap: 10px; border-top: 1.5px solid var(--border); padding-top: 14px;">
+          <button type="button" onclick="closeModalDevSinpeRechazar()" style="padding: 10px 16px; border-radius: 10px; border: 1.5px solid var(--border); background: var(--bg-main); color: var(--text-main); font-weight: 800; font-size: 0.85rem; cursor: pointer;">
+            Cancelar
+          </button>
+          <button type="submit" id="btnDevConfirmarRechazo" class="dev-action-btn dev-action-btn-danger" style="padding: 10px 20px; font-size: 0.88rem; font-weight: 800;">
+            Confirmar Rechazo
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- 3. MODAL: VINCULAR DEPÓSITO BANCARIO HUÉRFANO A UN ESTUDIANTE -->
+  <div class="modal-qr-backdrop" id="modalDevSinpeVincular" style="display: none;" onclick="closeModalDevSinpeVincular()">
+    <div class="modal-qr-card" onclick="event.stopPropagation()" style="max-width: 520px; text-align: left; padding: 22px;">
+      <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1.5px solid var(--border); padding-bottom: 12px; margin-bottom: 16px;">
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <div style="width: 36px; height: 36px; border-radius: 10px; background: #f0f9ff; color: #0284c7; display: flex; align-items: center; justify-content: center; font-size: 1.2rem;">
+            🔗
+          </div>
+          <div>
+            <h3 style="margin: 0; font-size: 1.15rem; font-weight: 900; color: var(--text-main);">Vincular Depósito Bancario</h3>
+            <span style="font-size: 0.76rem; color: var(--text-muted); font-weight: 600;">Asignar dinero huérfano al monedero de un alumno</span>
+          </div>
+        </div>
+        <button type="button" onclick="closeModalDevSinpeVincular()" style="background: none; border: none; font-size: 1.3rem; cursor: pointer; color: var(--text-muted); padding: 4px;">✕</button>
+      </div>
+
+      <form id="formDevSinpeVincular" onsubmit="ejecutarVinculacionBancoDev(event)">
+        <input type="hidden" id="devVincularBancoTxId">
+
+        <!-- Resumen del depósito bancario -->
+        <div id="devVincularDepositoResumen" style="background: #f8fafc; border: 1.5px solid var(--border); border-radius: 12px; padding: 12px; margin-bottom: 16px; font-size: 0.82rem; line-height: 1.5;">
+          <!-- Inyectado dinámicamente -->
+        </div>
+
+        <div style="margin-bottom: 16px;">
+          <label style="font-size: 0.82rem; font-weight: 800; color: var(--text-main); display: block; margin-bottom: 5px;">Buscar Estudiante Beneficiario: *</label>
+          <input type="text" id="devVincularEstudianteSearch" placeholder="Escribe el nombre del alumno o carné..." oninput="filtrarEstudiantesParaVincular()" style="width: 100%; padding: 10px 12px; border-radius: 10px; border: 1.5px solid var(--border); background: var(--bg-main); color: var(--text-main); font-size: 0.86rem; font-weight: 700; box-sizing: border-box; margin-bottom: 6px;">
+          <select id="devVincularEstudianteSelect" required size="5" style="width: 100%; padding: 6px; border-radius: 10px; border: 1.5px solid var(--border); background: var(--card-bg); color: var(--text-main); font-size: 0.82rem; font-weight: 600;">
+            <!-- Opciones inyectadas -->
+          </select>
+        </div>
+
+        <div style="margin-bottom: 18px;">
+          <label style="font-size: 0.82rem; font-weight: 800; color: var(--text-main); display: block; margin-bottom: 5px;">Nota de Auditoría (Opcional):</label>
+          <input type="text" id="devVincularNotas" placeholder="Ej: Confirmado vía WhatsApp con el padre Carlos" style="width: 100%; padding: 10px 12px; border-radius: 10px; border: 1.5px solid var(--border); background: var(--bg-main); color: var(--text-main); font-size: 0.84rem; box-sizing: border-box;">
+        </div>
+
+        <div style="display: flex; justify-content: flex-end; gap: 10px; border-top: 1.5px solid var(--border); padding-top: 14px;">
+          <button type="button" onclick="closeModalDevSinpeVincular()" style="padding: 10px 16px; border-radius: 10px; border: 1.5px solid var(--border); background: var(--bg-main); color: var(--text-main); font-weight: 800; font-size: 0.85rem; cursor: pointer;">
+            Cancelar
+          </button>
+          <button type="submit" id="btnDevConfirmarVincular" class="dev-action-btn dev-action-btn-primary" style="padding: 10px 22px; font-size: 0.88rem; font-weight: 800;">
+            Acreditar y Vincular
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- 4. MODAL: SIMULADOR DE CORREO / NOTIFICACIÓN BANCARIA SINPE -->
+  <div class="modal-qr-backdrop" id="modalDevSimularSinpe" style="display: none;" onclick="closeModalDevSimularSinpe()">
+    <div class="modal-qr-card" onclick="event.stopPropagation()" style="max-width: 480px; text-align: left; padding: 22px;">
+      <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1.5px solid var(--border); padding-bottom: 12px; margin-bottom: 16px;">
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <div style="width: 36px; height: 36px; border-radius: 10px; background: #f0fdf4; color: #166534; display: flex; align-items: center; justify-content: center; font-size: 1.2rem;">
+            ⚡
+          </div>
+          <div>
+            <h3 style="margin: 0; font-size: 1.15rem; font-weight: 900; color: var(--text-main);">Simulador de Notificación Bancaria</h3>
+            <span style="font-size: 0.76rem; color: var(--text-muted); font-weight: 600;">Inyecta una transferencia real o huérfana para pruebas</span>
+          </div>
+        </div>
+        <button type="button" onclick="closeModalDevSimularSinpe()" style="background: none; border: none; font-size: 1.3rem; cursor: pointer; color: var(--text-muted); padding: 4px;">✕</button>
+      </div>
+
+      <form id="formDevSimularSinpe" onsubmit="ejecutarSimulacionSinpeDev(event)">
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px;">
+          <div>
+            <label style="font-size: 0.80rem; font-weight: 800; color: var(--text-main); display: block; margin-bottom: 4px;">Banco Emisor:</label>
+            <select id="devSimBanco" style="width: 100%; padding: 9px 10px; border-radius: 10px; border: 1.5px solid var(--border); background: var(--bg-main); color: var(--text-main); font-weight: 700; font-size: 0.84rem;">
+              <option value="BAC San José">BAC San José</option>
+              <option value="Banco Nacional">Banco Nacional (BNCR)</option>
+              <option value="Banco de Costa Rica">Banco de Costa Rica (BCR)</option>
+              <option value="Banco Popular">Banco Popular</option>
+            </select>
+          </div>
+
+          <div>
+            <label style="font-size: 0.80rem; font-weight: 800; color: var(--text-main); display: block; margin-bottom: 4px;">Monto (₡): *</label>
+            <input type="number" id="devSimMonto" value="3500" step="500" min="500" required style="width: 100%; padding: 9px 10px; border-radius: 10px; border: 1.5px solid var(--border); background: var(--bg-main); color: var(--text-main); font-weight: 800; font-size: 0.90rem; box-sizing: border-box;">
+          </div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px;">
+          <div>
+            <label style="font-size: 0.80rem; font-weight: 800; color: var(--text-main); display: block; margin-bottom: 4px;">Nombre Remitente:</label>
+            <input type="text" id="devSimRemitente" value="Carlos Alvarado" style="width: 100%; padding: 9px 10px; border-radius: 10px; border: 1.5px solid var(--border); background: var(--bg-main); color: var(--text-main); font-weight: 700; font-size: 0.84rem; box-sizing: border-box;">
+          </div>
+
+          <div>
+            <label style="font-size: 0.80rem; font-weight: 800; color: var(--text-main); display: block; margin-bottom: 4px;">Teléfono Remitente:</label>
+            <input type="text" id="devSimTelefono" value="88776655" style="width: 100%; padding: 9px 10px; border-radius: 10px; border: 1.5px solid var(--border); background: var(--bg-main); color: var(--text-main); font-weight: 700; font-size: 0.84rem; box-sizing: border-box;">
+          </div>
+        </div>
+
+        <div style="margin-bottom: 14px;">
+          <label style="font-size: 0.80rem; font-weight: 800; color: var(--text-main); display: block; margin-bottom: 4px;">Código de Detalle (Opcional):</label>
+          <input type="text" id="devSimCodigoDetalle" placeholder="Ej: SIBO-XC69 (deja vacío para depósito huérfano)" style="width: 100%; padding: 9px 10px; border-radius: 10px; border: 1.5px solid var(--border); background: var(--bg-main); color: var(--text-main); font-weight: 700; font-size: 0.84rem; box-sizing: border-box;">
+          <span style="font-size: 0.72rem; color: var(--text-muted);">Si lo dejas vacío, el depósito llegará como 'Sin Reclamar' para probar la vinculación.</span>
+        </div>
+
+        <div style="display: flex; justify-content: flex-end; gap: 10px; border-top: 1.5px solid var(--border); padding-top: 14px;">
+          <button type="button" onclick="closeModalDevSimularSinpe()" style="padding: 10px 16px; border-radius: 10px; border: 1.5px solid var(--border); background: var(--bg-main); color: var(--text-main); font-weight: 800; font-size: 0.85rem; cursor: pointer;">
+            Cancelar
+          </button>
+          <button type="submit" id="btnDevConfirmarSimulacion" class="dev-action-btn dev-action-btn-primary" style="padding: 10px 22px; font-size: 0.88rem; font-weight: 800;">
+            ⚡ Disparar Transacción
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ======================================================== -->
   <!-- MODAL DE VALIDACIÓN Y ESTADO SINPE EN TIEMPO REAL       -->
   <!-- ======================================================== -->
   <div class="modal-qr-backdrop modal-sinpe-backdrop" id="modalSinpeValidacion" style="display: none;" onclick="handleSinpeBackdropClick(event)">
@@ -4172,10 +4537,10 @@
     </button>
   </nav>
 
-  <script src="/js/dialogs.js?v=18.1"></script>
-  <script src="/js/sounds.js?v=18.1"></script>
+  <script src="/js/dialogs.js?v=19.0"></script>
+  <script src="/js/sounds.js?v=19.0"></script>
   <script src="/js/jsQR.js" defer></script>
-  <script src="/js/food-icons.js?v=18.1" defer></script>
-  <script src="/js/app.js?v=18.1"></script>
+  <script src="/js/food-icons.js?v=19.0" defer></script>
+  <script src="/js/app.js?v=19.0"></script>
 </body>
 </html>
