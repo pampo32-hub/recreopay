@@ -3687,13 +3687,15 @@ body.dark-mode .staff-role-vendedor {
 .card-chip-container {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-end;
+  min-height: 20px;
   margin-bottom: 12px;
   position: relative;
   z-index: 2;
 }
 
 .card-emv-chip {
+  display: none !important;
   width: 38px;
   height: 28px;
   background: linear-gradient(135deg, #fef08a 0%, #eab308 50%, #ca8a04 100%);

@@ -7512,10 +7512,12 @@ function getSavedCardTheme() {
     if (studentTheme && themes.some(t => t.id === studentTheme)) {
       return studentTheme;
     }
+    if (currentStudent.card_theme && themes.some(t => t.id === currentStudent.card_theme)) {
+      return currentStudent.card_theme;
+    }
   }
-  const globalTheme = localStorage.getItem('recreopay_card_theme');
-  if (globalTheme && themes.some(t => t.id === globalTheme)) {
-    return globalTheme;
+  if (currentUser && currentUser.card_theme && themes.some(t => t.id === currentUser.card_theme)) {
+    return currentUser.card_theme;
   }
   const defaultTheme = themes.find(t => t.es_predeterminado) || themes[0];
   return defaultTheme ? defaultTheme.id : 'card_robo_lab';
@@ -7601,10 +7603,7 @@ function renderCardDesignsCarousel() {
       <div class="card-carousel-slide" data-index="${idx}" data-theme="${t.id}">
         <!-- Vista previa de la tarjeta real (SIN ASTERISCOS) -->
         <div class="wallet-card has-custom-bg ${contrastClass}" style="margin: 0; cursor: pointer; transition: transform 0.2s; ${bgStyle}" onclick="selectCardTheme('${t.id}')">
-          <div class="card-chip-container">
-            <div class="card-emv-chip">
-              <div class="chip-inner-circuit"></div>
-            </div>
+          <div class="card-chip-container" style="justify-content: flex-end;">
             <div class="card-contactless-wave"><span>)</span><span>)</span><span>)</span></div>
           </div>
           <div class="student-info">
@@ -7726,6 +7725,12 @@ function selectCardTheme(themeId) {
   localStorage.setItem('recreopay_card_theme', themeId);
   if (currentStudent && currentStudent.id) {
     localStorage.setItem(`recreopay_card_theme_${currentStudent.id}`, themeId);
+    currentStudent.card_theme = themeId;
+    fetch(`/api/estudiantes/${currentStudent.id}/card-theme`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ card_theme: themeId })
+    }).catch(e => console.warn('No se pudo guardar tema en servidor:', e));
   }
 
   applyCardTheme(themeId);
@@ -8168,6 +8173,7 @@ async function saveDevCardDesign(e) {
   const name = document.getElementById('devCardName').value.trim();
   const categoria = document.getElementById('devCardCategory').value;
   const estilo_texto = document.getElementById('devCardTextStyle').value;
+  const isDefault = document.getElementById('devCardIsDefault')?.checked ? 1 : 0;
   const submitBtn = document.getElementById('btnDevSubmitCard');
 
   if (!devUploadedBase64) {
@@ -8186,6 +8192,7 @@ async function saveDevCardDesign(e) {
         nombre: name,
         categoria: categoria,
         estilo_texto: estilo_texto,
+        es_predeterminado: isDefault,
         image_base64: devUploadedBase64
       })
     });
@@ -8196,6 +8203,8 @@ async function saveDevCardDesign(e) {
     // Limpiar formulario
     devUploadedBase64 = null;
     document.getElementById('formDevCardDesign').reset();
+    const chkDefault = document.getElementById('devCardIsDefault');
+    if (chkDefault) chkDefault.checked = false;
     document.getElementById('devUploadPrompt').style.display = 'block';
     document.getElementById('devUploadSuccess').style.display = 'none';
     document.getElementById('devLiveCardBgImg').src = '/img/cards/card_robo_lab.jpg';
@@ -8205,6 +8214,9 @@ async function saveDevCardDesign(e) {
 
     await loadDevDisenos();
     await loadCardDesigns();
+    if (isDefault && typeof applyCardTheme === 'function' && typeof getSavedCardTheme === 'function') {
+      applyCardTheme(getSavedCardTheme());
+    }
   } catch (err) {
     console.error('Error guardando tarjeta:', err);
     if (window.sounds) window.sounds.playError();
@@ -8262,15 +8274,17 @@ function renderDevDisenosGrid(disenos) {
       `<span style="color: #64748b; font-weight: 700; font-size: 0.72rem; background: #f8fafc; border: 1px solid #e2e8f0; padding: 2px 7px; border-radius: 6px;">Inactivo</span>`;
 
     const textColorLabel = (d.estilo_texto === 'light') ? 'Texto Oscuro' : 'Texto Blanco';
+    const isDefault = Boolean(d.es_predeterminado);
 
     return `
-      <div style="background: var(--card-bg, #ffffff); border: 1.5px solid var(--border, #e2e8f0); border-radius: 14px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.04); display: flex; flex-direction: column;">
+      <div style="background: var(--card-bg, #ffffff); border: ${isDefault ? '2px solid #0284c7' : '1.5px solid var(--border, #e2e8f0)'}; border-radius: 14px; overflow: hidden; box-shadow: ${isDefault ? '0 4px 14px rgba(2, 132, 199, 0.18)' : '0 2px 8px rgba(0,0,0,0.04)'}; display: flex; flex-direction: column;">
         <div style="position: relative; aspect-ratio: 1.586; overflow: hidden; background: #0f172a;">
           <img src="${escapeHtml(d.imagen_url)}" alt="${escapeHtml(d.nombre)}" style="width: 100%; height: 100%; object-fit: cover; display: block;" onerror="this.src='/img/cards/card_robo_lab.jpg'">
           <div style="position: absolute; top: 8px; left: 8px; background: rgba(15, 23, 42, 0.75); color: white; font-size: 0.68rem; font-weight: 700; padding: 2px 8px; border-radius: 6px; backdrop-filter: blur(4px);">
             ${catLabel}
           </div>
-          <div style="position: absolute; top: 8px; right: 8px;">
+          <div style="position: absolute; top: 8px; right: 8px; display: flex; gap: 4px; align-items: center;">
+            ${isDefault ? `<span style="color: #0284c7; font-weight: 800; font-size: 0.72rem; background: #e0f2fe; border: 1px solid #7dd3fc; padding: 2px 8px; border-radius: 6px; display: inline-flex; align-items: center; gap: 4px; box-shadow: 0 2px 6px rgba(2,132,199,0.25);">★ Predeterminada</span>` : ''}
             ${statusBadge}
           </div>
         </div>
@@ -8281,10 +8295,19 @@ function renderDevDisenosGrid(disenos) {
             </div>
             <div style="font-size: 0.72rem; color: var(--text-muted); display: flex; align-items: center; gap: 8px;">
               <span>${textColorLabel}</span>
-              ${d.es_predeterminado ? '<span style="color: #0284c7; font-weight: 700; background: #f0f9ff; border: 1px solid #bae6fd; padding: 1px 6px; border-radius: 4px;">Predeterminado</span>' : ''}
+              ${isDefault ? '<span style="color: #0284c7; font-weight: 800; background: #f0f9ff; border: 1px solid #bae6fd; padding: 1px 6px; border-radius: 4px;">● Predeterminada</span>' : ''}
             </div>
           </div>
-          <div style="margin-top: 12px; display: flex; gap: 6px; justify-content: flex-end;">
+          <div style="margin-top: 12px; display: flex; gap: 6px; justify-content: flex-end; align-items: center; flex-wrap: wrap;">
+            ${isDefault ? `
+              <span class="dev-action-btn" style="padding: 5px 10px; font-size: 0.75rem; background: #f0fdf4; color: #166534; border: 1px solid #86efac; font-weight: 800; display: inline-flex; align-items: center; gap: 4px; cursor: default;" title="Esta tarjeta se asigna a todos los nuevos usuarios">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg> Predeterminada
+              </span>
+            ` : `
+              <button onclick="setDevCardAsDefault(${d.id}, '${escapeHtml(d.nombre)}')" class="dev-action-btn" style="padding: 5px 10px; font-size: 0.75rem; background: #f0f9ff; color: #0284c7; border: 1px solid #bae6fd; font-weight: 800; display: inline-flex; align-items: center; gap: 4px;" title="Establecer como tarjeta predeterminada para nuevos usuarios">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg> Predeterminada
+              </button>
+            `}
             <button onclick="toggleDevCardStatus(${d.id}, ${d.activo ? 0 : 1})" class="dev-action-btn" style="padding: 5px 10px; font-size: 0.75rem;">
               ${d.activo ? 'Desactivar' : 'Activar'}
             </button>
@@ -8296,6 +8319,29 @@ function renderDevDisenosGrid(disenos) {
       </div>
     `;
   }).join('');
+}
+
+async function setDevCardAsDefault(id, nombre) {
+  try {
+    const res = await fetch(`/api/developer/disenos-tarjetas/${id}/predeterminada`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' }
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Error al cambiar tarjeta predeterminada');
+
+    if (window.sounds) window.sounds.playSuccess();
+    alert(`¡"${nombre}" es ahora la tarjeta predeterminada!\nTodos los nuevos usuarios creados tendrán este diseño por defecto.`);
+
+    await loadDevDisenos();
+    await loadCardDesigns();
+    if (typeof applyCardTheme === 'function' && typeof getSavedCardTheme === 'function') {
+      applyCardTheme(getSavedCardTheme());
+    }
+  } catch (err) {
+    if (window.sounds) window.sounds.playError();
+    alert(`Error: ${err.message}`);
+  }
 }
 
 async function toggleDevCardStatus(id, activo) {

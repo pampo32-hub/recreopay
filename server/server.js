@@ -1505,10 +1505,20 @@ app.delete('/api/admin/personal/:id', (req, res) => {
 // DEVELOPER MASTER SUITE & DISEÑOS DE TARJETAS
 // ==========================================
 
+function getCardThemePredeterminado() {
+  try {
+    const row = db.prepare('SELECT theme_id FROM disenos_tarjetas WHERE es_predeterminado = 1 AND activo = 1 LIMIT 1').get()
+      || db.prepare('SELECT theme_id FROM disenos_tarjetas WHERE activo = 1 ORDER BY id ASC LIMIT 1').get();
+    return row ? row.theme_id : 'card_robo_lab';
+  } catch (e) {
+    return 'card_robo_lab';
+  }
+}
+
 // Endpoint público para obtener diseños de tarjetas activas (utilizado por el carrusel y app de estudiantes)
 app.get('/api/disenos-tarjetas', (req, res) => {
   try {
-    const disenos = db.prepare('SELECT * FROM disenos_tarjetas WHERE activo = 1 ORDER BY id ASC').all();
+    const disenos = db.prepare('SELECT * FROM disenos_tarjetas WHERE activo = 1 ORDER BY es_predeterminado DESC, id ASC').all();
     res.json(disenos);
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -1562,15 +1572,16 @@ app.post('/api/developer/usuarios', (req, res) => {
       return res.status(400).json({ error: `El nombre de usuario "${cleanUser}" ya se encuentra registrado.` });
     }
 
+    const defaultTheme = getCardThemePredeterminado();
     const result = db.prepare(`
-      INSERT INTO usuarios (username, password_hash, rol, nombre, telefono, email, activo, escuela_id)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-    `).run(cleanUser, cleanPass, cleanRol, String(nombre).trim(), telefono || '', email || '', cleanActivo, escuelaId);
+      INSERT INTO usuarios (username, password_hash, rol, nombre, telefono, email, activo, escuela_id, card_theme)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `).run(cleanUser, cleanPass, cleanRol, String(nombre).trim(), telefono || '', email || '', cleanActivo, escuelaId, defaultTheme);
 
     res.status(201).json({
       exito: true,
       mensaje: `Usuario "${nombre}" (${cleanRol}) creado exitosamente con privilegios.`,
-      usuario: { id: result.lastInsertRowid, username: cleanUser, rol: cleanRol, nombre, activo: cleanActivo, escuela_id: escuelaId }
+      usuario: { id: result.lastInsertRowid, username: cleanUser, rol: cleanRol, nombre, activo: cleanActivo, escuela_id: escuelaId, card_theme: defaultTheme }
     });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -1736,6 +1747,10 @@ app.post('/api/developer/disenos-tarjetas', (req, res) => {
     const cleanEstilo = estilo_texto === 'light' ? 'light' : 'dark';
     const cleanPred = es_predeterminado ? 1 : 0;
 
+    if (cleanPred === 1) {
+      db.prepare('UPDATE disenos_tarjetas SET es_predeterminado = 0').run();
+    }
+
     const result = db.prepare(`
       INSERT INTO disenos_tarjetas (theme_id, nombre, categoria, imagen_url, estilo_texto, es_predeterminado, activo)
       VALUES (?, ?, ?, ?, ?, ?, 1)
@@ -1754,6 +1769,31 @@ app.post('/api/developer/disenos-tarjetas', (req, res) => {
   }
 });
 
+// Establecer diseño como predeterminado para todos los nuevos usuarios
+app.put('/api/developer/disenos-tarjetas/:id/predeterminada', (req, res) => {
+  try {
+    const id = parseInt(req.params.id, 10);
+    const diseno = db.prepare('SELECT * FROM disenos_tarjetas WHERE id = ?').get(id);
+    if (!diseno) return res.status(404).json({ error: 'Diseño no encontrado.' });
+
+    db.transaction(() => {
+      db.prepare('UPDATE disenos_tarjetas SET es_predeterminado = 0').run();
+      db.prepare('UPDATE disenos_tarjetas SET es_predeterminado = 1, activo = 1 WHERE id = ?').run(id);
+    })();
+
+    const actualizado = db.prepare('SELECT * FROM disenos_tarjetas WHERE id = ?').get(id);
+    broadcastEvent('disenos_actualizados', actualizado);
+
+    res.json({
+      exito: true,
+      mensaje: `¡El diseño "${diseno.nombre}" ahora es el diseño predeterminado para todos los nuevos usuarios!`,
+      diseno: actualizado
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // Activar / Desactivar diseño de tarjeta
 app.put('/api/developer/disenos-tarjetas/:id/estado', (req, res) => {
   try {
@@ -1766,6 +1806,20 @@ app.put('/api/developer/disenos-tarjetas/:id/estado', (req, res) => {
 
     broadcastEvent('disenos_actualizados', diseno);
     res.json({ exito: true, diseno, activo: nuevoEstado });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Actualizar diseño personalizado de tarjeta de un estudiante
+app.put('/api/estudiantes/:id/card-theme', (req, res) => {
+  try {
+    const id = parseInt(req.params.id, 10);
+    const { card_theme } = req.body;
+    if (!card_theme) return res.status(400).json({ error: 'card_theme es obligatorio.' });
+
+    db.prepare('UPDATE estudiantes SET card_theme = ? WHERE id = ?').run(String(card_theme).trim(), id);
+    res.json({ exito: true, card_theme: String(card_theme).trim() });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -2118,6 +2172,7 @@ app.post('/api/developer/estudiantes/importar-masivo', (req, res) => {
 
     const maxRow = db.prepare('SELECT MAX(id) as maxId FROM estudiantes').get();
     let currentSeq = (maxRow && maxRow.maxId ? maxRow.maxId : 0) + 1;
+    const defaultCardTheme = getCardThemePredeterminado();
 
     let insertados = 0;
     let omitidos = 0;
@@ -2129,8 +2184,8 @@ app.post('/api/developer/estudiantes/importar-masivo', (req, res) => {
         codigo_estudiante, nombre_completo, edad, grado, seccion,
         qr_token, pin_seguridad, foto_url, saldo_colones, limite_diario_colones,
         alergias, padre_nombre, padre_telefono, permitir_transferencias,
-        tarjeta_bloqueada, activo, escuela_id
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, NULL, ?, ?, ?, ?, ?, 1, 0, 1, ?)
+        tarjeta_bloqueada, activo, escuela_id, card_theme
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, NULL, ?, ?, ?, ?, ?, 1, 0, 1, ?, ?)
     `);
 
     const insertTxStmt = db.prepare(`
@@ -2140,8 +2195,8 @@ app.post('/api/developer/estudiantes/importar-masivo', (req, res) => {
     `);
 
     const insertUserStmt = db.prepare(`
-      INSERT INTO usuarios (username, password_hash, rol, nombre, activo, escuela_id)
-      VALUES (?, ?, 'estudiante', ?, 1, ?)
+      INSERT INTO usuarios (username, password_hash, rol, nombre, activo, escuela_id, card_theme)
+      VALUES (?, ?, 'estudiante', ?, 1, ?, ?)
     `);
 
     const processImport = db.transaction(() => {
@@ -2195,7 +2250,8 @@ app.post('/api/developer/estudiantes/importar-masivo', (req, res) => {
           alergias,
           padreNombre,
           padreTelefono,
-          escuela_id
+          escuela_id,
+          defaultCardTheme
         );
 
         const newEstId = resEst.lastInsertRowid || resEst.id;
@@ -2206,7 +2262,7 @@ app.post('/api/developer/estudiantes/importar-masivo', (req, res) => {
 
         const usernameEst = primerNombre.toLowerCase() + currentSeq;
         try {
-          const resUser = insertUserStmt.run(usernameEst, pin, cleanNombre, escuela_id);
+          const resUser = insertUserStmt.run(usernameEst, pin, cleanNombre, escuela_id, defaultCardTheme);
           const userId = resUser.lastInsertRowid || resUser.id;
           db.prepare('UPDATE estudiantes SET usuario_id = ? WHERE id = ?').run(userId, newEstId);
         } catch (e) {}
@@ -2278,11 +2334,12 @@ app.post('/api/admin/estudiantes', (req, res) => {
     const limite = parseInt(limite_diario_colones, 10) || 3000;
     const edadNum = parseInt(edad, 10) || 8;
     const foto = null;
+    const defaultCardTheme = getCardThemePredeterminado();
 
     const resEst = db.prepare(`
       INSERT INTO estudiantes 
-      (codigo_estudiante, nombre_completo, edad, grado, seccion, qr_token, pin_seguridad, foto_url, saldo_colones, limite_diario_colones, alergias, padre_nombre, padre_telefono, permitir_transferencias, tarjeta_bloqueada, activo, escuela_id)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, 0, 1, ?)
+      (codigo_estudiante, nombre_completo, edad, grado, seccion, qr_token, pin_seguridad, foto_url, saldo_colones, limite_diario_colones, alergias, padre_nombre, padre_telefono, permitir_transferencias, tarjeta_bloqueada, activo, escuela_id, card_theme)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, 0, 1, ?, ?)
     `).run(
       codigoEstudiante,
       nombre_completo.trim(),
@@ -2297,7 +2354,8 @@ app.post('/api/admin/estudiantes', (req, res) => {
       alergias || 'Ninguna conocida',
       padre_nombre || '',
       padre_telefono || '',
-      escuelaId
+      escuelaId,
+      defaultCardTheme
     );
 
     const nuevoId = resEst.lastInsertRowid || resEst.id;
@@ -2306,9 +2364,9 @@ app.post('/api/admin/estudiantes', (req, res) => {
     const usernameEst = primerNombre.toLowerCase() + nextSeq;
     try {
       const userRes = db.prepare(`
-        INSERT INTO usuarios (username, password_hash, rol, nombre, email, telefono, activo, escuela_id)
-        VALUES (?, ?, 'estudiante', ?, '', '', 1, ?)
-      `).run(usernameEst, pin, nombre_completo.trim(), escuelaId);
+        INSERT INTO usuarios (username, password_hash, rol, nombre, email, telefono, activo, escuela_id, card_theme)
+        VALUES (?, ?, 'estudiante', ?, '', '', 1, ?, ?)
+      `).run(usernameEst, pin, nombre_completo.trim(), escuelaId, defaultCardTheme);
       db.prepare('UPDATE estudiantes SET usuario_id = ? WHERE id = ?').run(userRes.lastInsertRowid || userRes.id, nuevoId);
     } catch (e) {}
 
