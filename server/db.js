@@ -216,6 +216,16 @@ function initDatabase() {
       db.exec('ALTER TABLE transacciones_saldo ADD COLUMN IF NOT EXISTS revertido_en TIMESTAMP;');
       db.exec('ALTER TABLE transacciones_saldo ADD COLUMN IF NOT EXISTS escuela_id INTEGER DEFAULT 1 REFERENCES escuelas(id);');
       db.exec('ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS escuela_id INTEGER DEFAULT 1 REFERENCES escuelas(id);');
+      db.exec('ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS fecha_nacimiento VARCHAR(50);');
+      db.exec(`
+        CREATE TABLE IF NOT EXISTS password_resets (
+          id SERIAL PRIMARY KEY,
+          email VARCHAR(150) NOT NULL,
+          code VARCHAR(10) NOT NULL,
+          expires_at TIMESTAMP NOT NULL,
+          creado_en TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        );
+      `);
       db.exec('ALTER TABLE estudiantes ADD COLUMN IF NOT EXISTS escuela_id INTEGER DEFAULT 1 REFERENCES escuelas(id);');
       db.exec('ALTER TABLE estudiantes ADD COLUMN IF NOT EXISTS card_theme VARCHAR(50);');
       db.exec('ALTER TABLE estudiantes ADD COLUMN IF NOT EXISTS bloqueo_qr_biometrico INTEGER DEFAULT 0;');
@@ -265,6 +275,7 @@ function initDatabase() {
       nombre TEXT NOT NULL,
       telefono TEXT,
       email TEXT,
+      fecha_nacimiento TEXT,
       creado_en DATETIME DEFAULT CURRENT_TIMESTAMP
   );
 
@@ -435,8 +446,19 @@ function initDatabase() {
   try { db.exec('ALTER TABLE ordenes ADD COLUMN observaciones TEXT'); } catch (e) {}
   try { db.exec('ALTER TABLE ordenes ADD COLUMN escuela_id INTEGER DEFAULT 1'); } catch (e) {}
   try { db.exec('ALTER TABLE estudiantes ADD COLUMN card_theme TEXT'); } catch (e) {}
-  try { db.exec('ALTER TABLE usuarios ADD COLUMN card_theme TEXT'); } catch (e) {}
   try { db.exec('ALTER TABLE estudiantes ADD COLUMN bloqueo_qr_biometrico INTEGER DEFAULT 0'); } catch (e) {}
+  try { db.exec('ALTER TABLE usuarios ADD COLUMN fecha_nacimiento TEXT'); } catch (e) {}
+  try {
+    db.exec(`
+      CREATE TABLE IF NOT EXISTS password_resets (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        email TEXT NOT NULL,
+        code TEXT NOT NULL,
+        expires_at DATETIME NOT NULL,
+        creado_en DATETIME DEFAULT CURRENT_TIMESTAMP
+      );
+    `);
+  } catch (e) {}
 
   // 10. Diseños de Tarjetas Virtuales para Estudiantes
   try {

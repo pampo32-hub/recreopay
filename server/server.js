@@ -53,6 +53,7 @@ const {
 const { checkSinpeEmailsOnce, simularSinpeEmail } = require('./sinpeImapService');
 const { normalizarCodigoDetalle, parseSinpeEmail } = require('./sinpeParser');
 const { simpleParser } = require('mailparser');
+const { enviarCodigoRecuperacion } = require('./emailService');
 
 const webpush = require('web-push');
 
@@ -533,25 +534,29 @@ app.post('/api/auth/login', (req, res) => {
   }
 });
 
-// Registro de nuevos padres desde la pantalla de bienvenida
+// Registro de nuevos usuarios desde la pantalla de bienvenida
 app.post('/api/auth/register-padre', (req, res) => {
   try {
-    const { nombre, telefono, email, username, password } = req.body;
-    if (!nombre || !username || !password) {
-      return res.status(400).json({ error: 'Nombre completo, usuario y contraseña son requeridos' });
+    const { nombre, telefono, email, username, password, fecha_nacimiento } = req.body;
+    if (!nombre || !username || !password || !email) {
+      return res.status(400).json({ error: 'Nombre completo, correo electrónico, usuario y contraseña son requeridos' });
     }
 
     const cleanUser = String(username).trim().toLowerCase();
     const cleanPass = String(password).trim();
     const cleanNombre = String(nombre).trim();
     const cleanTel = telefono ? String(telefono).trim() : '';
-    const cleanEmail = email ? String(email).trim().toLowerCase() : '';
+    const cleanEmail = String(email).trim().toLowerCase();
+    const cleanFechaNac = fecha_nacimiento ? String(fecha_nacimiento).trim() : '';
 
     if (cleanUser.length < 3) {
       return res.status(400).json({ error: 'El nombre de usuario debe tener al menos 3 caracteres' });
     }
-    if (cleanPass.length < 4) {
-      return res.status(400).json({ error: 'La contraseña debe tener al menos 4 caracteres' });
+    if (cleanPass.length < 6) {
+      return res.status(400).json({ error: 'La contraseña debe tener al menos 6 caracteres' });
+    }
+    if (!cleanEmail.includes('@') || !cleanEmail.includes('.')) {
+      return res.status(400).json({ error: 'Ingresa un correo electrónico válido' });
     }
 
     // Comprobar si el usuario ya existe
@@ -560,11 +565,17 @@ app.post('/api/auth/register-padre', (req, res) => {
       return res.status(400).json({ error: 'Ese nombre de usuario ya está en uso. Por favor elige otro.' });
     }
 
+    // Comprobar si el correo ya está registrado
+    const emailExists = db.prepare('SELECT id FROM usuarios WHERE LOWER(email) = ?').get(cleanEmail);
+    if (emailExists) {
+      return res.status(400).json({ error: 'Ese correo electrónico ya está registrado. Puedes iniciar sesión o restablecer tu contraseña.' });
+    }
+
     const insert = db.prepare(`
-      INSERT INTO usuarios (username, password_hash, rol, nombre, telefono, email)
-      VALUES (?, ?, 'padre', ?, ?, ?)
+      INSERT INTO usuarios (username, password_hash, rol, nombre, telefono, email, fecha_nacimiento)
+      VALUES (?, ?, 'padre', ?, ?, ?, ?)
     `);
-    const result = insert.run(cleanUser, cleanPass, cleanNombre, cleanTel, cleanEmail);
+    const result = insert.run(cleanUser, cleanPass, cleanNombre, cleanTel, cleanEmail, cleanFechaNac);
 
     const newUser = {
       id: result.lastInsertRowid,
@@ -572,7 +583,8 @@ app.post('/api/auth/register-padre', (req, res) => {
       rol: 'padre',
       nombre: cleanNombre,
       telefono: cleanTel,
-      email: cleanEmail
+      email: cleanEmail,
+      fecha_nacimiento: cleanFechaNac
     };
 
     res.json({
@@ -582,6 +594,95 @@ app.post('/api/auth/register-padre', (req, res) => {
     });
   } catch (err) {
     res.status(500).json({ error: err.message });
+  }
+});
+
+// ==========================================
+// RESTABLECIMIENTO DE CONTRASEÑA VÍA CORREO
+// ==========================================
+
+// 1. Enviar código de 6 dígitos al correo
+app.post('/api/auth/forgot-password', async (req, res) => {
+  try {
+    const { email } = req.body;
+    if (!email) {
+      return res.status(400).json({ error: 'Por favor ingresa tu correo electrónico' });
+    }
+
+    const cleanEmail = String(email).trim().toLowerCase();
+    const user = db.prepare('SELECT id, username, nombre, email FROM usuarios WHERE LOWER(email) = ?').get(cleanEmail);
+    if (!user) {
+      return res.status(404).json({ error: 'No encontramos ninguna cuenta asociada a este correo electrónico.' });
+    }
+
+    // Generar código numérico de 6 dígitos
+    const code = Math.floor(100000 + Math.random() * 900000).toString();
+    const expiresAt = new Date(Date.now() + 15 * 60 * 1000).toISOString();
+
+    // Guardar código en la base de datos (eliminar previos para este correo)
+    try {
+      db.prepare('DELETE FROM password_resets WHERE LOWER(email) = ?').run(cleanEmail);
+    } catch (_) {}
+    db.prepare('INSERT INTO password_resets (email, code, expires_at) VALUES (?, ?, ?)').run(cleanEmail, code, expiresAt);
+
+    // Enviar código por correo electrónico vía SMTP
+    await enviarCodigoRecuperacion(cleanEmail, code, user.nombre || user.username);
+
+    res.json({
+      success: true,
+      message: 'Hemos enviado un código de 6 dígitos a tu correo electrónico.'
+    });
+  } catch (err) {
+    console.error('[AUTH] ❌ Error en forgot-password:', err);
+    res.status(500).json({ error: 'Error al enviar el código de recuperación: ' + (err.message || 'Error de conexión') });
+  }
+});
+
+// 2. Validar código y asignar nueva contraseña
+app.post('/api/auth/reset-password', (req, res) => {
+  try {
+    const { email, code, new_password } = req.body;
+    if (!email || !code || !new_password) {
+      return res.status(400).json({ error: 'Correo, código y nueva contraseña son requeridos' });
+    }
+
+    const cleanEmail = String(email).trim().toLowerCase();
+    const cleanCode = String(code).trim();
+    const cleanPass = String(new_password).trim();
+
+    if (cleanPass.length < 6) {
+      return res.status(400).json({ error: 'La nueva contraseña debe tener al menos 6 caracteres' });
+    }
+
+    const resetEntry = db.prepare('SELECT id, code, expires_at FROM password_resets WHERE LOWER(email) = ? ORDER BY id DESC LIMIT 1').get(cleanEmail);
+    if (!resetEntry || resetEntry.code !== cleanCode) {
+      return res.status(400).json({ error: 'El código de verificación es inválido. Verifícalo e intenta de nuevo.' });
+    }
+
+    const now = new Date();
+    const expires = new Date(resetEntry.expires_at);
+    if (now > expires) {
+      return res.status(400).json({ error: 'El código de verificación ha expirado (validez de 15 minutos). Solicita uno nuevo.' });
+    }
+
+    // Actualizar contraseña del usuario
+    const update = db.prepare('UPDATE usuarios SET password_hash = ? WHERE LOWER(email) = ?').run(cleanPass, cleanEmail);
+    if (update.changes === 0) {
+      return res.status(404).json({ error: 'No se pudo encontrar la cuenta para actualizar la contraseña.' });
+    }
+
+    // Eliminar código utilizado
+    try {
+      db.prepare('DELETE FROM password_resets WHERE LOWER(email) = ?').run(cleanEmail);
+    } catch (_) {}
+
+    res.json({
+      success: true,
+      message: '¡Contraseña actualizada exitosamente! Ya puedes iniciar sesión con tu nueva contraseña.'
+    });
+  } catch (err) {
+    console.error('[AUTH] ❌ Error en reset-password:', err);
+    res.status(500).json({ error: 'Error al restablecer la contraseña: ' + (err.message || 'Error interno') });
   }
 });
 

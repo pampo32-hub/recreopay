@@ -1,0 +1,938 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SiboPay — Carrusel Estilo Structured en la App</title>
+  <script src="https://www.gstatic.com/antigravity/web/dev/tailwindcss.min.js"></script>
+  <style>
+    /* Tipografía y suavizado idéntico a Structured */
+    * {
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+    
+    /* Scrollbar oculta para el snap carousel */
+    .no-scrollbar::-webkit-scrollbar {
+      display: none;
+    }
+    .no-scrollbar {
+      -ms-overflow-style: none;
+      scrollbar-width: none;
+    }
+
+    /* Transición suave de temas */
+    .theme-transition {
+      transition: background-color 0.6s cubic-bezier(0.4, 0, 0.2, 1), color 0.4s ease;
+    }
+
+    /* Cápsula móvil estilo Structured */
+    .app-card-pill {
+      border-radius: 36px;
+      box-shadow: 0 12px 28px -6px rgba(0, 0, 0, 0.08), inset 0 1.5px 1px rgba(255, 255, 255, 0.85);
+      transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.25s ease;
+    }
+    .app-card-pill:hover, .app-card-pill:active {
+      transform: translateY(-2px) scale(1.01);
+      box-shadow: 0 16px 32px -6px rgba(0, 0, 0, 0.12), inset 0 1.5px 1px rgba(255, 255, 255, 0.95);
+    }
+
+    /* Efecto puzzle connector entre tarjetas */
+    .puzzle-connector {
+      width: 28px;
+      height: 22px;
+      position: relative;
+      flex-shrink: 0;
+      z-index: 10;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    /* Discos circulares interactivos estilo Structured */
+    .explore-disk {
+      width: 68px;
+      height: 68px;
+      border-radius: 9999px;
+      box-shadow: 0 8px 20px -4px rgba(0, 0, 0, 0.07), inset 0 1.5px 1px rgba(255, 255, 255, 0.85);
+      transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+    .explore-disk:active {
+      transform: scale(0.92);
+    }
+
+    /* Timeline vertical de Structured */
+    .timeline-pill {
+      border-radius: 26px;
+      box-shadow: 0 6px 18px -4px rgba(0, 0, 0, 0.06), inset 0 1px 1px rgba(255, 255, 255, 0.8);
+      transition: transform 0.2s ease;
+    }
+    .timeline-pill:hover {
+      transform: translateX(3px);
+    }
+
+    /* Animación de pulso suave */
+    @keyframes gentle-pulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.85; transform: scale(1.05); }
+    }
+    .animate-gentle {
+      animation: gentle-pulse 3s infinite ease-in-out;
+    }
+
+    /* Efecto de marco de iPhone */
+    .iphone-shell {
+      box-shadow: 
+        0 0 0 12px #1e293b,
+        0 0 0 14px #334155,
+        0 25px 60px -15px rgba(0, 0, 0, 0.35);
+    }
+
+    /* Animación de deslizamiento automático continuo si se activa */
+    @keyframes marquee-mobile {
+      0% { transform: translateX(0); }
+      100% { transform: translateX(-50%); }
+    }
+    .track-auto {
+      animation: marquee-mobile 24s linear infinite;
+    }
+    .track-auto:hover {
+      animation-play-state: paused;
+    }
+  </style>
+</head>
+<body id="mainBody" class="theme-transition min-h-screen font-sans bg-[#e6f4fe] text-slate-800 p-4 md:p-8 flex flex-col items-center justify-start">
+
+  <!-- HEADER DEL ESTUDIO / PRESENTACIÓN -->
+  <header class="w-full max-w-5xl mx-auto mb-6 flex flex-col md:flex-row items-center justify-between gap-4 bg-white/70 backdrop-blur-xl p-4 md:px-6 rounded-3xl border border-white/80 shadow-[0_8px_30px_rgba(0,0,0,0.04)]">
+    <div class="flex items-center gap-3">
+      <div class="w-10 h-10 rounded-2xl bg-gradient-to-tr from-sky-600 to-cyan-400 flex items-center justify-center text-white font-extrabold text-xl shadow-md">
+        S
+      </div>
+      <div>
+        <div class="flex items-center gap-2">
+          <span class="text-xl font-bold tracking-tight text-slate-900">sibopay</span>
+          <span class="text-[11px] font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-sky-100 text-sky-800 border border-sky-200">
+            Diseño In-App • Structured
+          </span>
+        </div>
+        <p class="text-xs text-slate-500 font-medium">Así luce el carrusel de cápsulas y conectores dentro de la pantalla del celular</p>
+      </div>
+    </div>
+
+    <!-- CONTROLES DEL PROTOTIPO -->
+    <div class="flex flex-wrap items-center gap-2">
+      <!-- Selector de color pastel de la App -->
+      <div class="flex items-center gap-1.5 bg-white/90 p-1.5 rounded-2xl border border-slate-200/80 shadow-xs">
+        <span class="text-[11px] font-semibold text-slate-500 pl-1.5">Fondo App:</span>
+        <button onclick="setTheme('#e0f2fe', '#f0f9ff')" title="Cielo SiboPay" class="w-6 h-6 rounded-full bg-[#e0f2fe] border-2 border-sky-400 hover:scale-110 transition-transform cursor-pointer"></button>
+        <button onclick="setTheme('#d1fae5', '#ecfdf5')" title="Menta Fresca" class="w-6 h-6 rounded-full bg-[#d1fae5] border-2 border-emerald-400 hover:scale-110 transition-transform cursor-pointer"></button>
+        <button onclick="setTheme('#ffedd5', '#fff7ed')" title="Melocotón Pastel" class="w-6 h-6 rounded-full bg-[#ffedd5] border-2 border-orange-400 hover:scale-110 transition-transform cursor-pointer"></button>
+        <button onclick="setTheme('#f3e8ff', '#faf5ff')" title="Lavanda Suave" class="w-6 h-6 rounded-full bg-[#f3e8ff] border-2 border-purple-400 hover:scale-110 transition-transform cursor-pointer"></button>
+        <button onclick="setTheme('#fef9c3', '#fefce8')" title="Vainilla Cálido" class="w-6 h-6 rounded-full bg-[#fef9c3] border-2 border-amber-400 hover:scale-110 transition-transform cursor-pointer"></button>
+        <button onclick="setTheme('#f8fafc', '#ffffff')" title="Blanco Minimalista" class="w-6 h-6 rounded-full bg-[#ffffff] border-2 border-slate-300 hover:scale-110 transition-transform cursor-pointer"></button>
+      </div>
+
+      <!-- Selector de Vista -->
+      <div class="flex items-center bg-slate-100 p-1 rounded-2xl border border-slate-200 text-xs font-semibold">
+        <button id="btnViewPhone" onclick="setViewMode('phone')" class="px-3 py-1.5 rounded-xl bg-white text-slate-800 shadow-xs transition-all cursor-pointer">
+          📱 Vista Móvil
+        </button>
+        <button id="btnViewComponent" onclick="setViewMode('component')" class="px-3 py-1.5 rounded-xl text-slate-500 hover:text-slate-800 transition-all cursor-pointer">
+          🔍 Zoom Componente
+        </button>
+      </div>
+
+      <!-- Botón Autoplay -->
+      <button id="btnAutoplay" onclick="toggleAutoFlow()" class="px-3.5 py-1.5 rounded-2xl bg-white hover:bg-slate-50 text-slate-700 text-xs font-semibold border border-slate-200 shadow-xs flex items-center gap-1.5 transition-all cursor-pointer">
+        <span id="autoplayIcon">▶</span>
+        <span id="autoplayText">Flujo Continuo</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- CONTENEDOR PRINCIPAL: VISTA DEL CELULAR (IPHONE 16 PRO FRAME) -->
+  <main class="w-full max-w-5xl flex flex-col lg:flex-row items-center justify-center gap-10">
+
+    <!-- EL TELÉFONO MÓVIL CON LA APP ADENTRO -->
+    <div id="phoneFrame" class="iphone-shell relative w-[390px] h-[812px] bg-slate-900 rounded-[52px] p-3 flex flex-col shrink-0 select-none overflow-hidden transition-all duration-500">
+      
+      <!-- Borde interno de pantalla -->
+      <div id="appScreen" class="theme-transition relative w-full h-full bg-[#e0f2fe] rounded-[42px] overflow-hidden flex flex-col justify-between">
+        
+        <!-- STATUS BAR & DYNAMIC ISLAND -->
+        <div class="relative pt-3 pb-1 px-7 flex items-center justify-between z-40 text-slate-800 font-semibold text-xs tracking-tight">
+          <span>9:41</span>
+          
+          <!-- DYNAMIC ISLAND DE APPLE -->
+          <div class="w-28 h-7 bg-black rounded-full flex items-center justify-between px-2.5 shadow-inner">
+            <div class="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></div>
+            <span class="text-[10px] text-white/90 font-medium tracking-wide">sibopay</span>
+            <div class="w-2.5 h-2.5 rounded-full bg-sky-400"></div>
+          </div>
+
+          <div class="flex items-center gap-1.5 text-slate-800">
+            <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="currentColor"><path d="M12 3c-4.97 0-9 4.03-9 9 0 2.12.74 4.07 1.97 5.61L12 22l7.03-4.39C20.26 16.07 21 14.12 21 12c0-4.97-4.03-9-9-9z"/></svg>
+            <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="currentColor"><path d="M2 17h20v2H2zm1.15-4.05L4 11.47l.85 1.48L6 12.33V17H4v-4.05zM9 17h2v-7H9v7zm5 0h2V7h-2v10zm5 0h2V4h-2v13z"/></svg>
+            <div class="w-5 h-2.5 border border-slate-700 rounded-sm p-0.5 flex items-center">
+              <div class="w-full h-full bg-slate-800 rounded-2xs"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- APP BODY SCROLLABLE -->
+        <div id="appScrollArea" class="flex-1 overflow-y-auto no-scrollbar pb-24 px-4 pt-2">
+          
+          <!-- APP TOP HEADER CON PERFIL Y SALDO -->
+          <div class="flex items-center justify-between mb-4 pt-1">
+            <div class="flex items-center gap-2.5">
+              <div class="relative">
+                <img src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80" alt="Avatar" class="w-10 h-10 rounded-full object-cover border-2 border-white shadow-xs">
+                <div class="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full bg-emerald-500 border-2 border-white"></div>
+              </div>
+              <div>
+                <div class="flex items-center gap-1 text-[11px] font-semibold text-slate-500 lowercase">
+                  <span>colegio saint paul</span>
+                  <span>•</span>
+                  <span>2° A</span>
+                </div>
+                <h2 class="text-sm font-extrabold text-slate-900 tracking-tight leading-tight lowercase">
+                  hola, mateo 👋
+                </h2>
+              </div>
+            </div>
+
+            <!-- CHIP DE SALDO CON GLOW SUAVE -->
+            <div onclick="showToast('Saldo disponible: ₡14.500')" class="flex flex-col items-end bg-white/80 backdrop-blur-md px-3 py-1.5 rounded-2xl border border-white/90 shadow-xs cursor-pointer active:scale-95 transition-transform">
+              <span class="text-[10px] uppercase font-bold text-slate-400 tracking-wider">saldo disponible</span>
+              <span class="text-sm font-extrabold text-slate-900">₡14.500</span>
+            </div>
+          </div>
+
+          <!-- SELECTOR HORIZONTAL DE DÍAS Y RUTINAS (ESTILO STRUCTURED) -->
+          <div class="flex items-center gap-2 overflow-x-auto no-scrollbar py-1 mb-4 text-xs font-semibold">
+            <button class="px-3.5 py-1.5 rounded-full bg-slate-900 text-white shadow-sm shrink-0 lowercase">
+              hoy, 10 oct
+            </button>
+            <button class="px-3.5 py-1.5 rounded-full bg-white/70 hover:bg-white text-slate-700 shrink-0 border border-white/80 lowercase transition-colors">
+              recreo 1
+            </button>
+            <button class="px-3.5 py-1.5 rounded-full bg-white/70 hover:bg-white text-slate-700 shrink-0 border border-white/80 lowercase transition-colors">
+              almuerzo
+            </button>
+            <button class="px-3.5 py-1.5 rounded-full bg-white/70 hover:bg-white text-slate-700 shrink-0 border border-white/80 lowercase transition-colors">
+              recreo 2
+            </button>
+            <button class="px-3.5 py-1.5 rounded-full bg-white/70 hover:bg-white text-slate-700 shrink-0 border border-white/80 lowercase transition-colors">
+              servicios
+            </button>
+          </div>
+
+          <!-- ======================================================== -->
+          <!-- SECCIÓN PROTAGONISTA: EL CARRUSEL ESTILO STRUCTURED EN LA APP -->
+          <!-- ======================================================== -->
+          <div class="mb-6">
+            <div class="flex items-center justify-between mb-2.5 px-1">
+              <div>
+                <span class="text-[10px] font-bold tracking-wider uppercase text-sky-800/80">combos & promociones</span>
+                <h3 class="text-base font-extrabold text-slate-900 tracking-tight lowercase">
+                  destacados del día
+                </h3>
+              </div>
+              
+              <!-- Mini Flechas de Navegación -->
+              <div class="flex items-center gap-1.5">
+                <button onclick="scrollCarousel(-1)" class="w-7 h-7 rounded-full bg-white/80 hover:bg-white border border-white flex items-center justify-center text-slate-700 shadow-2xs active:scale-90 transition-all cursor-pointer">
+                  ‹
+                </button>
+                <button onclick="scrollCarousel(1)" class="w-7 h-7 rounded-full bg-white/80 hover:bg-white border border-white flex items-center justify-center text-slate-700 shadow-2xs active:scale-90 transition-all cursor-pointer">
+                  ›
+                </button>
+              </div>
+            </div>
+
+            <!-- CONTENEDOR DEL CARRUSEL DE CÁPSULAS CONECTADAS -->
+            <div class="relative overflow-hidden py-2 -mx-4 px-4 mask-fade">
+              
+              <div id="appCarouselTrack" class="flex items-center overflow-x-auto no-scrollbar scroll-smooth snap-x snap-mandatory py-1" style="scroll-padding-left: 16px;">
+
+                <!-- ================= CARD 1 (PASTEL SKY) ================= -->
+                <div class="app-card-pill snap-start shrink-0 w-[295px] h-[155px] bg-[#e0f2fe] p-4 flex flex-col justify-between relative cursor-pointer border border-sky-200/50" onclick="selectCard('Combo Recreo Saludable', '1.850')">
+                  <!-- Fila superior -->
+                  <div class="flex items-center justify-between">
+                    <div class="flex items-center gap-2">
+                      <div class="w-8 h-8 rounded-full bg-white/90 shadow-2xs flex items-center justify-center text-lg">
+                        🥪
+                      </div>
+                      <span class="text-[11px] font-bold text-sky-900/80 uppercase tracking-wide">
+                        recreo 1 • 09:30 am
+                      </span>
+                    </div>
+                    <span class="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-sky-200/70 text-sky-900 lowercase">
+                      popular
+                    </span>
+                  </div>
+
+                  <!-- Título y descripción -->
+                  <div>
+                    <h4 class="text-sm font-extrabold text-slate-900 tracking-tight leading-snug lowercase">
+                      sandwich artesanal & jugo
+                    </h4>
+                    <p class="text-[11px] text-slate-600 line-clamp-1 font-medium mt-0.5">
+                      jamón de pavo, queso suizo y jugo de naranja
+                    </p>
+                  </div>
+
+                  <!-- Fila inferior: Precio y Botón Rápido -->
+                  <div class="flex items-center justify-between pt-1">
+                    <div class="flex items-baseline gap-1">
+                      <span class="text-xs font-bold text-slate-400">₡</span>
+                      <span class="text-base font-black text-slate-900 tracking-tight">1.850</span>
+                    </div>
+                    <button onclick="event.stopPropagation(); orderItem('Sandwich & Jugo', '1.850')" class="px-3 py-1 rounded-full bg-slate-900 hover:bg-sky-600 active:scale-95 text-white text-[11px] font-bold transition-all shadow-xs flex items-center gap-1 cursor-pointer">
+                      <span>pre-ordenar</span>
+                      <span>+</span>
+                    </button>
+                  </div>
+                </div>
+
+                <!-- CONECTOR PUZZLE 1 (Sky a Mint) -->
+                <div class="puzzle-connector">
+                  <svg width="28" height="22" viewBox="0 0 28 22" fill="none">
+                    <!-- Base izquierda (Sky) -->
+                    <path d="M0 0 H12 C12 6, 17 6, 17 11 C17 16, 12 16, 12 22 H0 Z" fill="#e0f2fe"/>
+                    <!-- Cabeza encajada derecha (Mint) -->
+                    <path d="M12 0 H28 V22 H12 C12 16, 17 16, 17 11 C17 6, 12 6, 12 0 Z" fill="#d1fae5"/>
+                    <!-- Línea de junta tipo rompecabezas -->
+                    <path d="M12 0 C12 6, 17 6, 17 11 C17 16, 12 16, 12 22" stroke="rgba(0,0,0,0.06)" stroke-width="1.5" stroke-linecap="round"/>
+                  </svg>
+                </div>
+
+                <!-- ================= CARD 2 (PASTEL MINT) ================= -->
+                <div class="app-card-pill snap-start shrink-0 w-[295px] h-[155px] bg-[#d1fae5] p-4 flex flex-col justify-between relative cursor-pointer border border-emerald-200/50" onclick="selectCard('Recarga Inmediata SINPE', 'Personalizado')">
+                  <!-- Fila superior -->
+                  <div class="flex items-center justify-between">
+                    <div class="flex items-center gap-2">
+                      <div class="w-8 h-8 rounded-full bg-white/90 shadow-2xs flex items-center justify-center text-lg">
+                        ⚡
+                      </div>
+                      <span class="text-[11px] font-bold text-emerald-950/80 uppercase tracking-wide">
+                        sinpe móvil directo
+                      </span>
+                    </div>
+                    <span class="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-emerald-200/80 text-emerald-900 lowercase">
+                      inmediato
+                    </span>
+                  </div>
+
+                  <!-- Título y descripción -->
+                  <div>
+                    <h4 class="text-sm font-extrabold text-slate-900 tracking-tight leading-snug lowercase">
+                      recarga de saldo en 1 toque
+                    </h4>
+                    <p class="text-[11px] text-slate-600 line-clamp-1 font-medium mt-0.5">
+                      acreditación sin comisión al número 8888-7777
+                    </p>
+                  </div>
+
+                  <!-- Fila inferior: Precio y Botón Rápido -->
+                  <div class="flex items-center justify-between pt-1">
+                    <div class="text-[11px] font-extrabold text-emerald-900">
+                      0% comisiones
+                    </div>
+                    <button onclick="event.stopPropagation(); openSinpeModal()" class="px-3 py-1 rounded-full bg-emerald-900 hover:bg-emerald-800 active:scale-95 text-white text-[11px] font-bold transition-all shadow-xs flex items-center gap-1 cursor-pointer">
+                      <span>recargar</span>
+                      <span>⚡</span>
+                    </button>
+                  </div>
+                </div>
+
+                <!-- CONECTOR PUZZLE 2 (Mint a Peach) -->
+                <div class="puzzle-connector">
+                  <svg width="28" height="22" viewBox="0 0 28 22" fill="none">
+                    <path d="M0 0 H12 C12 6, 17 6, 17 11 C17 16, 12 16, 12 22 H0 Z" fill="#d1fae5"/>
+                    <path d="M12 0 H28 V22 H12 C12 16, 17 16, 17 11 C17 6, 12 6, 12 0 Z" fill="#ffedd5"/>
+                    <path d="M12 0 C12 6, 17 6, 17 11 C17 16, 12 16, 12 22" stroke="rgba(0,0,0,0.06)" stroke-width="1.5" stroke-linecap="round"/>
+                  </svg>
+                </div>
+
+                <!-- ================= CARD 3 (PASTEL PEACH) ================= -->
+                <div class="app-card-pill snap-start shrink-0 w-[295px] h-[155px] bg-[#ffedd5] p-4 flex flex-col justify-between relative cursor-pointer border border-orange-200/50" onclick="selectCard('Casado Gourmet del Chef', '2.600')">
+                  <!-- Fila superior -->
+                  <div class="flex items-center justify-between">
+                    <div class="flex items-center gap-2">
+                      <div class="w-8 h-8 rounded-full bg-white/90 shadow-2xs flex items-center justify-center text-lg">
+                        🍛
+                      </div>
+                      <span class="text-[11px] font-bold text-orange-950/80 uppercase tracking-wide">
+                        almuerzo • 11:45 am
+                      </span>
+                    </div>
+                    <span class="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-orange-200/80 text-orange-900 lowercase">
+                      menú chef
+                    </span>
+                  </div>
+
+                  <!-- Título y descripción -->
+                  <div>
+                    <h4 class="text-sm font-extrabold text-slate-900 tracking-tight leading-snug lowercase">
+                      casado completo con pollo
+                    </h4>
+                    <p class="text-[11px] text-slate-600 line-clamp-1 font-medium mt-0.5">
+                      arroz, frijoles, plátano maduro, ensalada y té frío
+                    </p>
+                  </div>
+
+                  <!-- Fila inferior: Precio y Botón Rápido -->
+                  <div class="flex items-center justify-between pt-1">
+                    <div class="flex items-baseline gap-1">
+                      <span class="text-xs font-bold text-slate-400">₡</span>
+                      <span class="text-base font-black text-slate-900 tracking-tight">2.600</span>
+                    </div>
+                    <button onclick="event.stopPropagation(); orderItem('Casado Gourmet', '2.600')" class="px-3 py-1 rounded-full bg-orange-950 hover:bg-orange-900 active:scale-95 text-white text-[11px] font-bold transition-all shadow-xs flex items-center gap-1 cursor-pointer">
+                      <span>reservar</span>
+                      <span>+</span>
+                    </button>
+                  </div>
+                </div>
+
+                <!-- CONECTOR PUZZLE 3 (Peach a Lavender) -->
+                <div class="puzzle-connector">
+                  <svg width="28" height="22" viewBox="0 0 28 22" fill="none">
+                    <path d="M0 0 H12 C12 6, 17 6, 17 11 C17 16, 12 16, 12 22 H0 Z" fill="#ffedd5"/>
+                    <path d="M12 0 H28 V22 H12 C12 16, 17 16, 17 11 C17 6, 12 6, 12 0 Z" fill="#f3e8ff"/>
+                    <path d="M12 0 C12 6, 17 6, 17 11 C17 16, 12 16, 12 22" stroke="rgba(0,0,0,0.06)" stroke-width="1.5" stroke-linecap="round"/>
+                  </svg>
+                </div>
+
+                <!-- ================= CARD 4 (PASTEL LAVENDER) ================= -->
+                <div class="app-card-pill snap-start shrink-0 w-[295px] h-[155px] bg-[#f3e8ff] p-4 flex flex-col justify-between relative cursor-pointer border border-purple-200/50" onclick="selectCard('Aviso: Viernes de Pizza Artesanal', 'Cupos Limitados')">
+                  <!-- Fila superior -->
+                  <div class="flex items-center justify-between">
+                    <div class="flex items-center gap-2">
+                      <div class="w-8 h-8 rounded-full bg-white/90 shadow-2xs flex items-center justify-center text-lg">
+                        📢
+                      </div>
+                      <span class="text-[11px] font-bold text-purple-950/80 uppercase tracking-wide">
+                        aviso cafeteria
+                      </span>
+                    </div>
+                    <span class="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-purple-200/80 text-purple-900 lowercase">
+                      especial
+                    </span>
+                  </div>
+
+                  <!-- Título y descripción -->
+                  <div>
+                    <h4 class="text-sm font-extrabold text-slate-900 tracking-tight leading-snug lowercase">
+                      viernes de pizza horneada
+                    </h4>
+                    <p class="text-[11px] text-slate-600 line-clamp-1 font-medium mt-0.5">
+                      pre-órdenes abiertas hasta el jueves 4:00 pm
+                    </p>
+                  </div>
+
+                  <!-- Fila inferior: Botón Informativo -->
+                  <div class="flex items-center justify-between pt-1">
+                    <span class="text-[11px] font-bold text-purple-900">
+                      cupos 48/80
+                    </span>
+                    <button onclick="event.stopPropagation(); showToast('Aviso: Puedes apartar tu porción desde la pestaña Menú')" class="px-3 py-1 rounded-full bg-purple-950 hover:bg-purple-900 active:scale-95 text-white text-[11px] font-bold transition-all shadow-xs flex items-center gap-1 cursor-pointer">
+                      <span>ver aviso</span>
+                      <span>›</span>
+                    </button>
+                  </div>
+                </div>
+
+                <!-- CONECTOR PUZZLE 4 (Lavender a Lemon) -->
+                <div class="puzzle-connector">
+                  <svg width="28" height="22" viewBox="0 0 28 22" fill="none">
+                    <path d="M0 0 H12 C12 6, 17 6, 17 11 C17 16, 12 16, 12 22 H0 Z" fill="#f3e8ff"/>
+                    <path d="M12 0 H28 V22 H12 C12 16, 17 16, 17 11 C17 6, 12 6, 12 0 Z" fill="#fef9c3"/>
+                    <path d="M12 0 C12 6, 17 6, 17 11 C17 16, 12 16, 12 22" stroke="rgba(0,0,0,0.06)" stroke-width="1.5" stroke-linecap="round"/>
+                  </svg>
+                </div>
+
+                <!-- ================= CARD 5 (PASTEL LEMON) ================= -->
+                <div class="app-card-pill snap-start shrink-0 w-[295px] h-[155px] bg-[#fef9c3] p-4 flex flex-col justify-between relative cursor-pointer border border-amber-200/50" onclick="selectCard('Bowl de Fruta & Granola', '1.200')">
+                  <!-- Fila superior -->
+                  <div class="flex items-center justify-between">
+                    <div class="flex items-center gap-2">
+                      <div class="w-8 h-8 rounded-full bg-white/90 shadow-2xs flex items-center justify-center text-lg">
+                        🍎
+                      </div>
+                      <span class="text-[11px] font-bold text-amber-950/80 uppercase tracking-wide">
+                        snack saludable
+                      </span>
+                    </div>
+                    <span class="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-amber-200/80 text-amber-950 lowercase">
+                      100% natural
+                    </span>
+                  </div>
+
+                  <!-- Título y descripción -->
+                  <div>
+                    <h4 class="text-sm font-extrabold text-slate-900 tracking-tight leading-snug lowercase">
+                      bowl de frutas & miel
+                    </h4>
+                    <p class="text-[11px] text-slate-600 line-clamp-1 font-medium mt-0.5">
+                      fresas, banano, piña, yogurt griego y avena
+                    </p>
+                  </div>
+
+                  <!-- Fila inferior -->
+                  <div class="flex items-center justify-between pt-1">
+                    <div class="flex items-baseline gap-1">
+                      <span class="text-xs font-bold text-slate-400">₡</span>
+                      <span class="text-base font-black text-slate-900 tracking-tight">1.200</span>
+                    </div>
+                    <button onclick="event.stopPropagation(); orderItem('Bowl de Frutas', '1.200')" class="px-3 py-1 rounded-full bg-amber-950 hover:bg-amber-900 active:scale-95 text-white text-[11px] font-bold transition-all shadow-xs flex items-center gap-1 cursor-pointer">
+                      <span>pedir</span>
+                      <span>+</span>
+                    </button>
+                  </div>
+                </div>
+
+              </div>
+            </div>
+
+            <!-- INDICADORES DE PÍLDORA (STRUCTURED DOTS) -->
+            <div class="flex items-center justify-center gap-1.5 mt-2">
+              <button onclick="goToSlide(0)" class="carousel-dot w-6 h-1.5 rounded-full bg-slate-900 transition-all cursor-pointer"></button>
+              <button onclick="goToSlide(1)" class="carousel-dot w-2 h-1.5 rounded-full bg-slate-300 transition-all cursor-pointer"></button>
+              <button onclick="goToSlide(2)" class="carousel-dot w-2 h-1.5 rounded-full bg-slate-300 transition-all cursor-pointer"></button>
+              <button onclick="goToSlide(3)" class="carousel-dot w-2 h-1.5 rounded-full bg-slate-300 transition-all cursor-pointer"></button>
+              <button onclick="goToSlide(4)" class="carousel-dot w-2 h-1.5 rounded-full bg-slate-300 transition-all cursor-pointer"></button>
+            </div>
+          </div>
+
+          <!-- ======================================================== -->
+          <!-- DISCOS CIRCULARES DE ACCIÓN RÁPIDA (ESTILO STRUCTURED) -->
+          <!-- ======================================================== -->
+          <div class="mb-6">
+            <div class="flex items-center justify-between mb-3 px-1">
+              <h3 class="text-xs font-bold text-slate-700 tracking-tight lowercase">
+                accesos directos
+              </h3>
+              <span class="text-[10px] text-slate-400 font-semibold lowercase">toca para abrir</span>
+            </div>
+
+            <div class="grid grid-cols-4 gap-2 text-center">
+              <!-- Disco 1 -->
+              <div onclick="openSinpeModal()" class="flex flex-col items-center gap-1.5 cursor-pointer group">
+                <div class="explore-disk bg-[#d1fae5] flex items-center justify-center text-2xl group-hover:scale-105 transition-transform border border-emerald-200/60">
+                  ⚡
+                </div>
+                <span class="text-[11px] font-bold text-slate-700 lowercase">recarga</span>
+              </div>
+
+              <!-- Disco 2 -->
+              <div onclick="showToast('Carné Escolar QR listo para presentar')" class="flex flex-col items-center gap-1.5 cursor-pointer group">
+                <div class="explore-disk bg-[#e0f2fe] flex items-center justify-center text-2xl group-hover:scale-105 transition-transform border border-sky-200/60">
+                  📱
+                </div>
+                <span class="text-[11px] font-bold text-slate-700 lowercase">mi qr</span>
+              </div>
+
+              <!-- Disco 3 -->
+              <div onclick="showToast('Mostrando menú completo de la soda escolar')" class="flex flex-col items-center gap-1.5 cursor-pointer group">
+                <div class="explore-disk bg-[#ffedd5] flex items-center justify-center text-2xl group-hover:scale-105 transition-transform border border-orange-200/60">
+                  🥪
+                </div>
+                <span class="text-[11px] font-bold text-slate-700 lowercase">menú</span>
+              </div>
+
+              <!-- Disco 4 -->
+              <div onclick="showToast('Perfil nutricional: Sin alergias registradas')" class="flex flex-col items-center gap-1.5 cursor-pointer group">
+                <div class="explore-disk bg-[#f3e8ff] flex items-center justify-center text-2xl group-hover:scale-105 transition-transform border border-purple-200/60">
+                  ❤️
+                </div>
+                <span class="text-[11px] font-bold text-slate-700 lowercase">nutrición</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- ======================================================== -->
+          <!-- AGENDA DEL DÍA: TIMELINE VISUAL EN CÁPSULAS CONECTADAS -->
+          <!-- ======================================================== -->
+          <div class="mb-4">
+            <div class="flex items-center justify-between mb-3 px-1">
+              <div>
+                <span class="text-[10px] font-bold tracking-wider uppercase text-slate-400">horario estructurado</span>
+                <h3 class="text-sm font-extrabold text-slate-900 tracking-tight lowercase">
+                  timeline de hoy
+                </h3>
+              </div>
+              <span class="text-[11px] font-semibold text-sky-800 bg-white/80 px-2 py-0.5 rounded-full border border-sky-100">
+                4 eventos
+              </span>
+            </div>
+
+            <!-- Contenedor con línea vertical continua estilo Structured -->
+            <div class="relative pl-6 space-y-3">
+              <!-- Línea vertical conectora -->
+              <div class="absolute left-2.5 top-3 bottom-3 w-0.5 bg-slate-300/70 rounded-full"></div>
+
+              <!-- Item 1: Entrada y desayuno -->
+              <div class="relative timeline-pill bg-white/85 p-3.5 border border-white flex items-center justify-between cursor-pointer">
+                <div class="absolute -left-6 top-1/2 -translate-y-1/2 w-3.5 h-3.5 rounded-full bg-sky-500 border-2 border-white shadow-xs"></div>
+                <div class="flex items-center gap-2.5">
+                  <div class="w-8 h-8 rounded-full bg-[#e0f2fe] flex items-center justify-center text-sm">
+                    🥛
+                  </div>
+                  <div>
+                    <h5 class="text-xs font-bold text-slate-900 lowercase leading-tight">desayuno ligero</h5>
+                    <p class="text-[10px] text-slate-500 font-medium">07:15 am • cafetería principal</p>
+                  </div>
+                </div>
+                <span class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-100 text-slate-500">completado</span>
+              </div>
+
+              <!-- Item 2: Primer recreo (activo) -->
+              <div class="relative timeline-pill bg-[#d1fae5]/90 p-3.5 border border-emerald-200/80 flex items-center justify-between cursor-pointer shadow-xs">
+                <div class="absolute -left-6 top-1/2 -translate-y-1/2 w-3.5 h-3.5 rounded-full bg-emerald-500 border-2 border-white shadow-xs animate-gentle"></div>
+                <div class="flex items-center gap-2.5">
+                  <div class="w-8 h-8 rounded-full bg-white flex items-center justify-center text-sm shadow-2xs">
+                    🥪
+                  </div>
+                  <div>
+                    <div class="flex items-center gap-1.5">
+                      <h5 class="text-xs font-extrabold text-emerald-950 lowercase leading-tight">primer recreo: retiro combo</h5>
+                      <span class="w-1.5 h-1.5 rounded-full bg-emerald-600 animate-ping"></span>
+                    </div>
+                    <p class="text-[10px] text-emerald-800 font-medium">09:30 am • ventanilla rápida #2</p>
+                  </div>
+                </div>
+                <span class="text-[10px] font-black px-2 py-0.5 rounded-full bg-emerald-600 text-white shadow-2xs">en curso</span>
+              </div>
+
+              <!-- Item 3: Almuerzo -->
+              <div class="relative timeline-pill bg-white/85 p-3.5 border border-white flex items-center justify-between cursor-pointer">
+                <div class="absolute -left-6 top-1/2 -translate-y-1/2 w-3.5 h-3.5 rounded-full bg-slate-300 border-2 border-white"></div>
+                <div class="flex items-center gap-2.5">
+                  <div class="w-8 h-8 rounded-full bg-[#ffedd5] flex items-center justify-center text-sm">
+                    🍛
+                  </div>
+                  <div>
+                    <h5 class="text-xs font-bold text-slate-900 lowercase leading-tight">almuerzo en comedor</h5>
+                    <p class="text-[10px] text-slate-500 font-medium">11:45 am • casado con pollo</p>
+                  </div>
+                </div>
+                <span class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-orange-100 text-orange-800">reservado</span>
+              </div>
+
+              <!-- Item 4: Segundo Recreo -->
+              <div class="relative timeline-pill bg-white/85 p-3.5 border border-white flex items-center justify-between cursor-pointer">
+                <div class="absolute -left-6 top-1/2 -translate-y-1/2 w-3.5 h-3.5 rounded-full bg-slate-300 border-2 border-white"></div>
+                <div class="flex items-center gap-2.5">
+                  <div class="w-8 h-8 rounded-full bg-[#f3e8ff] flex items-center justify-center text-sm">
+                    🍎
+                  </div>
+                  <div>
+                    <h5 class="text-xs font-bold text-slate-900 lowercase leading-tight">segundo recreo: snack</h5>
+                    <p class="text-[10px] text-slate-500 font-medium">01:45 pm • bowl de frutas</p>
+                  </div>
+                </div>
+                <span class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-purple-100 text-purple-800">pendiente</span>
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- BARRA INFERIOR FLOTANTE LIQUID GLASS (BOTTOM DOCK) -->
+        <div class="absolute bottom-3 left-4 right-4 z-40">
+          <div class="bg-white/80 backdrop-blur-2xl px-5 py-2.5 rounded-full border border-white/90 shadow-[0_10px_25px_-5px_rgba(0,0,0,0.1)] flex items-center justify-between">
+            
+            <!-- Tab Inicio (Activo) -->
+            <button class="flex flex-col items-center gap-0.5 text-sky-800 cursor-pointer">
+              <div class="w-5 h-5 flex items-center justify-center font-bold">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
+              </div>
+              <span class="text-[9px] font-extrabold lowercase">inicio</span>
+            </button>
+
+            <!-- Tab Menú -->
+            <button onclick="showToast('Sección Menú y Pedidos')" class="flex flex-col items-center gap-0.5 text-slate-400 hover:text-slate-800 cursor-pointer transition-colors">
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h7"/></svg>
+              <span class="text-[9px] font-semibold lowercase">menú</span>
+            </button>
+
+            <!-- Botón Central Destacado (Pagar QR) -->
+            <button onclick="showToast('Activando lector QR para pagar en caja')" class="w-11 h-11 -mt-5 rounded-full bg-slate-900 hover:bg-sky-600 text-white flex items-center justify-center shadow-lg active:scale-90 transition-all cursor-pointer">
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z"/></svg>
+            </button>
+
+            <!-- Tab Agenda -->
+            <button onclick="showToast('Vista de Timeline completo')" class="flex flex-col items-center gap-0.5 text-slate-400 hover:text-slate-800 cursor-pointer transition-colors">
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+              <span class="text-[9px] font-semibold lowercase">agenda</span>
+            </button>
+
+            <!-- Tab Perfil -->
+            <button onclick="showToast('Perfil y ajustes de cuenta')" class="flex flex-col items-center gap-0.5 text-slate-400 hover:text-slate-800 cursor-pointer transition-colors">
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
+              <span class="text-[9px] font-semibold lowercase">perfil</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- HOME INDICATOR (BARRA INFERIOR DE IPHONE) -->
+        <div class="absolute bottom-1 left-1/2 -translate-x-1/2 w-32 h-1 bg-slate-900/40 rounded-full z-50 pointer-events-none"></div>
+
+        <!-- TOAST FLOTANTE IN-APP -->
+        <div id="inAppToast" class="absolute top-16 left-6 right-6 z-50 bg-slate-900/90 backdrop-blur-md text-white px-4 py-2.5 rounded-2xl text-xs font-semibold shadow-xl flex items-center justify-between transition-all duration-300 opacity-0 -translate-y-4 pointer-events-none">
+          <span id="inAppToastText">¡Pre-orden agregada con éxito!</span>
+          <span class="text-emerald-400">✓</span>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- PANEL LATERAL EXPLICATIVO Y DETALLES DE DISEÑO -->
+    <div class="w-full max-w-md flex flex-col gap-5">
+      
+      <!-- TARJETA EXPLICATIVA DE CÓMO SE ADAPTÓ STRUCTURED A LA APP -->
+      <div class="bg-white/80 backdrop-blur-xl p-6 rounded-3xl border border-white/90 shadow-sm">
+        <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-sky-100 text-sky-800 text-[11px] font-bold mb-3">
+          <span>✨ Claves del Diseño Structured en la App</span>
+        </div>
+        
+        <h3 class="text-xl font-extrabold text-slate-900 tracking-tight lowercase mb-2">
+          ¿por qué se ve exactamente como structured?
+        </h3>
+        
+        <p class="text-sm text-slate-600 font-medium mb-4 leading-relaxed">
+          Structured destaca por tres elementos gráficos inconfundibles que fueron trasladados a la escala real de una pantalla móvil (390px):
+        </p>
+
+        <div class="space-y-3 text-xs">
+          <!-- Punto 1 -->
+          <div class="flex items-start gap-3 p-3 rounded-2xl bg-sky-50/70 border border-sky-100">
+            <span class="text-lg">🧩</span>
+            <div>
+              <strong class="text-slate-900 font-bold block lowercase">1. conectores de rompecabezas vectoriales</strong>
+              <p class="text-slate-600 mt-0.5">En lugar de tarjetas sueltas, cada cápsula se encaja con la siguiente mediante juntas de rompecabezas con colores que coinciden exactamente con ambas tarjetas.</p>
+            </div>
+          </div>
+
+          <!-- Punto 2 -->
+          <div class="flex items-start gap-3 p-3 rounded-2xl bg-emerald-50/70 border border-emerald-100">
+            <span class="text-lg">🎨</span>
+            <div>
+              <strong class="text-slate-900 font-bold block lowercase">2. paleta pastel de alto contraste</strong>
+              <p class="text-slate-600 mt-0.5">Cielo SiboPay (<code class="bg-white px-1 py-0.5 rounded text-[10px]">#e0f2fe</code>), Menta (<code class="bg-white px-1 py-0.5 rounded text-[10px]">#d1fae5</code>), Melocotón (<code class="bg-white px-1 py-0.5 rounded text-[10px]">#ffedd5</code>) y Lavanda con texto legible y oscuro.</p>
+            </div>
+          </div>
+
+          <!-- Punto 3 -->
+          <div class="flex items-start gap-3 p-3 rounded-2xl bg-orange-50/70 border border-orange-100">
+            <span class="text-lg">📱</span>
+            <div>
+              <strong class="text-slate-900 font-bold block lowercase">3. snap swipe + micro-interacciones</strong>
+              <p class="text-slate-600 mt-0.5">El usuario puede deslizar con el dedo en el móvil (touch snap) y cada combo se pre-ordena con un solo toque, sincronizado con el timeline escolar del día.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- TARJETA DE PRUEBA INTERACTIVA RÁPIDA -->
+      <div class="bg-white/80 backdrop-blur-xl p-5 rounded-3xl border border-white/90 shadow-sm flex flex-col gap-3">
+        <h4 class="text-xs font-bold text-slate-400 uppercase tracking-wider">
+          acciones interactivas para probar ahora
+        </h4>
+        
+        <div class="grid grid-cols-2 gap-2 text-xs font-bold">
+          <button onclick="orderItem('Sandwich de Pavo', '1.850')" class="p-2.5 rounded-2xl bg-sky-500 hover:bg-sky-600 text-white transition-all shadow-xs cursor-pointer text-center">
+            🥪 Pre-ordenar Combo
+          </button>
+          <button onclick="openSinpeModal()" class="p-2.5 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white transition-all shadow-xs cursor-pointer text-center">
+            ⚡ Simular Recarga
+          </button>
+          <button onclick="scrollCarousel(1)" class="p-2.5 rounded-2xl bg-slate-900 hover:bg-slate-800 text-white transition-all shadow-xs cursor-pointer text-center">
+            › Siguiente Cápsula
+          </button>
+          <button onclick="toggleAutoFlow()" class="p-2.5 rounded-2xl bg-amber-500 hover:bg-amber-600 text-white transition-all shadow-xs cursor-pointer text-center">
+            🔄 Desplazamiento
+          </button>
+        </div>
+      </div>
+
+    </div>
+
+  </main>
+
+  <!-- MODAL DE SIMULACIÓN SINPE DENTRO DE LA EXPERIENCIA -->
+  <div id="sinpeModal" class="fixed inset-0 z-50 bg-black/40 backdrop-blur-xs flex items-center justify-center p-4 opacity-0 pointer-events-none transition-opacity duration-300">
+    <div class="bg-white rounded-3xl p-6 max-w-sm w-full shadow-2xl border border-slate-100 flex flex-col items-center text-center">
+      <div class="w-14 h-14 rounded-full bg-[#d1fae5] text-emerald-700 flex items-center justify-center text-2xl mb-3 shadow-inner">
+        ⚡
+      </div>
+      <h3 class="text-lg font-black text-slate-900 tracking-tight lowercase">recarga rápida sinpe móvil</h3>
+      <p class="text-xs text-slate-500 font-medium mt-1 mb-4">Envía tu comprobante al <strong class="text-slate-800">8888-7777</strong> o digita el monto a abonar a la cuenta de Mateo.</p>
+      
+      <div class="w-full flex items-center justify-center gap-2 mb-4">
+        <button onclick="executeReload(2000)" class="flex-1 py-2 rounded-2xl bg-slate-100 hover:bg-emerald-100 text-xs font-bold text-slate-800 transition-colors">₡2.000</button>
+        <button onclick="executeReload(5000)" class="flex-1 py-2 rounded-2xl bg-slate-100 hover:bg-emerald-100 text-xs font-bold text-slate-800 transition-colors">₡5.000</button>
+        <button onclick="executeReload(10000)" class="flex-1 py-2 rounded-2xl bg-slate-100 hover:bg-emerald-100 text-xs font-bold text-slate-800 transition-colors">₡10.000</button>
+      </div>
+
+      <div class="w-full flex items-center gap-2">
+        <button onclick="closeSinpeModal()" class="flex-1 py-2.5 rounded-full bg-slate-100 text-slate-700 text-xs font-bold hover:bg-slate-200 transition-colors cursor-pointer">
+          Cancelar
+        </button>
+        <button onclick="executeReload(5000)" class="flex-1 py-2.5 rounded-full bg-emerald-600 text-white text-xs font-bold hover:bg-emerald-700 transition-colors shadow-sm cursor-pointer">
+          Acreditar ya
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- JAVASCRIPT INTERACTIVO -->
+  <script>
+    const carouselTrack = document.getElementById('appCarouselTrack');
+    const dots = document.querySelectorAll('.carousel-dot');
+    let autoFlowInterval = null;
+    let isAutoFlowing = false;
+
+    // Cambiar color de fondo general y de la app
+    function setTheme(appBg, bodyBg) {
+      document.getElementById('appScreen').style.backgroundColor = appBg;
+      document.getElementById('mainBody').style.backgroundColor = bodyBg;
+    }
+
+    // Navegación con mini flechas
+    function scrollCarousel(direction) {
+      const cardWidth = 323; // Ancho tarjeta + conector
+      carouselTrack.scrollBy({ left: direction * cardWidth, behavior: 'smooth' });
+      setTimeout(updateActiveDot, 300);
+    }
+
+    function goToSlide(index) {
+      const cardWidth = 323;
+      carouselTrack.scrollTo({ left: index * cardWidth, behavior: 'smooth' });
+      updateDots(index);
+    }
+
+    // Actualizar indicador activo
+    function updateActiveDot() {
+      const scrollPos = carouselTrack.scrollLeft;
+      const cardWidth = 323;
+      const activeIndex = Math.min(4, Math.max(0, Math.round(scrollPos / cardWidth)));
+      updateDots(activeIndex);
+    }
+
+    function updateDots(activeIndex) {
+      dots.forEach((dot, idx) => {
+        if (idx === activeIndex) {
+          dot.classList.remove('w-2', 'bg-slate-300');
+          dot.classList.add('w-6', 'bg-slate-900');
+        } else {
+          dot.classList.remove('w-6', 'bg-slate-900');
+          dot.classList.add('w-2', 'bg-slate-300');
+        }
+      });
+    }
+
+    carouselTrack.addEventListener('scroll', () => {
+      clearTimeout(window.scrollTimeout);
+      window.scrollTimeout = setTimeout(updateActiveDot, 100);
+    });
+
+    // Activar o desactivar flujo automático
+    function toggleAutoFlow() {
+      const btn = document.getElementById('btnAutoplay');
+      const icon = document.getElementById('autoplayIcon');
+      const text = document.getElementById('autoplayText');
+
+      if (isAutoFlowing) {
+        clearInterval(autoFlowInterval);
+        isAutoFlowing = false;
+        icon.textContent = '▶';
+        text.textContent = 'Flujo Continuo';
+        btn.classList.remove('bg-emerald-100', 'text-emerald-900');
+        btn.classList.add('bg-white', 'text-slate-700');
+      } else {
+        isAutoFlowing = true;
+        icon.textContent = '⏸';
+        text.textContent = 'Pausar Flujo';
+        btn.classList.remove('bg-white', 'text-slate-700');
+        btn.classList.add('bg-emerald-100', 'text-emerald-900');
+
+        autoFlowInterval = setInterval(() => {
+          const maxScroll = carouselTrack.scrollWidth - carouselTrack.clientWidth;
+          if (carouselTrack.scrollLeft >= maxScroll - 10) {
+            carouselTrack.scrollTo({ left: 0, behavior: 'smooth' });
+          } else {
+            scrollCarousel(1);
+          }
+        }, 3200);
+      }
+    }
+
+    // Mostrar Toast dentro de la pantalla del móvil
+    function showToast(message) {
+      const toast = document.getElementById('inAppToast');
+      const text = document.getElementById('inAppToastText');
+      text.textContent = message;
+      toast.classList.remove('opacity-0', '-translate-y-4', 'pointer-events-none');
+      toast.classList.add('opacity-100', 'translate-y-0');
+
+      clearTimeout(window.toastTimer);
+      window.toastTimer = setTimeout(() => {
+        toast.classList.remove('opacity-100', 'translate-y-0');
+        toast.classList.add('opacity-0', '-translate-y-4', 'pointer-events-none');
+      }, 2600);
+    }
+
+    function orderItem(name, price) {
+      showToast(`¡Pre-orden: ${name} (₡${price}) agendada para el recreo!`);
+    }
+
+    function selectCard(title, price) {
+      showToast(`Detalle: ${title} • ₡${price}`);
+    }
+
+    // Modal de SINPE Móvil
+    function openSinpeModal() {
+      const modal = document.getElementById('sinpeModal');
+      modal.classList.remove('opacity-0', 'pointer-events-none');
+      modal.classList.add('opacity-100');
+    }
+
+    function closeSinpeModal() {
+      const modal = document.getElementById('sinpeModal');
+      modal.classList.remove('opacity-100');
+      modal.classList.add('opacity-0', 'pointer-events-none');
+    }
+
+    function executeReload(amount) {
+      closeSinpeModal();
+      showToast(`¡Recarga de ₡${amount.toLocaleString()} aplicada con éxito!`);
+    }
+
+    // Modo de Vista: Teléfono vs Zoom de Componente
+    function setViewMode(mode) {
+      const frame = document.getElementById('phoneFrame');
+      const btnPhone = document.getElementById('btnViewPhone');
+      const btnComp = document.getElementById('btnViewComponent');
+
+      if (mode === 'component') {
+        frame.classList.remove('w-[390px]', 'h-[812px]', 'rounded-[52px]', 'p-3');
+        frame.classList.add('w-full', 'max-w-xl', 'h-[640px]', 'rounded-3xl', 'p-1', 'scale-105');
+        btnComp.classList.add('bg-white', 'text-slate-800', 'shadow-xs');
+        btnComp.classList.remove('text-slate-500');
+        btnPhone.classList.remove('bg-white', 'text-slate-800', 'shadow-xs');
+        btnPhone.classList.add('text-slate-500');
+      } else {
+        frame.classList.add('w-[390px]', 'h-[812px]', 'rounded-[52px]', 'p-3');
+        frame.classList.remove('w-full', 'max-w-xl', 'h-[640px]', 'rounded-3xl', 'p-1', 'scale-105');
+        btnPhone.classList.add('bg-white', 'text-slate-800', 'shadow-xs');
+        btnPhone.classList.remove('text-slate-500');
+        btnComp.classList.remove('bg-white', 'text-slate-800', 'shadow-xs');
+        btnComp.classList.add('text-slate-500');
+      }
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,878 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Structured Flow — App de Agenda y Recordatorios Visuales</title>
+  <script src="https://www.gstatic.com/antigravity/web/dev/tailwindcss.min.js"></script>
+  <style>
+    * {
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+    
+    .no-scrollbar::-webkit-scrollbar {
+      display: none;
+    }
+    .no-scrollbar {
+      -ms-overflow-style: none;
+      scrollbar-width: none;
+    }
+
+    .theme-transition {
+      transition: background-color 0.5s cubic-bezier(0.4, 0, 0.2, 1), color 0.3s ease;
+    }
+
+    /* Cápsula móvil estilo Structured */
+    .structured-pill {
+      border-radius: 32px;
+      box-shadow: 0 10px 25px -4px rgba(0, 0, 0, 0.07), inset 0 1.5px 1px rgba(255, 255, 255, 0.85);
+      transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.25s ease;
+    }
+    .structured-pill:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 14px 30px -4px rgba(0, 0, 0, 0.1), inset 0 1.5px 1px rgba(255, 255, 255, 0.95);
+    }
+    .structured-pill:active {
+      transform: scale(0.98);
+    }
+
+    /* Tarea del Timeline */
+    .timeline-task {
+      border-radius: 26px;
+      box-shadow: 0 6px 20px -3px rgba(0, 0, 0, 0.05), inset 0 1px 1px rgba(255, 255, 255, 0.8);
+      transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .timeline-task.completed {
+      opacity: 0.65;
+      filter: saturate(0.7);
+    }
+    .timeline-task.completed .task-title {
+      text-decoration: line-through;
+    }
+
+    /* Conector puzzle */
+    .puzzle-joint {
+      width: 26px;
+      height: 22px;
+      position: relative;
+      flex-shrink: 0;
+      z-index: 10;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    /* Marco del teléfono */
+    .iphone-frame {
+      box-shadow: 
+        0 0 0 12px #0f172a,
+        0 0 0 14px #334155,
+        0 25px 60px -15px rgba(0, 0, 0, 0.35);
+    }
+
+    /* Animación de check */
+    @keyframes check-pop {
+      0% { transform: scale(0.7); }
+      50% { transform: scale(1.2); }
+      100% { transform: scale(1); }
+    }
+    .animate-pop {
+      animation: check-pop 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+  </style>
+</head>
+<body id="pageBody" class="theme-transition min-h-screen bg-[#e8f4fc] text-slate-800 p-3 sm:p-6 md:p-8 flex flex-col items-center justify-start font-sans">
+
+  <!-- TOP BAR DEL PROTOTIPO -->
+  <header class="w-full max-w-5xl mx-auto mb-6 flex flex-col md:flex-row items-center justify-between gap-4 bg-white/70 backdrop-blur-xl p-4 md:px-6 rounded-3xl border border-white/80 shadow-xs">
+    <div class="flex items-center gap-3">
+      <div class="w-10 h-10 rounded-2xl bg-gradient-to-tr from-sky-600 via-cyan-500 to-emerald-400 flex items-center justify-center text-white font-extrabold text-xl shadow-md">
+        ⚡
+      </div>
+      <div>
+        <div class="flex items-center gap-2">
+          <span class="text-xl font-black tracking-tight text-slate-900">flow</span>
+          <span class="text-[11px] font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-sky-100 text-sky-800 border border-sky-200">
+            Agenda & Recordatorios • Estilo Structured
+          </span>
+        </div>
+        <p class="text-xs text-slate-500 font-medium">Timeline visual de tareas y carrusel de rutinas en colores pastel</p>
+      </div>
+    </div>
+
+    <!-- SELECTOR DE COLOR PASTEL Y VISTA -->
+    <div class="flex flex-wrap items-center gap-2">
+      <!-- Selector de fondo de la app -->
+      <div class="flex items-center gap-1.5 bg-white/90 p-1.5 rounded-2xl border border-slate-200 shadow-xs">
+        <span class="text-[11px] font-semibold text-slate-500 pl-1.5">Fondo:</span>
+        <button onclick="changeTheme('#e0f2fe', '#e8f4fc', 'Cielo Pastel')" title="Cielo Pastel" class="w-6 h-6 rounded-full bg-[#e0f2fe] border-2 border-sky-400 hover:scale-110 transition-transform cursor-pointer"></button>
+        <button onclick="changeTheme('#d1fae5', '#e6f8f0', 'Menta Fresca')" title="Menta Fresca" class="w-6 h-6 rounded-full bg-[#d1fae5] border-2 border-emerald-400 hover:scale-110 transition-transform cursor-pointer"></button>
+        <button onclick="changeTheme('#ffedd5', '#fef3e7', 'Melocotón')" title="Melocotón" class="w-6 h-6 rounded-full bg-[#ffedd5] border-2 border-orange-400 hover:scale-110 transition-transform cursor-pointer"></button>
+        <button onclick="changeTheme('#f3e8ff', '#f7f0fe', 'Lavanda')" title="Lavanda" class="w-6 h-6 rounded-full bg-[#f3e8ff] border-2 border-purple-400 hover:scale-110 transition-transform cursor-pointer"></button>
+        <button onclick="changeTheme('#fef9c3', '#fefde8', 'Vainilla')" title="Vainilla" class="w-6 h-6 rounded-full bg-[#fef9c3] border-2 border-amber-400 hover:scale-110 transition-transform cursor-pointer"></button>
+        <button onclick="changeTheme('#ffffff', '#f1f5f9', 'Nieve')" title="Blanco Puro" class="w-6 h-6 rounded-full bg-white border-2 border-slate-300 hover:scale-110 transition-transform cursor-pointer"></button>
+      </div>
+
+      <!-- Botón Nueva Tarea en el simulador -->
+      <button onclick="openNewTaskModal()" class="px-4 py-2 rounded-2xl bg-slate-900 hover:bg-sky-600 text-white text-xs font-bold shadow-sm transition-all flex items-center gap-1.5 cursor-pointer active:scale-95">
+        <span>+ Nueva Tarea</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- CONTENEDOR PRINCIPAL -->
+  <main class="w-full max-w-5xl flex flex-col lg:flex-row items-center justify-center gap-8 lg:gap-12">
+
+    <!-- FRAME DEL CELULAR CON LA APP (IPHONE 16 PRO) -->
+    <div id="phoneShell" class="iphone-frame relative w-[390px] h-[812px] bg-slate-950 rounded-[52px] p-3 flex flex-col shrink-0 select-none overflow-hidden transition-all duration-500">
+      
+      <!-- PANTALLA INTERNA DEL SMARTPHONE -->
+      <div id="appViewport" class="theme-transition relative w-full h-full bg-[#e0f2fe] rounded-[42px] overflow-hidden flex flex-col justify-between">
+        
+        <!-- STATUS BAR & DYNAMIC ISLAND -->
+        <div class="relative pt-3 pb-1 px-7 flex items-center justify-between z-40 text-slate-800 font-semibold text-xs tracking-tight">
+          <span>9:41</span>
+          
+          <!-- DYNAMIC ISLAND CON NOTIFICACIÓN DE PRÓXIMA TAREA -->
+          <div onclick="showAppToast('Próxima: Enfoque Profundo a las 10:00 AM')" class="w-28 h-7 bg-black rounded-full flex items-center justify-between px-2.5 shadow-inner cursor-pointer active:scale-95 transition-transform">
+            <div class="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse"></div>
+            <span class="text-[10px] text-white/90 font-medium tracking-wide">flow app</span>
+            <div class="w-2.5 h-2.5 rounded-full bg-sky-400"></div>
+          </div>
+
+          <div class="flex items-center gap-1.5 text-slate-800">
+            <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="currentColor"><path d="M12 3c-4.97 0-9 4.03-9 9 0 2.12.74 4.07 1.97 5.61L12 22l7.03-4.39C20.26 16.07 21 14.12 21 12c0-4.97-4.03-9-9-9z"/></svg>
+            <div class="w-5 h-2.5 border border-slate-700 rounded-sm p-0.5 flex items-center">
+              <div class="w-full h-full bg-slate-800 rounded-2xs"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- CONTENIDO SCROLLABLE DE LA APP -->
+        <div id="appContentScroll" class="flex-1 overflow-y-auto no-scrollbar pb-24 px-4 pt-1">
+          
+          <!-- HEADER DE LA APP (DÍA Y PROGRESO) -->
+          <div class="flex items-center justify-between mb-4">
+            <div>
+              <span class="text-[11px] font-bold tracking-wider uppercase text-sky-900/70 block">
+                viernes, 10 de octubre
+              </span>
+              <h1 class="text-xl font-black text-slate-900 tracking-tight lowercase">
+                mi agenda de hoy
+              </h1>
+            </div>
+
+            <!-- CHIP DE PROGRESO DEL DÍA -->
+            <div class="bg-white/80 backdrop-blur-md px-3 py-1.5 rounded-2xl border border-white/90 shadow-xs flex items-center gap-2">
+              <div class="w-7 h-7 rounded-full bg-sky-100 flex items-center justify-center font-bold text-xs text-sky-800">
+                <span id="progressPercent">50%</span>
+              </div>
+              <div class="flex flex-col text-left">
+                <span class="text-[9px] uppercase font-bold text-slate-400">completado</span>
+                <span id="progressCount" class="text-xs font-black text-slate-800">2 de 4</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- SELECTOR DE FECHAS EN PÍLDORAS HORIZONTALES (ESTILO STRUCTURED) -->
+          <div class="flex items-center gap-2 overflow-x-auto no-scrollbar py-1 mb-4 text-xs font-semibold">
+            <button onclick="selectDate(this, 'Jue 9')" class="px-3.5 py-1.5 rounded-full bg-white/70 hover:bg-white text-slate-700 shrink-0 border border-white/80 lowercase transition-all cursor-pointer">
+              jue 9
+            </button>
+            <button onclick="selectDate(this, 'Hoy 10')" class="px-4 py-1.5 rounded-full bg-slate-900 text-white shadow-xs shrink-0 lowercase cursor-pointer">
+              hoy 10
+            </button>
+            <button onclick="selectDate(this, 'Sáb 11')" class="px-3.5 py-1.5 rounded-full bg-white/70 hover:bg-white text-slate-700 shrink-0 border border-white/80 lowercase transition-all cursor-pointer">
+              sáb 11
+            </button>
+            <button onclick="selectDate(this, 'Dom 12')" class="px-3.5 py-1.5 rounded-full bg-white/70 hover:bg-white text-slate-700 shrink-0 border border-white/80 lowercase transition-all cursor-pointer">
+              dom 12
+            </button>
+            <button onclick="selectDate(this, 'Lun 13')" class="px-3.5 py-1.5 rounded-full bg-white/70 hover:bg-white text-slate-700 shrink-0 border border-white/80 lowercase transition-all cursor-pointer">
+              lun 13
+            </button>
+          </div>
+
+          <!-- ========================================================== -->
+          <!-- EL CARRUSEL DE LA APP: RUTINAS Y PLANTILLAS DE RECORDATORIO -->
+          <!-- ========================================================== -->
+          <div class="mb-5">
+            <div class="flex items-center justify-between mb-2 px-1">
+              <div>
+                <span class="text-[10px] font-bold tracking-wider uppercase text-sky-900/80">plantillas & hábitos</span>
+                <h3 class="text-sm font-extrabold text-slate-900 tracking-tight lowercase">
+                  rutinas conectadas
+                </h3>
+              </div>
+
+              <!-- Mini botones de navegación del carrusel -->
+              <div class="flex items-center gap-1.5">
+                <button onclick="scrollAppCarousel(-1)" class="w-6 h-6 rounded-full bg-white/80 hover:bg-white border border-white flex items-center justify-center text-slate-700 shadow-2xs active:scale-90 transition-all cursor-pointer">
+                  ‹
+                </button>
+                <button onclick="scrollAppCarousel(1)" class="w-6 h-6 rounded-full bg-white/80 hover:bg-white border border-white flex items-center justify-center text-slate-700 shadow-2xs active:scale-90 transition-all cursor-pointer">
+                  ›
+                </button>
+              </div>
+            </div>
+
+            <!-- TRACK CON TARJETAS CÁPSULA Y CONECTORES DE ROMPECABEZAS -->
+            <div class="relative overflow-hidden py-1.5 -mx-4 px-4">
+              <div id="agendaCarouselTrack" class="flex items-center overflow-x-auto no-scrollbar scroll-smooth snap-x snap-mandatory py-1" style="scroll-padding-left: 16px;">
+
+                <!-- ================= TARJETA 1 (PASTEL SKY) ================= -->
+                <div class="structured-pill snap-start shrink-0 w-[285px] h-[148px] bg-[#e0f2fe] p-4 flex flex-col justify-between relative cursor-pointer border border-sky-200/50" onclick="insertRoutineToTimeline('🌅 Rutina Mañanera', '07:00 AM', '45 min', '#e0f2fe', '☕', 'Café, meditación y lectura de 10 páginas')">
+                  <div class="flex items-center justify-between">
+                    <div class="flex items-center gap-2">
+                      <div class="w-8 h-8 rounded-full bg-white/90 shadow-2xs flex items-center justify-center text-base">
+                        🌅
+                      </div>
+                      <span class="text-[11px] font-bold text-sky-950 uppercase tracking-tight">hábito diario</span>
+                    </div>
+                    <span class="text-[10px] font-black px-2 py-0.5 rounded-full bg-sky-200 text-sky-900 lowercase">
+                      45 min
+                    </span>
+                  </div>
+
+                  <div>
+                    <h4 class="text-sm font-extrabold text-slate-900 tracking-tight leading-snug lowercase">
+                      rutina mañanera
+                    </h4>
+                    <p class="text-[11px] text-slate-600 line-clamp-1 font-medium mt-0.5">
+                      café, 10 min meditación y journaling
+                    </p>
+                  </div>
+
+                  <div class="flex items-center justify-between pt-1">
+                    <span class="text-[11px] font-bold text-sky-900">07:00 am</span>
+                    <button class="px-3 py-1 rounded-full bg-slate-900 hover:bg-sky-600 text-white text-[11px] font-bold transition-all shadow-xs flex items-center gap-1">
+                      <span>agendar</span>
+                      <span>+</span>
+                    </button>
+                  </div>
+                </div>
+
+                <!-- CONECTOR PUZZLE 1 (Sky a Mint) -->
+                <div class="puzzle-joint">
+                  <svg width="26" height="22" viewBox="0 0 26 22" fill="none">
+                    <path d="M0 0 H11 C11 5.5, 16 5.5, 16 11 C16 16.5, 11 16.5, 11 22 H0 Z" fill="#e0f2fe"/>
+                    <path d="M11 0 H26 V22 H11 C11 16.5, 16 16.5, 16 11 C16 5.5, 11 5.5, 11 0 Z" fill="#d1fae5"/>
+                    <path d="M11 0 C11 5.5, 16 5.5, 16 11 C16 16.5, 11 16.5, 11 22" stroke="rgba(0,0,0,0.06)" stroke-width="1.5"/>
+                  </svg>
+                </div>
+
+                <!-- ================= TARJETA 2 (PASTEL MINT) ================= -->
+                <div class="structured-pill snap-start shrink-0 w-[285px] h-[148px] bg-[#d1fae5] p-4 flex flex-col justify-between relative cursor-pointer border border-emerald-200/50" onclick="insertRoutineToTimeline('⚡ Enfoque Profundo', '10:00 AM', '90 min', '#d1fae5', '💻', 'Bloque de trabajo sin celular ni interrupciones')">
+                  <div class="flex items-center justify-between">
+                    <div class="flex items-center gap-2">
+                      <div class="w-8 h-8 rounded-full bg-white/90 shadow-2xs flex items-center justify-center text-base">
+                        ⚡
+                      </div>
+                      <span class="text-[11px] font-bold text-emerald-950 uppercase tracking-tight">productividad</span>
+                    </div>
+                    <span class="text-[10px] font-black px-2 py-0.5 rounded-full bg-emerald-200 text-emerald-900 lowercase">
+                      90 min
+                    </span>
+                  </div>
+
+                  <div>
+                    <h4 class="text-sm font-extrabold text-slate-900 tracking-tight leading-snug lowercase">
+                      enfoque profundo (deep work)
+                    </h4>
+                    <p class="text-[11px] text-slate-600 line-clamp-1 font-medium mt-0.5">
+                      cero notificaciones, proyecto principal
+                    </p>
+                  </div>
+
+                  <div class="flex items-center justify-between pt-1">
+                    <span class="text-[11px] font-bold text-emerald-900">10:00 am</span>
+                    <button class="px-3 py-1 rounded-full bg-emerald-900 hover:bg-emerald-800 text-white text-[11px] font-bold transition-all shadow-xs flex items-center gap-1">
+                      <span>agendar</span>
+                      <span>+</span>
+                    </button>
+                  </div>
+                </div>
+
+                <!-- CONECTOR PUZZLE 2 (Mint a Peach) -->
+                <div class="puzzle-joint">
+                  <svg width="26" height="22" viewBox="0 0 26 22" fill="none">
+                    <path d="M0 0 H11 C11 5.5, 16 5.5, 16 11 C16 16.5, 11 16.5, 11 22 H0 Z" fill="#d1fae5"/>
+                    <path d="M11 0 H26 V22 H11 C11 16.5, 16 16.5, 16 11 C16 5.5, 11 5.5, 11 0 Z" fill="#ffedd5"/>
+                    <path d="M11 0 C11 5.5, 16 5.5, 16 11 C16 16.5, 11 16.5, 11 22" stroke="rgba(0,0,0,0.06)" stroke-width="1.5"/>
+                  </svg>
+                </div>
+
+                <!-- ================= TARJETA 3 (PASTEL PEACH) ================= -->
+                <div class="structured-pill snap-start shrink-0 w-[285px] h-[148px] bg-[#ffedd5] p-4 flex flex-col justify-between relative cursor-pointer border border-orange-200/50" onclick="insertRoutineToTimeline('🏃‍♂️ Ejercicio & Salud', '05:30 PM', '60 min', '#ffedd5', '🏋️', 'Rutina de pesas o cardio al aire libre')">
+                  <div class="flex items-center justify-between">
+                    <div class="flex items-center gap-2">
+                      <div class="w-8 h-8 rounded-full bg-white/90 shadow-2xs flex items-center justify-center text-base">
+                        🏃‍♂️
+                      </div>
+                      <span class="text-[11px] font-bold text-orange-950 uppercase tracking-tight">bienestar</span>
+                    </div>
+                    <span class="text-[10px] font-black px-2 py-0.5 rounded-full bg-orange-200 text-orange-900 lowercase">
+                      60 min
+                    </span>
+                  </div>
+
+                  <div>
+                    <h4 class="text-sm font-extrabold text-slate-900 tracking-tight leading-snug lowercase">
+                      sesión de entrenamiento
+                    </h4>
+                    <p class="text-[11px] text-slate-600 line-clamp-1 font-medium mt-0.5">
+                      rutina funcional y estiramiento activo
+                    </p>
+                  </div>
+
+                  <div class="flex items-center justify-between pt-1">
+                    <span class="text-[11px] font-bold text-orange-900">05:30 pm</span>
+                    <button class="px-3 py-1 rounded-full bg-orange-950 hover:bg-orange-900 text-white text-[11px] font-bold transition-all shadow-xs flex items-center gap-1">
+                      <span>agendar</span>
+                      <span>+</span>
+                    </button>
+                  </div>
+                </div>
+
+                <!-- CONECTOR PUZZLE 3 (Peach a Lavender) -->
+                <div class="puzzle-joint">
+                  <svg width="26" height="22" viewBox="0 0 26 22" fill="none">
+                    <path d="M0 0 H11 C11 5.5, 16 5.5, 16 11 C16 16.5, 11 16.5, 11 22 H0 Z" fill="#ffedd5"/>
+                    <path d="M11 0 H26 V22 H11 C11 16.5, 16 16.5, 16 11 C16 5.5, 11 5.5, 11 0 Z" fill="#f3e8ff"/>
+                    <path d="M11 0 C11 5.5, 16 5.5, 16 11 C16 16.5, 11 16.5, 11 22" stroke="rgba(0,0,0,0.06)" stroke-width="1.5"/>
+                  </svg>
+                </div>
+
+                <!-- ================= TARJETA 4 (PASTEL LAVENDER) ================= -->
+                <div class="structured-pill snap-start shrink-0 w-[285px] h-[148px] bg-[#f3e8ff] p-4 flex flex-col justify-between relative cursor-pointer border border-purple-200/50" onclick="insertRoutineToTimeline('🌙 Desconexión Nocturna', '09:30 PM', '30 min', '#f3e8ff', '📖', 'Apagar pantallas, lectura y té relajante')">
+                  <div class="flex items-center justify-between">
+                    <div class="flex items-center gap-2">
+                      <div class="w-8 h-8 rounded-full bg-white/90 shadow-2xs flex items-center justify-center text-base">
+                        🌙
+                      </div>
+                      <span class="text-[11px] font-bold text-purple-950 uppercase tracking-tight">descanso</span>
+                    </div>
+                    <span class="text-[10px] font-black px-2 py-0.5 rounded-full bg-purple-200 text-purple-900 lowercase">
+                      30 min
+                    </span>
+                  </div>
+
+                  <div>
+                    <h4 class="text-sm font-extrabold text-slate-900 tracking-tight leading-snug lowercase">
+                      rutina de descanso
+                    </h4>
+                    <p class="text-[11px] text-slate-600 line-clamp-1 font-medium mt-0.5">
+                      cero pantallas, preparar el día de mañana
+                    </p>
+                  </div>
+
+                  <div class="flex items-center justify-between pt-1">
+                    <span class="text-[11px] font-bold text-purple-900">09:30 pm</span>
+                    <button class="px-3 py-1 rounded-full bg-purple-950 hover:bg-purple-900 text-white text-[11px] font-bold transition-all shadow-xs flex items-center gap-1">
+                      <span>agendar</span>
+                      <span>+</span>
+                    </button>
+                  </div>
+                </div>
+
+              </div>
+            </div>
+
+            <!-- Puntos indicadores del carrusel -->
+            <div class="flex items-center justify-center gap-1.5 mt-2">
+              <button onclick="jumpToCarousel(0)" class="app-dot w-6 h-1.5 rounded-full bg-slate-900 transition-all cursor-pointer"></button>
+              <button onclick="jumpToCarousel(1)" class="app-dot w-2 h-1.5 rounded-full bg-slate-300 transition-all cursor-pointer"></button>
+              <button onclick="jumpToCarousel(2)" class="app-dot w-2 h-1.5 rounded-full bg-slate-300 transition-all cursor-pointer"></button>
+              <button onclick="jumpToCarousel(3)" class="app-dot w-2 h-1.5 rounded-full bg-slate-300 transition-all cursor-pointer"></button>
+            </div>
+          </div>
+
+          <!-- ========================================================== -->
+          <!-- EL TIMELINE VISUAL DE RECORDATORIOS Y TAREAS (STRUCTURED 1:1) -->
+          <!-- ========================================================== -->
+          <div class="mb-4">
+            <div class="flex items-center justify-between mb-3 px-1">
+              <div>
+                <span class="text-[10px] font-bold tracking-wider uppercase text-slate-400">línea de tiempo</span>
+                <h3 class="text-sm font-extrabold text-slate-900 tracking-tight lowercase">
+                  timeline del día
+                </h3>
+              </div>
+              <span class="text-[10px] font-semibold text-slate-500 bg-white/70 px-2.5 py-0.5 rounded-full border border-white">
+                toca el círculo para tachar
+              </span>
+            </div>
+
+            <!-- LISTA VERTICAL DE TAREAS CON LÍNEA CENTRAL -->
+            <div id="timelineTaskList" class="relative pl-7 space-y-3.5">
+              
+              <!-- Línea vertical continua que une el día -->
+              <div class="absolute left-2.5 top-3 bottom-3 w-0.5 bg-slate-300/80 rounded-full"></div>
+
+              <!-- Tarea 1: Despertar & Desayuno (Completada) -->
+              <div class="relative timeline-task completed bg-white/90 p-3.5 border border-white flex items-center justify-between cursor-pointer" onclick="toggleTaskCompletion(this)">
+                <!-- Nodo conector en la línea del tiempo -->
+                <div class="absolute -left-[27px] top-1/2 -translate-y-1/2 w-4 h-4 rounded-full bg-sky-500 border-2 border-white shadow-xs"></div>
+                
+                <div class="flex items-center gap-3">
+                  <div class="w-9 h-9 rounded-full bg-[#e0f2fe] flex items-center justify-center text-lg">
+                    ☕
+                  </div>
+                  <div>
+                    <div class="flex items-center gap-2">
+                      <span class="text-[10px] font-bold text-sky-800 uppercase tracking-tight">07:30 am • 30m</span>
+                    </div>
+                    <h5 class="task-title text-xs font-bold text-slate-900 lowercase leading-snug">
+                      desayuno & planificar el día
+                    </h5>
+                    <p class="text-[10px] text-slate-500 font-medium">revisar prioridades y tomar café</p>
+                  </div>
+                </div>
+
+                <!-- Checkbox circular de Structured -->
+                <div class="check-circle w-6 h-6 rounded-full bg-emerald-500 text-white flex items-center justify-center text-xs font-bold shadow-xs">
+                  ✓
+                </div>
+              </div>
+
+              <!-- Tarea 2: Reunión de equipo (Completada) -->
+              <div class="relative timeline-task completed bg-white/90 p-3.5 border border-white flex items-center justify-between cursor-pointer" onclick="toggleTaskCompletion(this)">
+                <div class="absolute -left-[27px] top-1/2 -translate-y-1/2 w-4 h-4 rounded-full bg-purple-500 border-2 border-white shadow-xs"></div>
+                
+                <div class="flex items-center gap-3">
+                  <div class="w-9 h-9 rounded-full bg-[#f3e8ff] flex items-center justify-center text-lg">
+                    💼
+                  </div>
+                  <div>
+                    <div class="flex items-center gap-2">
+                      <span class="text-[10px] font-bold text-purple-800 uppercase tracking-tight">09:00 am • 45m</span>
+                    </div>
+                    <h5 class="task-title text-xs font-bold text-slate-900 lowercase leading-snug">
+                      daily sprint con el equipo
+                    </h5>
+                    <p class="text-[10px] text-slate-500 font-medium">revisión de avances del prototipo</p>
+                  </div>
+                </div>
+
+                <div class="check-circle w-6 h-6 rounded-full bg-emerald-500 text-white flex items-center justify-center text-xs font-bold shadow-xs">
+                  ✓
+                </div>
+              </div>
+
+              <!-- Tarea 3: Enfoque Profundo (EN CURSO) -->
+              <div class="relative timeline-task bg-[#d1fae5]/90 p-3.5 border border-emerald-200/80 flex items-center justify-between cursor-pointer shadow-xs" onclick="toggleTaskCompletion(this)">
+                <div class="absolute -left-[27px] top-1/2 -translate-y-1/2 w-4 h-4 rounded-full bg-emerald-500 border-2 border-white shadow-xs animate-pulse"></div>
+                
+                <div class="flex items-center gap-3">
+                  <div class="w-9 h-9 rounded-full bg-white flex items-center justify-center text-lg shadow-2xs">
+                    💻
+                  </div>
+                  <div>
+                    <div class="flex items-center gap-2">
+                      <span class="text-[10px] font-extrabold text-emerald-950 uppercase tracking-tight">10:00 am • 90m</span>
+                      <span class="text-[9px] font-bold px-1.5 py-0.2 rounded-full bg-emerald-600 text-white">en curso</span>
+                    </div>
+                    <h5 class="task-title text-xs font-extrabold text-emerald-950 lowercase leading-snug">
+                      diseño de la arquitectura & api
+                    </h5>
+                    <p class="text-[10px] text-emerald-800 font-medium">bloque de concentración profunda</p>
+                  </div>
+                </div>
+
+                <div class="check-circle w-6 h-6 rounded-full border-2 border-emerald-600 bg-white flex items-center justify-center text-xs font-bold text-transparent hover:text-emerald-600">
+                  ✓
+                </div>
+              </div>
+
+              <!-- Espacio libre en el Timeline (Structured Gap) -->
+              <div class="flex items-center gap-2 py-1 text-[10px] font-semibold text-slate-500 italic pl-1">
+                <span>⏱️ 1h libre para descanso y caminata</span>
+              </div>
+
+              <!-- Tarea 4: Almuerzo & Desconexión (Pendiente) -->
+              <div class="relative timeline-task bg-white/90 p-3.5 border border-white flex items-center justify-between cursor-pointer" onclick="toggleTaskCompletion(this)">
+                <div class="absolute -left-[27px] top-1/2 -translate-y-1/2 w-4 h-4 rounded-full bg-orange-400 border-2 border-white shadow-xs"></div>
+                
+                <div class="flex items-center gap-3">
+                  <div class="w-9 h-9 rounded-full bg-[#ffedd5] flex items-center justify-center text-lg">
+                    🥗
+                  </div>
+                  <div>
+                    <div class="flex items-center gap-2">
+                      <span class="text-[10px] font-bold text-orange-800 uppercase tracking-tight">01:00 pm • 60m</span>
+                    </div>
+                    <h5 class="task-title text-xs font-bold text-slate-900 lowercase leading-snug">
+                      almuerzo saludable & lectura
+                    </h5>
+                    <p class="text-[10px] text-slate-500 font-medium">desconectarse de pantallas</p>
+                  </div>
+                </div>
+
+                <div class="check-circle w-6 h-6 rounded-full border-2 border-slate-300 bg-white flex items-center justify-center text-xs font-bold text-transparent hover:text-slate-400">
+                  ✓
+                </div>
+              </div>
+
+            </div>
+          </div>
+
+        </div>
+
+        <!-- BARRA DE NAVEGACIÓN FLOTANTE (BOTTOM DOCK) -->
+        <div class="absolute bottom-3 left-4 right-4 z-40">
+          <div class="bg-white/80 backdrop-blur-2xl px-6 py-2.5 rounded-full border border-white/90 shadow-[0_10px_25px_-5px_rgba(0,0,0,0.1)] flex items-center justify-between">
+            
+            <!-- Tab Timeline (Activo) -->
+            <button class="flex flex-col items-center gap-0.5 text-slate-900 cursor-pointer">
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+              <span class="text-[9px] font-extrabold lowercase">timeline</span>
+            </button>
+
+            <!-- Tab Calendario -->
+            <button onclick="showAppToast('Vista de Calendario Mensual')" class="flex flex-col items-center gap-0.5 text-slate-400 hover:text-slate-800 cursor-pointer transition-colors">
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+              <span class="text-[9px] font-semibold lowercase">mes</span>
+            </button>
+
+            <!-- BOTÓN CENTRAL "+" DE CREAR TAREA -->
+            <button onclick="openNewTaskModal()" class="w-12 h-12 -mt-6 rounded-full bg-slate-900 hover:bg-sky-600 text-white flex items-center justify-center shadow-lg active:scale-90 transition-all cursor-pointer">
+              <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"/></svg>
+            </button>
+
+            <!-- Tab Inbox (Tareas sin agendar) -->
+            <button onclick="showAppToast('Buzón: 3 notas rápidas guardadas')" class="flex flex-col items-center gap-0.5 text-slate-400 hover:text-slate-800 cursor-pointer transition-colors">
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"/></svg>
+              <span class="text-[9px] font-semibold lowercase">inbox</span>
+            </button>
+
+            <!-- Tab Ajustes -->
+            <button onclick="showAppToast('Configuración y sincronización')" class="flex flex-col items-center gap-0.5 text-slate-400 hover:text-slate-800 cursor-pointer transition-colors">
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+              <span class="text-[9px] font-semibold lowercase">ajustes</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- HOME BAR DE IPHONE -->
+        <div class="absolute bottom-1 left-1/2 -translate-x-1/2 w-32 h-1 bg-slate-900/40 rounded-full z-50 pointer-events-none"></div>
+
+        <!-- TOAST IN-APP -->
+        <div id="inAppNotice" class="absolute top-16 left-6 right-6 z-50 bg-slate-900/90 backdrop-blur-md text-white px-4 py-2.5 rounded-2xl text-xs font-semibold shadow-xl flex items-center justify-between transition-all duration-300 opacity-0 -translate-y-4 pointer-events-none">
+          <span id="inAppNoticeText">¡Rutina añadida a tu agenda!</span>
+          <span class="text-emerald-400">✓</span>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- PANEL LATERAL: EXPLICACIÓN Y CARACTERÍSTICAS DE LA APP -->
+    <div class="w-full max-w-md flex flex-col gap-5">
+      
+      <!-- TARJETA INFORMATIVA -->
+      <div class="bg-white/80 backdrop-blur-xl p-6 rounded-3xl border border-white/90 shadow-sm">
+        <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-100 text-emerald-800 text-[11px] font-bold mb-3">
+          <span>✨ App Independiente de Agenda & Recordatorios</span>
+        </div>
+
+        <h3 class="text-xl font-extrabold text-slate-900 tracking-tight lowercase mb-2">
+          ¿cómo funciona esta app de recordatorios?
+        </h3>
+
+        <p class="text-xs text-slate-600 font-medium mb-4 leading-relaxed">
+          Esta aplicación adopta el concepto exacto de <strong>Structured</strong>: transformar listas de tareas aburridas en una <strong>línea de tiempo visual</strong> con colores pasteles, donde cada momento de tu día tiene un espacio claro y conectado.
+        </p>
+
+        <div class="space-y-3 text-xs">
+          <div class="flex items-start gap-3 p-3 rounded-2xl bg-sky-50/70 border border-sky-100">
+            <span class="text-lg">🧩</span>
+            <div>
+              <strong class="text-slate-900 font-bold block lowercase">1. carrusel de rutinas con conectores puzzle</strong>
+              <p class="text-slate-600 mt-0.5">Las cápsulas del carrusel son plantillas de hábitos frecuentes (rutina mañanera, deep work, gym). Al tocar cualquiera, se inserta directo en tu timeline.</p>
+            </div>
+          </div>
+
+          <div class="flex items-start gap-3 p-3 rounded-2xl bg-emerald-50/70 border border-emerald-100">
+            <span class="text-lg">🕒</span>
+            <div>
+              <strong class="text-slate-900 font-bold block lowercase">2. timeline visual interactivo</strong>
+              <p class="text-slate-600 mt-0.5">Cada tarea tiene su horario y duración. Puedes tocar el círculo verde para marcarla como completada y ver cómo avanza tu porcentaje del día.</p>
+            </div>
+          </div>
+
+          <div class="flex items-start gap-3 p-3 rounded-2xl bg-orange-50/70 border border-orange-100">
+            <span class="text-lg">🎨</span>
+            <div>
+              <strong class="text-slate-900 font-bold block lowercase">3. paleta pastel relajante</strong>
+              <p class="text-slate-600 mt-0.5">Usa los colores suaves de SiboPay (Cielo, Menta, Melocotón, Lavanda, Vainilla) que reducen el estrés visual característico de Structured.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- PRUEBAS RÁPIDAS -->
+      <div class="bg-white/80 backdrop-blur-xl p-5 rounded-3xl border border-white/90 shadow-sm flex flex-col gap-3">
+        <h4 class="text-xs font-bold text-slate-400 uppercase tracking-wider">
+          acciones interactivas de prueba
+        </h4>
+
+        <div class="grid grid-cols-2 gap-2 text-xs font-bold">
+          <button onclick="insertRoutineToTimeline('☕ Pausa de Café', '03:30 PM', '20 min', '#ffedd5', '☕', 'Desconexión rápida')" class="p-2.5 rounded-2xl bg-orange-500 hover:bg-orange-600 text-white transition-all shadow-xs cursor-pointer text-center">
+            + Insertar Pausa
+          </button>
+          <button onclick="insertRoutineToTimeline('📖 Lectura Nocturna', '09:00 PM', '45 min', '#f3e8ff', '📖', 'Leer 15 páginas')" class="p-2.5 rounded-2xl bg-purple-600 hover:bg-purple-700 text-white transition-all shadow-xs cursor-pointer text-center">
+            + Insertar Lectura
+          </button>
+          <button onclick="scrollAppCarousel(1)" class="p-2.5 rounded-2xl bg-slate-900 hover:bg-slate-800 text-white transition-all shadow-xs cursor-pointer text-center">
+            › Siguiente Rutina
+          </button>
+          <button onclick="openNewTaskModal()" class="p-2.5 rounded-2xl bg-sky-600 hover:bg-sky-700 text-white transition-all shadow-xs cursor-pointer text-center">
+            ✏️ Crear Personalizada
+          </button>
+        </div>
+      </div>
+
+    </div>
+
+  </main>
+
+  <!-- MODAL PARA CREAR NUEVA TAREA / RECORDATORIO -->
+  <div id="newTaskModal" class="fixed inset-0 z-50 bg-black/40 backdrop-blur-xs flex items-center justify-center p-4 opacity-0 pointer-events-none transition-opacity duration-300">
+    <div class="bg-white rounded-[36px] p-6 max-w-sm w-full shadow-2xl border border-slate-100 flex flex-col gap-4">
+      
+      <div class="flex items-center justify-between">
+        <h3 class="text-lg font-black text-slate-900 tracking-tight lowercase">nueva tarea o recordatorio</h3>
+        <button onclick="closeNewTaskModal()" class="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-sm flex items-center justify-center cursor-pointer">
+          ✕
+        </button>
+      </div>
+
+      <!-- Nombre de la tarea -->
+      <div>
+        <label class="text-[11px] font-bold text-slate-500 uppercase tracking-wider block mb-1">título de la tarea</label>
+        <input id="inputTaskTitle" type="text" placeholder="Ej: Llamar al médico, Estudiar..." class="w-full px-4 py-2.5 rounded-2xl bg-slate-50 border border-slate-200 text-xs font-semibold text-slate-800 focus:outline-none focus:border-sky-500">
+      </div>
+
+      <!-- Hora y duración -->
+      <div class="grid grid-cols-2 gap-2">
+        <div>
+          <label class="text-[11px] font-bold text-slate-500 uppercase tracking-wider block mb-1">hora</label>
+          <input id="inputTaskTime" type="time" value="14:00" class="w-full px-3 py-2 rounded-2xl bg-slate-50 border border-slate-200 text-xs font-semibold text-slate-800 focus:outline-none">
+        </div>
+        <div>
+          <label class="text-[11px] font-bold text-slate-500 uppercase tracking-wider block mb-1">duración</label>
+          <select id="inputTaskDuration" class="w-full px-3 py-2 rounded-2xl bg-slate-50 border border-slate-200 text-xs font-semibold text-slate-800 focus:outline-none">
+            <option value="15 min">15 min</option>
+            <option value="30 min">30 min</option>
+            <option value="45 min" selected>45 min</option>
+            <option value="60 min">1 hora</option>
+            <option value="90 min">1h 30m</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Selector de color pastel -->
+      <div>
+        <label class="text-[11px] font-bold text-slate-500 uppercase tracking-wider block mb-1.5">color pastel</label>
+        <div class="flex items-center gap-2">
+          <label class="cursor-pointer"><input type="radio" name="colorChoice" value="#e0f2fe" checked class="peer sr-only"><span class="w-7 h-7 rounded-full bg-[#e0f2fe] border-2 border-transparent peer-checked:border-sky-600 block"></span></label>
+          <label class="cursor-pointer"><input type="radio" name="colorChoice" value="#d1fae5" class="peer sr-only"><span class="w-7 h-7 rounded-full bg-[#d1fae5] border-2 border-transparent peer-checked:border-emerald-600 block"></span></label>
+          <label class="cursor-pointer"><input type="radio" name="colorChoice" value="#ffedd5" class="peer sr-only"><span class="w-7 h-7 rounded-full bg-[#ffedd5] border-2 border-transparent peer-checked:border-orange-600 block"></span></label>
+          <label class="cursor-pointer"><input type="radio" name="colorChoice" value="#f3e8ff" class="peer sr-only"><span class="w-7 h-7 rounded-full bg-[#f3e8ff] border-2 border-transparent peer-checked:border-purple-600 block"></span></label>
+          <label class="cursor-pointer"><input type="radio" name="colorChoice" value="#fef9c3" class="peer sr-only"><span class="w-7 h-7 rounded-full bg-[#fef9c3] border-2 border-transparent peer-checked:border-amber-600 block"></span></label>
+        </div>
+      </div>
+
+      <!-- Selector de Emoji -->
+      <div>
+        <label class="text-[11px] font-bold text-slate-500 uppercase tracking-wider block mb-1.5">icono</label>
+        <div class="flex items-center gap-1.5">
+          <button type="button" onclick="selectEmoji(this, '📝')" class="emoji-btn w-8 h-8 rounded-full bg-slate-100 border border-slate-200 text-sm flex items-center justify-center">📝</button>
+          <button type="button" onclick="selectEmoji(this, '⚡')" class="emoji-btn w-8 h-8 rounded-full bg-slate-100 border border-slate-200 text-sm flex items-center justify-center">⚡</button>
+          <button type="button" onclick="selectEmoji(this, '📞')" class="emoji-btn w-8 h-8 rounded-full bg-slate-100 border border-slate-200 text-sm flex items-center justify-center">📞</button>
+          <button type="button" onclick="selectEmoji(this, '🏋️')" class="emoji-btn w-8 h-8 rounded-full bg-slate-100 border border-slate-200 text-sm flex items-center justify-center">🏋️</button>
+          <button type="button" onclick="selectEmoji(this, '💊')" class="emoji-btn w-8 h-8 rounded-full bg-slate-100 border border-slate-200 text-sm flex items-center justify-center">💊</button>
+          <button type="button" onclick="selectEmoji(this, '🛒')" class="emoji-btn w-8 h-8 rounded-full bg-slate-100 border border-slate-200 text-sm flex items-center justify-center">🛒</button>
+        </div>
+      </div>
+
+      <!-- Botón Guardar -->
+      <div class="pt-2">
+        <button onclick="saveNewTask()" class="w-full py-3 rounded-full bg-slate-900 hover:bg-sky-600 text-white text-xs font-black uppercase tracking-wider shadow-sm transition-all cursor-pointer">
+          guardar en el timeline
+        </button>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- JAVASCRIPT DE LA APLICACIÓN -->
+  <script>
+    const carousel = document.getElementById('agendaCarouselTrack');
+    const dots = document.querySelectorAll('.app-dot');
+    let selectedEmojiVal = '📝';
+
+    // Navegación en el carrusel
+    function scrollAppCarousel(direction) {
+      const step = 311; // Ancho tarjeta + conector
+      carousel.scrollBy({ left: direction * step, behavior: 'smooth' });
+      setTimeout(updateAppDots, 300);
+    }
+
+    function jumpToCarousel(index) {
+      const step = 311;
+      carousel.scrollTo({ left: index * step, behavior: 'smooth' });
+      setDotActive(index);
+    }
+
+    function updateAppDots() {
+      const step = 311;
+      const index = Math.min(3, Math.max(0, Math.round(carousel.scrollLeft / step)));
+      setDotActive(index);
+    }
+
+    function setDotActive(index) {
+      dots.forEach((dot, idx) => {
+        if (idx === index) {
+          dot.className = 'app-dot w-6 h-1.5 rounded-full bg-slate-900 transition-all cursor-pointer';
+        } else {
+          dot.className = 'app-dot w-2 h-1.5 rounded-full bg-slate-300 transition-all cursor-pointer';
+        }
+      });
+    }
+
+    carousel.addEventListener('scroll', () => {
+      clearTimeout(window.appScrollT);
+      window.appScrollT = setTimeout(updateAppDots, 80);
+    });
+
+    // Marcar/Desmarcar tarea completada estilo Structured
+    function toggleTaskCompletion(taskElement) {
+      taskElement.classList.toggle('completed');
+      const check = taskElement.querySelector('.check-circle');
+
+      if (taskElement.classList.contains('completed')) {
+        check.className = 'check-circle w-6 h-6 rounded-full bg-emerald-500 text-white flex items-center justify-center text-xs font-bold shadow-xs animate-pop';
+        check.textContent = '✓';
+        showAppToast('¡Tarea completada!');
+      } else {
+        check.className = 'check-circle w-6 h-6 rounded-full border-2 border-slate-300 bg-white flex items-center justify-center text-xs font-bold text-transparent hover:text-slate-400';
+        check.textContent = '✓';
+      }
+
+      updateProgressStats();
+    }
+
+    // Actualizar porcentaje de productividad
+    function updateProgressStats() {
+      const allTasks = document.querySelectorAll('#timelineTaskList .timeline-task');
+      const completedTasks = document.querySelectorAll('#timelineTaskList .timeline-task.completed');
+      const total = allTasks.length;
+      const done = completedTasks.length;
+      const pct = total === 0 ? 0 : Math.round((done / total) * 100);
+
+      document.getElementById('progressPercent').textContent = pct + '%';
+      document.getElementById('progressCount').textContent = `${done} de ${total}`;
+    }
+
+    // Insertar rutina desde el carrusel directamente al timeline
+    function insertRoutineToTimeline(title, time, duration, color, emoji, note) {
+      const list = document.getElementById('timelineTaskList');
+
+      const task = document.createElement('div');
+      task.className = 'relative timeline-task bg-white/95 p-3.5 border border-white flex items-center justify-between cursor-pointer shadow-xs';
+      task.onclick = function() { toggleTaskCompletion(task); };
+
+      task.innerHTML = `
+        <div class="absolute -left-[27px] top-1/2 -translate-y-1/2 w-4 h-4 rounded-full border-2 border-white shadow-xs" style="background-color: ${color}"></div>
+        <div class="flex items-center gap-3">
+          <div class="w-9 h-9 rounded-full flex items-center justify-center text-lg" style="background-color: ${color}">
+            ${emoji}
+          </div>
+          <div>
+            <div class="flex items-center gap-2">
+              <span class="text-[10px] font-bold text-slate-800 uppercase tracking-tight">${time} • ${duration}</span>
+            </div>
+            <h5 class="task-title text-xs font-bold text-slate-900 lowercase leading-snug">
+              ${title}
+            </h5>
+            <p class="text-[10px] text-slate-500 font-medium">${note}</p>
+          </div>
+        </div>
+        <div class="check-circle w-6 h-6 rounded-full border-2 border-slate-300 bg-white flex items-center justify-center text-xs font-bold text-transparent hover:text-slate-400">
+          ✓
+        </div>
+      `;
+
+      list.appendChild(task);
+      updateProgressStats();
+      showAppToast(`"${title}" agregada al timeline`);
+      
+      // Auto-scroll hacia la nueva tarea
+      task.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+
+    // Modal de nueva tarea
+    function openNewTaskModal() {
+      const modal = document.getElementById('newTaskModal');
+      modal.classList.remove('opacity-0', 'pointer-events-none');
+      modal.classList.add('opacity-100');
+    }
+
+    function closeNewTaskModal() {
+      const modal = document.getElementById('newTaskModal');
+      modal.classList.remove('opacity-100');
+      modal.classList.add('opacity-0', 'pointer-events-none');
+    }
+
+    function selectEmoji(btn, emoji) {
+      document.querySelectorAll('.emoji-btn').forEach(b => b.classList.remove('bg-sky-200', 'border-sky-500'));
+      btn.classList.add('bg-sky-200', 'border-sky-500');
+      selectedEmojiVal = emoji;
+    }
+
+    function saveNewTask() {
+      const titleInput = document.getElementById('inputTaskTitle');
+      const title = titleInput.value.trim() || 'Recordatorio rápido';
+      const timeVal = document.getElementById('inputTaskTime').value || '15:00';
+      const duration = document.getElementById('inputTaskDuration').value;
+      const color = document.querySelector('input[name="colorChoice"]:checked').value;
+
+      insertRoutineToTimeline(title, timeVal, duration, color, selectedEmojiVal, 'Recordatorio personalizado');
+      titleInput.value = '';
+      closeNewTaskModal();
+    }
+
+    // Selector de fecha
+    function selectDate(btn, label) {
+      btn.parentElement.querySelectorAll('button').forEach(b => {
+        b.className = 'px-3.5 py-1.5 rounded-full bg-white/70 hover:bg-white text-slate-700 shrink-0 border border-white/80 lowercase transition-all cursor-pointer';
+      });
+      btn.className = 'px-4 py-1.5 rounded-full bg-slate-900 text-white shadow-xs shrink-0 lowercase cursor-pointer';
+      showAppToast(`Viendo agenda de: ${label}`);
+    }
+
+    // Cambiar paleta de tema
+    function changeTheme(viewportBg, bodyBg, name) {
+      document.getElementById('appViewport').style.backgroundColor = viewportBg;
+      document.getElementById('pageBody').style.backgroundColor = bodyBg;
+      showAppToast(`Tema cambiado a: ${name}`);
+    }
+
+    // Toast flotante dentro de la app
+    function showAppToast(msg) {
+      const notice = document.getElementById('inAppNotice');
+      const text = document.getElementById('inAppNoticeText');
+      text.textContent = msg;
+      notice.classList.remove('opacity-0', '-translate-y-4', 'pointer-events-none');
+      notice.classList.add('opacity-100', 'translate-y-0');
+
+      clearTimeout(window.noticeTimer);
+      window.noticeTimer = setTimeout(() => {
+        notice.classList.remove('opacity-100', 'translate-y-0');
+        notice.classList.add('opacity-0', '-translate-y-4', 'pointer-events-none');
+      }, 2400);
+    }
+  </script>
+</body>
+</html>

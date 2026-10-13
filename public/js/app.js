@@ -332,15 +332,29 @@ function closeLoginSheet(e) {
 function switchSheetView(view) {
   const loginContent = document.getElementById('sheetContentLogin');
   const registerContent = document.getElementById('sheetContentRegister');
+  const forgotContent = document.getElementById('sheetContentForgot');
   const title = document.getElementById('bottomSheetTitle');
 
+  if (loginContent) loginContent.style.display = 'none';
+  if (registerContent) registerContent.style.display = 'none';
+  if (forgotContent) forgotContent.style.display = 'none';
+
   if (view === 'register') {
-    if (loginContent) loginContent.style.display = 'none';
     if (registerContent) registerContent.style.display = 'block';
-    if (title) title.textContent = 'Registro de Padres';
+    if (title) title.textContent = 'Crear Cuenta';
+  } else if (view === 'forgot') {
+    if (forgotContent) forgotContent.style.display = 'block';
+    if (title) title.textContent = 'Restablecer Contraseña';
+    const step1 = document.getElementById('forgotStep1');
+    const step2 = document.getElementById('forgotStep2');
+    if (step1) step1.style.display = 'block';
+    if (step2) step2.style.display = 'none';
+    const msg1 = document.getElementById('forgotMsgStep1');
+    if (msg1) msg1.style.display = 'none';
+    const msg2 = document.getElementById('forgotMsgStep2');
+    if (msg2) msg2.style.display = 'none';
   } else {
     if (loginContent) loginContent.style.display = 'block';
-    if (registerContent) registerContent.style.display = 'none';
     if (title) title.textContent = 'Iniciar Sesión';
   }
 }
@@ -407,6 +421,8 @@ function selectRegisterRole(role) {
 async function handleRegisterPadreSubmit(event) {
   if (event) event.preventDefault();
   const nombre = document.getElementById('regNombre').value.trim();
+  const fechaNacInput = document.getElementById('regFechaNacimiento');
+  const fecha_nacimiento = fechaNacInput ? fechaNacInput.value.trim() : '';
   const telefono = document.getElementById('regTelefono').value.trim();
   const emailInput = document.getElementById('regEmail');
   const email = emailInput ? emailInput.value.trim() : '';
@@ -416,14 +432,31 @@ async function handleRegisterPadreSubmit(event) {
   const btnSubmit = document.getElementById('btnRegisterSubmit');
 
   if (errorMsg) errorMsg.style.display = 'none';
+
+  if (!email) {
+    if (errorMsg) {
+      errorMsg.textContent = 'El correo electrónico es requerido.';
+      errorMsg.style.display = 'block';
+    }
+    return;
+  }
+
+  if (password.length < 6) {
+    if (errorMsg) {
+      errorMsg.textContent = 'La contraseña debe tener al menos 6 caracteres.';
+      errorMsg.style.display = 'block';
+    }
+    return;
+  }
+
   btnSubmit.disabled = true;
-  btnSubmit.textContent = 'Creando cuenta de padre...';
+  btnSubmit.textContent = 'Creando cuenta...';
 
   try {
     const res = await fetch('/api/auth/register-padre', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ nombre, telefono, email, username, password })
+      body: JSON.stringify({ nombre, fecha_nacimiento, telefono, email, username, password })
     });
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || 'Error al registrar la cuenta');
@@ -440,7 +473,7 @@ async function handleRegisterPadreSubmit(event) {
     if (window.sounds) window.sounds.playSuccess();
     await showAppAlert({
       title: '¡Bienvenido(a) a SiboPay!',
-      message: `Hola ${data.user.nombre}, tu cuenta de padre fue creada exitosamente.\n\nYa puedes vincular a tus hijos, asignar límites diarios y realizar recargas por SINPE Móvil de forma segura.`,
+      message: `Hola ${data.user.nombre}, tu cuenta fue creada exitosamente.\n\nYa puedes acceder a todos los servicios y monedero digital SiboPay.`,
       type: 'success',
       confirmText: 'Entrar a mi Panel'
     });
@@ -453,7 +486,140 @@ async function handleRegisterPadreSubmit(event) {
     if (window.sounds) window.sounds.playError();
   } finally {
     btnSubmit.disabled = false;
-    btnSubmit.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:6px;"><circle cx="9" cy="7" r="3.5"/><path d="M3 20v-1.5A4.5 4.5 0 0 1 7.5 14h3A4.5 4.5 0 0 1 15 18.5V20"/><circle cx="17.5" cy="7.5" r="2.5"/><path d="M15 14a3.5 3.5 0 0 1 5.5 3v3"/></svg> Crear Cuenta de Padre y Entrar';
+    btnSubmit.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:6px;"><circle cx="9" cy="7" r="3.5"/><path d="M3 20v-1.5A4.5 4.5 0 0 1 7.5 14h3A4.5 4.5 0 0 1 15 18.5V20"/><circle cx="17.5" cy="7.5" r="2.5"/><path d="M15 14a3.5 3.5 0 0 1 5.5 3v3"/></svg> Crear Cuenta y Entrar';
+  }
+}
+
+let pendingForgotEmail = '';
+
+async function handleForgotRequestSubmit(event) {
+  if (event) event.preventDefault();
+  const emailInput = document.getElementById('forgotEmail');
+  const email = emailInput ? emailInput.value.trim() : '';
+  const msg = document.getElementById('forgotMsgStep1');
+  const btn = document.getElementById('btnForgotSendCode');
+
+  if (!email) return;
+  if (msg) msg.style.display = 'none';
+  btn.disabled = true;
+  btn.innerHTML = '<span style="display:inline-block; animation: pulse 1s infinite;">⏳</span> Enviando código...';
+
+  try {
+    const res = await fetch('/api/auth/forgot-password', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email })
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'No se pudo enviar el código de recuperación.');
+
+    pendingForgotEmail = email;
+    document.getElementById('forgotStep1').style.display = 'none';
+    document.getElementById('forgotStep2').style.display = 'block';
+
+    const msg2 = document.getElementById('forgotMsgStep2');
+    if (msg2) {
+      msg2.textContent = `Código enviado a ${email}. Revisa tu bandeja de entrada o spam e ingrésalo abajo.`;
+      msg2.style.background = '#dcfce7';
+      msg2.style.borderColor = '#86efac';
+      msg2.style.color = '#166534';
+      msg2.style.border = '1px solid #86efac';
+      msg2.style.display = 'block';
+    }
+    const inputCode = document.getElementById('forgotCode');
+    if (inputCode) inputCode.focus();
+  } catch (err) {
+    if (msg) {
+      msg.textContent = err.message;
+      msg.style.background = '#fee2e2';
+      msg.style.borderColor = '#fca5a5';
+      msg.style.color = '#991b1b';
+      msg.style.border = '1px solid #fca5a5';
+      msg.style.display = 'block';
+    }
+    if (window.sounds) window.sounds.playError();
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 2L11 13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg> <span id="lblBtnForgotSend">Enviar Código al Correo</span>';
+  }
+}
+
+async function handleForgotConfirmSubmit(event) {
+  if (event) event.preventDefault();
+  const email = pendingForgotEmail || (document.getElementById('forgotEmail') ? document.getElementById('forgotEmail').value.trim() : '');
+  const code = document.getElementById('forgotCode') ? document.getElementById('forgotCode').value.trim() : '';
+  const newPass = document.getElementById('forgotNewPass') ? document.getElementById('forgotNewPass').value.trim() : '';
+  const confirmPass = document.getElementById('forgotConfirmPass') ? document.getElementById('forgotConfirmPass').value.trim() : '';
+  const msg = document.getElementById('forgotMsgStep2');
+  const btn = document.getElementById('btnForgotResetPass');
+
+  if (msg) msg.style.display = 'none';
+
+  if (newPass.length < 6) {
+    if (msg) {
+      msg.textContent = 'La nueva contraseña debe tener al menos 6 caracteres.';
+      msg.style.background = '#fee2e2';
+      msg.style.borderColor = '#fca5a5';
+      msg.style.color = '#991b1b';
+      msg.style.border = '1px solid #fca5a5';
+      msg.style.display = 'block';
+    }
+    return;
+  }
+
+  if (newPass !== confirmPass) {
+    if (msg) {
+      msg.textContent = 'Las contraseñas no coinciden. Por favor verifícalas.';
+      msg.style.background = '#fee2e2';
+      msg.style.borderColor = '#fca5a5';
+      msg.style.color = '#991b1b';
+      msg.style.border = '1px solid #fca5a5';
+      msg.style.display = 'block';
+    }
+    return;
+  }
+
+  btn.disabled = true;
+  btn.innerHTML = '<span style="display:inline-block; animation: pulse 1s infinite;">⏳</span> Guardando nueva contraseña...';
+
+  try {
+    const res = await fetch('/api/auth/reset-password', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, code, new_password: newPass })
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Error al restablecer la contraseña.');
+
+    if (window.sounds) window.sounds.playSuccess();
+    await showAppAlert({
+      title: '¡Contraseña Restablecida!',
+      message: 'Tu contraseña ha sido actualizada exitosamente. Ya puedes iniciar sesión con tu nueva contraseña.',
+      type: 'success',
+      confirmText: 'Iniciar Sesión'
+    });
+
+    switchSheetView('login');
+    const loginUserInput = document.getElementById('loginUsername');
+    if (loginUserInput) loginUserInput.value = email;
+    const loginPassInput = document.getElementById('loginPassword');
+    if (loginPassInput) {
+      loginPassInput.value = '';
+      loginPassInput.focus();
+    }
+  } catch (err) {
+    if (msg) {
+      msg.textContent = err.message;
+      msg.style.background = '#fee2e2';
+      msg.style.borderColor = '#fca5a5';
+      msg.style.color = '#991b1b';
+      msg.style.border = '1px solid #fca5a5';
+      msg.style.display = 'block';
+    }
+    if (window.sounds) window.sounds.playError();
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg> <span id="lblBtnForgotReset">Cambiar Contraseña y Entrar</span>';
   }
 }
 

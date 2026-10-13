@@ -1,0 +1,627 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SiboPay — Carrusel Idéntico a Structured.app</title>
+  <script src="https://www.gstatic.com/antigravity/web/dev/tailwindcss.min.js"></script>
+  <style>
+    @keyframes marquee-left {
+      0% { transform: translateX(0); }
+      100% { transform: translateX(-50%); }
+    }
+    @keyframes marquee-right {
+      0% { transform: translateX(-50%); }
+      100% { transform: translateX(0); }
+    }
+    .track-left {
+      display: flex;
+      align-items: center;
+      width: max-content;
+      animation: marquee-left 48s linear infinite;
+    }
+    .track-right {
+      display: flex;
+      align-items: center;
+      width: max-content;
+      animation: marquee-right 52s linear infinite;
+    }
+    .marquee-row:hover .track-left,
+    .marquee-row:hover .track-right {
+      animation-play-state: paused;
+    }
+    .mask-fade {
+      -webkit-mask-image: linear-gradient(to right, transparent 0%, black 6%, black 94%, transparent 100%);
+      mask-image: linear-gradient(to right, transparent 0%, black 6%, black 94%, transparent 100%);
+    }
+    .bg-smooth-transition {
+      transition: background-color 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    /* Structured Card Glow */
+    .structured-card {
+      width: 646px;
+      height: 193px;
+      border-radius: 100px;
+      position: relative;
+      flex-shrink: 0;
+      box-shadow: 0 16px 36px -8px rgba(0, 0, 0, 0.12), inset 0 1px 1px rgba(255, 255, 255, 0.6);
+      transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.3s ease;
+    }
+    .structured-card:hover {
+      transform: scale(1.02);
+      box-shadow: 0 20px 42px -6px rgba(0, 0, 0, 0.18), inset 0 1px 1px rgba(255, 255, 255, 0.8);
+    }
+  </style>
+</head>
+<body id="pageBody" class="bg-smooth-transition antialiased text-slate-800 m-0 p-0 selection:bg-sky-200 overflow-x-hidden" style="background-color: #e0f2fe;">
+
+  <!-- NAVEGACIÓN FLOTANTE LIQUID GLASS -->
+  <nav class="fixed top-0 left-0 w-full z-50 flex items-center justify-center px-4 py-3 pointer-events-none">
+    <div class="w-full max-w-5xl pointer-events-auto flex items-center justify-between px-6 py-2.5 rounded-full bg-white/45 backdrop-blur-2xl border border-white/60 shadow-[0_8px_30px_rgba(0,0,0,0.06)]">
+      <div class="flex items-center gap-2.5">
+        <div class="w-9 h-9 rounded-full bg-gradient-to-tr from-sky-600 to-cyan-400 flex items-center justify-center text-white font-extrabold text-lg shadow-sm">
+          S
+        </div>
+        <span class="text-xl font-bold tracking-tight text-slate-900">sibopay</span>
+        <span class="text-[12px] font-semibold px-2.5 py-0.5 rounded-full bg-white/80 text-sky-800 border border-sky-200/60 ml-1">Structured 1:1</span>
+      </div>
+
+      <div class="hidden md:flex items-center gap-6 text-[15px] font-medium text-slate-700 lowercase">
+        <a href="#reviews" class="hover:text-sky-600 transition-colors">carrusel de cápsulas</a>
+        <a href="#features" class="hover:text-sky-600 transition-colors">discos interactivos</a>
+        <a href="#timeline" class="hover:text-sky-600 transition-colors">agenda visual</a>
+      </div>
+
+      <div class="flex items-center gap-2">
+        <button onclick="toggleBackground()" class="px-3.5 py-1.5 rounded-full bg-white/70 hover:bg-white text-slate-700 text-xs font-semibold border border-white/80 shadow-xs transition-all flex items-center gap-1.5 cursor-pointer">
+          <span>🎨 Cambiar Fondo</span>
+        </button>
+        <button class="px-5 py-2 rounded-full bg-slate-900 hover:bg-sky-600 text-white text-sm font-semibold transition-all duration-300 shadow-sm cursor-pointer">
+          Probar en vivo
+        </button>
+      </div>
+    </div>
+  </nav>
+
+  <!-- HERO TITLE -->
+  <section class="pt-32 pb-8 px-6 text-center max-w-4xl mx-auto">
+    <div class="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/70 backdrop-blur-md border border-white shadow-xs text-xs font-bold text-sky-800 mb-6">
+      <span class="w-2 h-2 rounded-full bg-sky-500 animate-pulse"></span>
+      CARRUSEL DE CÁPSULAS Y CONECTORES DE STRUCTURED.APP
+    </div>
+    
+    <h1 class="text-4xl sm:text-6xl font-light text-slate-900 lowercase tracking-tight leading-none mb-4">
+      el carrusel idéntico de <br/>
+      <span class="font-extrabold text-sky-800" id="heroTitleSpan">structured con los colores de sibopay</span>
+    </h1>
+
+    <p class="text-base sm:text-lg text-slate-600 font-medium max-w-2xl mx-auto mb-6">
+      Cápsulas gigantes de <strong class="text-slate-900">646px × 193px</strong> con <strong class="text-slate-900">radio de curvatura de 100px</strong>, estrellas doradas, conectores visuales tipo rompecabezas y dos filas que se desplazan de forma continua en sentidos opuestos.
+    </p>
+
+    <!-- PALETA DE COLOR ACTIVA -->
+    <div class="flex flex-wrap items-center justify-center gap-2 mb-2">
+      <button onclick="setTheme('#e0f2fe')" class="px-3.5 py-1 rounded-full text-xs font-bold bg-white text-sky-800 shadow-xs cursor-pointer border border-sky-200">🧊 Cielo SiboPay</button>
+      <button onclick="setTheme('#d1fae5')" class="px-3.5 py-1 rounded-full text-xs font-bold bg-white/70 hover:bg-white text-emerald-800 shadow-xs cursor-pointer border border-emerald-200">🍃 Menta Recargas</button>
+      <button onclick="setTheme('#ffedd5')" class="px-3.5 py-1 rounded-full text-xs font-bold bg-white/70 hover:bg-white text-orange-800 shadow-xs cursor-pointer border border-orange-200">🍑 Melocotón Pastel</button>
+      <button onclick="setTheme('#f3e8ff')" class="px-3.5 py-1 rounded-full text-xs font-bold bg-white/70 hover:bg-white text-purple-800 shadow-xs cursor-pointer border border-purple-200">💜 Lavanda Relax</button>
+      <button onclick="setTheme('#fef08a')" class="px-3.5 py-1 rounded-full text-xs font-bold bg-white/70 hover:bg-white text-amber-800 shadow-xs cursor-pointer border border-amber-200">🌻 Vainilla Cálido</button>
+    </div>
+  </section>
+
+  <!-- ============================================================ -->
+  <!-- SECCIÓN: EL CARRUSEL EXACTO DE STRUCTURED (COMMUNITY REVIEWS) -->
+  <!-- ============================================================ -->
+  <section id="reviews" class="py-10 overflow-hidden relative">
+    <div class="text-center lowercase mx-auto px-5 mb-8">
+      <div class="text-slate-600 text-lg sm:text-2xl font-light tracking-tight">más de 50.000 clientes satisfechos</div>
+      <div class="text-slate-900 text-3xl sm:text-5xl font-extrabold tracking-tight">experiencias en tiempo real</div>
+    </div>
+
+    <div class="flex flex-col gap-6 mask-fade marquee-row">
+      
+      <!-- ======================================================== -->
+      <!-- FILA 1: MOVIMIENTO CONTINUO HACIA LA IZQUIERDA (48s) -->
+      <!-- ======================================================== -->
+      <div class="overflow-hidden w-full h-[205px]">
+        <div class="track-left flex items-center gap-0">
+
+          <!-- CÁPSULA 1: SIBOPAY CYAN / AZUL CIELO (646px x 193px, border-radius 100px) -->
+          <div class="structured-card flex flex-col items-center justify-center text-center text-white" style="background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%);">
+            <div class="flex flex-col items-center justify-center px-12 py-5" style="transform: translateY(-4px);">
+              <!-- 5 Estrellas Doradas -->
+              <div class="flex items-center gap-1 mb-2 text-amber-300 text-lg">
+                ★ ★ ★ ★ ★
+              </div>
+              <p class="text-[18px] font-medium leading-[1.35] tracking-[-0.4px] text-white/95 max-w-[520px]">
+                “La recarga por SINPE Móvil entra en 2 segundos y a mi hijo le llega el saldo de inmediato. Cero filas en la soda.”
+              </p>
+              <div class="flex items-center gap-2 mt-2.5">
+                <span class="w-5 h-5 rounded-full bg-white/20 flex items-center justify-center text-[10px]">💬</span>
+                <span class="text-xs font-bold text-white/90">Reseña WhatsApp de Padres</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- CONECTOR 1 (Puzzle Link entre Cápsula 1 y 2) -->
+          <div class="flex-shrink-0 flex items-center justify-center relative z-0" style="width: 32px; height: 20px;">
+            <div style="width: 52px; height: 16px; border-radius: 9999px; background: rgba(255,255,255,0.7); box-shadow: 0 4px 10px rgba(0,0,0,0.1); border: 2px solid white;"></div>
+          </div>
+
+          <!-- CÁPSULA 2: VIOLETA / LAVANDA STRUCTURED -->
+          <div class="structured-card flex flex-col items-center justify-center text-center text-white" style="background: linear-gradient(135deg, #8b5cf6 0%, #6d28d9 100%);">
+            <div class="flex flex-col items-center justify-center px-12 py-5" style="transform: translateY(-4px);">
+              <div class="flex items-center gap-1 mb-2 text-amber-300 text-lg">
+                ★ ★ ★ ★ ★
+              </div>
+              <p class="text-[18px] font-medium leading-[1.35] tracking-[-0.4px] text-white/95 max-w-[520px]">
+                “Cuando alguien agenda un servicio en mi página, le llega el WhatsApp con la ruta de Waze al instante. Espectacular.”
+              </p>
+              <div class="flex items-center gap-2 mt-2.5">
+                <span class="w-5 h-5 rounded-full bg-white/20 flex items-center justify-center text-[10px]">📸</span>
+                <span class="text-xs font-bold text-white/90">Instagram Comment</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- CONECTOR 2 -->
+          <div class="flex-shrink-0 flex items-center justify-center relative z-0" style="width: 32px; height: 20px;">
+            <div style="width: 52px; height: 16px; border-radius: 9999px; background: rgba(255,255,255,0.7); box-shadow: 0 4px 10px rgba(0,0,0,0.1); border: 2px solid white;"></div>
+          </div>
+
+          <!-- CÁPSULA 3: MENTA / VERDE SALVIA -->
+          <div class="structured-card flex flex-col items-center justify-center text-center text-white" style="background: linear-gradient(135deg, #10b981 0%, #047857 100%);">
+            <div class="flex flex-col items-center justify-center px-12 py-5" style="transform: translateY(-4px);">
+              <div class="flex items-center gap-1 mb-2 text-amber-300 text-lg">
+                ★ ★ ★ ★ ★
+              </div>
+              <p class="text-[18px] font-medium leading-[1.35] tracking-[-0.4px] text-white/95 max-w-[520px]">
+                “Tengo dos páginas web con el mismo número de WhatsApp enviando recordatorios automáticos sin pagar líneas extra.”
+              </p>
+              <div class="flex items-center gap-2 mt-2.5">
+                <span class="w-5 h-5 rounded-full bg-white/20 flex items-center justify-center text-[10px]">⭐</span>
+                <span class="text-xs font-bold text-white/90">Google Business Review</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- CONECTOR 3 -->
+          <div class="flex-shrink-0 flex items-center justify-center relative z-0" style="width: 32px; height: 20px;">
+            <div style="width: 52px; height: 16px; border-radius: 9999px; background: rgba(255,255,255,0.7); box-shadow: 0 4px 10px rgba(0,0,0,0.1); border: 2px solid white;"></div>
+          </div>
+
+          <!-- CÁPSULA 4: MELOCOTÓN / CORAL CÁLIDO -->
+          <div class="structured-card flex flex-col items-center justify-center text-center text-white" style="background: linear-gradient(135deg, #f97316 0%, #c2410c 100%);">
+            <div class="flex flex-col items-center justify-center px-12 py-5" style="transform: translateY(-4px);">
+              <div class="flex items-center gap-1 mb-2 text-amber-300 text-lg">
+                ★ ★ ★ ★ ★
+              </div>
+              <p class="text-[18px] font-medium leading-[1.35] tracking-[-0.4px] text-white/95 max-w-[520px]">
+                “Los banners de aviso en tiempo real nos salvaron cuando tuvimos que pausar el comedor. Todos los papás lo vieron.”
+              </p>
+              <div class="flex items-center gap-2 mt-2.5">
+                <span class="w-5 h-5 rounded-full bg-white/20 flex items-center justify-center text-[10px]">🍎</span>
+                <span class="text-xs font-bold text-white/90">App Store Review</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- CONECTOR 4 -->
+          <div class="flex-shrink-0 flex items-center justify-center relative z-0" style="width: 32px; height: 20px;">
+            <div style="width: 52px; height: 16px; border-radius: 9999px; background: rgba(255,255,255,0.7); box-shadow: 0 4px 10px rgba(0,0,0,0.1); border: 2px solid white;"></div>
+          </div>
+
+          <!-- DUPLICACIÓN EXACTA DE FILA 1 PARA LOOP INFINITO PERFECTO -->
+          <div class="structured-card flex flex-col items-center justify-center text-center text-white" style="background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%);">
+            <div class="flex flex-col items-center justify-center px-12 py-5" style="transform: translateY(-4px);">
+              <div class="flex items-center gap-1 mb-2 text-amber-300 text-lg">
+                ★ ★ ★ ★ ★
+              </div>
+              <p class="text-[18px] font-medium leading-[1.35] tracking-[-0.4px] text-white/95 max-w-[520px]">
+                “La recarga por SINPE Móvil entra en 2 segundos y a mi hijo le llega el saldo de inmediato. Cero filas en la soda.”
+              </p>
+              <div class="flex items-center gap-2 mt-2.5">
+                <span class="w-5 h-5 rounded-full bg-white/20 flex items-center justify-center text-[10px]">💬</span>
+                <span class="text-xs font-bold text-white/90">Reseña WhatsApp de Padres</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="flex-shrink-0 flex items-center justify-center relative z-0" style="width: 32px; height: 20px;">
+            <div style="width: 52px; height: 16px; border-radius: 9999px; background: rgba(255,255,255,0.7); box-shadow: 0 4px 10px rgba(0,0,0,0.1); border: 2px solid white;"></div>
+          </div>
+
+          <div class="structured-card flex flex-col items-center justify-center text-center text-white" style="background: linear-gradient(135deg, #8b5cf6 0%, #6d28d9 100%);">
+            <div class="flex flex-col items-center justify-center px-12 py-5" style="transform: translateY(-4px);">
+              <div class="flex items-center gap-1 mb-2 text-amber-300 text-lg">
+                ★ ★ ★ ★ ★
+              </div>
+              <p class="text-[18px] font-medium leading-[1.35] tracking-[-0.4px] text-white/95 max-w-[520px]">
+                “Cuando alguien agenda un servicio en mi página, le llega el WhatsApp con la ruta de Waze al instante. Espectacular.”
+              </p>
+              <div class="flex items-center gap-2 mt-2.5">
+                <span class="w-5 h-5 rounded-full bg-white/20 flex items-center justify-center text-[10px]">📸</span>
+                <span class="text-xs font-bold text-white/90">Instagram Comment</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="flex-shrink-0 flex items-center justify-center relative z-0" style="width: 32px; height: 20px;">
+            <div style="width: 52px; height: 16px; border-radius: 9999px; background: rgba(255,255,255,0.7); box-shadow: 0 4px 10px rgba(0,0,0,0.1); border: 2px solid white;"></div>
+          </div>
+
+          <div class="structured-card flex flex-col items-center justify-center text-center text-white" style="background: linear-gradient(135deg, #10b981 0%, #047857 100%);">
+            <div class="flex flex-col items-center justify-center px-12 py-5" style="transform: translateY(-4px);">
+              <div class="flex items-center gap-1 mb-2 text-amber-300 text-lg">
+                ★ ★ ★ ★ ★
+              </div>
+              <p class="text-[18px] font-medium leading-[1.35] tracking-[-0.4px] text-white/95 max-w-[520px]">
+                “Tengo dos páginas web con el mismo número de WhatsApp enviando recordatorios automáticos sin pagar líneas extra.”
+              </p>
+              <div class="flex items-center gap-2 mt-2.5">
+                <span class="w-5 h-5 rounded-full bg-white/20 flex items-center justify-center text-[10px]">⭐</span>
+                <span class="text-xs font-bold text-white/90">Google Business Review</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="flex-shrink-0 flex items-center justify-center relative z-0" style="width: 32px; height: 20px;">
+            <div style="width: 52px; height: 16px; border-radius: 9999px; background: rgba(255,255,255,0.7); box-shadow: 0 4px 10px rgba(0,0,0,0.1); border: 2px solid white;"></div>
+          </div>
+
+          <div class="structured-card flex flex-col items-center justify-center text-center text-white" style="background: linear-gradient(135deg, #f97316 0%, #c2410c 100%);">
+            <div class="flex flex-col items-center justify-center px-12 py-5" style="transform: translateY(-4px);">
+              <div class="flex items-center gap-1 mb-2 text-amber-300 text-lg">
+                ★ ★ ★ ★ ★
+              </div>
+              <p class="text-[18px] font-medium leading-[1.35] tracking-[-0.4px] text-white/95 max-w-[520px]">
+                “Los banners de aviso en tiempo real nos salvaron cuando tuvimos que pausar el comedor. Todos los papás lo vieron.”
+              </p>
+              <div class="flex items-center gap-2 mt-2.5">
+                <span class="w-5 h-5 rounded-full bg-white/20 flex items-center justify-center text-[10px]">🍎</span>
+                <span class="text-xs font-bold text-white/90">App Store Review</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="flex-shrink-0 flex items-center justify-center relative z-0" style="width: 32px; height: 20px;">
+            <div style="width: 52px; height: 16px; border-radius: 9999px; background: rgba(255,255,255,0.7); box-shadow: 0 4px 10px rgba(0,0,0,0.1); border: 2px solid white;"></div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- ======================================================== -->
+      <!-- FILA 2: MOVIMIENTO CONTINUO HACIA LA DERECHA (52s) -->
+      <!-- ======================================================== -->
+      <div class="overflow-hidden w-full h-[205px]">
+        <div class="track-right flex items-center gap-0">
+
+          <!-- CÁPSULA B1: ROSA EMPOVRADO PASTEL -->
+          <div class="structured-card flex flex-col items-center justify-center text-center text-white" style="background: linear-gradient(135deg, #f43f5e 0%, #be123c 100%);">
+            <div class="flex flex-col items-center justify-center px-12 py-5" style="transform: translateY(-4px);">
+              <div class="flex items-center gap-1 mb-2 text-amber-300 text-lg">
+                ★ ★ ★ ★ ★
+              </div>
+              <p class="text-[18px] font-medium leading-[1.35] tracking-[-0.4px] text-white/95 max-w-[520px]">
+                “Poder bloquear alimentos chatarra y alergenos en caja desde mi celular me da una tranquilidad inmensa como mamá.”
+              </p>
+              <div class="flex items-center gap-2 mt-2.5">
+                <span class="w-5 h-5 rounded-full bg-white/20 flex items-center justify-center text-[10px]">🛡️</span>
+                <span class="text-xs font-bold text-white/90">Comentario Portal Padres</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- CONECTOR B1 -->
+          <div class="flex-shrink-0 flex items-center justify-center relative z-0" style="width: 32px; height: 20px;">
+            <div style="width: 52px; height: 16px; border-radius: 9999px; background: rgba(255,255,255,0.7); box-shadow: 0 4px 10px rgba(0,0,0,0.1); border: 2px solid white;"></div>
+          </div>
+
+          <!-- CÁPSULA B2: AMBAR / MIEL PASTEL -->
+          <div class="structured-card flex flex-col items-center justify-center text-center text-white" style="background: linear-gradient(135deg, #f59e0b 0%, #b45309 100%);">
+            <div class="flex flex-col items-center justify-center px-12 py-5" style="transform: translateY(-4px);">
+              <div class="flex items-center gap-1 mb-2 text-amber-300 text-lg">
+                ★ ★ ★ ★ ★
+              </div>
+              <p class="text-[18px] font-medium leading-[1.35] tracking-[-0.4px] text-white/95 max-w-[520px]">
+                “Mi peluquería ahora llena la agenda sola. Los clientes reservan a la medianoche y les llega la confirmación por correo y WhatsApp.”
+              </p>
+              <div class="flex items-center gap-2 mt-2.5">
+                <span class="w-5 h-5 rounded-full bg-white/20 flex items-center justify-center text-[10px]">✂️</span>
+                <span class="text-xs font-bold text-white/90">Testimonio de Comercio</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- CONECTOR B2 -->
+          <div class="flex-shrink-0 flex items-center justify-center relative z-0" style="width: 32px; height: 20px;">
+            <div style="width: 52px; height: 16px; border-radius: 9999px; background: rgba(255,255,255,0.7); box-shadow: 0 4px 10px rgba(0,0,0,0.1); border: 2px solid white;"></div>
+          </div>
+
+          <!-- CÁPSULA B3: AZUL ACERO PASTEL -->
+          <div class="structured-card flex flex-col items-center justify-center text-center text-white" style="background: linear-gradient(135deg, #0ea5e9 0%, #0369a1 100%);">
+            <div class="flex flex-col items-center justify-center px-12 py-5" style="transform: translateY(-4px);">
+              <div class="flex items-center gap-1 mb-2 text-amber-300 text-lg">
+                ★ ★ ★ ★ ★
+              </div>
+              <p class="text-[18px] font-medium leading-[1.35] tracking-[-0.4px] text-white/95 max-w-[520px]">
+                “El interruptor en caliente para pausar SINPE Móvil nos permitió hacer mantenimiento sin que ningún padre tuviera errores.”
+              </p>
+              <div class="flex items-center gap-2 mt-2.5">
+                <span class="w-5 h-5 rounded-full bg-white/20 flex items-center justify-center text-[10px]">⚙️</span>
+                <span class="text-xs font-bold text-white/90">Panel de Administración</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- CONECTOR B3 -->
+          <div class="flex-shrink-0 flex items-center justify-center relative z-0" style="width: 32px; height: 20px;">
+            <div style="width: 52px; height: 16px; border-radius: 9999px; background: rgba(255,255,255,0.7); box-shadow: 0 4px 10px rgba(0,0,0,0.1); border: 2px solid white;"></div>
+          </div>
+
+          <!-- CÁPSULA B4: VERDE ESMERALDA DEEP -->
+          <div class="structured-card flex flex-col items-center justify-center text-center text-white" style="background: linear-gradient(135deg, #059669 0%, #064e3b 100%);">
+            <div class="flex flex-col items-center justify-center px-12 py-5" style="transform: translateY(-4px);">
+              <div class="flex items-center gap-1 mb-2 text-amber-300 text-lg">
+                ★ ★ ★ ★ ★
+              </div>
+              <p class="text-[18px] font-medium leading-[1.35] tracking-[-0.4px] text-white/95 max-w-[520px]">
+                “Comprar con carné digital por QR es más rápido que pagar con efectivo. Despachamos 300 estudiantes en 15 minutos.”
+              </p>
+              <div class="flex items-center gap-2 mt-2.5">
+                <span class="w-5 h-5 rounded-full bg-white/20 flex items-center justify-center text-[10px]">🥪</span>
+                <span class="text-xs font-bold text-white/90">Cajero Soda Escolar</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- CONECTOR B4 -->
+          <div class="flex-shrink-0 flex items-center justify-center relative z-0" style="width: 32px; height: 20px;">
+            <div style="width: 52px; height: 16px; border-radius: 9999px; background: rgba(255,255,255,0.7); box-shadow: 0 4px 10px rgba(0,0,0,0.1); border: 2px solid white;"></div>
+          </div>
+
+          <!-- DUPLICACIÓN EXACTA DE FILA 2 PARA LOOP INFINITO PERFECTO -->
+          <div class="structured-card flex flex-col items-center justify-center text-center text-white" style="background: linear-gradient(135deg, #f43f5e 0%, #be123c 100%);">
+            <div class="flex flex-col items-center justify-center px-12 py-5" style="transform: translateY(-4px);">
+              <div class="flex items-center gap-1 mb-2 text-amber-300 text-lg">
+                ★ ★ ★ ★ ★
+              </div>
+              <p class="text-[18px] font-medium leading-[1.35] tracking-[-0.4px] text-white/95 max-w-[520px]">
+                “Poder bloquear alimentos chatarra y alergenos en caja desde mi celular me da una tranquilidad inmensa como mamá.”
+              </p>
+              <div class="flex items-center gap-2 mt-2.5">
+                <span class="w-5 h-5 rounded-full bg-white/20 flex items-center justify-center text-[10px]">🛡️</span>
+                <span class="text-xs font-bold text-white/90">Comentario Portal Padres</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="flex-shrink-0 flex items-center justify-center relative z-0" style="width: 32px; height: 20px;">
+            <div style="width: 52px; height: 16px; border-radius: 9999px; background: rgba(255,255,255,0.7); box-shadow: 0 4px 10px rgba(0,0,0,0.1); border: 2px solid white;"></div>
+          </div>
+
+          <div class="structured-card flex flex-col items-center justify-center text-center text-white" style="background: linear-gradient(135deg, #f59e0b 0%, #b45309 100%);">
+            <div class="flex flex-col items-center justify-center px-12 py-5" style="transform: translateY(-4px);">
+              <div class="flex items-center gap-1 mb-2 text-amber-300 text-lg">
+                ★ ★ ★ ★ ★
+              </div>
+              <p class="text-[18px] font-medium leading-[1.35] tracking-[-0.4px] text-white/95 max-w-[520px]">
+                “Mi peluquería ahora llena la agenda sola. Los clientes reservan a la medianoche y les llega la confirmación por correo y WhatsApp.”
+              </p>
+              <div class="flex items-center gap-2 mt-2.5">
+                <span class="w-5 h-5 rounded-full bg-white/20 flex items-center justify-center text-[10px]">✂️</span>
+                <span class="text-xs font-bold text-white/90">Testimonio de Comercio</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="flex-shrink-0 flex items-center justify-center relative z-0" style="width: 32px; height: 20px;">
+            <div style="width: 52px; height: 16px; border-radius: 9999px; background: rgba(255,255,255,0.7); box-shadow: 0 4px 10px rgba(0,0,0,0.1); border: 2px solid white;"></div>
+          </div>
+
+          <div class="structured-card flex flex-col items-center justify-center text-center text-white" style="background: linear-gradient(135deg, #0ea5e9 0%, #0369a1 100%);">
+            <div class="flex flex-col items-center justify-center px-12 py-5" style="transform: translateY(-4px);">
+              <div class="flex items-center gap-1 mb-2 text-amber-300 text-lg">
+                ★ ★ ★ ★ ★
+              </div>
+              <p class="text-[18px] font-medium leading-[1.35] tracking-[-0.4px] text-white/95 max-w-[520px]">
+                “El interruptor en caliente para pausar SINPE Móvil nos permitió hacer mantenimiento sin que ningún padre tuviera errores.”
+              </p>
+              <div class="flex items-center gap-2 mt-2.5">
+                <span class="w-5 h-5 rounded-full bg-white/20 flex items-center justify-center text-[10px]">⚙️</span>
+                <span class="text-xs font-bold text-white/90">Panel de Administración</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="flex-shrink-0 flex items-center justify-center relative z-0" style="width: 32px; height: 20px;">
+            <div style="width: 52px; height: 16px; border-radius: 9999px; background: rgba(255,255,255,0.7); box-shadow: 0 4px 10px rgba(0,0,0,0.1); border: 2px solid white;"></div>
+          </div>
+
+          <div class="structured-card flex flex-col items-center justify-center text-center text-white" style="background: linear-gradient(135deg, #059669 0%, #064e3b 100%);">
+            <div class="flex flex-col items-center justify-center px-12 py-5" style="transform: translateY(-4px);">
+              <div class="flex items-center gap-1 mb-2 text-amber-300 text-lg">
+                ★ ★ ★ ★ ★
+              </div>
+              <p class="text-[18px] font-medium leading-[1.35] tracking-[-0.4px] text-white/95 max-w-[520px]">
+                “Comprar con carné digital por QR es más rápido que pagar con efectivo. Despachamos 300 estudiantes en 15 minutos.”
+              </p>
+              <div class="flex items-center gap-2 mt-2.5">
+                <span class="w-5 h-5 rounded-full bg-white/20 flex items-center justify-center text-[10px]">🥪</span>
+                <span class="text-xs font-bold text-white/90">Cajero Soda Escolar</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="flex-shrink-0 flex items-center justify-center relative z-0" style="width: 32px; height: 20px;">
+            <div style="width: 52px; height: 16px; border-radius: 9999px; background: rgba(255,255,255,0.7); box-shadow: 0 4px 10px rgba(0,0,0,0.1); border: 2px solid white;"></div>
+          </div>
+
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ============================================================ -->
+  <!-- SECCIÓN 2: DISCOS REDONDOS PASTEL ("EXPLORE MORE FEATURES") -->
+  <!-- ============================================================ -->
+  <section id="features" class="py-16 px-6 max-w-5xl mx-auto">
+    <div class="text-center lowercase mx-auto mb-12">
+      <div class="text-slate-600 text-lg sm:text-2xl font-light tracking-tight">explora todas las</div>
+      <div class="text-slate-900 text-3xl sm:text-5xl font-extrabold tracking-tight">funcionalidades</div>
+    </div>
+
+    <!-- FILA DE DISCOS CIRCULARES DE 178px IDÉNTICOS A STRUCTURED.APP -->
+    <div class="flex items-center justify-center flex-wrap gap-8 sm:gap-12">
+      
+      <!-- Disco 1: Pagos SINPE -->
+      <div class="flex flex-col items-center gap-3 cursor-pointer group" onclick="setTheme('#e0f2fe')">
+        <div class="w-40 h-40 sm:w-44 sm:h-44 rounded-full bg-gradient-to-tr from-sky-400 to-cyan-200 p-1 shadow-lg group-hover:scale-105 group-hover:shadow-xl transition-all duration-300 flex items-center justify-center">
+          <div class="w-full h-full rounded-full bg-white/30 backdrop-blur-md flex flex-col items-center justify-center text-slate-900">
+            <span class="text-4xl mb-1">💳</span>
+            <span class="text-xs font-bold uppercase tracking-wider text-sky-950">sinpe móvil</span>
+          </div>
+        </div>
+        <div class="text-center lowercase text-slate-800 text-xl font-bold leading-tight">
+          pagos<br/><span class="font-light text-slate-600">instantáneos</span>
+        </div>
+      </div>
+
+      <!-- Disco 2: WhatsApp Meta API -->
+      <div class="flex flex-col items-center gap-3 cursor-pointer group" onclick="setTheme('#d1fae5')">
+        <div class="w-40 h-40 sm:w-44 sm:h-44 rounded-full bg-gradient-to-tr from-emerald-400 to-teal-200 p-1 shadow-lg group-hover:scale-105 group-hover:shadow-xl transition-all duration-300 flex items-center justify-center">
+          <div class="w-full h-full rounded-full bg-white/30 backdrop-blur-md flex flex-col items-center justify-center text-slate-900">
+            <span class="text-4xl mb-1">💬</span>
+            <span class="text-xs font-bold uppercase tracking-wider text-emerald-950">meta api</span>
+          </div>
+        </div>
+        <div class="text-center lowercase text-slate-800 text-xl font-bold leading-tight">
+          whatsapp<br/><span class="font-light text-slate-600">automático</span>
+        </div>
+      </div>
+
+      <!-- Disco 3: Agenda 24/7 -->
+      <div class="flex flex-col items-center gap-3 cursor-pointer group" onclick="setTheme('#f3e8ff')">
+        <div class="w-40 h-40 sm:w-44 sm:h-44 rounded-full bg-gradient-to-tr from-purple-400 to-violet-200 p-1 shadow-lg group-hover:scale-105 group-hover:shadow-xl transition-all duration-300 flex items-center justify-center">
+          <div class="w-full h-full rounded-full bg-white/30 backdrop-blur-md flex flex-col items-center justify-center text-slate-900">
+            <span class="text-4xl mb-1">🗓️</span>
+            <span class="text-xs font-bold uppercase tracking-wider text-purple-950">turnos 24/7</span>
+          </div>
+        </div>
+        <div class="text-center lowercase text-slate-800 text-xl font-bold leading-tight">
+          reservas<br/><span class="font-light text-slate-600">sin llamadas</span>
+        </div>
+      </div>
+
+      <!-- Disco 4: Banners Globales -->
+      <div class="flex flex-col items-center gap-3 cursor-pointer group" onclick="setTheme('#ffedd5')">
+        <div class="w-40 h-40 sm:w-44 sm:h-44 rounded-full bg-gradient-to-tr from-orange-400 to-amber-200 p-1 shadow-lg group-hover:scale-105 group-hover:shadow-xl transition-all duration-300 flex items-center justify-center">
+          <div class="w-full h-full rounded-full bg-white/30 backdrop-blur-md flex flex-col items-center justify-center text-slate-900">
+            <span class="text-4xl mb-1">📢</span>
+            <span class="text-xs font-bold uppercase tracking-wider text-amber-950">difusión</span>
+          </div>
+        </div>
+        <div class="text-center lowercase text-slate-800 text-xl font-bold leading-tight">
+          avisos<br/><span class="font-light text-slate-600">en caliente</span>
+        </div>
+      </div>
+
+      <!-- Disco 5: Control Total -->
+      <div class="flex flex-col items-center gap-3 cursor-pointer group" onclick="setTheme('#fef08a')">
+        <div class="w-40 h-40 sm:w-44 sm:h-44 rounded-full bg-gradient-to-tr from-yellow-400 to-amber-100 p-1 shadow-lg group-hover:scale-105 group-hover:shadow-xl transition-all duration-300 flex items-center justify-center">
+          <div class="w-full h-full rounded-full bg-white/30 backdrop-blur-md flex flex-col items-center justify-center text-slate-900">
+            <span class="text-4xl mb-1">🛡️</span>
+            <span class="text-xs font-bold uppercase tracking-wider text-yellow-950">seguridad</span>
+          </div>
+        </div>
+        <div class="text-center lowercase text-slate-800 text-xl font-bold leading-tight">
+          control<br/><span class="font-light text-slate-600">parental</span>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ============================================================ -->
+  <!-- SECCIÓN 3: AGENDA TIMELINE VISUAL DE STRUCTURED -->
+  <!-- ============================================================ -->
+  <section id="timeline" class="py-12 px-6 max-w-3xl mx-auto">
+    <div class="text-center lowercase mx-auto mb-8">
+      <div class="text-slate-600 text-lg sm:text-2xl font-light tracking-tight">una sola línea de tiempo</div>
+      <div class="text-slate-900 text-3xl sm:text-5xl font-extrabold tracking-tight">tu día organizado bloque a bloque</div>
+    </div>
+
+    <div class="relative pl-6 sm:pl-8 border-l-2 border-sky-400/60 flex flex-col gap-4 my-6">
+
+      <!-- Bloque 1 -->
+      <div class="p-5 rounded-[28px] bg-white/80 backdrop-blur-md border border-white shadow-xs flex items-center justify-between gap-4">
+        <div class="flex items-center gap-3.5">
+          <span class="w-12 h-12 rounded-2xl bg-sky-100 text-sky-700 flex items-center justify-center text-2xl shrink-0">💳</span>
+          <div>
+            <div class="text-xs font-bold text-sky-700">08:00 AM • Pagos</div>
+            <h4 class="text-base font-extrabold text-slate-900">Recarga SINPE de ₡10,000 confirmada</h4>
+            <p class="text-xs text-slate-500">Comprobante #9412 verificado automáticamente</p>
+          </div>
+        </div>
+        <span class="px-3 py-1 rounded-full bg-emerald-100 text-emerald-800 text-xs font-bold">Completado ✅</span>
+      </div>
+
+      <!-- Bloque 2 -->
+      <div class="p-5 rounded-[28px] bg-white/80 backdrop-blur-md border border-white shadow-xs flex items-center justify-between gap-4">
+        <div class="flex items-center gap-3.5">
+          <span class="w-12 h-12 rounded-2xl bg-purple-100 text-purple-700 flex items-center justify-center text-2xl shrink-0">✂️</span>
+          <div>
+            <div class="text-xs font-bold text-purple-700">11:30 AM • Cita de Servicio</div>
+            <h4 class="text-base font-extrabold text-slate-900">Corte & Tratamiento Capilar</h4>
+            <p class="text-xs text-slate-500">Recordatorio de WhatsApp enviado al cliente</p>
+          </div>
+        </div>
+        <span class="px-3 py-1 rounded-full bg-purple-100 text-purple-800 text-xs font-bold">En 45 min</span>
+      </div>
+
+      <!-- Bloque 3 -->
+      <div class="p-5 rounded-[28px] bg-white/80 backdrop-blur-md border border-white shadow-xs flex items-center justify-between gap-4">
+        <div class="flex items-center gap-3.5">
+          <span class="w-12 h-12 rounded-2xl bg-amber-100 text-amber-700 flex items-center justify-center text-2xl shrink-0">🥪</span>
+          <div>
+            <div class="text-xs font-bold text-amber-700">01:45 PM • Comedor</div>
+            <h4 class="text-base font-extrabold text-slate-900">Despacho de Pre-órdenes</h4>
+            <p class="text-xs text-slate-500">Alergias validadas: 0 incidentes reportados</p>
+          </div>
+        </div>
+        <span class="px-3 py-1 rounded-full bg-amber-100 text-amber-800 text-xs font-bold">Programado ☕</span>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- PIE DE PÁGINA -->
+  <footer class="py-12 px-6 border-t border-white/60 text-center text-xs text-slate-600 font-medium">
+    <div class="max-w-4xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
+      <div class="flex items-center gap-2">
+        <div class="w-6 h-6 rounded-full bg-sky-600 text-white flex items-center justify-center font-bold text-xs">S</div>
+        <span class="font-bold text-slate-900 text-sm">SiboPay</span>
+        <span>• Réplica 1:1 Carrusel Structured.app</span>
+      </div>
+      <div>646px × 193px Pills • Border Radius 100px • Interlocking Connectors</div>
+    </div>
+  </footer>
+
+  <script>
+    const themes = ['#e0f2fe', '#d1fae5', '#ffedd5', '#f3e8ff', '#fef08a'];
+    let themeIdx = 0;
+
+    function setTheme(hex) {
+      const body = document.getElementById('pageBody');
+      if (body) body.style.backgroundColor = hex;
+    }
+
+    function toggleBackground() {
+      themeIdx = (themeIdx + 1) % themes.length;
+      setTheme(themes[themeIdx]);
+    }
+  </script>
+</body>
+</html>

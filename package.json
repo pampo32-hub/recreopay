@@ -28,6 +28,7 @@
     "imap-simple": "^5.1.0",
     "jsqr": "^1.4.0",
     "mailparser": "^3.9.36",
+    "nodemailer": "^10.1.0",
     "pg": "^8.23.1",
     "puppeteer-core": "^25.12.0",
     "qrcode": "^1.5.4",
