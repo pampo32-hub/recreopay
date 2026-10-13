@@ -131,9 +131,74 @@
           </details>
         </div>
 
-        <!-- CONTENIDO 2: REGISTRO DE CUENTA -->
+        <!-- CONTENIDO 2: MODAL DE SELECCIÓN DE TIPO DE REGISTRO -->
+        <div id="sheetContentRegisterChoose" style="display: none; padding: 4px 0 8px;">
+          <div style="text-align: center; margin-bottom: 18px;">
+            <h4 style="margin: 0 0 6px; font-size: 1.15rem; font-weight: 800; color: #0f172a;">¿Cómo deseas registrarte?</h4>
+            <p style="margin: 0; font-size: 0.82rem; color: #64748b;">Elige tu perfil para continuar con el registro</p>
+          </div>
+
+          <div style="display: flex; flex-direction: column; gap: 12px; margin-bottom: 20px;">
+            <!-- BOTÓN 1: PADRE DE FAMILIA -->
+            <button type="button" onclick="selectRegisterType('padre')" style="display: flex; align-items: center; gap: 14px; padding: 16px; border-radius: 16px; border: 2px solid #bae6fd; background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%); cursor: pointer; text-align: left; transition: all 0.2s ease; box-shadow: 0 2px 8px rgba(2, 132, 199, 0.08); width: 100%;">
+              <div style="width: 48px; height: 48px; border-radius: 12px; background: white; border: 1.5px solid #7dd3fc; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; flex-shrink: 0; box-shadow: 0 2px 6px rgba(0,0,0,0.04);">
+                👨‍👩‍👧
+              </div>
+              <div style="flex: 1;">
+                <strong style="display: block; font-size: 1rem; font-weight: 800; color: #0369a1; margin-bottom: 2px;">Padre de familia</strong>
+                <span style="display: block; font-size: 0.76rem; color: #475569; line-height: 1.35;">Crea tu cuenta para vincular a tus hijos y recargarles saldo en SINPE Móvil.</span>
+              </div>
+              <div style="color: #0284c7; font-weight: 800; font-size: 1.3rem;">›</div>
+            </button>
+
+            <!-- BOTÓN 2: ALUMNO GENERAL -->
+            <button type="button" onclick="selectRegisterType('alumno')" style="display: flex; align-items: center; gap: 14px; padding: 16px; border-radius: 16px; border: 2px solid #e2e8f0; background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%); cursor: pointer; text-align: left; transition: all 0.2s ease; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04); width: 100%;">
+              <div style="width: 48px; height: 48px; border-radius: 12px; background: #f1f5f9; border: 1.5px solid #cbd5e1; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; flex-shrink: 0;">
+                🎓
+              </div>
+              <div style="flex: 1;">
+                <strong style="display: block; font-size: 1rem; font-weight: 800; color: #1e293b; margin-bottom: 2px;">Alumno general</strong>
+                <span style="display: block; font-size: 0.76rem; color: #64748b; line-height: 1.35;">Para estudiantes y compras personales en la soda estudiantil.</span>
+              </div>
+              <div style="color: #94a3b8; font-weight: 800; font-size: 1.3rem;">›</div>
+            </button>
+          </div>
+
+          <div style="text-align: center; border-top: 1px solid #f1f5f9; padding-top: 14px;">
+            <p style="font-size: 0.82rem; color: #64748b; margin: 0;">
+              ¿Ya tienes cuenta registrada? 
+              <button type="button" onclick="switchSheetView('login')" style="background: none; border: none; color: #0284c7; font-weight: 800; cursor: pointer; text-decoration: underline; font-size: 0.82rem; padding: 0;">Inicia sesión aquí</button>
+            </p>
+          </div>
+        </div>
+
+        <!-- CONTENIDO 2.1: FORMULARIO DE REGISTRO (PADRE O ALUMNO) -->
         <div id="sheetContentRegister" style="display: none;">
+          <!-- BANNER PADRE (visible solo para rol padre) -->
+          <div id="bannerPadreRegister" style="background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%); border: 1.5px solid #bae6fd; border-radius: 12px; padding: 10px 12px; margin-bottom: 14px; display: flex; align-items: center; gap: 10px;">
+            <div style="width: 36px; height: 36px; border-radius: 10px; background: white; border: 1px solid #bae6fd; display: flex; align-items: center; justify-content: center; flex-shrink: 0; padding: 4px;">
+              <img src="/img/sibopay-emblem.png" alt="SiboPay" style="width: 100%; height: 100%; object-fit: contain;">
+            </div>
+            <div>
+              <strong style="color: #0369a1; font-size: 0.86rem; display: block; font-weight: 800;">Registro de Padres o Encargados</strong>
+              <span style="font-size: 0.72rem; color: #475569; display: block;">Crea tu cuenta para vincular a tus hijos y recargarles saldo con SINPE móvil.</span>
+            </div>
+          </div>
+
+          <!-- BANNER ALUMNO (visible solo para rol alumno) -->
+          <div id="bannerAlumnoRegister" style="display: none; background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%); border: 1.5px solid #e2e8f0; border-radius: 12px; padding: 10px 12px; margin-bottom: 14px; align-items: center; gap: 10px;">
+            <div style="width: 36px; height: 36px; border-radius: 10px; background: white; border: 1px solid #cbd5e1; display: flex; align-items: center; justify-content: center; flex-shrink: 0; font-size: 1.25rem;">
+              🎓
+            </div>
+            <div>
+              <strong style="color: #1e293b; font-size: 0.86rem; display: block; font-weight: 800;">Registro de Alumno General</strong>
+              <span style="font-size: 0.72rem; color: #64748b; display: block;">Crea tu cuenta personal para acceder a tu carné y monedero digital.</span>
+            </div>
+          </div>
+
           <form id="formRegisterPadre" onsubmit="handleRegisterPadreSubmit(event)">
+            <input type="hidden" id="regTargetRol" value="padre">
+
             <div class="login-form-group">
               <label for="regNombre">Nombre y Apellidos:</label>
               <input type="text" id="regNombre" class="login-input" placeholder="Ej: Carlos Alvarado Castro" required autocomplete="name">
@@ -168,15 +233,13 @@
 
             <button type="submit" id="btnRegisterSubmit" class="login-submit-btn" style="display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; height: 48px; border-radius: 12px; font-weight: 800; font-size: 1rem; background: linear-gradient(135deg, #0284c7, #0369a1); color: white; border: none; cursor: pointer; box-shadow: 0 4px 14px rgba(2, 132, 199, 0.35);">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="7" r="3.5"/><path d="M3 20v-1.5A4.5 4.5 0 0 1 7.5 14h3A4.5 4.5 0 0 1 15 18.5V20"/><circle cx="17.5" cy="7.5" r="2.5"/><path d="M15 14a3.5 3.5 0 0 1 5.5 3v3"/></svg>
-              <span>Crear Cuenta y Entrar</span>
+              <span id="lblBtnRegisterSubmit">Crear Cuenta y Entrar</span>
             </button>
           </form>
 
-          <div style="text-align: center; margin-top: 14px;">
-            <p style="font-size: 0.82rem; color: #64748b; margin: 0;">
-              ¿Ya tienes cuenta registrada? 
-              <button type="button" onclick="switchSheetView('login')" style="background: none; border: none; color: #0284c7; font-weight: 800; cursor: pointer; text-decoration: underline; font-size: 0.82rem; padding: 0;">Inicia sesión aquí</button>
-            </p>
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 14px; font-size: 0.82rem;">
+            <button type="button" onclick="switchSheetView('register-choose')" style="background: none; border: none; color: #0284c7; font-weight: 700; cursor: pointer; text-decoration: underline; padding: 0;">← Cambiar tipo de cuenta</button>
+            <button type="button" onclick="switchSheetView('login')" style="background: none; border: none; color: #64748b; font-weight: 700; cursor: pointer; text-decoration: underline; padding: 0;">Iniciar sesión</button>
           </div>
         </div>
 
@@ -5417,6 +5480,6 @@
   <script src="/js/sounds.js?v=19.4"></script>
   <script src="/js/jsQR.js" defer></script>
   <script src="/js/food-icons.js?v=19.4" defer></script>
-  <script src="/js/app.js?v=20.6"></script>
+  <script src="/js/app.js?v=20.7"></script>
 </body>
 </html>

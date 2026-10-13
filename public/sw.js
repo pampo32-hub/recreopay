@@ -1,5 +1,5 @@
-// SiboPay PWA Service Worker v20.6 - Ultra Fast Startup & Stale-While-Revalidate
-const CACHE_NAME = 'sibopay-v20.6';
+// SiboPay PWA Service Worker v20.7 - Ultra Fast Startup & Stale-While-Revalidate
+const CACHE_NAME = 'sibopay-v20.7';
 const STATIC_ASSETS = [
   '/',
   '/index.html',
@@ -11,7 +11,7 @@ const STATIC_ASSETS = [
   '/css/styles.css?v=19.9',
   '/css/desktop.css?v=2.2',
   '/js/dialogs.js?v=19.4',
-  '/js/app.js?v=20.6',
+  '/js/app.js?v=20.7',
   '/js/pos.js?v=20.5',
   '/js/sounds.js?v=19.4',
   '/js/food-icons.js?v=19.4',

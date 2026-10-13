@@ -331,17 +331,21 @@ function closeLoginSheet(e) {
 
 function switchSheetView(view) {
   const loginContent = document.getElementById('sheetContentLogin');
+  const registerChooseContent = document.getElementById('sheetContentRegisterChoose');
   const registerContent = document.getElementById('sheetContentRegister');
   const forgotContent = document.getElementById('sheetContentForgot');
   const title = document.getElementById('bottomSheetTitle');
 
   if (loginContent) loginContent.style.display = 'none';
+  if (registerChooseContent) registerChooseContent.style.display = 'none';
   if (registerContent) registerContent.style.display = 'none';
   if (forgotContent) forgotContent.style.display = 'none';
 
-  if (view === 'register') {
-    if (registerContent) registerContent.style.display = 'block';
+  if (view === 'register' || view === 'register-choose') {
+    if (registerChooseContent) registerChooseContent.style.display = 'block';
     if (title) title.textContent = 'Crear Cuenta';
+  } else if (view === 'register-form') {
+    if (registerContent) registerContent.style.display = 'block';
   } else if (view === 'forgot') {
     if (forgotContent) forgotContent.style.display = 'block';
     if (title) title.textContent = 'Restablecer Contraseña';
@@ -357,6 +361,30 @@ function switchSheetView(view) {
     if (loginContent) loginContent.style.display = 'block';
     if (title) title.textContent = 'Iniciar Sesión';
   }
+}
+
+function selectRegisterType(type) {
+  const bannerPadre = document.getElementById('bannerPadreRegister');
+  const bannerAlumno = document.getElementById('bannerAlumnoRegister');
+  const rolInput = document.getElementById('regTargetRol');
+  const title = document.getElementById('bottomSheetTitle');
+  const btnLabel = document.getElementById('lblBtnRegisterSubmit');
+
+  if (rolInput) rolInput.value = type;
+
+  if (type === 'padre') {
+    if (bannerPadre) bannerPadre.style.display = 'flex';
+    if (bannerAlumno) bannerAlumno.style.display = 'none';
+    if (title) title.textContent = 'Registro de Padres';
+    if (btnLabel) btnLabel.textContent = 'Crear Cuenta de Padre y Entrar';
+  } else {
+    if (bannerPadre) bannerPadre.style.display = 'none';
+    if (bannerAlumno) bannerAlumno.style.display = 'flex';
+    if (title) title.textContent = 'Registro de Alumno';
+    if (btnLabel) btnLabel.textContent = 'Crear Cuenta de Alumno y Entrar';
+  }
+
+  switchSheetView('register-form');
 }
 
 function openTerminosModal() {
@@ -428,6 +456,8 @@ async function handleRegisterPadreSubmit(event) {
   const email = emailInput ? emailInput.value.trim() : '';
   const username = document.getElementById('regUsername').value.trim();
   const password = document.getElementById('regPassword').value.trim();
+  const rolInput = document.getElementById('regTargetRol');
+  const rol = (rolInput && rolInput.value === 'alumno') ? 'estudiante' : 'padre';
   const errorMsg = document.getElementById('registerErrorMsg');
   const btnSubmit = document.getElementById('btnRegisterSubmit');
 
@@ -456,7 +486,7 @@ async function handleRegisterPadreSubmit(event) {
     const res = await fetch('/api/auth/register-padre', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ nombre, fecha_nacimiento, telefono, email, username, password })
+      body: JSON.stringify({ nombre, fecha_nacimiento, telefono, email, username, password, rol })
     });
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || 'Error al registrar la cuenta');
@@ -465,15 +495,23 @@ async function handleRegisterPadreSubmit(event) {
       ...data.user,
       hijos: []
     };
+    if (data.estudiante) {
+      currentStudent = data.estudiante;
+      safeSetItem('recreopay_estudiante', JSON.stringify(data.estudiante));
+    }
     try {
       safeSetItem('sibopay_user', JSON.stringify(currentUser));
       safeSetItem('recreopay_user', JSON.stringify(currentUser));
     } catch (_) {}
 
+    const welcomeMsg = (data.user.rol === 'padre')
+      ? `Hola ${data.user.nombre}, tu cuenta de padre fue creada exitosamente.\n\nYa puedes vincular a tus hijos y recargarles saldo con SINPE Móvil.`
+      : `Hola ${data.user.nombre}, tu cuenta de estudiante fue creada exitosamente.\n\nYa puedes acceder a tu carné digital y tus compras en la soda.`;
+
     if (window.sounds) window.sounds.playSuccess();
     await showAppAlert({
       title: '¡Bienvenido(a) a SiboPay!',
-      message: `Hola ${data.user.nombre}, tu cuenta fue creada exitosamente.\n\nYa puedes acceder a todos los servicios y monedero digital SiboPay.`,
+      message: welcomeMsg,
       type: 'success',
       confirmText: 'Entrar a mi Panel'
     });

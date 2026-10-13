@@ -534,10 +534,10 @@ app.post('/api/auth/login', (req, res) => {
   }
 });
 
-// Registro de nuevos usuarios desde la pantalla de bienvenida
+// Registro de nuevos usuarios (Padres o Alumnos) desde la pantalla de bienvenida
 app.post('/api/auth/register-padre', (req, res) => {
   try {
-    const { nombre, telefono, email, username, password, fecha_nacimiento } = req.body;
+    const { nombre, telefono, email, username, password, fecha_nacimiento, rol } = req.body;
     if (!nombre || !username || !password || !email) {
       return res.status(400).json({ error: 'Nombre completo, correo electrónico, usuario y contraseña son requeridos' });
     }
@@ -548,6 +548,7 @@ app.post('/api/auth/register-padre', (req, res) => {
     const cleanTel = telefono ? String(telefono).trim() : '';
     const cleanEmail = String(email).trim().toLowerCase();
     const cleanFechaNac = fecha_nacimiento ? String(fecha_nacimiento).trim() : '';
+    const targetRol = (rol === 'estudiante' || rol === 'alumno') ? 'estudiante' : 'padre';
 
     if (cleanUser.length < 3) {
       return res.status(400).json({ error: 'El nombre de usuario debe tener al menos 3 caracteres' });
@@ -573,23 +574,41 @@ app.post('/api/auth/register-padre', (req, res) => {
 
     const insert = db.prepare(`
       INSERT INTO usuarios (username, password_hash, rol, nombre, telefono, email, fecha_nacimiento)
-      VALUES (?, ?, 'padre', ?, ?, ?, ?)
+      VALUES (?, ?, ?, ?, ?, ?, ?)
     `);
-    const result = insert.run(cleanUser, cleanPass, cleanNombre, cleanTel, cleanEmail, cleanFechaNac);
+    const result = insert.run(cleanUser, cleanPass, targetRol, cleanNombre, cleanTel, cleanEmail, cleanFechaNac);
 
     const newUser = {
       id: result.lastInsertRowid,
       username: cleanUser,
-      rol: 'padre',
+      rol: targetRol,
       nombre: cleanNombre,
       telefono: cleanTel,
       email: cleanEmail,
       fecha_nacimiento: cleanFechaNac
     };
 
+    let estudiante = null;
+    if (targetRol === 'estudiante') {
+      try {
+        const codEst = `EST-${Date.now().toString().slice(-6)}`;
+        const qrToken = `QR-${Date.now()}-${Math.random().toString(36).substring(2, 7).toUpperCase()}`;
+        const resEst = db.prepare(`
+          INSERT INTO estudiantes 
+          (usuario_id, codigo_estudiante, nombre_completo, edad, grado, seccion, qr_token, pin_seguridad, foto_url, saldo_colones, limite_diario_colones, alergias, padre_nombre, padre_telefono, permitir_transferencias, tarjeta_bloqueada, activo, escuela_id)
+          VALUES (?, ?, ?, 12, 'General', '1', ?, ?, NULL, 0, 3000, 'Ninguna conocida', '', '', 1, 0, 1, 1)
+        `).run(newUser.id, codEst, cleanNombre, qrToken, cleanPass.slice(0, 4));
+
+        estudiante = db.prepare('SELECT * FROM estudiantes WHERE id = ?').get(resEst.lastInsertRowid);
+      } catch (errEst) {
+        console.warn('[AUTH] Error al crear ficha de estudiante automática:', errEst);
+      }
+    }
+
     res.json({
       success: true,
       user: newUser,
+      estudiante: estudiante,
       hijos: []
     });
   } catch (err) {
