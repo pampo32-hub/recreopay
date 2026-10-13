@@ -639,6 +639,23 @@ function seedUsuarios() {
         db.prepare("INSERT INTO usuarios (username, password_hash, rol, nombre, telefono, email, activo) VALUES ('cajero', 'cajero123', 'cajero', 'Cajero de la Soda', '+506 8888-0000', 'caja@recreopay.cr', 1)").run();
       }
     } catch (e) {}
+
+    // Asegurar cuentas para revisión de Google Play Console
+    try {
+      const gTester = db.prepare("SELECT id FROM usuarios WHERE username = 'google_tester'").get();
+      if (!gTester) {
+        const uRes = db.prepare("INSERT INTO usuarios (username, password_hash, rol, nombre, telefono, email, activo, fecha_nacimiento, escuela_id) VALUES ('google_tester', 'SiboPay2026!', 'estudiante', 'Google Play Reviewer', '+506 8888-0001', 'google_tester@sibopay.cr', 1, '2008-05-15', 1)").run();
+        db.prepare("INSERT INTO estudiantes (usuario_id, codigo_estudiante, nombre_completo, edad, grado, seccion, qr_token, pin_seguridad, foto_url, saldo_colones, limite_diario_colones, alergias, padre_nombre, padre_telefono, padre_usuario_id, permitir_transferencias, tarjeta_bloqueada, activo, escuela_id) VALUES (?, 'EST-GOOGLE-001', 'Google Play Reviewer', 16, 'Secundaria', '10-A', 'QR-GOOGLE-REVIEWER-2026', '1234', NULL, 25000, 50000, 'Ninguna conocida', '', '', NULL, 1, 0, 1, 1)").run(uRes.lastInsertRowid);
+      }
+    } catch (e) {}
+
+    try {
+      const gPadre = db.prepare("SELECT id FROM usuarios WHERE username = 'google_padre'").get();
+      if (!gPadre) {
+        const pRes = db.prepare("INSERT INTO usuarios (username, password_hash, rol, nombre, telefono, email, activo, fecha_nacimiento, escuela_id) VALUES ('google_padre', 'SiboPay2026!', 'padre', 'Google Reviewer (Padre)', '+506 8888-0002', 'google_padre@sibopay.cr', 1, '1985-04-20', 1)").run();
+        db.prepare("INSERT INTO padres_estudiantes (padre_usuario_id, estudiante_id) VALUES (?, 1)").run(pRes.lastInsertRowid);
+      }
+    } catch (e) {}
   }
 }
 
