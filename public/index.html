@@ -11,15 +11,32 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="SiboPay">
-  <link rel="preload" href="/css/styles.css?v=19.9" as="style">
-  <link rel="preload" href="/js/app.js?v=20.5" as="script">
-  <link rel="stylesheet" href="/css/styles.css?v=19.9">
+  <link rel="preload" href="/css/styles.css?v=20.0" as="style">
+  <link rel="preload" href="/js/app.js?v=20.9" as="script">
+  <link rel="stylesheet" href="/css/styles.css?v=20.0">
   <link rel="stylesheet" href="/css/desktop.css?v=2.2">
   <style>
     /* Transiciones suaves */
     .fade-enter { animation: fadeIn 0.2s ease-in-out; }
     @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
   </style>
+  <script>
+    function togglePasswordVisibility(inputId, btn) {
+      var input = document.getElementById(inputId);
+      if (!input) return;
+      var isPassword = input.type === 'password';
+      input.type = isPassword ? 'text' : 'password';
+      if (btn) {
+        btn.title = isPassword ? 'Ocultar contraseña' : 'Ver contraseña';
+        btn.setAttribute('aria-label', btn.title);
+        btn.style.color = isPassword ? '#0284c7' : '';
+        btn.innerHTML = isPassword
+          ? '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9.88 9.88a3 3 0 1 0 4.24 4.24"/><path d="M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68"/><path d="M6.61 6.61A13.526 13.526 0 0 0 2 12s3 7 10 7a9.74 9.74 0 0 0 5.39-1.61"/><line x1="2" x2="22" y1="2" y2="22"/></svg>'
+          : '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>';
+      }
+    }
+    window.togglePasswordVisibility = togglePasswordVisibility;
+  </script>
 </head>
 <body class="">
 
@@ -81,7 +98,12 @@
 
             <div class="login-form-group" style="margin-bottom: 8px;">
               <label id="lblLoginPass" for="loginPassword">Contraseña o PIN:</label>
-              <input type="password" id="loginPassword" class="login-input" placeholder="••••••••" required autocomplete="current-password">
+              <div class="password-input-wrapper">
+                <input type="password" id="loginPassword" class="login-input" placeholder="••••••••" required autocomplete="current-password">
+                <button type="button" class="btn-toggle-password" onclick="togglePasswordVisibility('loginPassword', this)" title="Ver contraseña" aria-label="Ver contraseña">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
+                </button>
+              </div>
             </div>
 
             <div style="display: flex; justify-content: flex-end; margin-top: -2px; margin-bottom: 14px;">
@@ -226,7 +248,12 @@
 
             <div class="login-form-group">
               <label for="regPassword">Contraseña:</label>
-              <input type="password" id="regPassword" class="login-input" placeholder="Mínimo 6 caracteres" minlength="6" required autocomplete="new-password">
+              <div class="password-input-wrapper">
+                <input type="password" id="regPassword" class="login-input" placeholder="Mínimo 6 caracteres" minlength="6" required autocomplete="new-password">
+                <button type="button" class="btn-toggle-password" onclick="togglePasswordVisibility('regPassword', this)" title="Ver contraseña" aria-label="Ver contraseña">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
+                </button>
+              </div>
             </div>
 
             <div id="registerErrorMsg" style="display: none; background: #fee2e2; border: 1px solid #fca5a5; color: #991b1b; padding: 8px 12px; border-radius: 10px; font-size: 0.8rem; font-weight: 700; margin-bottom: 12px; text-align: center;"></div>
@@ -282,12 +309,22 @@
 
               <div class="login-form-group">
                 <label for="forgotNewPass">Nueva Contraseña:</label>
-                <input type="password" id="forgotNewPass" class="login-input" placeholder="Mínimo 6 caracteres" minlength="6" required autocomplete="new-password">
+                <div class="password-input-wrapper">
+                  <input type="password" id="forgotNewPass" class="login-input" placeholder="Mínimo 6 caracteres" minlength="6" required autocomplete="new-password">
+                  <button type="button" class="btn-toggle-password" onclick="togglePasswordVisibility('forgotNewPass', this)" title="Ver contraseña" aria-label="Ver contraseña">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
+                  </button>
+                </div>
               </div>
 
               <div class="login-form-group">
                 <label for="forgotConfirmPass">Confirmar Nueva Contraseña:</label>
-                <input type="password" id="forgotConfirmPass" class="login-input" placeholder="Repite la contraseña" minlength="6" required autocomplete="new-password">
+                <div class="password-input-wrapper">
+                  <input type="password" id="forgotConfirmPass" class="login-input" placeholder="Repite la contraseña" minlength="6" required autocomplete="new-password">
+                  <button type="button" class="btn-toggle-password" onclick="togglePasswordVisibility('forgotConfirmPass', this)" title="Ver contraseña" aria-label="Ver contraseña">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
+                  </button>
+                </div>
               </div>
 
               <div id="forgotMsgStep2" style="display: none; padding: 9px 12px; border-radius: 10px; font-size: 0.82rem; font-weight: 700; margin-bottom: 12px; text-align: center;"></div>
@@ -3940,7 +3977,12 @@
 
         <div style="margin-bottom: 10px;">
           <label style="display: block; font-size: 0.78rem; font-weight: 800; color: var(--text-main); margin-bottom: 3px;" id="lblStaffPassword">Contraseña de Acceso *:</label>
-          <input type="password" id="adminStaffPassword" placeholder="••••••••" style="width: 100%; padding: 9px 12px; border-radius: 8px; border: 1.5px solid var(--border); font-weight: 700; box-sizing: border-box; background: var(--card-bg); color: var(--text-main);">
+          <div class="password-input-wrapper">
+            <input type="password" id="adminStaffPassword" placeholder="••••••••" style="width: 100%; padding: 9px 12px; border-radius: 8px; border: 1.5px solid var(--border); font-weight: 700; box-sizing: border-box; background: var(--card-bg); color: var(--text-main);">
+            <button type="button" class="btn-toggle-password" onclick="togglePasswordVisibility('adminStaffPassword', this)" title="Ver contraseña" aria-label="Ver contraseña">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
+            </button>
+          </div>
           <small id="hintStaffPassword" style="display: none; font-size: 0.7rem; color: var(--text-muted); margin-top: 3px;">Deja en blanco para conservar la contraseña actual.</small>
         </div>
 
@@ -4384,7 +4426,12 @@
         <label style="display: block; font-size: 0.74rem; font-weight: 800; color: var(--text-main); margin-bottom: 4px;">
           Contraseña o palabra de confirmación:
         </label>
-        <input type="password" id="inputConfirmarPassEliminar" placeholder="Contraseña o escribe ELIMINAR" style="width: 100%; height: 40px; padding: 0 12px; border: 1.5px solid #cbd5e1; border-radius: 9px; font-size: 0.88rem; box-sizing: border-box; background: var(--bg-main); color: var(--text-main);">
+        <div class="password-input-wrapper">
+          <input type="password" id="inputConfirmarPassEliminar" placeholder="Contraseña o escribe ELIMINAR" style="width: 100%; height: 40px; padding: 0 12px; border: 1.5px solid #cbd5e1; border-radius: 9px; font-size: 0.88rem; box-sizing: border-box; background: var(--bg-main); color: var(--text-main);">
+          <button type="button" class="btn-toggle-password" onclick="togglePasswordVisibility('inputConfirmarPassEliminar', this)" title="Ver contraseña" aria-label="Ver contraseña">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
+          </button>
+        </div>
       </div>
 
       <div style="display: flex; gap: 8px; justify-content: flex-end;">
@@ -4602,7 +4649,12 @@
 
         <div id="devPasswordRow" style="margin-bottom: 12px;">
           <label id="devPasswordLabel" style="font-size: 0.8rem; font-weight: 800; color: var(--text-main); display: block; margin-bottom: 4px;">Contraseña:</label>
-          <input type="password" id="devInputPassword" placeholder="Contraseña de acceso" style="width: 100%; padding: 9px 12px; border-radius: 10px; border: 1.5px solid var(--border); background: var(--bg-main); color: var(--text-main); font-weight: 700; box-sizing: border-box;">
+          <div class="password-input-wrapper">
+            <input type="password" id="devInputPassword" placeholder="Contraseña de acceso" style="width: 100%; padding: 9px 12px; border-radius: 10px; border: 1.5px solid var(--border); background: var(--bg-main); color: var(--text-main); font-weight: 700; box-sizing: border-box;">
+            <button type="button" class="btn-toggle-password" onclick="togglePasswordVisibility('devInputPassword', this)" title="Ver contraseña" aria-label="Ver contraseña">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
+            </button>
+          </div>
           <small id="devPasswordHelp" style="font-size: 0.72rem; color: var(--text-muted); display: none;">Dejar en blanco si no deseas cambiar la contraseña actual.</small>
         </div>
 
@@ -4650,7 +4702,12 @@
         
         <div style="margin-bottom: 16px;">
           <label style="font-size: 0.82rem; font-weight: 800; color: var(--text-main); display: block; margin-bottom: 6px;">Nueva Contraseña:</label>
-          <input type="password" id="devInputNewPassword" required minlength="4" placeholder="Mínimo 4 caracteres" style="width: 100%; padding: 11px 12px; border-radius: 10px; border: 1.5px solid var(--border); background: var(--bg-main); color: var(--text-main); font-weight: 700; box-sizing: border-box; font-size: 0.95rem;">
+          <div class="password-input-wrapper">
+            <input type="password" id="devInputNewPassword" required minlength="4" placeholder="Mínimo 4 caracteres" style="width: 100%; padding: 11px 12px; border-radius: 10px; border: 1.5px solid var(--border); background: var(--bg-main); color: var(--text-main); font-weight: 700; box-sizing: border-box; font-size: 0.95rem;">
+            <button type="button" class="btn-toggle-password" onclick="togglePasswordVisibility('devInputNewPassword', this)" title="Ver contraseña" aria-label="Ver contraseña">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
+            </button>
+          </div>
         </div>
 
         <div style="display: flex; justify-content: flex-end; gap: 10px; border-top: 1.5px solid var(--border); padding-top: 14px;">
@@ -5667,6 +5724,6 @@
   <script src="/js/sounds.js?v=19.4"></script>
   <script src="/js/jsQR.js" defer></script>
   <script src="/js/food-icons.js?v=19.4" defer></script>
-  <script src="/js/app.js?v=20.8"></script>
+  <script src="/js/app.js?v=20.9"></script>
 </body>
 </html>

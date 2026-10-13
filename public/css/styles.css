@@ -2680,6 +2680,53 @@ body.dark-mode .floating-cart-bar {
   box-shadow: 0 0 0 3px rgba(2, 132, 199, 0.15);
 }
 
+/* Envoltorio para alternar visualización de contraseñas */
+.password-input-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+  width: 100%;
+}
+
+.password-input-wrapper input {
+  padding-right: 44px !important;
+}
+
+.btn-toggle-password {
+  position: absolute;
+  right: 6px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  padding: 8px;
+  cursor: pointer;
+  color: #64748b;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  transition: all 0.15s ease;
+  z-index: 2;
+}
+
+.btn-toggle-password:hover,
+.btn-toggle-password:focus-visible {
+  color: #0284c7;
+  background: rgba(2, 132, 199, 0.1);
+  outline: none;
+}
+
+body.dark-mode .btn-toggle-password {
+  color: #94a3b8;
+}
+
+body.dark-mode .btn-toggle-password:hover,
+body.dark-mode .btn-toggle-password:focus-visible {
+  color: #38bdf8;
+  background: rgba(56, 189, 248, 0.15);
+}
+
 .login-submit-btn {
   width: 100%;
   padding: 13px;
