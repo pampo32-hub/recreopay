@@ -1167,6 +1167,45 @@ function updateStudentUI() {
     ? currentStudent.disponible_hoy
     : Math.max(0, limiteDiario - gastadoHoy - saldoRetenido);
 
+  const isSelfManaged = !currentStudent.padre_usuario_id;
+  const badgeTitleEl = document.getElementById('dailyLimitBadgeTitle');
+  const editHintEl = document.getElementById('dailyLimitEditHint');
+  const badgeEl = document.getElementById('dailyLimitBadge');
+  const gastadoEl = document.getElementById('dailyGastadoText');
+  const progressContainer = document.getElementById('studentBudgetProgressBarContainer');
+  const progressBar = document.getElementById('studentBudgetProgressBar');
+  const btnPresupuestoLabel = document.getElementById('btnStudentPresupuestoLabel');
+
+  if (badgeTitleEl) {
+    badgeTitleEl.textContent = isSelfManaged ? 'Mi Presupuesto Diario: ' : 'Límite diario fijado: ';
+  }
+  if (btnPresupuestoLabel) {
+    btnPresupuestoLabel.textContent = isSelfManaged ? 'Mi Presupuesto' : 'Ver Presupuesto';
+  }
+  if (editHintEl) {
+    editHintEl.style.display = isSelfManaged ? 'inline-block' : 'none';
+  }
+  if (badgeEl) {
+    badgeEl.title = isSelfManaged ? 'Toca para ajustar tu meta diaria de gasto' : 'Límite diario establecido por tus padres';
+  }
+  if (gastadoEl) {
+    gastadoEl.textContent = `Gastado hoy: ₡${gastadoHoy.toLocaleString('es-CR')}`;
+  }
+
+  // Barra de progreso del presupuesto
+  if (progressContainer && progressBar) {
+    progressContainer.style.display = 'block';
+    const pct = limiteDiario > 0 ? Math.min(100, Math.round((gastadoHoy / limiteDiario) * 100)) : 0;
+    progressBar.style.width = `${pct}%`;
+    if (pct >= 100) {
+      progressBar.style.background = '#ef4444';
+    } else if (pct >= 70) {
+      progressBar.style.background = '#f59e0b';
+    } else {
+      progressBar.style.background = '#10b981';
+    }
+  }
+
   document.getElementById('dailyLimitText').textContent = `₡${limiteDiario.toLocaleString('es-CR')}`;
   document.getElementById('dailyAvailableText').textContent = `Disponible hoy: ₡${disponibleHoy.toLocaleString('es-CR')}`;
 
@@ -1182,7 +1221,9 @@ function updateStudentUI() {
       if (msgEl) {
         msgEl.textContent = tienePreordenes
           ? 'Has alcanzado tu límite diario de consumo. Tu código QR solo podrá ser escaneado en la soda para retirar tu Pre-Orden.'
-          : `Has alcanzado tu límite diario de ₡${limiteDiario.toLocaleString('es-CR')} asignado por tus padres. La generación del código QR para compras está bloqueada hasta mañana.`;
+          : (isSelfManaged
+              ? `Has consumido tu presupuesto diario de ₡${limiteDiario.toLocaleString('es-CR')}. Si necesitas realizar más compras hoy, puedes ajustar tu presupuesto personal tocando "Mi Presupuesto".`
+              : `Has alcanzado tu límite diario de ₡${limiteDiario.toLocaleString('es-CR')} asignado por tus padres. La generación del código QR para compras está bloqueada hasta mañana.`);
       }
     } else {
       bannerLimitBlocked.style.display = 'none';
@@ -2037,6 +2078,25 @@ async function submitPreOrder() {
     cantidad: item.cantidad
   }));
 
+  // Verificación preventiva de presupuesto personal para alumnos autoadministrados
+  const totalCart = cart.reduce((acc, it) => acc + (it.product.precio_colones * it.cantidad), 0);
+  const limiteDiario = targetStudent.limite_diario_colones || 0;
+  const gastadoHoy = targetStudent.gastado_hoy || 0;
+  const retenido = targetStudent.saldo_retenido || 0;
+  const disponibleHoy = Math.max(0, limiteDiario - gastadoHoy - retenido);
+
+  if (limiteDiario > 0 && totalCart > disponibleHoy) {
+    const isSelfManaged = !targetStudent.padre_usuario_id;
+    if (isSelfManaged && (!currentUser || currentUser.rol === 'estudiante')) {
+      const respAjustar = confirm(`⚠️ Aviso de Presupuesto Personal:\n\nEste pedido suma ₡${totalCart.toLocaleString('es-CR')} y tu presupuesto disponible para hoy es de ₡${disponibleHoy.toLocaleString('es-CR')}.\n\nComo estudiante independiente, ¿deseas ajustar tu presupuesto diario personal antes de realizar este pedido?`);
+      if (respAjustar) {
+        closeCartModal();
+        abrirModalPresupuestoPersonal();
+        return;
+      }
+    }
+  }
+
   const btn = document.getElementById('btnConfirmarOrden');
   btn.disabled = true;
   btn.textContent = 'Procesando en la soda...';
@@ -2623,10 +2683,11 @@ function toggleParentPanel(show, e) {
 }
 
 function openDailyLimitEditor() {
-  // SEGURIDAD: Los estudiantes no pueden modificar su límite diario
-  if (!currentUser || currentUser.rol === 'estudiante') {
+  if (currentUser && currentUser.rol === 'estudiante') {
+    abrirModalPresupuestoPersonal();
     return;
   }
+  if (!currentUser) return;
   toggleParentPanel(true);
   setTimeout(() => {
     const input = document.getElementById('inputCustomDailyLimit');
@@ -5266,19 +5327,32 @@ async function executeParentSinpeRecharge() {
     `;
   }
 
-  currentSinpePollingData = {
+  await ejecutarSondeoValidacionSinpe({
     studentId: currentParentChild.id,
     studentName: currentParentChild.nombre_completo,
     monto,
     codigo,
-    comprobante
+    comprobante,
+    isStudentMode: false,
+    btn
+  });
+}
+
+async function ejecutarSondeoValidacionSinpe({ studentId, studentName, monto, codigo, comprobante, isStudentMode, btn }) {
+  currentSinpePollingData = {
+    studentId,
+    studentName,
+    monto,
+    codigo,
+    comprobante,
+    isStudentMode: Boolean(isStudentMode)
   };
 
   // Abrir modal con estado LOADING (sin barra ni contador de segundos)
   showSinpeModal('loading', {
-    studentName: currentParentChild.nombre_completo,
-    monto: monto,
-    codigo: codigo
+    studentName,
+    monto,
+    codigo
   });
 
   const pollIntervalMs = 3000;   // Consulta cada 3 segundos
@@ -5320,8 +5394,8 @@ async function executeParentSinpeRecharge() {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            estudiante_id: currentParentChild.id,
-            padre_usuario_id: currentUser ? currentUser.id : null,
+            estudiante_id: studentId,
+            padre_usuario_id: currentUser && currentUser.rol === 'padre' ? currentUser.id : null,
             monto,
             codigo,
             comprobante: comprobante || null
@@ -5359,28 +5433,47 @@ async function executeParentSinpeRecharge() {
     if (verifiedData && verifiedData.verificado) {
       if (window.sounds) window.sounds.playCoin();
 
+      const baseSaldo = (currentParentChild && currentParentChild.id === studentId)
+        ? (currentParentChild.saldo_colones || 0)
+        : ((currentStudent && currentStudent.id === studentId) ? (currentStudent.saldo_colones || 0) : 0);
+
       const nuevoSaldo = typeof verifiedData.saldo_nuevo === 'number'
         ? verifiedData.saldo_nuevo
-        : (currentParentChild.saldo_colones + monto);
+        : (baseSaldo + monto);
 
-      currentParentChild.saldo_colones = nuevoSaldo;
-      renderActiveChildDetails(currentParentChild);
+      if (currentParentChild && currentParentChild.id === studentId) {
+        currentParentChild.saldo_colones = nuevoSaldo;
+        renderActiveChildDetails(currentParentChild);
+      }
+      if (currentStudent && currentStudent.id === studentId) {
+        currentStudent.saldo_colones = nuevoSaldo;
+        updateStudentUI();
+      }
 
-      if (inputMonto) inputMonto.value = '';
-      if (inputComp) inputComp.value = '';
+      const inputParentMonto = document.getElementById('inputParentSinpeMonto');
+      const inputParentComp = document.getElementById('inputParentSinpeComprobante');
+      if (inputParentMonto) inputParentMonto.value = '';
+      if (inputParentComp) inputParentComp.value = '';
+
+      const inputStudentMonto = document.getElementById('inputStudentSinpeMonto');
+      const inputStudentComp = document.getElementById('inputStudentSinpeComprobante');
+      if (inputStudentMonto) inputStudentMonto.value = '';
+      if (inputStudentComp) inputStudentComp.value = '';
 
       showSinpeModal('success', {
-        studentName: currentParentChild.nombre_completo,
-        monto: monto,
+        studentName,
+        monto,
         banco: verifiedData.banco || 'Bancario',
         comprobante: verifiedData.comprobante || verifiedData.codigo || codigo,
-        codigo: codigo,
-        nuevoSaldo: nuevoSaldo
+        codigo,
+        nuevoSaldo
       });
 
-      await loadParentSinpeRequests(currentParentChild.id);
-      clearSinpeSession();
-      obtenerNuevoCodigoSinpe();
+      if (currentParentChild && currentParentChild.id === studentId) {
+        await loadParentSinpeRequests(currentParentChild.id);
+        clearSinpeSession();
+        obtenerNuevoCodigoSinpe();
+      }
       return;
     }
 
@@ -5402,9 +5495,9 @@ async function executeParentSinpeRecharge() {
     // ============================================
     if (window.sounds) window.sounds.playTap();
     showSinpeModal('timeout', {
-      studentName: currentParentChild.nombre_completo,
-      monto: monto,
-      codigo: codigo
+      studentName,
+      monto,
+      codigo
     });
 
   } catch (err) {
@@ -5418,10 +5511,15 @@ async function executeParentSinpeRecharge() {
   } finally {
     if (btn) {
       btn.disabled = false;
-      btn.innerHTML = `
-        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
-        <span id="btnParentValidarSinpeText">Validar SINPE</span>
-      `;
+      if (isStudentMode) {
+        const btnTxt = document.getElementById('btnEnviarRecargaSinpeEstudianteTxt');
+        if (btnTxt) btnTxt.textContent = 'Validar y Recargar Saldo';
+      } else {
+        btn.innerHTML = `
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+          <span id="btnParentValidarSinpeText">Validar SINPE</span>
+        `;
+      }
     }
   }
 }
@@ -5505,13 +5603,22 @@ async function retrySinpeWaitMore() {
 
     if (verifiedData && verifiedData.verificado) {
       if (window.sounds) window.sounds.playCoin();
+
+      const baseSaldo = (currentParentChild && currentParentChild.id === studentId)
+        ? (currentParentChild.saldo_colones || 0)
+        : ((currentStudent && currentStudent.id === studentId) ? (currentStudent.saldo_colones || 0) : 0);
+
       const nuevoSaldo = typeof verifiedData.saldo_nuevo === 'number'
         ? verifiedData.saldo_nuevo
-        : ((currentParentChild ? currentParentChild.saldo_colones : 0) + monto);
+        : (baseSaldo + monto);
 
-      if (currentParentChild) {
+      if (currentParentChild && currentParentChild.id === studentId) {
         currentParentChild.saldo_colones = nuevoSaldo;
         renderActiveChildDetails(currentParentChild);
+      }
+      if (currentStudent && currentStudent.id === studentId) {
+        currentStudent.saldo_colones = nuevoSaldo;
+        updateStudentUI();
       }
 
       const inputMonto = document.getElementById('inputParentSinpeMonto');
@@ -5519,8 +5626,13 @@ async function retrySinpeWaitMore() {
       if (inputMonto) inputMonto.value = '';
       if (inputComp) inputComp.value = '';
 
+      const inputStudentMonto = document.getElementById('inputStudentSinpeMonto');
+      const inputStudentComp = document.getElementById('inputStudentSinpeComprobante');
+      if (inputStudentMonto) inputStudentMonto.value = '';
+      if (inputStudentComp) inputStudentComp.value = '';
+
       showSinpeModal('success', {
-        studentName: studentName || (currentParentChild ? currentParentChild.nombre_completo : ''),
+        studentName: studentName || (currentParentChild ? currentParentChild.nombre_completo : (currentStudent ? currentStudent.nombre_completo : '')),
         monto,
         banco: verifiedData.banco || 'Bancario',
         comprobante: verifiedData.comprobante || verifiedData.codigo || codigo,
@@ -5528,11 +5640,11 @@ async function retrySinpeWaitMore() {
         nuevoSaldo
       });
 
-      if (currentParentChild) {
+      if (currentParentChild && currentParentChild.id === studentId) {
         await loadParentSinpeRequests(currentParentChild.id);
+        clearSinpeSession();
+        obtenerNuevoCodigoSinpe();
       }
-      clearSinpeSession();
-      obtenerNuevoCodigoSinpe();
       return;
     }
 
@@ -5574,11 +5686,13 @@ async function confirmSinpeSendManualReview() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         estudiante_id: studentId,
-        padre_usuario_id: currentUser ? currentUser.id : null,
+        padre_usuario_id: currentUser && currentUser.rol === 'padre' ? currentUser.id : null,
         monto,
         comprobante: comprobante || `SINPE-${codigo}`,
         codigo_detalle: codigo,
-        notas: `Portal de Padres - Código: ${codigo}`
+        notas: (currentUser && currentUser.rol === 'padre') 
+          ? `Portal de Padres - Código: ${codigo}` 
+          : `Autorecarga estudiante: ${studentName || ''}`
       })
     });
   } catch (solErr) {
@@ -5590,18 +5704,338 @@ async function confirmSinpeSendManualReview() {
   if (inputMonto) inputMonto.value = '';
   if (inputComp) inputComp.value = '';
 
+  const inputStudentMonto = document.getElementById('inputStudentSinpeMonto');
+  const inputStudentComp = document.getElementById('inputStudentSinpeComprobante');
+  if (inputStudentMonto) inputStudentMonto.value = '';
+  if (inputStudentComp) inputStudentComp.value = '';
+
   showSinpeModal('pending', {
-    studentName: studentName || (currentParentChild ? currentParentChild.nombre_completo : ''),
+    studentName: studentName || (currentParentChild ? currentParentChild.nombre_completo : (currentStudent ? currentStudent.nombre_completo : '')),
     monto,
     codigo
   });
 
-  if (currentParentChild) {
+  if (currentParentChild && currentParentChild.id === studentId) {
     await loadParentSinpeRequests(currentParentChild.id);
+    clearSinpeSession();
+    obtenerNuevoCodigoSinpe();
   }
-  clearSinpeSession();
-  obtenerNuevoCodigoSinpe();
+  if (currentStudent && currentStudent.id === studentId) {
+    updateStudentUI();
+  }
 }
+
+// ==========================================
+// AUTORECARGA SINPE PARA ESTUDIANTES AUTOADMINISTRADOS
+// ==========================================
+let currentStudentSinpeCode = null;
+
+async function abrirModalRecargaSinpeEstudiante() {
+  if (!currentStudent) return;
+  const modal = document.getElementById('modalRecargaSinpeEstudiante');
+  if (!modal) return;
+
+  const numEl = document.getElementById('studentSinpeNumeroDisplay');
+  const titEl = document.getElementById('studentSinpeTitularDisplay');
+  const escEl = document.getElementById('studentSinpeEscuelaDisplay');
+  const codEl = document.getElementById('studentSinpeCodigoDisplay');
+  const bannerSusp = document.getElementById('studentSinpeSuspendedBanner');
+  const msgSusp = document.getElementById('studentSinpeSuspendedMsg');
+  const formBox = document.getElementById('studentSinpeFormContainer');
+
+  if (codEl) codEl.textContent = 'GENERANDO...';
+
+  try {
+    const res = await fetch('/api/sinpe/generar-codigo', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ estudiante_id: currentStudent.id })
+    });
+    const data = await res.json();
+
+    if (data.suspended) {
+      if (bannerSusp) bannerSusp.style.display = 'block';
+      if (msgSusp && data.mensaje_suspension) msgSusp.textContent = data.mensaje_suspension;
+      if (formBox) {
+        formBox.style.opacity = '0.4';
+        formBox.style.pointerEvents = 'none';
+      }
+    } else {
+      if (bannerSusp) bannerSusp.style.display = 'none';
+      if (formBox) {
+        formBox.style.opacity = '1';
+        formBox.style.pointerEvents = 'auto';
+      }
+    }
+
+    if (numEl && data.telefono_sinpe) numEl.textContent = data.telefono_sinpe;
+    if (titEl && data.titular_sinpe) titEl.textContent = data.titular_sinpe;
+    if (escEl && data.escuela_nombre) escEl.textContent = data.escuela_nombre;
+
+    currentStudentSinpeCode = data.codigo || `SIBO-${currentStudent.codigo_estudiante || ''}`;
+    if (codEl) codEl.textContent = currentStudentSinpeCode;
+
+  } catch (e) {
+    console.warn('Error cargando datos SINPE para estudiante:', e);
+    currentStudentSinpeCode = `SIBO-${currentStudent.codigo_estudiante || ''}`;
+    if (codEl) codEl.textContent = currentStudentSinpeCode;
+  }
+
+  const inpMonto = document.getElementById('inputStudentSinpeMonto');
+  const inpComp = document.getElementById('inputStudentSinpeComprobante');
+  if (inpMonto) inpMonto.value = '';
+  if (inpComp) inpComp.value = '';
+
+  modal.style.display = 'flex';
+  if (window.sounds) window.sounds.playTap();
+}
+
+function cerrarModalRecargaSinpeEstudiante() {
+  const modal = document.getElementById('modalRecargaSinpeEstudiante');
+  if (modal) modal.style.display = 'none';
+}
+
+function handleModalRecargaSinpeEstudianteBackdrop(event) {
+  if (event && event.target && event.target.id === 'modalRecargaSinpeEstudiante') {
+    cerrarModalRecargaSinpeEstudiante();
+  }
+}
+
+function copiarTelefonoSinpeEstudiante() {
+  const tel = (document.getElementById('studentSinpeNumeroDisplay')?.textContent || '').trim();
+  if (!tel) return;
+
+  const lbl = document.getElementById('lblCopiarTelSinpeEstudiante');
+  const onDone = () => {
+    if (window.sounds) window.sounds.playTap();
+    if (lbl) lbl.textContent = '¡Copiado! ✓';
+    setTimeout(() => { if (lbl) lbl.textContent = '📋 Copiar'; }, 2000);
+  };
+
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(tel.replace(/\D/g, '')).then(onDone).catch(() => fallbackCopyText(tel.replace(/\D/g, ''), onDone));
+  } else {
+    fallbackCopyText(tel.replace(/\D/g, ''), onDone);
+  }
+}
+
+function copiarCodigoSinpeEstudiante() {
+  const cod = currentStudentSinpeCode || (document.getElementById('studentSinpeCodigoDisplay')?.textContent || '').trim();
+  if (!cod || cod.includes('GENERANDO')) return;
+
+  const lbl = document.getElementById('lblCopiarCodSinpeEstudiante');
+  const onDone = () => {
+    if (window.sounds) window.sounds.playTap();
+    if (lbl) lbl.textContent = '¡Copiado! ✓';
+    setTimeout(() => { if (lbl) lbl.textContent = 'Copiar'; }, 2000);
+  };
+
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(cod).then(onDone).catch(() => fallbackCopyText(cod, onDone));
+  } else {
+    fallbackCopyText(cod, onDone);
+  }
+}
+
+function setStudentSinpeMonto(monto) {
+  const inp = document.getElementById('inputStudentSinpeMonto');
+  if (inp) {
+    inp.value = monto;
+    inp.focus();
+  }
+  if (window.sounds) window.sounds.playCoin();
+}
+
+async function enviarRecargaSinpeEstudiante() {
+  if (!currentStudent) return;
+  const bannerSusp = document.getElementById('studentSinpeSuspendedBanner');
+  if (bannerSusp && bannerSusp.style.display !== 'none') {
+    alert('Las recargas por SINPE Móvil se encuentran temporalmente en pausa técnica en esta sede.');
+    return;
+  }
+
+  const inpMonto = document.getElementById('inputStudentSinpeMonto');
+  const inpComp = document.getElementById('inputStudentSinpeComprobante');
+  const monto = parseInt(inpMonto ? inpMonto.value : 0, 10);
+  const comprobante = inpComp ? inpComp.value.trim() : '';
+  const codigo = currentStudentSinpeCode || `SIBO-${currentStudent.codigo_estudiante || ''}`;
+
+  if (isNaN(monto) || monto <= 0) {
+    alert('Por favor ingresa un monto válido mayor a ₡0 para procesar tu recarga SINPE.');
+    if (inpMonto) inpMonto.focus();
+    return;
+  }
+
+  if (!comprobante) {
+    alert('Por favor escribe el número de comprobante o referencia que te brindó el banco.');
+    if (inpComp) inpComp.focus();
+    return;
+  }
+
+  const btn = document.getElementById('btnEnviarRecargaSinpeEstudiante');
+  if (btn) {
+    btn.disabled = true;
+    const btnTxt = document.getElementById('btnEnviarRecargaSinpeEstudianteTxt');
+    if (btnTxt) btnTxt.textContent = 'Validando con el banco...';
+  }
+
+  cerrarModalRecargaSinpeEstudiante();
+
+  await ejecutarSondeoValidacionSinpe({
+    studentId: currentStudent.id,
+    studentName: currentStudent.nombre_completo,
+    monto,
+    codigo,
+    comprobante,
+    isStudentMode: true,
+    btn
+  });
+}
+
+// ==========================================
+// PRESUPUESTO PERSONAL / CONTROL DE GASTOS PARA ESTUDIANTES
+// ==========================================
+function abrirModalPresupuestoPersonal() {
+  if (!currentStudent) return;
+  const modal = document.getElementById('modalPresupuestoEstudiante');
+  if (!modal) return;
+
+  const limiteDiario = currentStudent.limite_diario_colones || 0;
+  const gastadoHoy = currentStudent.gastado_hoy || 0;
+  const saldoRetenido = currentStudent.saldo_retenido || 0;
+  const disponibleHoy = (typeof currentStudent.disponible_hoy === 'number')
+    ? currentStudent.disponible_hoy
+    : Math.max(0, limiteDiario - gastadoHoy - saldoRetenido);
+
+  const pct = limiteDiario > 0 ? Math.min(100, Math.round((gastadoHoy / limiteDiario) * 100)) : 0;
+
+  const gastadoEl = document.getElementById('modalPresupuestoGastado');
+  const dispEl = document.getElementById('modalPresupuestoDisponible');
+  const pctEl = document.getElementById('modalPresupuestoPorcentaje');
+  const barEl = document.getElementById('modalPresupuestoBar');
+  const inputEl = document.getElementById('inputStudentPresupuestoMonto');
+  const lockedNotice = document.getElementById('modalPresupuestoParentLockedNotice');
+  const quickButtons = document.getElementById('studentPresupuestoQuickButtons');
+  const btnGuardar = document.getElementById('btnGuardarPresupuestoEstudiante');
+
+  if (gastadoEl) gastadoEl.textContent = `₡${gastadoHoy.toLocaleString('es-CR')}`;
+  if (dispEl) dispEl.textContent = `₡${disponibleHoy.toLocaleString('es-CR')}`;
+  if (pctEl) pctEl.textContent = `${pct}%`;
+  if (barEl) {
+    barEl.style.width = `${pct}%`;
+    if (pct >= 100) {
+      barEl.style.background = '#ef4444';
+      if (pctEl) pctEl.style.color = '#ef4444';
+    } else if (pct >= 70) {
+      barEl.style.background = '#f59e0b';
+      if (pctEl) pctEl.style.color = '#f59e0b';
+    } else {
+      barEl.style.background = '#10b981';
+      if (pctEl) pctEl.style.color = '#10b981';
+    }
+  }
+
+  if (inputEl) inputEl.value = limiteDiario;
+
+  const isSelfManaged = !currentStudent.padre_usuario_id;
+  if (isSelfManaged) {
+    if (lockedNotice) lockedNotice.style.display = 'none';
+    if (quickButtons) quickButtons.style.display = 'grid';
+    if (btnGuardar) btnGuardar.style.display = 'flex';
+    if (inputEl) inputEl.disabled = false;
+  } else {
+    if (lockedNotice) lockedNotice.style.display = 'block';
+    if (quickButtons) quickButtons.style.display = 'none';
+    if (btnGuardar) btnGuardar.style.display = 'none';
+    if (inputEl) inputEl.disabled = true;
+  }
+
+  modal.style.display = 'flex';
+  if (window.sounds) window.sounds.playTap();
+}
+
+function cerrarModalPresupuestoEstudiante() {
+  const modal = document.getElementById('modalPresupuestoEstudiante');
+  if (modal) modal.style.display = 'none';
+}
+
+function handleModalPresupuestoEstudianteBackdrop(event) {
+  if (event && event.target && event.target.id === 'modalPresupuestoEstudiante') {
+    cerrarModalPresupuestoEstudiante();
+  }
+}
+
+function setStudentBudgetMonto(monto) {
+  const inputEl = document.getElementById('inputStudentPresupuestoMonto');
+  if (inputEl) {
+    inputEl.value = monto;
+    inputEl.focus();
+  }
+  if (window.sounds) window.sounds.playCoin();
+}
+
+async function guardarPresupuestoPersonalEstudiante() {
+  if (!currentStudent) return;
+  const inputEl = document.getElementById('inputStudentPresupuestoMonto');
+  const val = parseInt(inputEl ? inputEl.value : 0, 10);
+
+  if (isNaN(val) || val < 500) {
+    alert('Por favor ingresa un presupuesto válido (mínimo ₡500).');
+    if (inputEl) inputEl.focus();
+    return;
+  }
+
+  const btn = document.getElementById('btnGuardarPresupuestoEstudiante');
+  if (btn) {
+    btn.disabled = true;
+    btn.textContent = 'Guardando meta...';
+  }
+
+  try {
+    const res = await fetch(`/api/estudiantes/${currentStudent.id}/limite`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ limite_diario_colones: val })
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Error al actualizar presupuesto');
+
+    currentStudent.limite_diario_colones = val;
+    currentStudent.disponible_hoy = Math.max(0, val - (currentStudent.gastado_hoy || 0) - (currentStudent.saldo_retenido || 0));
+
+    updateStudentUI();
+    cerrarModalPresupuestoEstudiante();
+
+    if (window.sounds) window.sounds.playSuccess();
+    alert(`🎯 ¡Presupuesto Actualizado!\n\nTu meta diaria de gasto ahora es de ₡${val.toLocaleString('es-CR')}.\n\nPodrás monitorear tu barra de consumo en tu monedero escolar.`);
+  } catch (err) {
+    if (window.sounds) window.sounds.playError();
+    alert(`No se pudo guardar el presupuesto: ${err.message}`);
+  } finally {
+    if (btn) {
+      btn.disabled = false;
+      btn.textContent = 'Guardar Presupuesto';
+    }
+  }
+}
+
+function handleDailyLimitBadgeClick() {
+  abrirModalPresupuestoPersonal();
+}
+
+window.abrirModalRecargaSinpeEstudiante = abrirModalRecargaSinpeEstudiante;
+window.cerrarModalRecargaSinpeEstudiante = cerrarModalRecargaSinpeEstudiante;
+window.handleModalRecargaSinpeEstudianteBackdrop = handleModalRecargaSinpeEstudianteBackdrop;
+window.copiarTelefonoSinpeEstudiante = copiarTelefonoSinpeEstudiante;
+window.copiarCodigoSinpeEstudiante = copiarCodigoSinpeEstudiante;
+window.setStudentSinpeMonto = setStudentSinpeMonto;
+window.enviarRecargaSinpeEstudiante = enviarRecargaSinpeEstudiante;
+window.abrirModalPresupuestoPersonal = abrirModalPresupuestoPersonal;
+window.cerrarModalPresupuestoEstudiante = cerrarModalPresupuestoEstudiante;
+window.handleModalPresupuestoEstudianteBackdrop = handleModalPresupuestoEstudianteBackdrop;
+window.setStudentBudgetMonto = setStudentBudgetMonto;
+window.guardarPresupuestoPersonalEstudiante = guardarPresupuestoPersonalEstudiante;
+window.handleDailyLimitBadgeClick = handleDailyLimitBadgeClick;
 
 async function loadParentSinpeRequests(studentId) {
   const box = document.getElementById('parentSinpePendingBox');
